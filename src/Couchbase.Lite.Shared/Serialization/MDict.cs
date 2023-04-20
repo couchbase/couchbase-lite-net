@@ -24,10 +24,7 @@ using System.Text;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
@@ -61,7 +58,7 @@ namespace Couchbase.Lite.Internal.Serialization
             
         }
 
-        public MDict(MValue mv, MCollection parent)
+        public MDict(MValue mv, MCollection? parent)
         {
             InitInSlot(mv, parent);
         }
@@ -94,8 +91,7 @@ namespace Couchbase.Lite.Internal.Serialization
             return _map.ContainsKey(key) || Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null;
         }
 
-        [NotNull]
-        public MValue Get([NotNull]string key)
+        public MValue Get(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
 
@@ -113,7 +109,7 @@ namespace Couchbase.Lite.Internal.Serialization
             return retVal;
         }
 
-        public void InitInSlot(MValue mv, MCollection parent)
+        public void InitInSlot(MValue mv, MCollection? parent)
         {
             InitInSlot(mv, parent, parent?.MutableChildren == true);
         }
@@ -156,7 +152,6 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Internal Methods
 
-        [NotNull]
         internal IEnumerable<KeyValuePair<string, MValue>> AllItems()
         {
             foreach (var item in _map) {
@@ -210,7 +205,6 @@ namespace Couchbase.Lite.Internal.Serialization
             return new KeyValuePair<string, MValue>(key, new MValue(value));
         }
 
-        [NotNull]
         private IEnumerable<KeyValuePair<string, MValue>> IterateDict()
         {
             // I hate this dance...but it's necessary to convince the commpiler to let
@@ -253,7 +247,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
                     Native.FLEncoder_WriteKey(enc, item.Key);
                     if (item.Value.HasNative) {
-                        item.Value.NativeObject.FLEncode(enc);
+                        item.Value.NativeObject!.FLEncode(enc);
                     } else if (item.Value.Value != null) {
                         Native.FLEncoder_WriteValue(enc, item.Value.Value);
                     } else {
@@ -278,12 +272,13 @@ namespace Couchbase.Lite.Internal.Serialization
         {
             base.InitAsCopyOf(original, isMutable);
             var d = original as MDict;
-            _dict = d != null ? d._dict : null;
-            _map = d?._map;
-            Count = d?.Count ?? 0;
+            Debug.Assert(d != null);
+            _dict = d._dict;
+            _map = d._map;
+            Count = d.Count;
         }
 
-        protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
+        protected override void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
         {
             base.InitInSlot(slot, parent, isMutable);
             Debug.Assert(_dict == null);

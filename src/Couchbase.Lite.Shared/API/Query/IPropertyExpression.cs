@@ -16,8 +16,6 @@
 // limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -34,8 +32,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="alias">The alias of the source to retrieve from</param>
         /// <returns>The expression, for further processing</returns>
-        [NotNull]
-        IExpression From([NotNull]string alias);
+        IExpression From(string alias);
 
         #endregion
     }

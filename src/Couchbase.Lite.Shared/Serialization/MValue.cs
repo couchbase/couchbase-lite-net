@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public bool IsMutated => Value == null;
 
-        public object NativeObject { get; private set; }
+        public object? NativeObject { get; private set; }
 
         public FLValue* Value { get; private set; }
 
@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Internal.Serialization
             IsEmpty = empty;
         }
 
-        public MValue(object o)
+        public MValue(object? o)
         {
             NativeObject = DataOps.ToCouchbaseObject(o);
         }

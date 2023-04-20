@@ -16,11 +16,8 @@
 // limitations under the License.
 // 
 using System;
-using System.Threading.Tasks;
 
 using Couchbase.Lite.Internal.Query;
-
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
@@ -34,21 +31,18 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Gets the error that occurred, if any
         /// </summary>
-        [CanBeNull]
-        public Exception Error { get; }
+        public Exception? Error { get; }
 
         /// <summary>
         /// Gets the updated rows of the query
         /// </summary>
-        [NotNull]
-        [ItemNotNull]
         public IResultSet Results { get; }
 
         #endregion
 
         #region Constructors
 
-        internal QueryChangedEventArgs(IResultSet rows, Exception e = null)
+        internal QueryChangedEventArgs(IResultSet? rows, Exception? e = null)
         {
             Results = rows ?? new NullResultSet();
             Error = e;
@@ -72,7 +66,6 @@ namespace Couchbase.Lite.Query
         /// The returned collection is a copy, and must be reset onto the query instance.
         /// Doing so will trigger a re-run and update any listeners.
         /// </remarks>
-        [NotNull]
         Parameters Parameters { get; set; }
 
         #endregion
@@ -85,7 +78,6 @@ namespace Couchbase.Lite.Query
         /// <returns>The results of running the query</returns>
         /// <exception cref="InvalidOperationException">Thrown if this query has
         /// no database to operate on, or if it is missing SELECT or FROM statements (unusual)</exception>
-        [NotNull]
         IResultSet Execute();
 
         /// <summary>
@@ -94,7 +86,6 @@ namespace Couchbase.Lite.Query
         /// <returns>The explanation of the query</returns>
         /// <exception cref="ObjectDisposedException">Thrown if this method is
         /// called after disposal</exception>
-        [NotNull]
         string Explain();
 
         #endregion

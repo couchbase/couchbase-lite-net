@@ -23,16 +23,14 @@ using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using Newtonsoft.Json;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
@@ -43,18 +41,17 @@ namespace Couchbase.Lite
     {
         #region Variables
 
-        private string _revId;
+        private string? _revId;
 
-        private C4DocumentWrapper _c4Doc;
+        private C4DocumentWrapper? _c4Doc;
 
         /// <summary>
         /// The backing dictionary for this document
         /// </summary>
-        protected IDictionaryObject _dict;
+        protected IDictionaryObject? _dict;
 
-        private MRoot _root;
+        private MRoot? _root;
 
-        [NotNull]
         internal readonly DisposalWatchdog _disposalWatchdog;
 
         #endregion
@@ -77,7 +74,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal C4DocumentWrapper c4Doc
+        internal C4DocumentWrapper? c4Doc
         {
             get => _c4Doc;
             set {
@@ -102,8 +99,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the database that this document belongs to, if any
         /// </summary>
-        [CanBeNull]
-        internal Database Database
+        internal Database? Database
         {
             get {
                 return Collection?.Database;
@@ -113,8 +109,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the Collection that this document belongs to, if any
         /// </summary>
-        [CanBeNull]
-        public Collection Collection { get; set; }
+        public Collection? Collection { get; set; }
 
         internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
 
@@ -123,8 +118,8 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets this document's unique ID
         /// </summary>
-        [NotNull]
         public string Id { get; }
+
         internal virtual bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->selectedRev.flags.HasFlag(C4RevisionFlags.Deleted));
 
         internal virtual bool IsEmpty => _dict?.Count == 0;
@@ -136,8 +131,7 @@ namespace Couchbase.Lite
         /// Newly created document will have a null RevisionID. The RevisionID in <see cref="MutableDocument" /> will be updated on save.
         /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
         /// </summary>
-        [CanBeNull]
-        public string RevisionID => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : _revId);
+        public string? RevisionID => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : _revId);
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
@@ -145,14 +139,22 @@ namespace Couchbase.Lite
         /// </summary>
         public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.sequence : 0UL);
 
-        [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
         /// <inheritdoc />
-        public IFragment this[string key] => _dict[key];
+        public IFragment this[string key]
+        {
+            get {
+                if(_dict == null) {
+                    throw new InvalidOperationException("Null _dict when trying to access key value");
+                }
+
+                return _dict[key];
+            }
+        }
 
         /// <inheritdoc />
-        public ICollection<string> Keys => _dict.Keys;
+        public ICollection<string> Keys => _dict?.Keys ?? throw new InvalidOperationException("Null _dict when trying to access Keys");
 
         /// <inheritdoc />
         public int Count => _dict?.Count ?? 0;
@@ -161,7 +163,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Document([CanBeNull] Collection collection, [NotNull]string id, C4DocumentWrapper c4Doc)
+        internal Document(Collection? collection, string id, C4DocumentWrapper? c4Doc)
         {
             Debug.Assert(id != null);
 
@@ -171,10 +173,10 @@ namespace Couchbase.Lite
             _disposalWatchdog = new DisposalWatchdog(GetType().Name);
         }
 
-        internal Document([CanBeNull] Collection collection, [NotNull]string id, C4DocContentLevel contentLevel = C4DocContentLevel.DocGetCurrentRev)
+        internal Document(Collection? collection, string id, C4DocContentLevel contentLevel = C4DocContentLevel.DocGetCurrentRev)
             : this(collection, id, default(C4DocumentWrapper))
         {
-            collection.ThreadSafety.DoLocked(() =>
+            collection?.ThreadSafety?.DoLocked(() =>
             {
                 var doc = (C4Document*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
                     err => Native.c4coll_getDoc(c4Coll, id, true, contentLevel, err));
@@ -183,7 +185,7 @@ namespace Couchbase.Lite
             });
         }
 
-        internal Document([CanBeNull] Collection collection, [NotNull] string id, string revId, FLDict* body)
+        internal Document(Collection? collection, string id, string revId, FLDict* body)
             : this(collection, id, default(C4DocumentWrapper))
         {
             Data = body;
@@ -191,12 +193,17 @@ namespace Couchbase.Lite
             _revId = revId;
         }
 
-        internal Document([NotNull]Document other)
-            : this(other.Collection, other.Id, other.c4Doc.Retain<C4DocumentWrapper>())
+        internal Document(Document other)
+            : this(other.Collection, other.Id, other.c4Doc?.Retain<C4DocumentWrapper>())
         {
             Debug.Assert(other != null);
 
-            _root = new MRoot(other._root);
+            if(other._root != null) {
+                _root = new MRoot(other._root);
+            } else {
+                _root = new MRoot();
+            }
+
             Data = other.Data;
             Id = other.Id;
         }
@@ -213,7 +220,6 @@ namespace Couchbase.Lite
         /// InvalidOperationException thrown when trying edit Documents from a replication filter.
         /// </exception>
         /// <returns>A mutable version of the document</returns>
-        [NotNull]
         public virtual MutableDocument ToMutable() {
             if (_revId != null) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
@@ -284,12 +290,13 @@ namespace Couchbase.Lite
         private void UpdateDictionary()
         {
             if (Data != null) {
+                Debug.Assert(Database != null);
                 Misc.SafeSwap(ref _root,
                     new MRoot(new DocContext(Database, _c4Doc), (FLValue*) Data, IsMutable));
-                Collection.ThreadSafety.DoLocked(() => _dict = (DictionaryObject) _root.AsObject());
+                Collection?.ThreadSafety?.DoLocked(() => _dict = (DictionaryObject) _root!.AsObject());
             } else {
                 Misc.SafeSwap(ref _root, null);
-                _dict = IsMutable ? (IDictionaryObject)new InMemoryDictionary() : new DictionaryObject();
+                _dict = IsMutable ? new InMemoryDictionary() : new DictionaryObject();
             }
         }
 
@@ -298,7 +305,6 @@ namespace Couchbase.Lite
         #region Overrides
 
         /// <inheritdoc />
-        [NotNull]
         public override string ToString()
         {
             var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
@@ -318,7 +324,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (!(obj is Document d)) {
                 return false;
@@ -348,10 +354,10 @@ namespace Couchbase.Lite
         public bool Contains(string key) => _dict?.Contains(key) == true;
 
         /// <inheritdoc />
-        public ArrayObject GetArray(string key) => _dict?.GetArray(key);
+        public ArrayObject? GetArray(string key) => _dict?.GetArray(key);
 
         /// <inheritdoc />
-        public Blob GetBlob(string key) => _dict?.GetBlob(key);
+        public Blob? GetBlob(string key) => _dict?.GetBlob(key);
 
         /// <inheritdoc />
         public bool GetBoolean(string key) => _dict?.GetBoolean(key) ?? false;
@@ -360,7 +366,7 @@ namespace Couchbase.Lite
         public DateTimeOffset GetDate(string key) => _dict?.GetDate(key) ?? DateTimeOffset.MinValue;
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary(string key) => _dict?.GetDictionary(key);
+        public DictionaryObject? GetDictionary(string key) => _dict?.GetDictionary(key);
 
         /// <inheritdoc />
         public double GetDouble(string key) => _dict?.GetDouble(key) ?? 0.0;
@@ -375,13 +381,13 @@ namespace Couchbase.Lite
         public long GetLong(string key) => _dict?.GetLong(key) ?? 0L;
 
         /// <inheritdoc />
-        public object GetValue(string key) => _dict?.GetValue(key);
+        public object? GetValue(string key) => _dict?.GetValue(key);
 
         /// <inheritdoc />
-        public string GetString(string key) => _dict?.GetString(key);
+        public string? GetString(string key) => _dict?.GetString(key);
 
         /// <inheritdoc />
-        public Dictionary<string, object> ToDictionary() => _dict?.ToDictionary() ?? new Dictionary<string, object>();
+        public Dictionary<string, object?> ToDictionary() => _dict?.ToDictionary() ?? new Dictionary<string, object?>();
 
         #endregion
 
@@ -411,7 +417,7 @@ namespace Couchbase.Lite
         #region IEnumerable<KeyValuePair<string,object>>
 
         /// <inheritdoc />
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict?.GetEnumerator() ?? new InMemoryDictionary().GetEnumerator();
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => _dict?.GetEnumerator() ?? new InMemoryDictionary().GetEnumerator();
 
         #endregion
 
@@ -422,6 +428,11 @@ namespace Couchbase.Lite
         {
             if(IsMutable) {
                 throw new NotSupportedException();
+            }
+
+            if(c4Doc == null) {
+                WriteLog.To.Database.E("Document", "c4Doc null in ToJSON()");
+                return "";
             }
 
             return LiteCoreBridge.Check(err =>

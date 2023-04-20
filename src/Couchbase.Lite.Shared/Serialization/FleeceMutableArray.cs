@@ -19,13 +19,11 @@
 using LiteCore.Interop;
 using Couchbase.Lite.Internal.Serialization;
 
-using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Fleece
 {
@@ -33,8 +31,6 @@ namespace Couchbase.Lite.Fleece
     {
         #region Variables
 
-        [NotNull]
-        [ItemNotNull]
         private List<MValue> _vec = new List<MValue>();
 
         #endregion
@@ -62,7 +58,7 @@ namespace Couchbase.Lite.Fleece
 
         }
 
-        public FleeceMutableArray(MValue mv, MCollection parent)
+        public FleeceMutableArray(MValue mv, MCollection? parent)
         {
             InitInSlot(mv, parent);
         }
@@ -71,7 +67,6 @@ namespace Couchbase.Lite.Fleece
 
         #region Public Methods
 
-        [NotNull]
         public MValue Get(int index)
         {
             if (index < 0 || index >= _vec.Count) {
@@ -87,7 +82,7 @@ namespace Couchbase.Lite.Fleece
             return val;
         }
 
-        public void InitInSlot(MValue mv, MCollection parent)
+        public void InitInSlot(MValue mv, MCollection? parent)
         {
             InitInSlot(mv, parent, parent?.MutableChildren ?? false);
         }
@@ -123,7 +118,7 @@ namespace Couchbase.Lite.Fleece
             _vec.RemoveRange(start, count);
         }
 
-        public void Set(int index, object val)
+        public void Set(int index, object? val)
         {
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableMArray);
@@ -181,7 +176,7 @@ namespace Couchbase.Lite.Fleece
             _vec = a?._vec ?? new List<MValue>();
         }
 
-        protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
+        protected override void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
         {
             base.InitInSlot(slot, parent, isMutable);
             Debug.Assert(BaseArray == null);
@@ -193,7 +188,7 @@ namespace Couchbase.Lite.Fleece
 
         #region ICollection<object>
 
-        public void Add(object item)
+        public void Add(object? item)
         {
             Insert(Count, item);
         }
@@ -284,7 +279,7 @@ namespace Couchbase.Lite.Fleece
             throw new NotImplementedException();
         }
 
-        public void Insert(int index, object val)
+        public void Insert(int index, object? val)
         {
             if (!IsMutable) {
                 throw new InvalidOperationException("Cannot insert items in a non-mutable FleeceMutableArray");

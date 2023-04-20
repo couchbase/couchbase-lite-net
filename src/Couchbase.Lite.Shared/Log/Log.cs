@@ -17,16 +17,12 @@
 // 
 
 using System;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
 
 using LiteCore.Interop;
 
@@ -40,7 +36,6 @@ namespace Couchbase.Lite.Internal.Logging
         #region Constants
 
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        [NotNull]
         private static readonly LogTo _To;
 
         internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", false);
@@ -54,13 +49,8 @@ namespace Couchbase.Lite.Internal.Logging
 
         #endregion
 
-        #region Variables
-
-        #endregion
-
         #region Properties
 
-        [NotNull]
         internal static LogTo To
         {
             get {

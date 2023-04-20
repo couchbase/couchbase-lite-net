@@ -16,17 +16,15 @@
 // limitations under the License.
 // 
 using System;
-
-using NotNull = JetBrains.Annotations.NotNullAttribute;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Support
 {
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage]
     internal sealed class NullThreadSafety : IThreadSafety
     {
         #region Constants
 
-        [NotNull]
         public static readonly NullThreadSafety Instance = new NullThreadSafety();
 
         #endregion

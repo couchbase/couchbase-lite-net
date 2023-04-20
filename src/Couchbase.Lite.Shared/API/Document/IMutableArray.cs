@@ -19,8 +19,6 @@
 using System;
 using System.Collections;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -36,7 +34,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to check</param>
         /// <returns>The value of the given index, or lack thereof</returns>
-        [NotNull]
         new IMutableFragment this[int index] { get; }
 
         #endregion
@@ -48,23 +45,20 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray AddValue(object value);
+        IMutableArray AddValue(object? value);
 
         /// <summary>
         /// Adds an entry to this collection
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray AddString(string value);
+        IMutableArray AddString(string? value);
 
         /// <summary>
         /// Adds an entry to this collection
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray AddInt(int value);
 
         /// <summary>
@@ -72,7 +66,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray AddLong(long value);
 
         /// <summary>
@@ -80,7 +73,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray AddFloat(float value);
 
         /// <summary>
@@ -88,7 +80,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray AddDouble(double value);
 
         /// <summary>
@@ -96,7 +87,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray AddBoolean(bool value);
 
         /// <summary>
@@ -104,15 +94,13 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray AddBlob(Blob value);
+        IMutableArray AddBlob(Blob? value);
 
         /// <summary>
         /// Adds an entry to this collection
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray AddDate(DateTimeOffset value);
 
         /// <summary>
@@ -120,32 +108,28 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray AddArray(ArrayObject value);
+        IMutableArray AddArray(ArrayObject? value);
 
         /// <summary>
         /// Adds an entry to this collection
         /// </summary>
         /// <param name="value">The value to add</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray AddDictionary(DictionaryObject value);
+        IMutableArray AddDictionary(DictionaryObject? value);
 
         /// <summary>
         /// Gets the value at the given index as an array
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [CanBeNull]
-        new MutableArrayObject GetArray(int index);
+        new MutableArrayObject? GetArray(int index);
 
         /// <summary>
         /// Gets the value at the given index as a dictionary
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [CanBeNull]
-        new MutableDictionaryObject GetDictionary(int index);
+        new MutableDictionaryObject? GetDictionary(int index);
 
         /// <summary>
         /// Inserts a given value at the given index
@@ -153,8 +137,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray InsertValue(int index, object value);
+        IMutableArray InsertValue(int index, object? value);
 
         /// <summary>
         /// Inserts a given value at the given index
@@ -162,8 +145,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray InsertString(int index, string value);
+        IMutableArray InsertString(int index, string? value);
 
         /// <summary>
         /// Inserts a given value at the given index
@@ -171,7 +153,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray InsertInt(int index, int value);
 
         /// <summary>
@@ -180,7 +161,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray InsertLong(int index, long value);
 
         /// <summary>
@@ -189,7 +169,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray InsertFloat(int index, float value);
 
         /// <summary>
@@ -198,7 +177,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray InsertDouble(int index, double value);
 
         /// <summary>
@@ -207,7 +185,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray InsertBoolean(int index, bool value);
 
         /// <summary>
@@ -216,8 +193,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray InsertBlob(int index, Blob value);
+        IMutableArray InsertBlob(int index, Blob? value);
 
         /// <summary>
         /// Inserts a given value at the given index
@@ -225,7 +201,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray InsertDate(int index, DateTimeOffset value);
 
         /// <summary>
@@ -234,8 +209,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray InsertArray(int index, ArrayObject value);
+        IMutableArray InsertArray(int index, ArrayObject? value);
 
         /// <summary>
         /// Inserts a given value at the given index
@@ -243,15 +217,13 @@ namespace Couchbase.Lite
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray InsertDictionary(int index, DictionaryObject value);
+        IMutableArray InsertDictionary(int index, DictionaryObject? value);
 
         /// <summary>
         /// Removes the item at the given index
         /// </summary>
         /// <param name="index">The index at which to remove the item</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray RemoveAt(int index);
 
         /// <summary>
@@ -259,7 +231,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="array">The contents to replace the current contents</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray SetData(IList array);
 
         /// <summary>
@@ -268,8 +239,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray SetValue(int index, object value);
+        IMutableArray SetValue(int index, object? value);
 
         /// <summary>
         /// Overwrites the value at the given index with the given value
@@ -277,8 +247,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray SetString(int index, string value);
+        IMutableArray SetString(int index, string? value);
 
         /// <summary>
         /// Overwrites the value at the given index with the given value
@@ -286,7 +255,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray SetInt(int index, int value);
 
         /// <summary>
@@ -295,7 +263,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray SetLong(int index, long value);
 
         /// <summary>
@@ -304,7 +271,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray SetFloat(int index, float value);
 
         /// <summary>
@@ -313,7 +279,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray SetDouble(int index, double value);
 
         /// <summary>
@@ -322,7 +287,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray SetBoolean(int index, bool value);
 
         /// <summary>
@@ -331,8 +295,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray SetBlob(int index, Blob value);
+        IMutableArray SetBlob(int index, Blob? value);
 
         /// <summary>
         /// Overwrites the value at the given index with the given value
@@ -340,7 +303,6 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
         IMutableArray SetDate(int index, DateTimeOffset value);
 
         /// <summary>
@@ -349,8 +311,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray SetArray(int index, ArrayObject value);
+        IMutableArray SetArray(int index, ArrayObject? value);
 
         /// <summary>
         /// Overwrites the value at the given index with the given value
@@ -358,8 +319,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
         /// <returns>The array for further processing</returns>
-        [NotNull]
-        IMutableArray SetDictionary(int index, DictionaryObject value);
+        IMutableArray SetDictionary(int index, DictionaryObject? value);
 
         /// <summary>
         /// Replaces the contents of this collection with the contents of the 
@@ -370,7 +330,7 @@ namespace Couchbase.Lite
         /// </remarks>
         /// <param name="json">The json string to replace the current contents with</param>
         /// <returns>The array for further processing</returns>
-        IMutableArray SetJSON([NotNull]string json);
+        IMutableArray SetJSON(string json);
 
         #endregion
     }

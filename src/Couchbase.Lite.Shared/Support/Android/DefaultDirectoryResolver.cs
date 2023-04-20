@@ -18,6 +18,7 @@
 #if __ANDROID__
 using Android.Content;
 using Couchbase.Lite.DI;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite.Support
 {
@@ -32,6 +33,11 @@ namespace Couchbase.Lite.Support
 
         public string DefaultDirectory()
         {
+            if(_context.FilesDir == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
+                    "Android files directory is null, cannot calculate default directory!");
+            }
+
             return _context.FilesDir.AbsolutePath;
         }
     }

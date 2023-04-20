@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -31,8 +29,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="alias">The alias of the data source in the query</param>
         /// <returns>An alias aware full text index expression for use in a QueryBuilder query</returns>
-        [NotNull]
-        IIndexExpression From([NotNull]string alias);
+        IIndexExpression From(string alias);
     }
 
     internal sealed class FullTextIndexExpression : IFullTextIndexExpression
@@ -40,14 +37,14 @@ namespace Couchbase.Lite.Query
 
         #region Variables
 
-        private string _alias;
-        [NotNull]private readonly string _name;
+        private string? _alias;
+        private readonly string _name;
 
         #endregion
 
         #region Constructors
 
-        public FullTextIndexExpression([NotNull] string name)
+        public FullTextIndexExpression(string name)
         {
             _name = name;
         }
@@ -56,8 +53,7 @@ namespace Couchbase.Lite.Query
 
         #region IFullTextIndexExpression
 
-        [NotNull]
-        public IIndexExpression From([NotNull] string alias)
+        public IIndexExpression From(string alias)
         {
             _alias = alias;
             return this;

@@ -38,7 +38,7 @@ namespace LiteCore.Interop
         #region Variables
 
         private C4TLSConfig _c4TLSConfig;
-        private C4ListenerCertAuthCallback _onCertAuthCallback;
+        private C4ListenerCertAuthCallback? _onCertAuthCallback;
 
         #endregion
 
@@ -52,7 +52,7 @@ namespace LiteCore.Interop
         /// <summary>
         /// The `tlsCallbackContext` from the `C4TLSConfig`.
         /// </summary>
-        public unsafe object Context
+        public unsafe object? Context
         {
             get => GCHandle.FromIntPtr((IntPtr) _c4TLSConfig.tlsCallbackContext).Target;
             set {
@@ -70,12 +70,12 @@ namespace LiteCore.Interop
         /// Callback for X.509 cert auth
         /// Called when a client connects, during the TLS handshake, if a client certificate is received.
         /// </summary>
-        public C4ListenerCertAuthCallback OnCertAuthCallback
+        public C4ListenerCertAuthCallback? OnCertAuthCallback
         {
             get => _onCertAuthCallback;
             set {
                 _onCertAuthCallback = value;
-                _c4TLSConfig.certAuthCallback = Marshal.GetFunctionPointerForDelegate(value);
+                _c4TLSConfig.certAuthCallback = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
             }
         }
 
@@ -165,7 +165,7 @@ namespace LiteCore.Interop
         #region Variables
 
         private C4ListenerConfig _c4ListenerConfig;
-        private C4ListenerHTTPAuthCallback _onHTTPAuthCallback;
+        private C4ListenerHTTPAuthCallback? _onHTTPAuthCallback;
         private C4String _networkInterface;
 
         #endregion
@@ -177,7 +177,7 @@ namespace LiteCore.Interop
         /// </summary>
         public C4ListenerConfig C4ListenerConfig => _c4ListenerConfig;
 
-        public object Context
+        public object? Context
         {
             get => GCHandle.FromIntPtr((IntPtr) _c4ListenerConfig.callbackContext).Target;
             set {
@@ -191,12 +191,12 @@ namespace LiteCore.Interop
             }
         }
 
-        public C4ListenerHTTPAuthCallback OnHTTPAuthCallback
+        public C4ListenerHTTPAuthCallback? OnHTTPAuthCallback
         {
             get => _onHTTPAuthCallback;
             set {
                 _onHTTPAuthCallback = value;
-                _c4ListenerConfig.httpAuthCallback = Marshal.GetFunctionPointerForDelegate(value);
+                _c4ListenerConfig.httpAuthCallback = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
             }
         }
 
@@ -212,7 +212,7 @@ namespace LiteCore.Interop
         /// <summary>
         /// name or address of interface to listen on; else all
         /// </summary>
-        public string NetworkInterface
+        public string? NetworkInterface
         {
             get => _c4ListenerConfig.networkInterface.CreateString();
             set {
@@ -234,7 +234,7 @@ namespace LiteCore.Interop
         /// <summary>
         /// TLS configuration, or NULL for no TLS
         /// </summary>
-        public TLSConfig TlsConfig { get; set; }
+        public TLSConfig? TlsConfig { get; set; }
 
         #region For REST listeners only:
 

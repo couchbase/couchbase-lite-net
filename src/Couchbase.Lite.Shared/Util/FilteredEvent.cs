@@ -24,8 +24,7 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Support;
 
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Util
 {
@@ -33,14 +32,13 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        [NotNull]
         private readonly SerialQueue _queue = new SerialQueue();
 
         #endregion
 
         #region Overrides
 
-        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage]
         protected override IEnumerable<Task> GetScheduledTasks() => throw new NotSupportedException();
 
         protected override void QueueTask(Task task)
@@ -48,7 +46,7 @@ namespace Couchbase.Lite.Util
             _queue.DispatchAsync(() => TryExecuteTask(task));
         }
 
-        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage]
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) => false;
 
         #endregion
@@ -69,7 +67,7 @@ namespace Couchbase.Lite.Util
             return Id.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (!(obj is CouchbaseEventHandler other)) {
                 return false;
@@ -81,18 +79,18 @@ namespace Couchbase.Lite.Util
         #endregion
     }
 
-    internal class CouchbaseEventHandler<TEventType> : CouchbaseEventHandler where TEventType : EventArgs
+    internal class CouchbaseEventHandler<TEventType> : CouchbaseEventHandler where TEventType : EventArgs?
     {
         #region Variables
 
-        [NotNull]private readonly EventHandler<TEventType> _handler;
-        [NotNull]private readonly TaskFactory _taskFactory;
+        private readonly EventHandler<TEventType> _handler;
+        private readonly TaskFactory _taskFactory;
 
         #endregion
 
         #region Constructors
 
-        public CouchbaseEventHandler([NotNull]EventHandler<TEventType> handler, TaskScheduler scheduler)
+        public CouchbaseEventHandler(EventHandler<TEventType> handler, TaskScheduler? scheduler)
         {
             Debug.Assert(handler != null);
 
@@ -117,7 +115,7 @@ namespace Couchbase.Lite.Util
             return _handler?.GetHashCode() ?? 0;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (!(obj is CouchbaseEventHandler<TEventType> other)) {
                 return false;
@@ -129,17 +127,17 @@ namespace Couchbase.Lite.Util
         #endregion
     }
 
-    internal sealed class CouchbaseEventHandler<TFilterType, TEventType> : CouchbaseEventHandler<TEventType> where TEventType : EventArgs
+    internal sealed class CouchbaseEventHandler<TFilterType, TEventType> : CouchbaseEventHandler<TEventType> where TEventType : EventArgs?
     {
         #region Variables
 
-        [NotNull]public readonly TFilterType Filter;
+        public readonly TFilterType Filter;
 
         #endregion
 
         #region Constructors
 
-        public CouchbaseEventHandler([NotNull]EventHandler<TEventType> handler, [NotNull]TFilterType filter, TaskScheduler scheduler)
+        public CouchbaseEventHandler(EventHandler<TEventType> handler, TFilterType filter, TaskScheduler? scheduler)
             : base(handler, scheduler)
         {
             Debug.Assert(filter != null);
@@ -150,20 +148,16 @@ namespace Couchbase.Lite.Util
         #endregion
     }
 
-    internal class Event<TEventType> where TEventType : EventArgs
+    internal class Event<TEventType> where TEventType : EventArgs?
     {
         #region Variables
 
-        [NotNull]
-        [ItemNotNull]
         private readonly List<CouchbaseEventHandler<TEventType>> _events = new List<CouchbaseEventHandler<TEventType>>();
-
-        [NotNull]
         private readonly object _locker = new object();
 
-        #endregion
-
         internal int Counter => _events.Count;
+
+        #endregion
 
         #region Public Methods
 
@@ -178,7 +172,7 @@ namespace Couchbase.Lite.Util
         public int Remove(ListenerToken token)
         {
             lock (_locker) {
-                _events.Remove(token.EventHandler as CouchbaseEventHandler<TEventType>);
+                _events.Remove((CouchbaseEventHandler<TEventType>)token.EventHandler);
                 return _events.Count;
             }
         }
@@ -211,23 +205,22 @@ namespace Couchbase.Lite.Util
         #endregion
     }
 
-    internal sealed class FilteredEvent<TFilterType, TEventType> where TEventType : EventArgs
+    internal sealed class FilteredEvent<TFilterType, TEventType> where TEventType : EventArgs where TFilterType : notnull
     {
         #region Variables
 
-        [NotNull]private readonly ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType>>> _eventMap =
-            new ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType>>>();
+        private readonly ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType?>>> _eventMap =
+            new ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType?>>>();
 
-        [NotNull]private readonly object _locker = new object();
+        private readonly object _locker = new object();
 
         #endregion
 
         #region Public Methods
 
-        public int Add([NotNull]CouchbaseEventHandler<TFilterType, TEventType> handler)
+        public int Add(CouchbaseEventHandler<TFilterType, TEventType?> handler)
         {
-            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>())
-                             ?? new HashSet<CouchbaseEventHandler<TEventType>>(); // Suppress R# inspection
+            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType?>>());
 
             lock (_locker) {
                 collection.Add(handler);
@@ -235,15 +228,14 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public int Remove(ListenerToken token, out TFilterType filter)
+        public int Remove(ListenerToken token, out TFilterType? filter)
         {
             filter = default(TFilterType);
-            if (!(token.EventHandler is CouchbaseEventHandler<TFilterType, TEventType> handler)) {
+            if (!(token.EventHandler is CouchbaseEventHandler<TFilterType, TEventType?> handler)) {
                 return -1;
             }
 
-            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>())
-                             ?? new HashSet<CouchbaseEventHandler<TEventType>>(); // Suppress R# inspection
+            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType?>>());
 
             lock (_locker) {
                 collection.Remove(handler);
@@ -256,10 +248,9 @@ namespace Couchbase.Lite.Util
 
         #region Internal Methods
 
-        internal void Fire(TFilterType key, object sender, TEventType args)
+        internal void Fire(TFilterType key, object sender, TEventType? args)
         {
-            var collection = _eventMap.GetOrAdd(key, new HashSet<CouchbaseEventHandler<TEventType>>())
-                             ?? new HashSet<CouchbaseEventHandler<TEventType>>(); // Suppress R# inspection
+            var collection = _eventMap.GetOrAdd(key, new HashSet<CouchbaseEventHandler<TEventType?>>());
 
             lock (_locker) {
                 foreach (var method in collection) {

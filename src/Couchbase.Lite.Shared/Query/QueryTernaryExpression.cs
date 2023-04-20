@@ -19,7 +19,8 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
+using LiteCore.Interop;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -35,8 +36,8 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly string _function;
         private readonly IVariableExpression _variableName;
-        private IExpression _in;
-        private QueryExpression _predicate;
+        private IExpression? _in;
+        private QueryExpression? _predicate;
 
         #endregion
 
@@ -54,6 +55,9 @@ namespace Couchbase.Lite.Internal.Query
 
         protected override object ToJSON()
         {
+            Debug.Assert(_in != null);
+            Debug.Assert(_predicate != null);
+
             var inObj = Misc.TryCast<IExpression, QueryExpression>(_in);
             var variableName = Misc.TryCast<IVariableExpression, QueryTypeExpression>(_variableName);
 
@@ -69,7 +73,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IArrayExpressionIn
 
-        public IArrayExpressionSatisfies In([NotNull]IExpression expression)
+        public IArrayExpressionSatisfies In(IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             _in = expression;
@@ -80,7 +84,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IArrayExpressionSatisfies
 
-        public IExpression Satisfies([NotNull]IExpression expression)
+        public IExpression Satisfies(IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             _predicate = Misc.TryCast<IExpression, QueryExpression>(expression);

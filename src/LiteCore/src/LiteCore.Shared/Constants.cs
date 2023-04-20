@@ -16,8 +16,6 @@
 // limitations under the License.
 //
 
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-
 namespace LiteCore
 {
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
@@ -27,23 +25,17 @@ namespace LiteCore
         [NotNull]
         internal const string DllName = "@rpath/LiteCore.framework/LiteCore";
         #else
-        [NotNull]
         internal const string DllName = "LiteCore";
         #endif
         
-        [NotNull]
         internal static readonly string ObjectTypeProperty = "@type";
         
-        [NotNull]
         internal static readonly string ObjectTypeBlob = "blob";
         
-        [NotNull]
-        internal static readonly string C4LanguageDefault = null;
+        internal static readonly string? C4LanguageDefault = null;
         
-        [NotNull]
         internal static readonly string C4LanguageNone = "";
         
-        [NotNull]
         internal static readonly string C4PlaceholderValue = "*";
     }
 }

@@ -16,12 +16,7 @@
 //  limitations under the License.
 // 
 
-using JetBrains.Annotations;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
@@ -34,22 +29,19 @@ namespace Couchbase.Lite
         /// <summary>
         /// The conflict resolved document id.
         /// </summary>
-        [NotNull]
         public string DocumentID { get; }
 
         /// <summary>
         /// The document in local database. If null, the document is deleted.
         /// </summary>
-        [CanBeNull]
-        public Document LocalDocument { get; }
+        public Document? LocalDocument { get; }
 
         /// <summary>
         /// The document in remote database. If null, the document is deleted.
         /// </summary>
-        [CanBeNull]
-        public Document RemoteDocument { get; }
+        public Document? RemoteDocument { get; }
 
-        internal Conflict(string docID, Document localDoc, Document remoteDoc)
+        internal Conflict(string docID, Document? localDoc, Document? remoteDoc)
         {
             Debug.Assert(localDoc != null || remoteDoc != null,
                 "Local and remote document shouldn't be empty at same time, when resolving conflict.");

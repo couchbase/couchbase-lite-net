@@ -68,9 +68,9 @@ namespace Couchbase.Lite.Util
         /// <param name="obj">The object to cast</param>
         /// <param name="defaultVal">The default value to use on failure</param>
         /// <returns>The cast object, or <c>defaultVal</c> if not successful</returns>
-        public static T CastOrDefault<T>(object obj, T defaultVal = default(T))
+        public static T? CastOrDefault<T>(object? obj, T? defaultVal = default(T))
         {
-            if(obj != null && TryCast(obj, out T retVal)) {
+            if(obj != null && TryCast(obj, out T? retVal)) {
                 return retVal;
             }
 
@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Util
         /// <param name="d">The dictionary to operate on (implicit)</param>
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <returns>The value for the given key, or a default value</returns>
-        public static TValue Get<TKey, TValue>(this IDictionary<TKey, TValue> d, TKey key)
+        public static TValue? Get<TKey, TValue>(this IDictionary<TKey, TValue> d, TKey key)
         {
             d.TryGetValue(key, out var val);
             return val;
@@ -101,7 +101,7 @@ namespace Couchbase.Lite.Util
         /// <param name="d">The dictionary to operate on (implicit)</param>
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <returns>The value for the given key, or a default value</returns>
-        public static TValue Get<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> d, TKey key)
+        public static TValue? Get<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> d, TKey key)
         {
             d.TryGetValue(key, out var val);
             return val;
@@ -116,7 +116,7 @@ namespace Couchbase.Lite.Util
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <param name="defaultVal">The value to return on failure</param>
         /// <returns>The fetched value, or the compiler default value if not successful</returns>
-        public static T GetCast<T>(this IDictionary<string, object> collection, string key, T defaultVal = default(T))
+        public static T? GetCast<T>(this IDictionary<string, object?> collection, string key, T? defaultVal = default(T))
         {
             var value = Get(collection, key);
             return CastOrDefault(value, defaultVal);
@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Util
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <param name="defaultVal">The value to return on failure</param>
         /// <returns>The fetched value, or the compiler default value if not successful</returns>
-        public static T GetCast<T>(this IReadOnlyDictionary<string, object> collection, string key, T defaultVal = default(T))
+        public static T? GetCast<T>(this IReadOnlyDictionary<string, object> collection, string key, T? defaultVal = default(T))
         {
             var value = Get(collection, key);
             return CastOrDefault(value, defaultVal);
@@ -178,7 +178,7 @@ namespace Couchbase.Lite.Util
         /// <param name="left">The lefthand object to compare</param>
         /// <param name="right">The righthand object to compare</param>
         /// <returns>Whether or not the two objects are equal</returns>
-        public static bool RecursiveEqual(this object left, object right)
+        public static bool RecursiveEqual(this object? left, object? right)
         {
             switch (left) {
                 case null:
@@ -232,7 +232,7 @@ namespace Couchbase.Lite.Util
         /// <param name="obj">The object to operate on</param>
         /// <param name="castVal">An out value containing the cast object</param>
         /// <returns><c>true</c> if the object was cast, otherwise <c>false</c></returns>
-        public static bool TryCast<T>(object obj, out T castVal)
+        public static bool TryCast<T>(object obj, out T? castVal)
         {
             //If the types already match then things are easy
             if(obj is T) {
@@ -244,7 +244,7 @@ namespace Couchbase.Lite.Util
                 //Take the slow route for things like boxed value types
                 castVal = (T)Convert.ChangeType(obj, typeof(T));
             } catch(Exception) {
-                castVal = default(T);
+                castVal = default;
                 return false;
             }
 
@@ -259,10 +259,10 @@ namespace Couchbase.Lite.Util
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <param name="value">The out parameter containing the cast value</param>
         /// <returns><c>true</c> if the value was found and cast, <c>false</c> otherwise</returns>
-        public static bool TryGetValue<T>(this IDictionary<string, object> dic, string key, out T value)
+        public static bool TryGetValue<T>(this IDictionary<string, object> dic, string key, out T? value)
         {
-            value = default(T);
-            object obj;
+            value = default;
+            object? obj;
             if(!dic.TryGetValue(key, out obj)) {
                 return false;
             }
@@ -290,10 +290,10 @@ namespace Couchbase.Lite.Util
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <param name="value">The out parameter containing the cast value</param>
         /// <returns><c>true</c> if the value was found and cast, <c>false</c> otherwise</returns>
-        public static bool TryGetValue<T>(this IReadOnlyDictionary<string, object> dic, string key, out T value)
+        public static bool TryGetValue<T>(this IReadOnlyDictionary<string, object> dic, string key, out T? value)
         {
-            value = default(T);
-            object obj;
+            value = default;
+            object? obj;
             if(!dic.TryGetValue(key, out obj)) {
                 return false;
             }
@@ -315,7 +315,7 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
-        private static bool IsEqual(IDictionaryObject left, object right)
+        private static bool IsEqual(IDictionaryObject left, object? right)
         {
             if (right == null || !(right is IDictionaryObject dict)) {
                 return false;
@@ -332,7 +332,7 @@ namespace Couchbase.Lite.Util
                 select leftObj).Any();
         }
 
-        private static bool IsEqual(IArray left, object right)
+        private static bool IsEqual(IArray left, object? right)
         {
             if (right == null || !(right is IArray arr)) {
                 return false;
@@ -345,7 +345,7 @@ namespace Couchbase.Lite.Util
             return !left.Where((t, i) => !t.RecursiveEqual(arr.GetValue(i))).Any();
         }
 
-        private static bool IsEqual(IList left, object right)
+        private static bool IsEqual(IList left, object? right)
         {
             if (right == null || !(right is IList list)) {
                 return false;
@@ -358,7 +358,7 @@ namespace Couchbase.Lite.Util
             return !left.Cast<object>().Where((t, i) => !t.RecursiveEqual(list[i])).Any();
         }
 
-        private static bool IsEqual(IDictionary<string, object> left, object right)
+        private static bool IsEqual(IDictionary<string, object> left, object? right)
         {
             if (right == null || !(right is IDictionary<string, object> dict)) {
                 return false;

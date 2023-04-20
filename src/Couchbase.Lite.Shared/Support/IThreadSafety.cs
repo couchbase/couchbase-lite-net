@@ -18,17 +18,15 @@
 
 using System;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Support
 {
     internal interface IThreadSafety
     {
         #region Public Methods
 
-        void DoLocked([NotNull]Action a);
+        void DoLocked(Action a);
 
-        T DoLocked<T>([NotNull]Func<T> f);
+        T DoLocked<T>(Func<T> f);
 
         #endregion
     }

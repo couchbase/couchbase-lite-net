@@ -25,8 +25,6 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -87,11 +85,11 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        [NotNull]private readonly Freezer _freezer = new Freezer();
-        private Authenticator _authenticator;
+        private readonly Freezer _freezer = new Freezer();
+        private Authenticator? _authenticator;
         private bool _continuous = Constants.DefaultReplicatorContinuous;
-        private Database _otherDb;
-        private Uri _remoteUrl;
+        private Database? _otherDb;
+        private Uri? _remoteUrl;
         private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
         private C4SocketFactory _socketFactory;
         private bool _isDefaultMaxAttemptSet = true;
@@ -115,8 +113,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
-        [CanBeNull]
-        public Authenticator Authenticator
+        public Authenticator? Authenticator
         {
             get => _authenticator;
             set => _freezer.SetValue(ref _authenticator, value);
@@ -131,8 +128,7 @@ namespace Couchbase.Lite.Sync
         /// Note: Channels property is only applicable in the replications with Sync Gateway.
         /// </remarks>
         [Obsolete("Channels is deprecated, please use CollectionConfiguration.Channels")]
-        [CanBeNull]
-        public IList<string> Channels
+        public IList<string>? Channels
         {
             get => DefaultCollectionConfig.Options.Channels;
             set {
@@ -165,7 +161,6 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <exception cref="CouchbaseLiteException">Thrown if Database doesn't exist in the replicator configuration.</exception>
         [Obsolete("Database is deprecated, please use Collections")]
-        [NotNull]
         public Database Database => Collections.Count > 0 && Collections[0].Database != null ? Collections[0].Database
             : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a missing Database in the Replication Configuration.");
 
@@ -174,8 +169,7 @@ namespace Couchbase.Lite.Sync
         /// and/or pulled
         /// </summary>
         [Obsolete("DocumentIDs is deprecated, please use CollectionConfiguration.DocumentIDs")]
-        [CanBeNull]
-        public IList<string> DocumentIDs
+        public IList<string>? DocumentIDs
         {
             get => DefaultCollectionConfig.Options.DocIDs;
             set {
@@ -190,8 +184,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Extra HTTP headers to send in all requests to the remote target
         /// </summary>
-        [NotNull]
-        public IDictionary<string, string> Headers
+        public IDictionary<string, string?> Headers
         {
             get => Options.Headers;
             set => _freezer.PerformAction(() => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value));
@@ -205,8 +198,7 @@ namespace Couchbase.Lite.Sync
         /// A server will be authenticated if it presents a chain of certificates (possibly of length 1)
         /// in which any one of the certificates matches the one passed here.
         /// </remarks>
-        [CanBeNull]
-        public X509Certificate2 PinnedServerCertificate
+        public X509Certificate2? PinnedServerCertificate
         {
             get => Options.PinnedServerCertificate;
             set => _freezer.PerformAction(() => Options.PinnedServerCertificate = value);
@@ -221,8 +213,7 @@ namespace Couchbase.Lite.Sync
         /// connect with a permanent error, and the error code could be platform dependent 
         /// depending on what is being used to communicate with the remote server.
         /// </summary>
-        [CanBeNull]
-        internal string NetworkInterface
+        internal string? NetworkInterface
         {
             get => Options.NetworkInterface;
             set => _freezer.PerformAction(() => Options.NetworkInterface = value);
@@ -234,8 +225,7 @@ namespace Couchbase.Lite.Sync
         /// will not be allowed
         /// </summary>
         [Obsolete("PullFilter is deprecated, please use CollectionConfiguration.PullFilter")]
-        [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PullFilter
+        public Func<Document, DocumentFlags, bool>? PullFilter
         {
             get => DefaultCollectionConfig.PullFilter;
             set => _freezer.PerformAction(() => DefaultCollectionConfig.PullFilter = value);
@@ -247,8 +237,7 @@ namespace Couchbase.Lite.Sync
         /// will not be allowed
         /// </summary>
         [Obsolete("PushFilter is deprecated, please use CollectionConfiguration.PushFilter")]
-        [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PushFilter
+        public Func<Document, DocumentFlags, bool>? PushFilter
         {
             get => DefaultCollectionConfig.PushFilter;
             set => _freezer.PerformAction(() => DefaultCollectionConfig.PushFilter = value);
@@ -348,7 +337,6 @@ namespace Couchbase.Lite.Sync
         /// Gets the target to replicate with (either <see cref="Database"/>
         /// or <see cref="Uri"/>
         /// </summary>
-        [NotNull]
         public IEndpoint Target { get; }
 
         /// <summary>
@@ -357,8 +345,7 @@ namespace Couchbase.Lite.Sync
         /// When the value is null, the default conflict resolution will be applied.
         /// </summary>
         [Obsolete("ConflictResolver is deprecated, please use CollectionConfiguration.ConflictResolver")]
-        [CanBeNull]
-        public IConflictResolver ConflictResolver
+        public IConflictResolver? ConflictResolver
         {
             get => DefaultCollectionConfig.ConflictResolver;
             set => _freezer.PerformAction(() => DefaultCollectionConfig.ConflictResolver = value);
@@ -370,7 +357,7 @@ namespace Couchbase.Lite.Sync
         public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
 
         //Pre 3.1 Default Collection Config
-        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(Database?.GetDefaultCollection()) ? CollectionConfigs[Database.GetDefaultCollection()] 
+        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(Database.GetDefaultCollection()) ? CollectionConfigs[Database.GetDefaultCollection()] 
             : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
 
         internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
@@ -381,19 +368,16 @@ namespace Couchbase.Lite.Sync
             set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
         }
 
-        [NotNull]
         internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
 
-        [CanBeNull]
-        internal Database OtherDB
+        internal Database? OtherDB
         {
             get => _otherDb;
             set => _freezer.SetValue(ref _otherDb, value);
         }
 
 
-        [CanBeNull]
-        internal Uri RemoteUrl
+        internal Uri? RemoteUrl
         {
             get => _remoteUrl;
             set => _freezer.SetValue(ref _remoteUrl, value);
@@ -421,7 +405,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
         /// is provided as <paramref name="target"/></exception>
-        public ReplicatorConfiguration([NotNull] IEndpoint target)
+        public ReplicatorConfiguration(IEndpoint target)
         {
             Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
 
@@ -437,7 +421,7 @@ namespace Couchbase.Lite.Sync
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
         /// is provided as <paramref name="target"/></exception>
         [Obsolete("Constructor ReplicatorConfiguration(Database, IEndpoint) is deprecated, please use ReplicatorConfiguration(IEndpoint)")]
-        public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
+        public ReplicatorConfiguration(Database database, IEndpoint target)
             :this(target)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
@@ -453,7 +437,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="collections"> that the given config will apply to</param>
         /// <param name="config"> will apply to the given collections</param>
-        public void AddCollections(IList<Collection> collections, [CanBeNull] CollectionConfiguration config = null)
+        public void AddCollections(IList<Collection> collections, CollectionConfiguration? config = null)
         {
             if (collections == null || collections.Count == 0)
                 return;
@@ -476,7 +460,7 @@ namespace Couchbase.Lite.Sync
         /// <exception cref="CouchbaseLiteException">Thrown if database of the given collection doesn't match 
         /// with the database <see cref="Database"/> of the replicator configuration.</exception>
         /// <exception cref="ArgumentNullException">Thrown if collection is null.</exception>
-        public void AddCollection(Collection collection, [CanBeNull] CollectionConfiguration config = null)
+        public void AddCollection(Collection collection, CollectionConfiguration? config = null)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
 
@@ -509,8 +493,7 @@ namespace Couchbase.Lite.Sync
         /// </remarks>
         /// <param name="collection">The collection config belongs to</param>
         /// <returns>The collection config of the given collection</returns>
-        [NotNull]
-        public CollectionConfiguration GetCollectionConfig(Collection collection)
+        public CollectionConfiguration? GetCollectionConfig(Collection collection)
         {
             if (!CollectionConfigs.TryGetValue(collection, out var config)) {
                 WriteLog.To.Sync.W(Tag, $"Failed getting the collection {collection}'s config.");
@@ -524,7 +507,6 @@ namespace Couchbase.Lite.Sync
 
         #region Internal Methods
 
-        [NotNull]
         internal ReplicatorConfiguration Freeze()
         {
             var frozenConfigs = new Dictionary<Collection, CollectionConfiguration>();

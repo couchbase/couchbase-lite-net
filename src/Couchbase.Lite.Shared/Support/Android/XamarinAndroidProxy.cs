@@ -31,9 +31,9 @@ namespace Couchbase.Lite.Support
     {
         #region IProxy
 
-        public Task<WebProxy> CreateProxyAsync(Uri destination)
+        public Task<WebProxy?> CreateProxyAsync(Uri destination)
         {
-            WebProxy webProxy = null;
+            WebProxy? webProxy = null;
             var selector = ProxySelector.Default;
             if (selector != null) {
                 try {

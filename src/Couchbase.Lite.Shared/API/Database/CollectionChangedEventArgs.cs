@@ -16,33 +16,30 @@
 //  limitations under the License.
 //
 
-using JetBrains.Annotations;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// The parameters of a collection changed event
     /// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
     public sealed class CollectionChangedEventArgs : DatabaseChangedEventArgs
+#pragma warning restore CS0618 // Type or member is obsolete
     {
         #region Properties
 
         /// <summary>
         /// Gets the collection in which the change occurred
         /// </summary>
-        [NotNull]
         public Collection Collection { get; }
 
         #endregion
 
         #region Constructors
 
-        internal CollectionChangedEventArgs([NotNull] Collection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs,
+        internal CollectionChangedEventArgs(Collection collection, IReadOnlyList<string> documentIDs,
             Database database)
             :base(database, documentIDs)
         {

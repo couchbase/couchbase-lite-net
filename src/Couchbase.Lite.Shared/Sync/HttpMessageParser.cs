@@ -30,11 +30,11 @@ namespace Couchbase.Lite.Sync
 
         public HttpStatusCode StatusCode { get; }
 
-        public string Reason { get; }
+        public string? Reason { get; }
 
         public IReadOnlyDictionary<string, string> Headers => _headers;
 
-        public HttpMessageParser(string firstLine)
+        public HttpMessageParser(string? firstLine)
         {
             if (firstLine?.StartsWith("HTTP") == true) {
                 var split = firstLine.Split(' ');

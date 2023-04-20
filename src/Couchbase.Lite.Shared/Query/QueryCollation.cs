@@ -18,11 +18,8 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Query;
-
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -30,8 +27,8 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Variables
         
-        [NotNull]private readonly Dictionary<string, object> _collation = new Dictionary<string, object>();
-        private List<object> _json;
+        private readonly Dictionary<string, object> _collation = new Dictionary<string, object>();
+        private List<object>? _json;
 
         #endregion
 
@@ -55,11 +52,12 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Public Methods
 
-        public void SetOperand([NotNull]QueryExpression op)
+        public void SetOperand(QueryExpression op)
         {
-            Debug.Assert(op != null);
+            var opJson = op?.ConvertToJSON();
+            Debug.Assert(opJson != null);
 
-            _json = new List<object> {"COLLATE", _collation, op.ConvertToJSON()};
+            _json = new List<object> {"COLLATE", _collation, opJson};
         }
 
         #endregion
@@ -68,6 +66,7 @@ namespace Couchbase.Lite.Internal.Query
 
         protected override object ToJSON()
         {
+            Debug.Assert(_json != null);
             return _json;
         }
 

@@ -16,9 +16,7 @@
 //  limitations under the License.
 // 
 
-using Couchbase.Lite.Info;
 using Couchbase.Lite.Support;
-using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 
@@ -34,10 +32,10 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        [NotNull] private readonly Freezer _freezer = new Freezer();
+        private readonly Freezer _freezer = new Freezer();
         private IConflictResolver _resolver = Lite.ConflictResolver.Default;
-        private Func<Document, DocumentFlags, bool> _pushFilter;
-        private Func<Document, DocumentFlags, bool> _pullValidator;
+        private Func<Document, DocumentFlags, bool>? _pushFilter;
+        private Func<Document, DocumentFlags, bool>? _pullValidator;
         internal ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
 
         #endregion
@@ -50,8 +48,7 @@ namespace Couchbase.Lite.Sync
         /// When the value is null, the default conflict resolution will be applied.
         /// The default value is <see cref="ConflictResolver.Default" />. 
         /// </summary>
-        [CanBeNull]
-        public IConflictResolver ConflictResolver
+        public IConflictResolver? ConflictResolver
         {
             get => _resolver;
             set 
@@ -68,8 +65,7 @@ namespace Couchbase.Lite.Sync
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
-        [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PullFilter
+        public Func<Document, DocumentFlags, bool>? PullFilter
         {
             get => _pullValidator;
             set => _freezer.PerformAction(() => _pullValidator = value);
@@ -80,8 +76,7 @@ namespace Couchbase.Lite.Sync
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
-        [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PushFilter
+        public Func<Document, DocumentFlags, bool>? PushFilter
         {
             get => _pushFilter;
             set => _freezer.PerformAction(() => _pushFilter = value);
@@ -95,8 +90,7 @@ namespace Couchbase.Lite.Sync
         /// <remarks>
         /// Note: Channels property is only applicable in the replications with Sync Gateway. 
         /// </remarks>
-        [CanBeNull]
-        public IList<string> Channels
+        public IList<string>? Channels
         {
             get => Options.Channels;
             set => _freezer.PerformAction(() => Options.Channels = value);
@@ -106,8 +100,7 @@ namespace Couchbase.Lite.Sync
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
         /// and/or pulled
         /// </summary>
-        [CanBeNull]
-        public IList<string> DocumentIDs
+        public IList<string>? DocumentIDs
         {
             get => Options.DocIDs;
             set => _freezer.PerformAction(() => Options.DocIDs = value);
@@ -123,7 +116,6 @@ namespace Couchbase.Lite.Sync
             set => _replicatorType = value;
         }
 
-        [NotNull]
         internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
 
         #endregion
@@ -137,15 +129,14 @@ namespace Couchbase.Lite.Sync
             PushFilter = copy?.PushFilter;
             PullFilter = copy?.PullFilter;
             ConflictResolver = copy?.ConflictResolver;
-            ReplicatorType = copy.ReplicatorType;
-            Options = copy?.Options;
+            ReplicatorType = copy?.ReplicatorType ?? ReplicatorType.PushAndPull;
+            Options = copy?.Options ?? new ReplicatorOptionsDictionary();
         }
 
         #endregion
 
         #region Internal Methods
 
-        [NotNull]
         internal CollectionConfiguration Freeze()
         {
             var retVal = new CollectionConfiguration()

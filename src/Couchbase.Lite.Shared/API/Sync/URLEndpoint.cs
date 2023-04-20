@@ -21,8 +21,6 @@ using System;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -41,7 +39,6 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the URL used to populate this endpoint
         /// </summary>
-        [NotNull]
         public Uri Url { get; }
 
         #endregion
@@ -54,14 +51,14 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="url">The url </param>
         /// <exception cref="ArgumentException">Thrown if the url scheme is not ws or wss</exception>
-        public URLEndpoint([NotNull]Uri url)
+        public URLEndpoint(Uri url)
         {
             var urlToUse = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, "url", url);
             if (!urlToUse.Scheme.StartsWith("ws")) {
                 throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidSchemeURLEndpoint, urlToUse.Scheme));
             }
 
-            var userInfo = url?.UserInfo?.Split(':');
+            var userInfo = url.UserInfo?.Split(':');
             if (userInfo?.Length == 2) {
                 throw new ArgumentException(
                     CouchbaseLiteErrorMessage.InvalidEmbeddedCredentialsInURL);

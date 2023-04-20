@@ -20,14 +20,12 @@ using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class Having : LimitedQuery, IHaving
     {
-        #region Having
+        #region Constants
 
         private const string Tag = nameof(IndexBuilder);
 
@@ -41,7 +39,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal Having([NotNull]XQuery source, IExpression expression)
+        internal Having(XQuery source, IExpression expression)
         {
             Debug.Assert(source != null);
 
@@ -55,7 +53,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Public Methods
 
-        public object ToJSON()
+        public object? ToJSON()
         {
             return (_expression as QueryExpression)?.ConvertToJSON();
         }
@@ -64,7 +62,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
+        public IOrderBy OrderBy(params IOrdering[] orderings)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             ValidateParams(orderings);

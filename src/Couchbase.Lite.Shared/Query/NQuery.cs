@@ -21,6 +21,7 @@ using Couchbase.Lite.Support;
 using LiteCore.Interop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -82,6 +83,7 @@ namespace Couchbase.Lite.Internal.Query
         protected override unsafe void CreateQuery()
         {
             if (_c4Query == null) {
+                Debug.Assert(Database != null);
                 C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
                 {
                     return Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);

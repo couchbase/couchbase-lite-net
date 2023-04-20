@@ -17,28 +17,27 @@
 // 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
 using Newtonsoft.Json;
 
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-
 namespace Couchbase.Lite.Logging
 {
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage]
     internal sealed class LogString
     {
         #region Variables
 
         private readonly byte[] _unserialized;
-        private string _serialized;
+        private string? _serialized;
 
         #endregion
 
         #region Constructors
 
-        public LogString([NotNull]IEnumerable<byte> utf8Bytes)
+        public LogString(IEnumerable<byte> utf8Bytes)
         {
             Debug.Assert(utf8Bytes != null);
             _unserialized = utf8Bytes.ToArray();
@@ -48,7 +47,6 @@ namespace Couchbase.Lite.Logging
 
         #region Overrides
 
-        [NotNull]
         public override string ToString()
         {
             return _serialized ?? (_serialized = Encoding.UTF8.GetString(_unserialized));
@@ -57,13 +55,13 @@ namespace Couchbase.Lite.Logging
         #endregion
     }
 
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage]
     internal sealed class LogJsonString
     {
         #region Variables
 
         private readonly object _unserialized;
-        private string _serialized;
+        private string? _serialized;
 
         #endregion
 

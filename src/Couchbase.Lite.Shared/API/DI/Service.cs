@@ -20,12 +20,11 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
-
+using Couchbase.Lite.Util;
+using LiteCore.Interop;
 using SimpleInjector;
-
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 
 namespace Couchbase.Lite.DI
 {
@@ -39,7 +38,6 @@ namespace Couchbase.Lite.DI
 
         private const string Tag = nameof(Service);
 
-        [NotNull]
         private static readonly Type[] _RequiredTypes = new[] {
             typeof(IDefaultDirectoryResolver)
         };
@@ -48,7 +46,6 @@ namespace Couchbase.Lite.DI
 
         #region Variables
 
-        [NotNull]
         private static readonly Container _Collection = new Container();
 
         #endregion
@@ -105,13 +102,11 @@ namespace Couchbase.Lite.DI
         /// <exception cref="InvalidOperationException">Thrown if an invalid type is found inside of the assembly (i.e.
         /// one that does not implement any interfaces and/or does not have a parameter-less constructor)</exception>
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        public static void AutoRegister([NotNull]Assembly assembly)
+        public static void AutoRegister(Assembly assembly)
         {
-            if (assembly == null) {
-                throw new ArgumentNullException(nameof(assembly));
-            }
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(assembly), assembly);
 
-            foreach (var type in assembly.GetTypes()?.Where(x => x.GetTypeInfo().IsClass)) {
+            foreach (var type in assembly.GetTypes().Where(x => x.GetTypeInfo().IsClass)) {
                 var ti = type.GetTypeInfo();
 
                 var attribute = ti?.GetCustomAttribute<CouchbaseDependencyAttribute>();
@@ -128,6 +123,10 @@ namespace Couchbase.Lite.DI
                     .Except(type.BaseType?.GetInterfaces() ?? Enumerable.Empty<Type>())
                     .Except(actualInterfaces.SelectMany(i => i.GetInterfaces()));
                 var interfaceType = minimalInterfaces.FirstOrDefault();
+                if(interfaceType == null) {
+                    throw new InvalidOperationException($"{type.Name} does not implement any interfaces of its own");
+                }
+
                 if(ti?.DeclaredConstructors?.All(x => x?.GetParameters()?.Length != 0) == true) {
                     throw new InvalidOperationException($"{type.Name} does not contain a default constructor");
                 }
@@ -138,7 +137,8 @@ namespace Couchbase.Lite.DI
                     if (attribute.Lazy) {
                         _Collection.Register(interfaceType, type, Lifestyle.Singleton);
                     } else {
-                        _Collection.RegisterInstance(interfaceType, Activator.CreateInstance(type));
+                        _Collection.RegisterInstance(interfaceType, Activator.CreateInstance(type)
+                            ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, $"Unable to create instance of {type.Name}"));
                     }
                 }
             }
@@ -190,8 +190,7 @@ namespace Couchbase.Lite.DI
         /// </summary>
         /// <typeparam name="T">The type of service to get an implementation for</typeparam>
         /// <returns>The implementation for the given service</returns>
-        [CanBeNull]
-        public static T GetInstance<T>() where  T : class
+        public static T? GetInstance<T>() where T : class
         {
             try {
                 return _Collection.GetInstance<T>();
@@ -200,7 +199,6 @@ namespace Couchbase.Lite.DI
             }
         }
 
-        [NotNull]
         internal static T GetRequiredInstance<T>() where T : class
         {
             return GetInstance<T>() ??  throw new InvalidOperationException(

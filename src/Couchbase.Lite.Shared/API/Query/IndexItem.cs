@@ -19,7 +19,6 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 { 
@@ -39,8 +38,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="property">The property path to base the index item on</param>
         /// <returns>The created index item</returns>
-        [NotNull]
-        public static IValueIndexItem Property([NotNull]string property) =>
+        public static IValueIndexItem Property(string property) =>
             Expression(Lite.Query.Expression.Property(property));
 
         /// <summary>
@@ -48,8 +46,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to base the index item on</param>
         /// <returns>The created index item</returns>
-        [NotNull]
-        public static IValueIndexItem Expression([NotNull]IExpression expression) => 
+        public static IValueIndexItem Expression(IExpression expression) => 
             new QueryIndexItem(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
     }
 
@@ -63,7 +60,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="property">The property name to base the index item on</param>
         /// <returns>The created index item</returns>
-        [NotNull]
-        public static IFullTextIndexItem Property([NotNull]string property) => new QueryIndexItem(Expression.Property(property));
+        public static IFullTextIndexItem Property(string property) => new QueryIndexItem(Expression.Property(property));
     }
 }

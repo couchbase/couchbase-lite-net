@@ -17,8 +17,6 @@
 // 
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -44,6 +42,6 @@ namespace Couchbase.Lite
         /// </list>
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when a document from a different database is returned.</exception>
-        Document Resolve(Conflict conflict);
+        Document? Resolve(Conflict conflict);
     }
 }

@@ -21,27 +21,23 @@ using System.Diagnostics;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
-
 namespace Couchbase.Lite.Internal.Query
 {
     internal abstract class QueryDataSource : IDataSource
     {
         #region Properties
 
-        internal virtual string ColumnName => null;
+        internal virtual string? ColumnName => null;
 
         internal object Source { get; }
 
-        [NotNull]
         internal ThreadSafety ThreadSafety { get; }
 
         #endregion
 
         #region Constructors
 
-        protected QueryDataSource(object source, [NotNull]ThreadSafety threadSafety)
+        protected QueryDataSource(object source, ThreadSafety threadSafety)
         {
             Debug.Assert(threadSafety != null);
 

@@ -20,14 +20,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
-
 using LiteCore;
 using LiteCore.Interop;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Doc
 {
@@ -80,7 +74,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
-        public BlobReadStream([NotNull]C4BlobStore *store, C4BlobKey key)
+        public BlobReadStream(C4BlobStore *store, C4BlobKey key)
         {
             Debug.Assert(store != null);
 

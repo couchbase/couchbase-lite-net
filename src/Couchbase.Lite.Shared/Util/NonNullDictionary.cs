@@ -66,6 +66,7 @@ namespace Couchbase.Lite.Util
     [DebuggerTypeProxy(typeof(CollectionDebuggerView<,>))]
     [ExcludeFromCodeCoverage]
     internal sealed class NonNullDictionary<TK, TV> : IDictionary<TK, TV>, IReadOnlyDictionary<TK, TV>
+        where TK : notnull
     {
         #region Variables
 
@@ -82,12 +83,15 @@ namespace Couchbase.Lite.Util
         public bool IsReadOnly => _data.IsReadOnly;
 
         /// <inheritdoc />
-        public TV this[TK index]
+#if NET6_0_OR_GREATER
+        [property: NotNull]
+#endif
+        public TV? this[TK index]
         {
-            get => _data[index];
+            get => _data[index]!;
             set {
                 if(IsAddable(value)) {
-                    _data[index] = value;
+                    _data[index] = value!;
                 }
             }
         }
@@ -109,7 +113,7 @@ namespace Couchbase.Lite.Util
         #region Private Methods
 
         [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse", Justification = "item is a Nullable type during the block")]
-        private static bool IsAddable(TV item)
+        private static bool IsAddable(TV? item)
         {
             if (!(item is ValueType)) {
                 return item != null;
@@ -184,7 +188,11 @@ namespace Couchbase.Lite.Util
         }
 
         /// <inheritdoc />
-        public bool TryGetValue(TK key, out TV value)
+        public bool TryGetValue(TK key,
+#if NET6_0_OR_GREATER
+            [MaybeNullWhen(false)]
+#endif
+            out TV value)
         {
             return _data.TryGetValue(key, out value);
         }

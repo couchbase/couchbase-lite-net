@@ -16,8 +16,6 @@
 //  limitations under the License.
 //
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.DI
 {
 
@@ -33,7 +31,6 @@ namespace Couchbase.Lite.DI
         /// Gets the default directory for a Couchbase Lite database to live in
         /// </summary>
         /// <returns>The default directory for a Couchbase Lite database to live in</returns>
-        [NotNull]
         string DefaultDirectory();
 
         #endregion

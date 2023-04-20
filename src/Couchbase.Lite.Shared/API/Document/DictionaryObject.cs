@@ -24,10 +24,8 @@ using System.IO;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
-
+using LiteCore.Interop;
 using Newtonsoft.Json;
-
-using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace Couchbase.Lite
 {
@@ -36,9 +34,10 @@ namespace Couchbase.Lite
     {
         #region Overrides
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            var dict = value as IDictionaryObject;
+            var dict = value as IDictionaryObject ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
+                "Invalid input received in WriteJson (not IDictionaryObject)"); 
             writer.WriteStartObject();
             foreach (var pair in dict) {
                 writer.WritePropertyName(pair.Key);
@@ -47,7 +46,7 @@ namespace Couchbase.Lite
             writer.WriteEndObject();
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             var dict = new MutableDictionaryObject();
             if (reader.TokenType == JsonToken.StartObject) {
@@ -83,11 +82,10 @@ namespace Couchbase.Lite
     {
         #region Variables
 
-        [NotNull]
         internal readonly MDict _dict = new MDict();
 
-        [NotNull] internal readonly ThreadSafety _threadSafety;
-        private List<string> _keys;
+        internal readonly ThreadSafety _threadSafety;
+        private List<string>? _keys;
 
         #endregion
 
@@ -104,15 +102,18 @@ namespace Couchbase.Lite
         {
             get {
                 if (_keys == null) {
-                    _threadSafety.DoLocked(() =>
+                    _keys = _threadSafety.DoLocked(() =>
                     {
                         // Double check pattern
-                        if (_keys == null) {
-                            _keys = new List<string>(_dict.Count);
+                        var retVal = _keys;
+                        if (retVal == null) {
+                            retVal = new List<string>(_dict.Count);
                             foreach (var item in _dict.AllItems()) {
-                                _keys.Add(item.Key);
+                                retVal.Add(item.Key);
                             }
                         }
+
+                        return retVal;
                     });
                 }
 
@@ -149,7 +150,6 @@ namespace Couchbase.Lite
         /// Creates a copy of this object that can be mutated
         /// </summary>
         /// <returns>A mutable copy of the dictionary</returns>
-        [NotNull]
         public MutableDictionaryObject ToMutable()
         {
             return _threadSafety.DoLocked(() => new MutableDictionaryObject(_dict, true));
@@ -172,13 +172,11 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        [NotNull]
         internal virtual DictionaryObject ToImmutable()
         {
             return this;
         }
 
-        [NotNull]
         internal MCollection ToMCollection()
         {
             return _dict;
@@ -188,14 +186,15 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static object GetObject([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
+        private static object GetObject(MDict dict, string key, IThreadSafety? threadSafety = null) 
+            => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
 
-        private static T GetObject<T>([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
+        private static T? GetObject<T>(MDict dict, string key, IThreadSafety? threadSafety = null) where T : class 
+            => GetObject(dict, key, threadSafety) as T;
 
-        [NotNull]
         private ThreadSafety SetupThreadSafety()
         {
-            Database db = null;
+            Database? db = null;
             if (_dict.Context != null && _dict.Context != MContext.Null) {
                 db = (_dict.Context as DocContext)?.Db;
             }
@@ -211,10 +210,10 @@ namespace Couchbase.Lite
         public bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
 
         /// <inheritdoc />
-        public ArrayObject GetArray(string key) => GetObject<ArrayObject>(_dict, key, _threadSafety);
+        public ArrayObject? GetArray(string key) => GetObject<ArrayObject>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public Blob GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
+        public Blob? GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
         public bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
@@ -223,7 +222,7 @@ namespace Couchbase.Lite
         public DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary(string key) => GetObject<DictionaryObject>(_dict, key, _threadSafety);
+        public DictionaryObject? GetDictionary(string key) => GetObject<DictionaryObject>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
         public double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
@@ -241,16 +240,16 @@ namespace Couchbase.Lite
         public object GetValue(string key) => GetObject(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public string GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
+        public string? GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public Dictionary<string, object> ToDictionary()
+        public Dictionary<string, object?> ToDictionary()
         {
-            var result = new Dictionary<string, object>(_dict.Count);
+            var result = new Dictionary<string, object?>(_dict.Count);
             _threadSafety.DoLocked(() =>
             {
                 foreach (var item in _dict.AllItems()) {
-                    result[item.Key] = DataOps.ToNetObject(item.Value?.AsObject(_dict));
+                    result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
                 }
             });
 
@@ -274,7 +273,7 @@ namespace Couchbase.Lite
         /// Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        public virtual IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
         {
             return new Enumerator(_dict);
         }
@@ -297,30 +296,28 @@ namespace Couchbase.Lite
 
         #region Nested
 
-        private class Enumerator : IEnumerator<KeyValuePair<string, object>>
+        private class Enumerator : IEnumerator<KeyValuePair<string, object?>>
         {
             #region Variables
 
-            [NotNull]
             private readonly IEnumerator<KeyValuePair<string, MValue>> _inner;
 
-            [NotNull]
             private readonly MDict _parent;
 
             #endregion
 
             #region Properties
 
-            object IEnumerator.Current => Current;
+            object? IEnumerator.Current => Current;
 
-            public KeyValuePair<string, object> Current => new KeyValuePair<string, object>(_inner.Current.Key,
-                _inner.Current.Value?.AsObject(_parent));
+            public KeyValuePair<string, object?> Current => new KeyValuePair<string, object?>(_inner.Current.Key,
+                _inner.Current.Value.AsObject(_parent));
 
             #endregion
 
             #region Constructors
 
-            public Enumerator([NotNull]MDict parent)
+            public Enumerator(MDict parent)
             {
                 _parent = parent;
                 _inner = parent.AllItems().GetEnumerator();

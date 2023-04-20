@@ -26,9 +26,9 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency]
     internal sealed class XEReachability : IReachability
     {
-        public Uri Url { get; set; }
+        public Uri? Url { get; set; }
 
-        public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+        public event EventHandler<NetworkReachabilityChangeEventArgs>? StatusChanged;
 
 #region Private Methods
 

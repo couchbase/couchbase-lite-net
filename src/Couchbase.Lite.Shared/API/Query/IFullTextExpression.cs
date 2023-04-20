@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -32,7 +30,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="query">The text to use for the match operation</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Match([NotNull]string query);
+        IExpression Match(string query);
     }
 }

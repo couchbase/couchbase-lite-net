@@ -16,14 +16,13 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
-
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -39,7 +38,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        [NotNull] private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
+        private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
         private C4QueryObserver* _queryObserver;
         private bool _disposed;
         private QueryBase _queryBase;
@@ -122,6 +121,11 @@ namespace Couchbase.Lite.Internal.Query
         private static void QueryObserverCallback(C4QueryObserver* obs, C4Query* query, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr)context).Target as LiveQuerier;
+            if(obj == null) {
+                WriteLog.To.Query.E(Tag, "Failed to retrieve LiveQuerier from GCHandle");
+                return;
+            }
+
             obj.QueryObserverCalled(obs, query);
         }
 
@@ -129,7 +133,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             _queryBase.DispatchQueue.DispatchSync(() =>
             {
-                Exception exp = null;
+                Exception? exp = null;
                 var newEnum = GetResults();
 
                 if (newEnum != null) {
@@ -138,7 +142,7 @@ namespace Couchbase.Lite.Internal.Query
             });
         }
 
-        private QueryResultSet GetResults()
+        private QueryResultSet? GetResults()
         {
             var newEnum = (C4QueryEnumerator*)_queryBase.ThreadSafety.DoLockedBridge(err =>
             {

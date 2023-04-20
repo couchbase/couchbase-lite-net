@@ -26,7 +26,6 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 using LiteCore.Interop;
 using Newtonsoft.Json;
@@ -47,10 +46,10 @@ namespace Couchbase.Lite.Query
 
         #region Variables
 
-        [NotNull]private readonly Dictionary<string, int> _columnNames;
+        private readonly Dictionary<string, int> _columnNames;
         private readonly MContext _context;
-        [NotNull]private readonly object[] _deserialized;
-        [NotNull]private readonly BitArray _missingColumns;
+        private readonly object?[] _deserialized;
+        private readonly BitArray _missingColumns;
         private readonly QueryResultSet _rs;
 
         private FLArrayIterator _columns;
@@ -111,7 +110,7 @@ namespace Couchbase.Lite.Query
 
         #region Private Methods
 
-        private object FleeceValueToObject(int index)
+        private object? FleeceValueToObject(int index)
         {
             var value = FLValueAtIndex(index);
             if (value == null) {
@@ -143,13 +142,13 @@ namespace Couchbase.Lite.Query
         #region IArray
 
         /// <inheritdoc />
-        public ArrayObject GetArray(int index)
+        public ArrayObject? GetArray(int index)
         {
             return _deserialized[index] as ArrayObject;
         }
 
         /// <inheritdoc />
-        public Blob GetBlob(int index)
+        public Blob? GetBlob(int index)
         {
             return _deserialized[index] as Blob;  
         }
@@ -167,7 +166,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary(int index)
+        public DictionaryObject? GetDictionary(int index)
         {
             return _deserialized[index] as DictionaryObject;
         }
@@ -197,19 +196,19 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public object GetValue(int index)
+        public object? GetValue(int index)
         {
             return _deserialized[index];
         }
 
         /// <inheritdoc />
-        public string GetString(int index)
+        public string? GetString(int index)
         {
             return _deserialized[index] as string;
         }
 
         /// <inheritdoc />
-        public List<object> ToList()
+        public List<object?> ToList()
         {
             return _deserialized.Select(DataOps.ToNetObject).ToList();
         }
@@ -219,14 +218,14 @@ namespace Couchbase.Lite.Query
         #region IDictionaryObject
 
         /// <inheritdoc />
-        public bool Contains([NotNull]string key)
+        public bool Contains(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             return IndexForColumnName(key) >= 0;
         }
 
         /// <inheritdoc />
-        public ArrayObject GetArray([NotNull]string key)
+        public ArrayObject? GetArray(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -234,7 +233,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public Blob GetBlob([NotNull]string key)
+        public Blob? GetBlob(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -242,7 +241,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public bool GetBoolean([NotNull]string key)
+        public bool GetBoolean(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -250,7 +249,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public DateTimeOffset GetDate([NotNull]string key)
+        public DateTimeOffset GetDate(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -258,7 +257,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary([NotNull]string key)
+        public DictionaryObject? GetDictionary(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -266,7 +265,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public double GetDouble([NotNull]string key)
+        public double GetDouble(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -274,7 +273,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public float GetFloat([NotNull]string key)
+        public float GetFloat(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -282,7 +281,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public int GetInt([NotNull]string key)
+        public int GetInt(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -290,7 +289,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public long GetLong([NotNull]string key)
+        public long GetLong(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -298,7 +297,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public object GetValue([NotNull]string key)
+        public object? GetValue(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -306,7 +305,7 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public string GetString([NotNull]string key)
+        public string? GetString(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
@@ -314,9 +313,9 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public Dictionary<string, object> ToDictionary()
+        public Dictionary<string, object?> ToDictionary()
         {
-            var dict = new Dictionary<string, object>();
+            var dict = new Dictionary<string, object?>();
             foreach (var key in Keys) {
                 dict[key] = DataOps.ToNetObject(GetValue(key));
             }
@@ -330,19 +329,19 @@ namespace Couchbase.Lite.Query
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable<object>) this).GetEnumerator();
+            return ((IEnumerable<object?>) this).GetEnumerator();
         }
 
         #endregion
 
         #region IEnumerable<KeyValuePair<string,object>>
 
-        IEnumerator<KeyValuePair<string, object>> IEnumerable<KeyValuePair<string, object>>.GetEnumerator()
+        IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator()
         {
             int index = 0;
             foreach (var column in _rs.ColumnNames.Keys) {
                 if (!_missingColumns.Get(index++)) {
-                    yield return new KeyValuePair<string, object>(column, GetValue(column));
+                    yield return new KeyValuePair<string, object?>(column, GetValue(column));
                 }
             }
         }
@@ -351,7 +350,7 @@ namespace Couchbase.Lite.Query
 
         #region IEnumerable<object>
 
-        IEnumerator<object> IEnumerable<object>.GetEnumerator()
+        IEnumerator<object?> IEnumerable<object?>.GetEnumerator()
         {
             for (var i = 0; i < _rs.ColumnNames.Count; i++) {
                 if (!_missingColumns.Get(i)) {

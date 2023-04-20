@@ -19,8 +19,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -29,12 +27,11 @@ namespace Couchbase.Lite
     /// safe accessors to get the data without having to know the keys they are stored
     /// under
     /// </summary>
-    internal abstract class OptionsDictionary : IDictionary<string, object>
+    internal abstract class OptionsDictionary : IDictionary<string, object?>
     {
         #region Variables
 
-        [NotNull]
-        private readonly Dictionary<string, object> _inner = new Dictionary<string, object>();
+        private readonly Dictionary<string, object?> _inner = new Dictionary<string, object?>();
 
         #endregion
 
@@ -49,7 +46,7 @@ namespace Couchbase.Lite
         public bool IsReadOnly => false;
 
         /// <inheritdoc />
-        public object this[string key]
+        public object? this[string key]
         {
             [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
             get => _inner[key];
@@ -68,7 +65,7 @@ namespace Couchbase.Lite
 
         /// <inheritdoc />
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        public ICollection<object> Values => _inner.Values;
+        public ICollection<object?> Values => _inner.Values;
 
         #endregion
 
@@ -79,7 +76,7 @@ namespace Couchbase.Lite
 
         }
 
-        internal OptionsDictionary(Dictionary<string, object> raw)
+        internal OptionsDictionary(Dictionary<string, object?> raw)
         {
             if(raw != null) {
                 _inner = raw;
@@ -105,7 +102,7 @@ namespace Couchbase.Lite
         }
 
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        internal virtual bool Validate(string key, object value)
+        internal virtual bool Validate(string key, object? value)
         {
             return true;
         }
@@ -115,13 +112,13 @@ namespace Couchbase.Lite
         #region ICollection<KeyValuePair<string,object>>
 
         /// <inheritdoc />
-        public void Add(KeyValuePair<string, object> item)
+        public void Add(KeyValuePair<string, object?> item)
         {
             if (!Validate(item.Key, item.Value)) {
                 throw new InvalidOperationException($"Invalid value {item.Value} for key '{item.Key}'");
             }
 
-            ((ICollection<KeyValuePair<string, object>>)_inner).Add(item);
+            ((ICollection<KeyValuePair<string, object?>>)_inner).Add(item);
         }
 
         /// <inheritdoc />
@@ -132,26 +129,26 @@ namespace Couchbase.Lite
 
         /// <inheritdoc />
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        public bool Contains(KeyValuePair<string, object> item)
+        public bool Contains(KeyValuePair<string, object?> item)
         {
-            return ((ICollection<KeyValuePair<string, object>>)_inner).Contains(item);
+            return ((ICollection<KeyValuePair<string, object?>>)_inner).Contains(item);
         }
 
         /// <inheritdoc />
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
+        public void CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex)
         {
-            ((ICollection<KeyValuePair<string, object>>)_inner).CopyTo(array, arrayIndex);
+            ((ICollection<KeyValuePair<string, object?>>)_inner).CopyTo(array, arrayIndex);
         }
 
         /// <inheritdoc />
-        public bool Remove(KeyValuePair<string, object> item)
+        public bool Remove(KeyValuePair<string, object?> item)
         {
             if (KeyIsRequired(item.Key)) {
                 throw new InvalidOperationException($"Cannot remove the required key '{item.Key}'");
             }
 
-            return ((ICollection<KeyValuePair<string, object>>)_inner).Remove(item);
+            return ((ICollection<KeyValuePair<string, object?>>)_inner).Remove(item);
         }
 
         #endregion
@@ -159,7 +156,7 @@ namespace Couchbase.Lite
         #region IDictionary<string,object>
 
         /// <inheritdoc />
-        public void Add(string key, object value)
+        public void Add(string key, object? value)
         {
             if (!Validate(key, value)) {
                 throw new InvalidOperationException($"Invalid value {value} for key '{key}'");
@@ -187,7 +184,7 @@ namespace Couchbase.Lite
 
         /// <inheritdoc />
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        public bool TryGetValue(string key, out object value)
+        public bool TryGetValue(string key, out object? value)
         {
             return _inner.TryGetValue(key, out value);
         }
@@ -206,7 +203,7 @@ namespace Couchbase.Lite
         #region IEnumerable<KeyValuePair<string,object>>
 
         /// <inheritdoc />
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
         {
             return _inner.GetEnumerator();
         }

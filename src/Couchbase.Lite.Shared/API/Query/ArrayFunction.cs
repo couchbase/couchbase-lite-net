@@ -19,7 +19,6 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
@@ -46,8 +45,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The element to search for (either an expression or literal)</param>
         /// <returns>A function that will return true if the array contains the element, or false
         /// if it does not</returns>
-        [NotNull]
-        public static IExpression Contains([NotNull]IExpression expression, [NotNull]IExpression value) => 
+        public static IExpression Contains(IExpression expression, IExpression value) => 
             new QueryCompoundExpression("ARRAY_CONTAINS()", 
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(value), value));
@@ -59,8 +57,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to usem when calculating (must evaluate to an array type)
         /// the result</param>
         /// <returns>A function that will get the length of the array in question</returns>
-        [NotNull]
-        public static IExpression Length([NotNull]IExpression expression) => 
+        public static IExpression Length(IExpression expression) => 
             new QueryCompoundExpression("ARRAY_LENGTH()", 
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 

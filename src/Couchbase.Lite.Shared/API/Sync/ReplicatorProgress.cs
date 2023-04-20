@@ -18,10 +18,9 @@
 
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Sync
 {
@@ -72,32 +71,30 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the document ID of the document that was replicated
         /// </summary>
-        [NotNull]
         public string Id { get; }
 
         /// <summary>
         /// Gets the error that occurred during replication, if any.
         /// </summary>
-        [CanBeNull]
-        public CouchbaseException Error { get; internal set; }
+        public CouchbaseException? Error { get; internal set; }
 
         internal bool IsTransient { get; }
 
         internal C4Error NativeError { get; }
 
-        internal ReplicatedDocument([NotNull]string docID, C4CollectionSpec collectionSpec, C4RevisionFlags flags, C4Error error,
+        internal ReplicatedDocument(string docID, C4CollectionSpec collectionSpec, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;
-            CollectionName = collectionSpec.name.CreateString();
-            ScopeName = collectionSpec.scope.CreateString();
+            CollectionName = collectionSpec.name.CreateString()!;
+            ScopeName = collectionSpec.scope.CreateString()!;
             Flags = flags.ToDocumentFlags();
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
         }
 
-        private ReplicatedDocument([NotNull] string docID, string collectionName, string scopeName, DocumentFlags flags, C4Error error,
+        private ReplicatedDocument(string docID, string collectionName, string scopeName, DocumentFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;
@@ -117,13 +114,18 @@ namespace Couchbase.Lite.Sync
         /// <inheritdoc />
         public override string ToString()
         {
-            return $"ReplicatedDocument[ Doc ID: {Id}; " +
-                   $"Flags: { Flags };" +
-                   $"Collection Name: { CollectionName };" +
-                   $"Scope Name: { ScopeName };" +
-                   $"Error domain: { Error.Domain }; " +
-                   $"Error code: { Error.Error }; " +
-                   $"IsTransient: { IsTransient } ]";
+            var retVal = $"ReplicatedDocument[ Doc ID: {Id}; " +
+                   $"Flags: {Flags};" +
+                   $"Collection Name: {CollectionName};" +
+                   $"Scope Name: {ScopeName};";
+
+            if (Error != null) {
+                retVal += $"Error domain: {Error.Domain}; " +
+                $"Error code: {Error.Error}; " +
+                $"IsTransient: {IsTransient} ]";
+            }
+
+            return retVal;
         }
     }
 }

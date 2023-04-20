@@ -16,8 +16,6 @@
 // limitations under the License.
 // 
 
-
-using JetBrains.Annotations;
 using System;
 
 namespace Couchbase.Lite.Query
@@ -36,16 +34,14 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to add</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Add([NotNull]IExpression expression);
+        IExpression Add(IExpression expression);
 
         /// <summary>
         /// Logically "ands" the given expression with the current expression
         /// </summary>
         /// <param name="expression">The expression to "and"</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression And([NotNull]IExpression expression);
+        IExpression And(IExpression expression);
 
         /// <summary>
         /// Determines if the result is between the two given expressions
@@ -53,8 +49,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression1">The expression to use as the first bound</param>
         /// <param name="expression2">The expression to use as the second bound</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Between([NotNull]IExpression expression1, [NotNull]IExpression expression2);
+        IExpression Between(IExpression expression1, IExpression expression2);
 
         /// <summary>
         /// Collates the previous expression using the given collation instance (normally 
@@ -64,16 +59,14 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="collation">The collation instance to use when collating</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Collate([NotNull]ICollation collation);
+        IExpression Collate(ICollation collation);
 
         /// <summary>
         /// Matehematically divides the current and given expressions
         /// </summary>
         /// <param name="expression">The expression to divide</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Divide([NotNull]IExpression expression);
+        IExpression Divide(IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -81,8 +74,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression EqualTo([NotNull]IExpression expression);
+        IExpression EqualTo(IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -90,8 +82,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression GreaterThan([NotNull]IExpression expression);
+        IExpression GreaterThan(IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -99,8 +90,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression GreaterThanOrEqualTo([NotNull]IExpression expression);
+        IExpression GreaterThanOrEqualTo(IExpression expression);
 
         /// <summary>
         /// Returns an expression to test whether or not the given expression is contained
@@ -108,8 +98,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expressions">The list of expressions to check</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression In([ItemNotNull]params IExpression[] expressions);
+        IExpression In(params IExpression[] expressions);
 
         /// <summary>
         /// Returns an expression to test whether or not the given expression is
@@ -117,8 +106,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare to</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Is([NotNull]IExpression expression);
+        IExpression Is(IExpression expression);
 
         /// <summary>
         /// Returns an expression to test whether or not the given expression is
@@ -126,8 +114,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare to</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression IsNot([NotNull]IExpression expression);
+        IExpression IsNot(IExpression expression);
 
         /// <summary>
         /// [DEPRECATED] Gets an expression representing if the current expression is null
@@ -135,21 +122,18 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
         [Obsolete("This query expression deprecated, please use IsNotValued().")]
-        [NotNull]
         IExpression IsNullOrMissing();
 
         /// <summary>
         /// Gets an expression representing if the current expression has a value
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
         IExpression IsValued();
 
         /// <summary>
         /// Gets an expression representing if the current expression does not have a value
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
         IExpression IsNotValued();
 
         /// <summary>
@@ -158,8 +142,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression LessThan([NotNull]IExpression expression);
+        IExpression LessThan(IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -167,8 +150,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression LessThanOrEqualTo([NotNull]IExpression expression);
+        IExpression LessThanOrEqualTo(IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -176,8 +158,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Like([NotNull]IExpression expression);
+        IExpression Like(IExpression expression);
 
         /// <summary>
         /// Returns an modulo math expression using the current and given expressions
@@ -185,8 +166,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to mod with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Modulo([NotNull]IExpression expression);
+        IExpression Modulo(IExpression expression);
 
         /// <summary>
         /// Returns a multiply expression using the current and given expressions as 
@@ -194,8 +174,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to multiply with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Multiply([NotNull]IExpression expression);
+        IExpression Multiply(IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -203,8 +182,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression NotEqualTo([NotNull]IExpression expression);
+        IExpression NotEqualTo(IExpression expression);
 
         /// <summary>
         /// [DEPRECATED] Gets an expression representing if the current expression is neither null
@@ -212,7 +190,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
         [Obsolete("This query expression deprecated, please use IsValued().")]
-        [NotNull]
         IExpression NotNullOrMissing();
 
         /// <summary>
@@ -220,8 +197,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to "and"</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Or([NotNull]IExpression expression);
+        IExpression Or(IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -229,16 +205,14 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Regex([NotNull]IExpression expression);
+        IExpression Regex(IExpression expression);
 
         /// <summary>
         /// Mathematically subtracts the given expression to the current expression
         /// </summary>
         /// <param name="expression">The expression to subtract</param>
         /// <returns>The expression representing the new operation</returns>
-        [NotNull]
-        IExpression Subtract([NotNull]IExpression expression);
+        IExpression Subtract(IExpression expression);
 
         #endregion
     }

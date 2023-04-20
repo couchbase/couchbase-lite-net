@@ -18,8 +18,6 @@
 using System;
 using System.Collections.Generic;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>

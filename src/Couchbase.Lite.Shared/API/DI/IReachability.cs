@@ -30,7 +30,7 @@ namespace Couchbase.Lite.DI
 
         #region Properties
 
-        Uri Url { get; set; }
+        Uri? Url { get; set; }
 
         #endregion
 

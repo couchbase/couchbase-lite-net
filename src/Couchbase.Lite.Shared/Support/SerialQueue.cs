@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Support
             return Task.Delay(time).ContinueWith(t => DispatchSync(a));
         }
 
-        public Task<TResult> DispatchAfter<TResult>(Func<TResult> f, TimeSpan time)
+        public Task<TResult?> DispatchAfter<TResult>(Func<TResult> f, TimeSpan time)
         {
             return Task.Delay(time).ContinueWith(t => DispatchSync(f));
         }
@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Support
             if(a.Target is Sync.WebSocketWrapper)
                 WriteLog.To.Sync.V(Tag, $"DispatchAsync {a.Method}");
             var tcs = new TaskCompletionSource<bool>();
-            _queue.Enqueue(new SerialQueueItem { Action = a, Tcs = tcs, SyncContext = SynchronizationContext.Current ?? new SynchronizationContext() });
+            _queue.Enqueue(new SerialQueueItem(a, SynchronizationContext.Current ?? new SynchronizationContext(), tcs));
             StartProcessAsync();
 
             return tcs.Task;
@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Support
             }
         }
 
-        public T DispatchSync<T>(Func<T> f)
+        public T? DispatchSync<T>(Func<T?> f)
         {
             var retVal = default(T);
             DispatchSync(new Action(() => retVal = f()));
@@ -227,6 +227,13 @@ namespace Couchbase.Lite.Support
             public SynchronizationContext SyncContext;
 
             public TaskCompletionSource<bool> Tcs;
+
+            public SerialQueueItem(Action action, SynchronizationContext syncContext, TaskCompletionSource<bool> tcs)
+            {
+                Action = action;
+                SyncContext = syncContext;
+                Tcs = tcs;
+            }
 
             #endregion
         }

@@ -30,13 +30,13 @@ namespace Couchbase.Lite.Support
     {
         #region Variables
 
-        public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+        public event EventHandler<NetworkReachabilityChangeEventArgs>? StatusChanged;
 
         #endregion
         
         #region Properties
         
-        public Uri Url { get; set; }
+        public Uri? Url { get; set; }
         
         #endregion
 

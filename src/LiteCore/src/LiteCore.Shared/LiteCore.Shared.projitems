@@ -63,7 +63,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\NativeActivate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\NativeHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\SQLiteStatus.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\Annotations.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\C4String.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Hasher.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\PerfTimer.cs" />

@@ -33,7 +33,7 @@ namespace LiteCore.Util
             _hashCode = hashCode;
         }
 
-        public Hasher Add<T>(T obj)
+        public Hasher Add<T>(T obj) where T : notnull
         {
             var h = EqualityComparer<T>.Default.GetHashCode(obj);
             _hashCode = _hashCode * 31 + h;
@@ -44,7 +44,7 @@ namespace LiteCore.Util
 
         public override int GetHashCode() => _hashCode;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Hasher other) {
                 return _hashCode == other._hashCode;

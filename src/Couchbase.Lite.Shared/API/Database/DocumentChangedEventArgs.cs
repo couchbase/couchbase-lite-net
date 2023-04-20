@@ -18,8 +18,6 @@
 
 using System;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -33,31 +31,30 @@ namespace Couchbase.Lite
         /// <summary>
         /// The ID of the document that changed
         /// </summary>
-        [NotNull]
         public string DocumentID { get; }
 
         /// <summary>
         /// [DEPRECATED] The source of the document that changed
         /// </summary>
         [Obsolete("Database is deprecated, please use Collection property instead")]
-        [NotNull]
         public Database Database { get; }
 
         /// <summary>
         /// The source of the document that changed
         /// </summary>
-        [NotNull]
         public Collection Collection { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DocumentChangedEventArgs([NotNull] string documentID, [NotNull] Collection collection)
+        internal DocumentChangedEventArgs(string documentID, Collection collection)
         {
             DocumentID = documentID;
             Collection = collection;
+#pragma warning disable CS0618 // Type or member is obsolete
             Database = collection.Database;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         #endregion

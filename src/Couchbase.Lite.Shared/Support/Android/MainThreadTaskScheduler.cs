@@ -26,8 +26,7 @@ using Android.OS;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
-
-using JetBrains.Annotations;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite.Support
 {
@@ -41,8 +40,7 @@ namespace Couchbase.Lite.Support
 
         #region Variables
 
-        [NotNull]
-        private static Handler _Handler;
+        private Handler _handler;
 
         #endregion
 
@@ -54,9 +52,14 @@ namespace Couchbase.Lite.Support
 
         #region Constructors
 
-        public MainThreadTaskScheduler([NotNull]Context context)
+        public MainThreadTaskScheduler(Context context)
         {
-            Interlocked.CompareExchange(ref _Handler, new Handler(context.MainLooper), null);
+            if(context.MainLooper == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
+                    "Context Main Looper is null, cannot create MainTaskScheduler!");
+            }
+
+            _handler = new Handler(context.MainLooper);
         }
 
         #endregion
@@ -70,7 +73,7 @@ namespace Couchbase.Lite.Support
 
         protected override void QueueTask(Task task)
         {
-            _Handler.Post(() =>
+            _handler.Post(() =>
             {
                 if (!TryExecuteTask(task)) {
                     WriteLog.To.Database.W(Tag, "Failed to execute a task in MainThreadTaskScheduler");

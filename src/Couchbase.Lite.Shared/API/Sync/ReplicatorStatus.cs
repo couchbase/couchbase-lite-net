@@ -18,8 +18,6 @@
 
 using System;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -41,10 +39,9 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the last error that occurred, if any
         /// </summary>
-        [CanBeNull]
-        public Exception Error { get; }
+        public Exception? Error { get; }
 
-        internal ReplicatorStatus(ReplicatorActivityLevel activity, ReplicatorProgress progress, Exception error)
+        internal ReplicatorStatus(ReplicatorActivityLevel activity, ReplicatorProgress progress, Exception? error)
         {
             Activity = activity;
             Progress = progress;

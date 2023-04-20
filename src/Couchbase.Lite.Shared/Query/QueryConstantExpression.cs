@@ -49,19 +49,19 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Private Methods
 
-        private object DictAsJson(IDictionary<string, object> dictionary)
+        private object? DictAsJson(IDictionary<string, object> dictionary)
         {
             return dictionary.ToDictionary(x => x.Key, x => ToJSON(x.Value));
         }
 
-        private object ListAsJson(IList list)
+        private object? ListAsJson(IList list)
         {
-            var retVal = new List<object> { "[]" };
+            var retVal = new List<object?> { "[]" };
             retVal.AddRange(list.Cast<object>().Select(ToJSON));
             return retVal;
         }
 
-        private object ToJSON(object input)
+        private object? ToJSON(object? input)
         {
             switch (input) {
                 case IDictionary<string, object> d:
@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Overrides
 
-        protected override object ToJSON() => ToJSON(_internal);
+        protected override object? ToJSON() => ToJSON(_internal);
 
         #endregion
     }

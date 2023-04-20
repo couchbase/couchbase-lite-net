@@ -19,15 +19,12 @@ using System;
 using System.Text;
 using System.Threading;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Util
 {
     internal static class Misc
     {
         #region Public Methods
 
-        [NotNull]
         public static TClass TryCast<TInterface, TClass>(TInterface iface)
             where TClass : class, TInterface
         {
@@ -35,7 +32,7 @@ namespace Couchbase.Lite.Util
                    throw new NotSupportedException($"Custom {typeof(TInterface).Name} is not supported");
         }
 
-        public static void SafeSwap<T>(ref T old, T @new) where T : class, IDisposable
+        public static void SafeSwap<T>(ref T? old, T? @new) where T : class, IDisposable
         {
             if (ReferenceEquals(old, @new) || old?.Equals(@new) == true) {
                 return; // Same object, don't dispose

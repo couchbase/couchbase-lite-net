@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -30,6 +28,6 @@ namespace Couchbase.Lite.Sync
 
     internal interface IEndpointInternal : IEndpoint
     {
-        void Visit([NotNull]ReplicatorConfiguration config);
+        void Visit(ReplicatorConfiguration config);
     }
 }

@@ -27,8 +27,6 @@ using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -96,8 +94,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the authentication parameters
         /// </summary>
-        [CanBeNull]
-        public AuthOptionsDictionary Auth
+        public AuthOptionsDictionary? Auth
         {
             get => this.GetCast<AuthOptionsDictionary>(AuthOption);
             set => this[AuthOption] = value;
@@ -106,9 +103,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the channels to replicate (pull only)
         /// </summary>
-        [CanBeNull]
-        [ItemNotNull]
-        public IList<string> Channels
+        public IList<string>? Channels
         {
             get => this.GetCast<IList<string>>(ChannelsKey);
             set => this[ChannelsKey] = value;
@@ -130,23 +125,18 @@ namespace Couchbase.Lite.Sync
         /// Gets or set the certificate to be used with client side
         /// authentication during TLS requests (optional)
         /// </summary>
-        [CanBeNull]
-        public X509Certificate2 ClientCert { get; set; }
+        public X509Certificate2? ClientCert { get; set; }
 
         /// <summary>
         /// Gets or sets a collection of cookie objects to be passed along
         /// with the initial HTTP request of the <see cref="Replicator"/>
         /// </summary>
-        [NotNull]
-        [ItemNotNull]
         public ICollection<Cookie> Cookies { get; set; } = new List<Cookie>();
 
         /// <summary>
         /// Gets or sets the docIDs to replicate
         /// </summary>
-        [CanBeNull]
-        [ItemNotNull]
-        public IList<string> DocIDs
+        public IList<string>? DocIDs
         {
             get => this.GetCast<IList<string>>(DocIDsKey);
             set => this[DocIDsKey] = value;
@@ -155,8 +145,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the filter to use when replicating
         /// </summary>
-        [CanBeNull]
-        public string Filter
+        public string? Filter
         {
             get => this.GetCast<string>(FilterKey);
             set => this[FilterKey] = value;
@@ -165,8 +154,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the parameters that will be passed along with the filter
         /// </summary>
-        [CanBeNull]
-        public IDictionary<string, object> FilterParams
+        public IDictionary<string, object>? FilterParams
         {
             get => this.GetCast<IDictionary<string, object>>(FilterParamsKey);
             set => this[FilterParamsKey] = value;
@@ -176,10 +164,9 @@ namespace Couchbase.Lite.Sync
         /// Gets a mutable collection of headers to be passed along with the initial
         /// HTTP request that starts replication
         /// </summary>
-        [NotNull]
-        public IDictionary<string, string> Headers
+        public IDictionary<string, string?> Headers
         {
-            get => this.GetCast<IDictionary<string, string>>(HeadersKey, new Dictionary<string, string>());
+            get => this.GetCast<IDictionary<string, string?>>(HeadersKey, new Dictionary<string, string?>())!;
             set => this[HeadersKey] = value;
         }
 
@@ -187,11 +174,9 @@ namespace Couchbase.Lite.Sync
         /// Gets or sets a certificate to trust.  All other certificates received
         /// by a <see cref="Replicator"/> with this configuration will be rejected.
         /// </summary>
-        [CanBeNull]
-        internal X509Certificate2 PinnedServerCertificate { get; set; }
+        internal X509Certificate2? PinnedServerCertificate { get; set; }
 
-        [CanBeNull]
-        internal string NetworkInterface
+        internal string? NetworkInterface
         {
             get => this.GetCast<string>(NetworkInterfaceKey);
             set => this[NetworkInterfaceKey] = value;
@@ -200,8 +185,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Stable ID for remote db with unstable URL
         /// </summary>
-        [CanBeNull]
-        public string RemoteDBUniqueID
+        public string? RemoteDBUniqueID
         {
             get => this.GetCast<string>(RemoteDBUniqueIDKey);
             set {
@@ -302,9 +286,9 @@ namespace Couchbase.Lite.Sync
         }
         #endif
 
-        internal string CookieString => this.GetCast<string>(CookiesKey);
+        internal string? CookieString => this.GetCast<string>(CookiesKey);
 
-        internal string Protocols => this.GetCast<string>(ProtocolsOptionKey);
+        internal string? Protocols => this.GetCast<string>(ProtocolsOptionKey);
 
         #endregion
 
@@ -315,7 +299,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicatorOptionsDictionary()
         {
-            Headers = new Dictionary<string, string>();
+            Headers = new Dictionary<string, string?>();
             EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
             #if COUCHBASE_ENTERPRISE
             AcceptOnlySelfSignedServerCertificate = Constants.DefaultReplicatorSelfSignedCertificateOnly;
@@ -327,10 +311,10 @@ namespace Couchbase.Lite.Sync
             Dispose(true);
         }
 
-        internal ReplicatorOptionsDictionary([NotNull]Dictionary<string, object> raw) : base(raw)
+        internal ReplicatorOptionsDictionary(Dictionary<string, object?> raw) : base(raw)
         {
             if (ContainsKey(AuthOption)) {
-                Auth = new AuthOptionsDictionary(this[AuthOption] as Dictionary<string, object>);
+                Auth = new AuthOptionsDictionary((this[AuthOption] as Dictionary<string, object?>)!);
             }
 
             if (ContainsKey(ChannelsKey)) {
@@ -342,8 +326,8 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ContainsKey(HeadersKey)) {
-                Headers = (this[HeadersKey] as IDictionary<string, object>)?.ToDictionary(x => x.Key,
-                    x => x.Value as string) ?? new Dictionary<string, string>();
+                Headers = (this[HeadersKey] as IDictionary<string, object?>)?.ToDictionary(x => x.Key,
+                    x => x.Value as string) ?? new Dictionary<string, string?>();
             }
 
             if (ContainsKey(PinnedCertKey)) {
@@ -355,7 +339,7 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ContainsKey(CookiesKey)) {
-                AddCookies((string)this[CookiesKey]);
+                AddCookies(this[CookiesKey] as string);
             }
         }
 
@@ -363,7 +347,7 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private void AddCookies(string cookiesString)
+        private void AddCookies(string? cookiesString)
         {
             var split = cookiesString?.Split(';') ?? Enumerable.Empty<string>();
             foreach (var entry in split) {
@@ -373,7 +357,7 @@ namespace Couchbase.Lite.Sync
                     continue;
                 }
 
-                Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
+                Cookies.Add(new Cookie(pieces[0]?.Trim()!, pieces[1]?.Trim()));
             }
         }
 
@@ -423,7 +407,7 @@ namespace Couchbase.Lite.Sync
             Headers["User-Agent"] = HTTPLogic.UserAgent;
         }
 
-        internal override bool Validate(string key, object value)
+        internal override bool Validate(string key, object? value)
         {
             switch (key) {
                 case AuthOption:

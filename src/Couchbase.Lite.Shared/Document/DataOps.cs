@@ -20,7 +20,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using Couchbase.Lite.Internal.Serialization;
-using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -31,9 +30,9 @@ namespace Couchbase.Lite.Internal.Doc
     {
         #region Internal Methods
 
-        internal static T ParseTo<T>(string json)
+        internal static T? ParseTo<T>(string json)
         {
-            T retVal;
+            T? retVal;
             try {
                 var settings = new JsonSerializerSettings {
                     DateParseHandling = DateParseHandling.DateTimeOffset,
@@ -47,7 +46,7 @@ namespace Couchbase.Lite.Internal.Doc
             return retVal;
         }
 
-        internal static bool ConvertToBoolean(object value)
+        internal static bool ConvertToBoolean(object? value)
         {
             switch (value) {
                 case null:
@@ -61,7 +60,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static DateTimeOffset ConvertToDate(object value)
+        internal static DateTimeOffset ConvertToDate(object? value)
         {
             switch (value) {
                 case null:
@@ -82,7 +81,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static double ConvertToDouble(object value)
+        internal static double ConvertToDouble(object? value)
         {
             // NOTE: Cannot use ConvertToDecimal because double has a greater range
             switch (value) {
@@ -95,7 +94,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static float ConvertToFloat(object value)
+        internal static float ConvertToFloat(object? value)
         {
             // NOTE: Cannot use ConvertToDecimal because float has a greater range
             switch (value) {
@@ -108,18 +107,18 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static int ConvertToInt(object value)
+        internal static int ConvertToInt(object? value)
         {
             return (int)Math.Truncate(ConvertToDecimal(value));
         }
 
-        internal static long ConvertToLong(object value)
+        internal static long ConvertToLong(object? value)
         {
             return (long)Math.Truncate(ConvertToDecimal(value));
         }
 
         //makes sure it is ArrayObject / DictionaryObject instead of List and Dictionary
-        internal static object ToCouchbaseObject(object value)
+        internal static object? ToCouchbaseObject(object? value)
         {
             switch (value) {
                 case null:
@@ -134,9 +133,9 @@ namespace Couchbase.Lite.Internal.Doc
                     var jobjDict = jobj.ToObject<IDictionary<string, object>>();
 
                     //The dictionary may contain the json dict represents Blob. Developer should be able to retrieve Blob object using the Database.GetBlob(dict).
-                    return ConvertDictionary(jobjDict); 
+                    return ConvertDictionary(jobjDict!); 
                 case JArray jarr:
-                    return ConvertList(jarr.ToObject<IList>());
+                    return ConvertList(jarr.ToObject<IList>()!);
                 case JToken jToken:
                     switch (jToken.Type) {
                         case JTokenType.Date:
@@ -170,7 +169,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static object ToNetObject(object value)
+        internal static object? ToNetObject(object? value)
         {
             switch (value) {
                 case null:
@@ -186,7 +185,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static unsafe bool ValueWouldChange(object newValue, MValue oldValue, MCollection container)
+        internal static unsafe bool ValueWouldChange(object? newValue, MValue oldValue, MCollection container)
         {
             // As a simplification we assume that array and fict values are always different, to avoid
             // a possibly expensive comparison
@@ -223,7 +222,7 @@ namespace Couchbase.Lite.Internal.Doc
             return array;
         }
 
-        private static decimal ConvertToDecimal(object value)
+        private static decimal ConvertToDecimal(object? value)
         {
             switch (value) {
                 case string s: // string is IConvertible, but will throw for non-numeric strings

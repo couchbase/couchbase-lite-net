@@ -19,8 +19,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -45,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryUnaryExpression([NotNull]IExpression argument, UnaryOpType type)
+        internal QueryUnaryExpression(IExpression argument, UnaryOpType type)
         {
             Debug.Assert(argument != null);
             _argument = argument;
@@ -56,9 +54,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Overrides
 
-        protected override object ToJSON()
+        protected override object? ToJSON()
         {
-            var obj = new List<object>();
+            var obj = new List<object?>();
             switch (_type) {
                 case UnaryOpType.Missing:
                 case UnaryOpType.Null:
@@ -81,7 +79,7 @@ namespace Couchbase.Lite.Internal.Query
             var operand = Misc.TryCast<IExpression, QueryExpression>(_argument);
 
             if ((operand as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
-                obj.InsertRange(1, operand.ConvertToJSON() as IList<object>);
+                obj.InsertRange(1, (operand.ConvertToJSON() as IList<object?>)!);
             } else {
                 obj.Insert(1, operand.ConvertToJSON());
             }

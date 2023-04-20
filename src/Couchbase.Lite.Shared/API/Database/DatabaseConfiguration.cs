@@ -21,8 +21,6 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -38,13 +36,13 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        [NotNull] private readonly Freezer _freezer = new Freezer();
+        private readonly Freezer _freezer = new Freezer();
 
-        [NotNull] private string _directory =
+        private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
 
         #if COUCHBASE_ENTERPRISE
-        private EncryptionKey _encryptionKey;
+        private EncryptionKey? _encryptionKey;
         #endif
 
         #endregion
@@ -54,7 +52,6 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the directory to use when creating or opening the data
         /// </summary>
-        [NotNull]
         public string Directory
         {
             get => _directory;
@@ -79,8 +76,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the encryption key to use on the database
         /// </summary>
-        [CanBeNull]
-        public EncryptionKey EncryptionKey
+        public EncryptionKey? EncryptionKey
         {
             get => _encryptionKey;
             set => _freezer.SetValue(ref _encryptionKey, value);
@@ -107,7 +103,6 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        [NotNull]
         internal DatabaseConfiguration Freeze()
         {
             var retVal = new DatabaseConfiguration
@@ -129,5 +124,6 @@ namespace Couchbase.Lite
 
 namespace System.Runtime.CompilerServices
 {
+    // https://developercommunity.visualstudio.com/t/error-cs0518-predefined-type-systemruntimecompiler/1244809
     internal static class IsExternalInit { }
 }

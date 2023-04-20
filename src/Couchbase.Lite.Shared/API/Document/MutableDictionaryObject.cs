@@ -22,10 +22,6 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 
-using JetBrains.Annotations;
-using LiteCore.Interop;
-using Newtonsoft.Json;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -61,7 +57,7 @@ namespace Couchbase.Lite
         /// from an existing dictionary
         /// </summary>
         /// <param name="dict">The dictionary to copy the keys and values from</param>
-        public MutableDictionaryObject(IDictionary<string, object> dict)
+        public MutableDictionaryObject(IDictionary<string, object?> dict)
         {
             SetData(dict);
         }
@@ -93,7 +89,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private void SetValueInternal([NotNull]string key, object value)
+        private void SetValueInternal(string key, object? value)
         {
             _threadSafety.DoLocked(() =>
             {
@@ -120,13 +116,13 @@ namespace Couchbase.Lite
         #region IMutableDictionary
 
         /// <inheritdoc />
-        public new MutableArrayObject GetArray(string key)
+        public new MutableArrayObject? GetArray(string key)
         {
             return base.GetArray(key) as MutableArrayObject;
         }
 
         /// <inheritdoc />
-        public new MutableDictionaryObject GetDictionary(string key)
+        public new MutableDictionaryObject? GetDictionary(string key)
         {
             return base.GetDictionary(key) as MutableDictionaryObject;
         }
@@ -139,14 +135,14 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetValue(string key, object value)
+        public IMutableDictionary SetValue(string key, object? value)
         {
             SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetData(IDictionary<string, object> dictionary)
+        public IMutableDictionary SetData(IDictionary<string, object?> dictionary)
         {
             _threadSafety.DoLocked(() =>
             {
@@ -164,7 +160,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetString(string key, string value)
+        public IMutableDictionary SetString(string key, string? value)
         {
             SetValueInternal(key, value);
             return this;
@@ -234,7 +230,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetJSON([NotNull] string json)
+        public IMutableDictionary SetJSON(string json)
         {
             return SetData(DataOps.ParseTo<Dictionary<string, object>>(json));
         }

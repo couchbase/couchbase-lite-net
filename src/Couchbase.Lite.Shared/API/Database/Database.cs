@@ -18,39 +18,25 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
-using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
-using Debug = System.Diagnostics.Debug;
-
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
-using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
-using JetBrains.Annotations;
-#if COUCHBASE_ENTERPRISE
-using Couchbase.Lite.P2P;
-#endif
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -112,7 +98,9 @@ namespace Couchbase.Lite
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with pre-populated data if desired.
     /// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
     public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedEventArgs>, IDocumentChangeObservable,
+#pragma warning restore CS0618 // Type or member is obsolete
          IDisposable
     {
         #region Constants
@@ -142,8 +130,8 @@ namespace Couchbase.Lite
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
         //Pre 3.1 Database's Collection
-        private Collection _defaultCollection = null;
-        private Scope _defaultScope = null;
+        private Collection? _defaultCollection;
+        private Scope? _defaultScope;
 
         //3.1+ Database
         private ConcurrentDictionary<string, Scope> _scopes = new ConcurrentDictionary<string, Scope>();
@@ -157,7 +145,6 @@ namespace Couchbase.Lite
         /// is readonly; an <see cref="InvalidOperationException"/> will be thrown if the configuration
         /// object is modified.
         /// </summary>
-        [@NotNull]
         public DatabaseConfiguration Config { get; }
 
         /// <summary>
@@ -171,28 +158,24 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
         /// <returns>The <see cref="DocumentFragment"/> object</returns>
-        [@NotNull]
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
         /// <summary>
         /// Gets the object that stores the available logging methods
         /// for Couchbase Lite
         /// </summary>
-        [@NotNull]
         public static Log Log { get; } = new Log();
 
         /// <summary>
         /// Gets the database's name
         /// </summary>
-        [@NotNull]
         public string Name { get; }
 
         /// <summary>
         /// Gets the database's path.  If the database is closed or deleted, a <c>null</c>
         /// value will be returned.
         /// </summary>
-        [@CanBeNull]
-        public string Path => ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
+        public string? Path => ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
 
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
@@ -254,7 +237,6 @@ namespace Couchbase.Lite
             }
         }
 
-        [@NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
         internal bool IsClosedLocked
@@ -307,7 +289,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="CouchbaseLiteError.CantOpenFile"/> if the
         /// directory indicated in <paramref name="configuration"/> could not be created</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition was returned by LiteCore</exception>
-        public Database([@NotNull]string name, [@CanBeNull]DatabaseConfiguration configuration = null)
+        public Database(string name, DatabaseConfiguration ?configuration = null)
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             if(name == "") {
@@ -327,7 +309,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal Database([@NotNull]Database other)
+        internal Database(Database other)
             : this(other.Name, other.Config)
         {
 
@@ -369,7 +351,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public Scope GetDefaultScope()
         {
-            ThreadSafety.DoLocked(() =>
+            var retVal = ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 if (_defaultScope == null) {
@@ -377,9 +359,11 @@ namespace Couchbase.Lite
                     if (!_scopes.ContainsKey(_defaultScopeName))
                         _scopes.TryAdd(_defaultScopeName, _defaultScope);
                 }
+
+                return _defaultScope;
             });
 
-            return _defaultScope;
+            return retVal;
         }
 
         /// <summary>
@@ -419,7 +403,8 @@ namespace Couchbase.Lite
         public IReadOnlyList<Scope> GetScopes()
         {
             GetScopesList();
-            return _scopes?.Values as IReadOnlyList<Scope>;
+            return _scopes.Values as IReadOnlyList<Scope>
+                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Invalid cast in GetScopes()");
         }
 
         /// <summary>
@@ -431,10 +416,14 @@ namespace Couchbase.Lite
         /// <returns>scope object with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [@CanBeNull]
-        public Scope GetScope([@CanBeNull] string name = _defaultScopeName)
+        public Scope? GetScope(string? name = _defaultScopeName)
         {
-            Scope scope = null;
+            // TODO: Make name non-null in 4.0
+            if (name == null) {
+                name = _defaultScopeName;
+            }
+
+            Scope? scope = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -457,8 +446,13 @@ namespace Couchbase.Lite
         /// <returns>All collections with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public IReadOnlyList<Collection> GetCollections([@CanBeNull] string scope = _defaultScopeName)
+        public IReadOnlyList<Collection> GetCollections(string? scope = _defaultScopeName)
         {
+            // TODO: Make scope non-null in 4.0
+            if (scope == null) {
+                scope = _defaultScopeName;
+            }
+
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -480,13 +474,17 @@ namespace Couchbase.Lite
         /// <returns>The collection with the given name and scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [@CanBeNull]
-        public Collection GetCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
+        public Collection? GetCollection(string name, string? scope = _defaultScopeName)
         {
+            // TODO: Make scope non-null in 4.0
+            if (scope == null) {
+                scope = _defaultScopeName;
+            }
+
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                Collection coll = null;
+                Collection? coll = null;
                 var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s != null) {
                     coll = s.GetCollection(name);
@@ -510,8 +508,13 @@ namespace Couchbase.Lite
         /// <returns>New collection with the given name and scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public Collection CreateCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
+        public Collection CreateCollection(string name, string? scope = _defaultScopeName)
         {
+            // TODO: Make scope non-null in 4.0
+            if (scope == null) {
+                scope = _defaultScopeName;
+            }
+
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -521,7 +524,7 @@ namespace Couchbase.Lite
                 }
 
                 var co = s.CreateCollection(name);
-                if (co != null && !_scopes.ContainsKey(scope))
+                if (!_scopes.ContainsKey(scope))
                     _scopes.TryAdd(scope, s);
                 
                 return co;
@@ -536,8 +539,13 @@ namespace Couchbase.Lite
         /// <param name="scope">The scope of the collection to be deleted</param>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public void DeleteCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
+        public void DeleteCollection(string name, string? scope = _defaultScopeName)
         {
+            // TODO: Make scope non-null in 4.0
+            if (scope == null) {
+                scope = _defaultScopeName;
+            }
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -576,7 +584,7 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="path"/> or <paramref name="name"/>
         /// are <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        public static void Copy([@NotNull]string path, [@NotNull]string name, [@CanBeNull]DatabaseConfiguration config)
+        public static void Copy(string path, string name, DatabaseConfiguration? config)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(path), path);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -611,7 +619,7 @@ namespace Couchbase.Lite
         /// <param name="directory">The directory where the database is located, or <c>null</c> to check the default directory</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        public static void Delete([@NotNull]string name, [@CanBeNull]string directory)
+        public static void Delete(string name, string? directory)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
@@ -628,7 +636,7 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the database exists in the directory, otherwise <c>false</c></returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        public static bool Exists([@NotNull]string name, [@CanBeNull]string directory)
+        public static bool Exists(string name, string? directory)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
@@ -670,7 +678,7 @@ namespace Couchbase.Lite
         /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
         /// provided ones is used</exception>
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
-        public void CreateIndex([@NotNull]string name, [@NotNull]IIndex index)
+        public void CreateIndex(string name, IIndex index)
         {
             GetDefaultCollection().CreateIndex(name, index);
         }
@@ -690,7 +698,7 @@ namespace Couchbase.Lite
         /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
         /// provided ones is used</exception>
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
-        public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
+        public void CreateIndex(string name, IndexConfiguration indexConfig)
         {
             GetDefaultCollection().CreateIndex(name, indexConfig);
         }
@@ -702,7 +710,7 @@ namespace Couchbase.Lite
         /// is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Throw if compiling <paramref name="queryExpression"/> returns an error</exception>
-        public IQuery CreateQuery([@NotNull]string queryExpression)
+        public IQuery CreateQuery(string queryExpression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
             var query = new NQuery(queryExpression, this);
@@ -741,7 +749,7 @@ namespace Couchbase.Lite
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
-        public void Delete([@NotNull]Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
+        public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// [DEPRECATED] Deletes the given <see cref="Document"/> from this database
@@ -756,7 +764,7 @@ namespace Couchbase.Lite
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
-        public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
+        public bool Delete(Document document, ConcurrencyControl concurrencyControl)
         {
             return GetDefaultCollection().Delete(document, concurrencyControl);
         }
@@ -766,7 +774,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the index to delete</param>
         [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
-        public void DeleteIndex([@NotNull]string name)
+        public void DeleteIndex(string name)
         {
             GetDefaultCollection().DeleteIndex(name);
         }
@@ -777,8 +785,7 @@ namespace Couchbase.Lite
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
         [Obsolete("GetDocument is deprecated, please use GetDefaultCollection().GetDocument")]
-        [@CanBeNull]
-        public Document GetDocument([@NotNull]string id)
+        public Document? GetDocument(string id)
         {
             return GetDefaultCollection().GetDocument(id);
         }
@@ -788,8 +795,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The list of created index names</returns>
         [Obsolete("GetIndexes is deprecated, please use GetDefaultCollection().GetIndexes")]
-        [@NotNull]
-        [@ItemNotNull]
         public IList<string> GetIndexes()
         {
             return GetDefaultCollection().GetIndexes();
@@ -799,7 +804,7 @@ namespace Couchbase.Lite
         /// Runs the given batch of operations as an atomic unit
         /// </summary>
         /// <param name="action">The <see cref="Action"/> containing the operations. </param>
-        public void InBatch([@NotNull]Action action)
+        public void InBatch(Action action)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(action), action);
 
@@ -832,7 +837,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
-        public void Purge([@NotNull]Document document)
+        public void Purge(Document document)
         {
             GetDefaultCollection().Purge(document);
         }
@@ -846,7 +851,7 @@ namespace Couchbase.Lite
         /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
         /// of the docId doesn't exist.</exception>
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
-        public void Purge([@NotNull]string docId)
+        public void Purge(string docId)
         {
             GetDefaultCollection().Purge(docId);
         }
@@ -892,7 +897,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
-        public void Save([@NotNull]MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
+        public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// [DEPRECATED] Saves the given <see cref="MutableDocument"/> into this database
@@ -903,7 +908,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
-        public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
+        public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             return GetDefaultCollection().Save(document, concurrencyControl);
         }
@@ -918,7 +923,7 @@ namespace Couchbase.Lite
         /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
-        public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
+        public bool Save(MutableDocument document, Func<MutableDocument, Document?, bool> conflictHandler)
         {
             return GetDefaultCollection().Save(document, conflictHandler);
         }
@@ -943,8 +948,7 @@ namespace Couchbase.Lite
         /// </param>
         /// <exception cref="ArgumentException">Throw if the given blob dictionary is not valid.</exception>
         /// <returns>The contained value, or <c>null</c> if it's digest information doesn’t exist.</returns>
-        [@CanBeNull]
-        public Blob GetBlob(Dictionary<string, object> blobDict)
+        public Blob? GetBlob(Dictionary<string, object> blobDict)
         {
             if (!blobDict.ContainsKey(Blob.DigestKey) || blobDict[Blob.DigestKey] == null)
                 return null;
@@ -1004,8 +1008,8 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
-        public ListenerToken AddChangeListener([@CanBeNull] TaskScheduler scheduler,
-            [@NotNull] EventHandler<DatabaseChangedEventArgs> handler)
+        public ListenerToken AddChangeListener(TaskScheduler? scheduler,
+            EventHandler<DatabaseChangedEventArgs> handler)
         {
             EventHandler<CollectionChangedEventArgs> collectionChangeEventHandler =
                 new EventHandler<CollectionChangedEventArgs>((sender, args) =>
@@ -1025,7 +1029,7 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
-        public ListenerToken AddChangeListener([@NotNull] EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
+        public ListenerToken AddChangeListener(EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         #endregion
 
@@ -1044,8 +1048,8 @@ namespace Couchbase.Lite
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddDocumentChangeListener is deprecated, please use GetDefaultCollection().AddDocumentChangeListener")]
-        public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
-            [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
+        public ListenerToken AddDocumentChangeListener(string id, TaskScheduler? scheduler,
+            EventHandler<DocumentChangedEventArgs> handler)
         {
             return GetDefaultCollection().AddDocumentChangeListener(id, scheduler, handler);
         }
@@ -1061,7 +1065,7 @@ namespace Couchbase.Lite
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddDocumentChangeListener is deprecated, please use GetDefaultCollection().AddDocumentChangeListener")]
-        public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+        public ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
         #endregion
 
@@ -1111,9 +1115,9 @@ namespace Couchbase.Lite
             });
         }
 
-        internal string GetCookies([@NotNull] Uri uri)
+        internal string? GetCookies(Uri? uri)
         {
-            string cookies = null;
+            string? cookies = null;
             ThreadSafety.DoLocked(() =>
             {
                 if (uri == null) {
@@ -1147,7 +1151,7 @@ namespace Couchbase.Lite
             return cookies;
         }
 
-        internal bool SaveCookie(string cookie, [@NotNull] Uri uri, bool acceptParentDomain)
+        internal bool SaveCookie(string cookie, Uri uri, bool acceptParentDomain)
         {
             bool cookieSaved = false;
             ThreadSafety.DoLocked(() =>
@@ -1167,14 +1171,14 @@ namespace Couchbase.Lite
             return cookieSaved;
         }
 
-        internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver, Collection collection)
+        internal void ResolveConflict(string docID, IConflictResolver? conflictResolver, Collection collection)
         {
             Debug.Assert(docID != null);
 
             var writeSuccess = false;
             while (!writeSuccess) {
                 var readSuccess = false;
-                Document localDoc = null, remoteDoc = null, resolvedDoc = null;
+                Document? localDoc = null, remoteDoc = null, resolvedDoc = null;
                 try {
                     InBatch(() =>
                     {
@@ -1199,13 +1203,14 @@ namespace Couchbase.Lite
                         return;
                     }
 
-                    if (localDoc.IsDeleted && remoteDoc.IsDeleted) {
+                    // Local and remote doc are non null, but the compiler doesn't realize (inside InBatch)
+                    if (localDoc!.IsDeleted && remoteDoc!.IsDeleted) {
                         resolvedDoc = localDoc; // No need go through resolver, because both remote and local docs are deleted.
                     } else {
                         // Resolve conflict:
                         WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevisionID,
-                                remoteDoc.RevisionID);
+                                remoteDoc!.RevisionID);
 
                         conflictResolver = conflictResolver ?? ConflictResolver.Default;
                         var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
@@ -1261,8 +1266,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        [@NotNull]
-        private static string DatabasePath(string directory)
+        private static string DatabasePath(string? directory)
         {
             var directoryToUse = String.IsNullOrWhiteSpace(directory)
                 ? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()
@@ -1276,7 +1280,7 @@ namespace Couchbase.Lite
             return directoryToUse;
         }
 
-        private static string DatabasePath(string name, string directory)
+        private static string DatabasePath(string name, string? directory)
         {
             var directoryToUse = DatabasePath(directory);
 
@@ -1359,7 +1363,7 @@ namespace Couchbase.Lite
         }
 
         // Must be called in transaction
-        private bool SaveResolvedDocument([@CanBeNull]Document resolvedDoc, [@NotNull]Document localDoc, [@NotNull]Document remoteDoc)
+        private bool SaveResolvedDocument(Document? resolvedDoc, Document localDoc, Document remoteDoc)
         {
             if (resolvedDoc == null) {
                 if (localDoc.IsDeleted)
@@ -1441,7 +1445,7 @@ namespace Couchbase.Lite
             return body;
         }
 
-        private void VerifyDB([@NotNull]Document document)
+        private void VerifyDB(Document document)
         {
             if (document.Collection == null) {
                 document.Collection = GetDefaultCollection();
@@ -1474,15 +1478,11 @@ namespace Couchbase.Lite
             _defaultCollection?.Dispose();
             _defaultScope?.Dispose();
 
-            if (_scopes == null)
-                return;
-
             foreach (var s in _scopes) {
                 s.Value?.Dispose();
             }
 
             _scopes.Clear();
-            _scopes = null;
         }
 
         private void GetScopesList()
@@ -1522,7 +1522,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj == null)
                 return false;

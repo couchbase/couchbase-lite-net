@@ -18,8 +18,6 @@
 
 using Couchbase.Lite.Internal.Query;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -44,14 +42,12 @@ namespace Couchbase.Lite.Query
         /// A query expression that retrieves the document ID from 
         /// an entry in the database
         /// </summary>
-        [NotNull]
         public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath);
 
         /// <summary>
         /// A query expression that retrieves the document sequence from
         /// an entry in the database
         /// </summary>
-        [NotNull]
         public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath);
 
         /// <summary>

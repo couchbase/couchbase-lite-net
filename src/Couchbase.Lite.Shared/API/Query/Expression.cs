@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
@@ -44,7 +43,6 @@ namespace Couchbase.Lite.Query
         /// SELECT *
         /// </summary>
         /// <returns>The expression representing '*'</returns>
-        [NotNull]
         public static IPropertyExpression All() => new QueryTypeExpression("", ExpressionType.KeyPath);
 
         /// <summary>
@@ -52,7 +50,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Array(IList value) => new QueryConstantExpression<IList>(value);
 
         /// <summary>
@@ -60,7 +57,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Boolean(bool value) => new QueryConstantExpression<bool>(value);
 
         /// <summary>
@@ -68,7 +64,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<string>(value.ToString("o")); //#1052 workaround
 
         /// <summary>
@@ -76,7 +71,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Dictionary(IDictionary<string, object> value) => new QueryConstantExpression<IDictionary<string, object>>(value);
 
         /// <summary>
@@ -84,7 +78,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Double(double value) => new QueryConstantExpression<double>(value);
 
         /// <summary>
@@ -92,7 +85,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Float(float value) => new QueryConstantExpression<float>(value);
 
         /// <summary>
@@ -100,7 +92,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="name">The name of the index</param>
         /// <returns>An expression representing the index</returns>
-        [NotNull]
         public static IFullTextIndexExpression FullTextIndex(string name) => new FullTextIndexExpression(name);
 
         /// <summary>
@@ -108,7 +99,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Int(int value) => new QueryConstantExpression<int>(value);
 
         /// <summary>
@@ -116,7 +106,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Long(long value) => new QueryConstantExpression<long>(value);
 
         /// <summary>
@@ -124,8 +113,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
-        [NotNull]
-        public static IExpression Negated([NotNull]IExpression expression) => 
+        public static IExpression Negated(IExpression expression) => 
             new QueryCompoundExpression("NOT", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
@@ -133,8 +121,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
-        [NotNull]
-        public static IExpression Not([NotNull]IExpression expression) => 
+        public static IExpression Not(IExpression expression) => 
             Negated(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
@@ -143,8 +130,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="name">The name of the parameter in the parameter set</param>
         /// <returns>The expression representing the parameter</returns>
-        [NotNull]
-        public static IExpression Parameter([NotNull]string name) => 
+        public static IExpression Parameter(string name) => 
             new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
                 ExpressionType.Parameter);
 
@@ -153,8 +139,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="property">The name of the property to fetch</param>
         /// <returns>An expression representing the value of a named property</returns>
-        [NotNull]
-        public static IPropertyExpression Property([NotNull]string property) => 
+        public static IPropertyExpression Property(string property) => 
             new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(property), property), 
                 ExpressionType.KeyPath);
 
@@ -163,7 +148,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression String(string value) => new QueryConstantExpression<string>(value);
 
         /// <summary>
@@ -172,7 +156,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        [NotNull]
         public static IExpression Value(object value) => new QueryConstantExpression<object>(value);
 
         #endregion

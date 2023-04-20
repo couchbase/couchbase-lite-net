@@ -25,9 +25,6 @@ using System.Collections.Generic;
 using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
-using JetBrains.Annotations;
-using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -94,7 +91,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private void SetValueInternal(int index, object value)
+        private void SetValueInternal(int index, object? value)
         {
             _threadSafety.DoLocked(() =>
             {
@@ -118,14 +115,14 @@ namespace Couchbase.Lite
         #region IMutableArray
 
         /// <inheritdoc />
-        public IMutableArray AddValue(object value)
+        public IMutableArray AddValue(object? value)
         {
             _threadSafety.DoLocked(() => _array.Add(value));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableArray AddString(string value)
+        public IMutableArray AddString(string? value)
         {
             _threadSafety.DoLocked(() => _array.Add(value));
             return this;
@@ -167,7 +164,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray AddBlob(Blob value)
+        public IMutableArray AddBlob(Blob? value)
         {
             _threadSafety.DoLocked(() => _array.Add(value));
             return this;
@@ -181,40 +178,40 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray AddArray(ArrayObject value)
+        public IMutableArray AddArray(ArrayObject? value)
         {
             _threadSafety.DoLocked(() => _array.Add(value));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableArray AddDictionary(DictionaryObject value)
+        public IMutableArray AddDictionary(DictionaryObject? value)
         {
             _threadSafety.DoLocked(() => _array.Add(value));
             return this;
         }
 
         /// <inheritdoc />
-        public new MutableArrayObject GetArray(int index)
+        public new MutableArrayObject? GetArray(int index)
         {
             return base.GetArray(index) as MutableArrayObject;
         }
 
         /// <inheritdoc />
-        public new MutableDictionaryObject GetDictionary(int index)
+        public new MutableDictionaryObject? GetDictionary(int index)
         {
             return base.GetDictionary(index) as MutableDictionaryObject;
         }
 
         /// <inheritdoc />
-        public IMutableArray InsertValue(int index, object value)
+        public IMutableArray InsertValue(int index, object? value)
         {
             _threadSafety.DoLocked(() => _array.Insert(index, value));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableArray InsertString(int index, string value)
+        public IMutableArray InsertString(int index, string? value)
         {
             _threadSafety.DoLocked(() => _array.Insert(index, value));
             return this;
@@ -256,7 +253,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray InsertBlob(int index, Blob value)
+        public IMutableArray InsertBlob(int index, Blob? value)
         {
             _threadSafety.DoLocked(() => _array.Insert(index, value));
             return this;
@@ -270,14 +267,14 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray InsertArray(int index, ArrayObject value)
+        public IMutableArray InsertArray(int index, ArrayObject? value)
         {
             _threadSafety.DoLocked(() => _array.Insert(index, value));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableArray InsertDictionary(int index, DictionaryObject value)
+        public IMutableArray InsertDictionary(int index, DictionaryObject? value)
         {
             _threadSafety.DoLocked(() => _array.Insert(index, value));
             return this;
@@ -308,14 +305,14 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray SetValue(int index, object value)
+        public IMutableArray SetValue(int index, object? value)
         {
             _threadSafety.DoLocked(() => SetValueInternal(index, value));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableArray SetString(int index, string value)
+        public IMutableArray SetString(int index, string? value)
         {
             _threadSafety.DoLocked(() => SetValueInternal(index, value));
             return this;
@@ -357,7 +354,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray SetBlob(int index, Blob value)
+        public IMutableArray SetBlob(int index, Blob? value)
         {
             _threadSafety.DoLocked(() => SetValueInternal(index, value));
             return this;
@@ -371,21 +368,21 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray SetArray(int index, ArrayObject value)
+        public IMutableArray SetArray(int index, ArrayObject? value)
         {
             _threadSafety.DoLocked(() => SetValueInternal(index, value));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableArray SetDictionary(int index, DictionaryObject value)
+        public IMutableArray SetDictionary(int index, DictionaryObject? value)
         {
             _threadSafety.DoLocked(() => SetValueInternal(index, value));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableArray SetJSON([NotNull] string json)
+        public IMutableArray SetJSON(string json)
         {
             return SetData(DataOps.ParseTo<List<object>>(json));
         }

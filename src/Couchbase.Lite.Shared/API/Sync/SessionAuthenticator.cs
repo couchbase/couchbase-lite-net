@@ -21,8 +21,6 @@ using System.Net;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -43,13 +41,11 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the name of the cookie to store the session in
         /// </summary>
-        [NotNull]
         public string CookieName { get; }
 
         /// <summary>
         /// Gets the session ID to set as the cookie value
         /// </summary>
-        [NotNull]
         public string SessionID { get; }
 
         #endregion
@@ -61,7 +57,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="sessionID"><see cref="SessionID"/></param>
         /// <param name="cookieName"><see cref="CookieName"/></param>
-        public SessionAuthenticator([NotNull]string sessionID, [NotNull]string cookieName)
+        public SessionAuthenticator(string sessionID, string cookieName)
         {
             SessionID = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(sessionID), sessionID);
             CookieName = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(cookieName), cookieName);
@@ -71,7 +67,7 @@ namespace Couchbase.Lite.Sync
         /// Constructor using the default cookie name for Sync Gateway ('SyncGatewaySession')
         /// </summary>
         /// <param name="sessionID"><see cref="SessionID"/></param>
-        public SessionAuthenticator([NotNull]string sessionID)
+        public SessionAuthenticator(string sessionID)
         : this(sessionID, "SyncGatewaySession")
         {
         }

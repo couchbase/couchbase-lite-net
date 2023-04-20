@@ -16,8 +16,6 @@
 // limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -28,7 +26,7 @@ namespace Couchbase.Lite.Sync
     {
         #region Internal Methods
         
-        internal abstract void Authenticate([NotNull]ReplicatorOptionsDictionary options);
+        internal abstract void Authenticate(ReplicatorOptionsDictionary options);
 
         #endregion
     }

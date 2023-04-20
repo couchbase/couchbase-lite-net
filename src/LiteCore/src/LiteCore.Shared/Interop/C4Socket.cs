@@ -59,13 +59,13 @@ namespace LiteCore.Interop
         private static readonly SocketCompletedReceiveDelegate _completedReceive;
         private static readonly SocketDisposeDelegate _dispose;
 
-        private static SocketOpenDelegate _externalOpen;
-        private static SocketCloseDelegate _externalClose;
-        private static SocketRequestCloseDelegateManaged _externalRequestClose;
-        private static SocketWriteDelegateManaged _externalWrite;
-        private static SocketCompletedReceiveDelegateManaged _externalCompletedReceive;
-        private static SocketErrorDelegate _error;
-        private static SocketDisposeDelegate _externalDispose;
+        private static SocketOpenDelegate? _externalOpen;
+        private static SocketCloseDelegate? _externalClose;
+        private static SocketRequestCloseDelegateManaged? _externalRequestClose;
+        private static SocketWriteDelegateManaged? _externalWrite;
+        private static SocketCompletedReceiveDelegateManaged? _externalCompletedReceive;
+        private static SocketErrorDelegate? _error;
+        private static SocketDisposeDelegate? _externalDispose;
 
         internal static C4SocketFactory InternalFactory { get; }
 

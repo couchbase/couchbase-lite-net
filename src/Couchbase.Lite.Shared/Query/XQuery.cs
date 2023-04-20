@@ -33,34 +33,38 @@ namespace Couchbase.Lite.Internal.Query
     internal class XQuery : QueryBase
     {
         #region Constants
+
         private const string Tag = nameof(XQuery);
+
         #endregion
 
         #region Variables
-        private string _queryExpression;
+
+        private string? _queryExpression;
+
         #endregion
 
         #region Properties
 
         protected bool Distinct { get; set; }
 
-        protected QueryDataSource FromImpl { get; set; }
+        protected QueryDataSource? FromImpl { get; set; }
 
-        protected QueryGroupBy GroupByImpl { get; set; }
+        protected QueryGroupBy? GroupByImpl { get; set; }
 
-        protected Having HavingImpl { get; set; }
+        protected Having? HavingImpl { get; set; }
 
-        protected QueryJoin JoinImpl { get; set; }
+        protected QueryJoin? JoinImpl { get; set; }
 
         protected IExpression LimitValue { get; set; }
 
-        protected QueryOrderBy OrderByImpl { get; set; }
+        protected QueryOrderBy? OrderByImpl { get; set; }
 
-        protected Select SelectImpl { get; set; }
+        protected Select? SelectImpl { get; set; }
 
-        protected IExpression SkipValue { get; set; }
+        protected IExpression? SkipValue { get; set; }
 
-        protected QueryExpression WhereImpl { get; set; }
+        protected QueryExpression? WhereImpl { get; set; }
 
         #endregion
 
@@ -82,7 +86,7 @@ namespace Couchbase.Lite.Internal.Query
             SkipValue = source.SkipValue;
         }
 
-        protected void ValidateParams<T>(T[] param, [CallerMemberName] string tag = null)
+        protected void ValidateParams<T>(T[] param, [CallerMemberName] string? tag = null)
         {
             if (param.Length == 0) {
                 var message = String.Format(CouchbaseLiteErrorMessage.ExpressionsMustContainOnePlusElement, tag);
@@ -151,8 +155,10 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (_c4Query == null)
             {
-                if (Database == null)
+                if (Database == null) {
+                    Debug.Assert(Collection != null);
                     Database = Collection.Database;
+                }
 
                 C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
                 {
@@ -181,6 +187,7 @@ namespace Couchbase.Lite.Internal.Query
                     titleStr = fromImpl.ColumnName;
                 }
 
+                Debug.Assert(titleStr != null);
                 if (map.ContainsKey(titleStr)) {
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
                         String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));

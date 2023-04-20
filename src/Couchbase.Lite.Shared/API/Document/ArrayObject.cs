@@ -25,8 +25,8 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
 using LiteCore;
+using LiteCore.Interop;
 using Newtonsoft.Json;
-using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace Couchbase.Lite
 {
@@ -37,10 +37,9 @@ namespace Couchbase.Lite
     {
         #region Variables
 
-        [NotNull]
         internal readonly FleeceMutableArray _array = new FleeceMutableArray();
 
-        [NotNull] internal readonly ThreadSafety _threadSafety;
+        internal readonly ThreadSafety _threadSafety;
 
         #endregion
 
@@ -61,13 +60,13 @@ namespace Couchbase.Lite
             _threadSafety = SetupThreadSafety();
         }
 
-        internal ArrayObject([NotNull]FleeceMutableArray array, bool isMutable)
+        internal ArrayObject(FleeceMutableArray array, bool isMutable)
         {
             _array.InitAsCopyOf(array, isMutable);
             _threadSafety = SetupThreadSafety();
         }
 
-        internal ArrayObject([NotNull]ArrayObject original, bool mutable)
+        internal ArrayObject(ArrayObject original, bool mutable)
             : this(original._array, mutable)
         {
             _threadSafety = SetupThreadSafety();
@@ -88,10 +87,10 @@ namespace Couchbase.Lite
         /// .NET types
         /// </summary>
         /// <returns>A list of standard .NET typed objects in the array</returns>
-        public List<object> ToList()
+        public List<object?> ToList()
         {
             var count = _array.Count;
-            var result = new List<object>(count);
+            var result = new List<object?>(count);
             _threadSafety.DoLocked(() =>
             {
                 for (var i = 0; i < count; i++) {
@@ -106,7 +105,6 @@ namespace Couchbase.Lite
         /// Creates a copy of this object that can be mutated
         /// </summary>
         /// <returns>A mutable copy of the array</returns>
-        [NotNull]
         public MutableArrayObject ToMutable()
         {
             return _threadSafety.DoLocked(() => new MutableArrayObject(_array, true));
@@ -116,13 +114,11 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        [NotNull]
         internal virtual ArrayObject ToImmutable()
         {
             return this;
         }
 
-        [NotNull]
         internal MCollection ToMCollection()
         {
             return _array;
@@ -132,8 +128,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        [NotNull]
-        private static MValue Get([NotNull]FleeceMutableArray array, int index, IThreadSafety threadSafety = null)
+        private static MValue Get(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null)
         {
             return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
             {
@@ -146,14 +141,14 @@ namespace Couchbase.Lite
             });
         }
 
-        private static object GetObject([NotNull]FleeceMutableArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+        private static object GetObject(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
 
-        private static T GetObject<T>([NotNull]FleeceMutableArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
+        private static T GetObject<T>(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) where T : class 
+            => GetObject(array, index, threadSafety) as T ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Invalid cast in GetObject<T>");
 
-        [NotNull]
         private ThreadSafety SetupThreadSafety()
         {
-            Database db = null;
+            Database? db = null;
             if (_array.Context != null && _array.Context != MContext.Null) {
                 db = (_array.Context as DocContext)?.Db;
             }
@@ -215,7 +210,7 @@ namespace Couchbase.Lite
         /// Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
+        public virtual IEnumerator<object?> GetEnumerator() => _array.GetEnumerator();
 
         #endregion
 
@@ -239,9 +234,10 @@ namespace Couchbase.Lite
     {
         #region Overrides
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            var arr = value as IArray;
+            var arr = value as IArray ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
+                "Invalid input received in WriteJson (not IArray)");
             writer.WriteStartArray();
             foreach (var item in arr) {
                 serializer.Serialize(writer, item);
@@ -250,22 +246,26 @@ namespace Couchbase.Lite
             writer.WriteEndArray();
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             var arr = new MutableArrayObject();
             while (reader.Read()) {
                 if (reader.TokenType == JsonToken.EndObject) {
-                    var val = serializer.Deserialize(reader) as IDictionary<string, object>;
+                    var val = serializer.Deserialize(reader) as IDictionary<string, object>
+                        ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt input received in ReadJson (EndObject != IDictionary)");
                     if (val.ContainsKey(Constants.ObjectTypeProperty) &&
                         val[Constants.ObjectTypeProperty].Equals(Constants.ObjectTypeBlob)) {
-                        var blob = serializer.Deserialize<Blob>(reader);
+                        var blob = serializer.Deserialize<Blob>(reader)
+                            ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing blob in ReadJson (IArray)");
                         arr.AddBlob(blob);
                     } else {
-                        var dict = serializer.Deserialize<MutableDictionaryObject>(reader);
+                        var dict = serializer.Deserialize<MutableDictionaryObject>(reader)
+                            ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing dict in ReadJson (IArray)");
                         arr.AddValue(dict);
                     }
                 } else if (reader.TokenType == JsonToken.EndArray) {
-                    var array = serializer.Deserialize<MutableArrayObject>(reader);
+                    var array = serializer.Deserialize<MutableArrayObject>(reader)
+                        ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing array in ReadJson (IArray)");
                     arr.AddValue(array);
                 } else {
                     arr.AddValue(reader.Value);

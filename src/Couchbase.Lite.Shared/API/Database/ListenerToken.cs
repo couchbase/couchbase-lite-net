@@ -18,8 +18,6 @@
 
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     internal enum ListenerTokenType
@@ -41,10 +39,8 @@ namespace Couchbase.Lite
     {
         #region Variables
 
-        [NotNull]
         internal readonly CouchbaseEventHandler EventHandler;
 
-        [NotNull]
         internal readonly ListenerTokenType Type;
 
         internal readonly IChangeObservableRemovable ChangeObservableRemovable;
@@ -53,7 +49,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull] ListenerTokenType type,
+        internal ListenerToken(CouchbaseEventHandler handler, ListenerTokenType type,
             IChangeObservableRemovable changeObservableRemovable)
         {
             EventHandler = handler;

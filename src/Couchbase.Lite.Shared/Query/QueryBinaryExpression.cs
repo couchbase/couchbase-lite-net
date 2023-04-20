@@ -17,8 +17,7 @@
 // 
 using System.Collections.Generic;
 using System.Diagnostics;
-
-using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Internal.Query
 {

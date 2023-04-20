@@ -16,8 +16,6 @@
 // limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -38,8 +36,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="alias">The alias of the data source to select from</param>
         /// <returns>The modified select result</returns>
-        [NotNull]
-        ISelectResult From([NotNull]string alias);
+        ISelectResult From(string alias);
     }
 
     /// <summary>
@@ -53,7 +50,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="alias">The alias to assign to the select result</param>
         /// <returns>The modified select result</returns>
-        [NotNull]
-        ISelectResult As([NotNull]string alias);
+        ISelectResult As(string alias);
     }
 }

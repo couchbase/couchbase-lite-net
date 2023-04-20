@@ -18,16 +18,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Security.Authentication;
 
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Sync;
-
-using JetBrains.Annotations;
 
 using LiteCore.Interop;
 
@@ -170,7 +166,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static IEnumerable<Exception> FlattenedExceptions([NotNull]Exception top)
+        private static IEnumerable<Exception> FlattenedExceptions(Exception top)
         {
             if (top is AggregateException ae) {
                 foreach (var inner in ae.InnerExceptions) {

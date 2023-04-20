@@ -21,7 +21,6 @@ using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -33,8 +32,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        [NotNull]
-        [ItemNotNull]
         internal QuerySelectResult[] SelectResults { get; }
 
         #region Constructors
@@ -53,7 +50,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public object ToJSON()
         {
-            var obj = new List<object>();
+            var obj = new List<object?>();
             foreach (var o in SelectResults) {
                 obj.Add(o.ToJSON());
             }
@@ -65,7 +62,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IFromRouter
 
-        public IFrom From([NotNull]IDataSource dataSource)
+        public IFrom From(IDataSource dataSource)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new From(this, dataSource);
@@ -75,8 +72,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        [NotNull]
-        public IJoin Join([ItemNotNull]params IJoin[] joins)
+        public IJoin Join(params IJoin[] joins)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
             return new QueryJoin(this, joins);
