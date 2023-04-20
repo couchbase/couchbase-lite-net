@@ -1,5 +1,5 @@
 //
-// C4PredictiveQuery_defs.cs
+// FLKeyPath_defs.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -27,11 +27,7 @@ namespace LiteCore.Interop
 {
 
 
-    internal unsafe struct C4PredictiveModel
+	internal unsafe struct FLKeyPath
     {
-        public void* context;
-        public IntPtr prediction;
-        public IntPtr unregistered;
     }
-
 }

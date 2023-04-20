@@ -1,7 +1,7 @@
 //
 // C4Error_native.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,18 +27,17 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static string c4error_getMessage(C4Error error)
+        public static string? c4error_getMessage(C4Error error)
         {
-            using (var retVal = NativeRaw.c4error_getMessage(error))
-            {
+            using(var retVal = NativeRaw.c4error_getMessage(error)) {
                 return ((FLSlice)retVal).CreateString();
             }
         }
 
-        public static C4Error c4error_make(C4ErrorDomain domain, int code, string message)
+        public static C4Error c4error_make(C4ErrorDomain domain, int code, string? message)
         {
-            using (var message_ = new C4String(message)) {
-                return NativeRaw.c4error_make(domain, code, message_.AsFLSlice());
+            using(var message_ = new C4String(message)) {
+                return NativeRaw.c4error_make(domain, code, (FLSlice)message_.AsFLSlice());
             }
         }
 
@@ -60,5 +59,7 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
+
+
     }
 }

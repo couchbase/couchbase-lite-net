@@ -100,7 +100,8 @@ if __name__ == "__main__":
                 .replace(" ","").replace("struct_","").replace("struct","") \
                 .replace("const","").replace("staticinline","").replace("MUST_USE_RESULT", "") \
                 .replace("C4NULLABLE", "").replace("C4_ASSUME_NONNULL_BEGIN", "") \
-                .replace("C4API_BEGIN_DECLS", "")
+                .replace("C4API_BEGIN_DECLS", "").replace("CBL_CORE_API", "") \
+                .replace("FLEECE_PUBLIC", "").replace("FL_NULLABLE", "")
             if return_type in type_map:
                 return_type = type_map[return_type]
 
@@ -109,7 +110,7 @@ if __name__ == "__main__":
                 bridge_def[0] = ".bridge"
 
             for param in function["parameters"]:
-                type = param["type"].replace("const","").replace("NONNULL", "") \
+                type = param["type"].replace("const","").replace("NONNULL", "").replace("FL_NULLABLE", "") \
                       .replace("FL_NONNULL", "").replace("C4NULLABLE", "").replace(" ","")
                 if param["array"]:
                     type += "[]"
@@ -121,7 +122,7 @@ if __name__ == "__main__":
                     bridge_def[0] = ".bridge"
 
                 name = param["name"].replace("NONNULL", "") \
-                      .replace("FL_NONNULL", "").replace("C4NULLABLE", "")
+                      .replace("FL_NONNULL", "").replace("C4NULLABLE", "").replace("FL_NULLABLE", "") 
                 
                 if len(name) == 0:
                     name = default_param_name[type] if type in default_param_name else "x"

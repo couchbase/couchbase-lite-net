@@ -1,7 +1,7 @@
 //
 // C4Query_native.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,14 +27,14 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, string expression, int* outErrorPos, C4Error* error)
+        public static C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, string? expression, int* outErrorPos, C4Error* error)
         {
             using(var expression_ = new C4String(expression)) {
                 return NativeRaw.c4query_new2(database, language, expression_.AsFLSlice(), outErrorPos, error);
             }
         }
 
-        public static string c4query_explain(C4Query* query)
+        public static string? c4query_explain(C4Query* query)
         {
             using(var retVal = NativeRaw.c4query_explain(query)) {
                 return ((FLSlice)retVal).CreateString();
@@ -47,14 +47,14 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice c4query_columnTitle(C4Query* query, uint column);
 
-        public static void c4query_setParameters(C4Query* query, string encodedParameters)
+        public static void c4query_setParameters(C4Query* query, string? encodedParameters)
         {
             using(var encodedParameters_ = new C4String(encodedParameters)) {
                 NativeRaw.c4query_setParameters(query, encodedParameters_.AsFLSlice());
             }
         }
 
-        public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError)
+        public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string? encodedParameters, C4Error* outError)
         {
             using(var encodedParameters_ = new C4String(encodedParameters)) {
                 return NativeRaw.c4query_run(query, options, encodedParameters_.AsFLSlice(), outError);
@@ -64,9 +64,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4queryenum_next(C4QueryEnumerator* e, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4queryenum_getRowCount(C4QueryEnumerator* e, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

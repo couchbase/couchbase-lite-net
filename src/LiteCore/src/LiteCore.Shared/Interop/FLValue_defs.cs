@@ -1,5 +1,5 @@
 //
-// C4PredictiveQuery_defs.cs
+// FLValue_defs.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -25,13 +25,15 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-
-
-    internal unsafe struct C4PredictiveModel
+    internal enum FLValueType
     {
-        public void* context;
-        public IntPtr prediction;
-        public IntPtr unregistered;
+        Undefined = -1,
+        Null = 0,
+        Boolean,
+        Number,
+        String,
+        Data,
+        Array,
+        Dict
     }
-
 }

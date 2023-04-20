@@ -1,5 +1,5 @@
 //
-// C4Socket_native.cs
+// FLMutable_native.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -28,44 +28,39 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_registerFactory(C4SocketFactory factory);
+        public static extern void FLSlot_SetNull(FLSlot* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4Socket_setNativeHandle(C4Socket* socket, void* x);
+        public static extern void FLSlot_SetBool(FLSlot* x, [MarshalAs(UnmanagedType.U1)]bool b);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void* c4Socket_getNativeHandle(C4Socket* socket);
+        public static extern void FLSlot_SetInt(FLSlot* x, long l);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus, FLSlice responseHeadersFleece);
+        public static extern void FLSlot_SetUInt(FLSlot* x, ulong u);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_opened(C4Socket* socket);
+        public static extern void FLSlot_SetFloat(FLSlot* x, float f);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_closed(C4Socket* socket, C4Error errorIfAny);
+        public static extern void FLSlot_SetDouble(FLSlot* x, double d);
 
-        public static void c4socket_closeRequested(C4Socket* socket, int status, string? message)
+        public static void FLSlot_SetString(FLSlot* x, string? str)
         {
-            using(var message_ = new C4String(message)) {
-                NativeRaw.c4socket_closeRequested(socket, status, message_.AsFLSlice());
+            using(var str_ = new C4String(str)) {
+                NativeRaw.FLSlot_SetString(x, (FLSlice)str_.AsFLSlice());
             }
         }
 
-        public static void c4socket_completedWrite(C4Socket* socket, ulong byteCount)
+        public static void FLSlot_SetData(FLSlot* x, byte[]? slice)
         {
-            NativeRaw.c4socket_completedWrite(socket, (UIntPtr)byteCount);
-        }
-
-        public static void c4socket_received(C4Socket* socket, byte[]? data)
-        {
-            fixed(byte *data_ = data) {
-                NativeRaw.c4socket_received(socket, new FLSlice(data_, data == null ? 0 : (ulong)data.Length));
+            fixed(byte *slice_ = slice) {
+                NativeRaw.FLSlot_SetData(x, new FLSlice(slice_, (ulong)slice.Length));
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Socket* c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address);
+        public static extern void FLSlot_SetValue(FLSlot* x, FLValue* value);
 
 
     }
@@ -73,13 +68,10 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message);
+        public static extern void FLSlot_SetString(FLSlot* x, FLSlice str);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_received(C4Socket* socket, FLSlice data);
+        public static extern void FLSlot_SetData(FLSlot* x, FLSlice slice);
 
 
     }

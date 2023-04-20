@@ -1,5 +1,5 @@
 //
-// FLSlice_native.cs
+// FLJSON_native.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -27,27 +27,31 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool FLSlice_Equal(FLSlice a, FLSlice b);
+        public static string? FLValue_ToJSON(FLValue* value)
+        {
+            using(var retVal = NativeRaw.FLValue_ToJSON(value)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int FLSlice_Compare(FLSlice left, FLSlice right);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLSlice_Copy(FLSlice slice);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void _FLBuf_Retain(void* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void _FLBuf_Release(void* x);
+        public static string? FLValue_ToJSONX(FLValue* v, bool json5, bool canonicalForm)
+        {
+            using(var retVal = NativeRaw.FLValue_ToJSONX(v, json5, canonicalForm)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
 
 
     }
 
     internal unsafe static partial class NativeRaw
     {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLValue_ToJSON(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLValue_ToJSONX(FLValue* v, [MarshalAs(UnmanagedType.U1)]bool json5, [MarshalAs(UnmanagedType.U1)]bool canonicalForm);
+
 
     }
 }

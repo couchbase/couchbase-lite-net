@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Internal.Logging
         static WriteLog()
         {
             _To = new LogTo();
-            NativeRaw.c4log_writeToCallback(C4LogLevel.Warning, LogCallback, true);
+            Native.c4log_writeToCallback(C4LogLevel.Warning, LogCallback, true);
         }
 
         #endregion
@@ -93,7 +93,7 @@ namespace Couchbase.Lite.Internal.Logging
             _CurrentLevel = effectiveLevel;
             Task.Factory.StartNew(() =>
             {
-                NativeRaw.c4log_writeToCallback((C4LogLevel) effectiveLevel, LogCallback, true);
+                Native.c4log_writeToCallback((C4LogLevel) effectiveLevel, LogCallback, true);
             });
         }
 

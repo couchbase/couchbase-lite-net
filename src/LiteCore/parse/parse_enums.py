@@ -19,7 +19,7 @@ def parse_enum(filename):
         if line.lstrip().startswith("//"):
             continue
         if in_enum > 0:
-            match = re.match(r'[ |\t]*} ?([A-Za-z0-9]*);', line)
+            match = re.match(r'[ |\t]*}\s*?([A-Za-z0-9]*)\s*;', line)
             if match:
                 if in_enum == 2:
                     current_name = match.group(1)
@@ -37,6 +37,8 @@ def parse_enum(filename):
                     
                 if "/*" in line and not "*/" in line:
                     in_comment += 1
+                elif "#if 0" in line:
+                    in_comment += 1
                         
                 stripped = re.search(r'\s*([A-Za-z0-9=\- _\(\)\|]+,?)', line)
                 if not stripped:
@@ -49,8 +51,12 @@ def parse_enum(filename):
                     final_entry = final_entry.replace(prefix, "")
 
                 entries.append(final_entry)
+                if line.strip().endswith("};"):
+                    name_to_entries[current_name] = entries
+                    entries = [] 
+                    in_enum = 0
         else:
-            definition = re.search("typedef C4_(ENUM|OPTIONS)\((.*?), (.*?)\) {", line)
+            definition = re.search(r'typedef\s*C4_(ENUM|OPTIONS)\((.*?),\s*(.*?)\)\s*{', line)
             if definition:
                 in_enum = 1
                 current_name = definition.group(3)

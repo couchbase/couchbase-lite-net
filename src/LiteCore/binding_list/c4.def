@@ -1,4 +1,3 @@
-# Couchbase Lite (used for bindings generation)
 c4_getVersion
 c4_now
 c4_getObjectCount
@@ -32,6 +31,7 @@ c4db_getCollection
 c4db_createCollection
 c4db_deleteCollection
 c4db_collectionNames
+c4db_scopeNames
 c4db_hasScope
 c4dbobs_createOnCollection
 c4docobs_createWithCollection
@@ -40,7 +40,6 @@ c4coll_getDatabase
 c4coll_getDocumentCount
 c4coll_getLastSequence
 c4coll_getDoc
-c4coll_getDocBySequence
 c4coll_isValid
 c4coll_putDoc
 c4coll_createDoc
@@ -60,9 +59,7 @@ c4db_openAgain
 c4db_openNamed
 c4db_createFleeceEncoder
 c4db_getConfig2
-c4db_getName
 c4db_getRemoteDBID
-c4db_exists
 c4db_maintenance
 c4db_getCookies
 c4db_setCookie
@@ -82,10 +79,6 @@ c4db_getFLSharedKeys
 c4db_encodeJSON
 c4db_maintenance
 
-c4raw_free
-c4raw_get
-c4raw_put
-
 c4doc_retain
 c4doc_release
 c4doc_selectRevision
@@ -102,14 +95,12 @@ c4doc_purgeRevision
 c4doc_save
 c4doc_isOldMetaProperty
 c4doc_dictContainsBlobs
+c4doc_getRevisionBody
+c4doc_bodyAsJSON
+c4doc_getProperties
 
 c4rev_getGeneration
 
-c4db_enumerateChanges
-c4db_enumerateAllDocs
-c4db_createIndex
-c4db_createIndex2
-c4db_deleteIndex
 c4enum_next
 c4enum_getDocumentInfo
 c4enum_getDocument
@@ -124,13 +115,16 @@ c4queryenum_retain
 c4queryenum_release
 
 c4query_new2
-#c4query_retain  INLINE
-#c4query_release  INLINE
 c4query_setParameters
 c4query_columnCount
 c4query_columnTitle
 c4query_run
 c4query_explain
+
+c4queryobs_create
+c4queryobs_setEnabled
+c4queryobs_getEnumerator
+c4queryobs_free
 
 c4blob_keyFromString
 c4blob_keyToString
@@ -161,6 +155,8 @@ c4dbobs_releaseChanges
 c4dbobs_free
 c4docobs_create
 c4docobs_free
+
+c4address_fromURL
 
 c4repl_new
 c4repl_newWithSocket
@@ -268,31 +264,6 @@ FLEncoder_EndDict
 FLEncoder_FinishDoc
 FLEncoder_Finish
 
-FLMutableArray_New
-FLArray_MutableCopy
-FLArray_AsMutable
-FLMutableArray_GetSource
-FLMutableArray_IsChanged
-FLMutableArray_Resize
-FLMutableArray_Set
-FLMutableArray_Append
-FLMutableArray_Insert
-FLMutableArray_Remove
-FLMutableArray_GetMutableArray
-FLMutableArray_GetMutableDict
-FLMutableDict_GetMutableArray
-
-FLMutableArray_GetMutableDict
-FLMutableDict_New
-FLDict_MutableCopy
-FLDict_AsMutable
-FLMutableDict_GetSource
-FLMutableDict_IsChanged
-FLMutableDict_Set
-FLMutableDict_Remove
-FLMutableDict_RemoveAll
-FLMutableDict_GetMutableDict
-
 FLSlot_SetNull
 FLSlot_SetBool
 FLSlot_SetInt
@@ -305,3 +276,28 @@ FLSlot_SetValue
 
 _FLBuf_Retain
 _FLBuf_Release
+
+c4listener_availableAPIs
+c4listener_start
+c4listener_free
+c4listener_shareDB
+c4listener_unshareDB
+c4listener_getPort
+c4listener_getURLs
+c4listener_getConnectionStatus
+c4listener_shareCollection
+c4listener_unshareCollection
+
+c4cert_getValidTimespan
+c4cert_copyChainData
+c4cert_copyData
+c4cert_createRequest
+c4cert_fromData
+c4cert_nextInChain
+c4cert_signRequest
+
+c4keypair_privateKeyData
+c4keypair_generate
+c4keypair_fromExternal
+
+c4repl_newLocal

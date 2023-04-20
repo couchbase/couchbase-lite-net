@@ -1,7 +1,7 @@
 //
 // C4BlobStoreTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,48 +16,19 @@
 // limitations under the License.
 //
 
-using System.Diagnostics.CodeAnalysis;
+using System;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    [ExcludeFromCodeCoverage]
-    internal unsafe partial struct C4BlobKey
+
+	internal unsafe partial struct C4BlobKey
     {
-        public static readonly int Size = _Size;
-        // ReSharper disable InconsistentNaming
-        private const int _Size = 20;
-        // ReSharper restore InconsistentNaming
-
-        // NOTE: The below produces IL that is not understandable by Mono
-        /*public override int GetHashCode()
-        {
-            var hasher = Hasher.Start;
-            fixed (byte* b = bytes) {
-                for (int i = 0; i < _Size; i++) {
-                    hasher.Add(b[i]);
-                }
-            }
-
-            return hasher.GetHashCode();
-        }
-
-        public override bool Equals(object obj)
-        {
-            if(!(obj is C4BlobKey)) {
-                return false;
-            }
-
-            var other = (C4BlobKey)obj;
-            fixed(byte* b = bytes) {
-                for(int i = 0; i < _Size; i++) {
-                    if(b[i] != other.bytes[i]) {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }*/
+        public fixed byte bytes[20];
     }
 }

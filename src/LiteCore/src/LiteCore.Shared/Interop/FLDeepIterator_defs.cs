@@ -1,5 +1,5 @@
 //
-// C4PredictiveQuery_defs.cs
+// FLDeepIterator_defs.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -27,11 +27,13 @@ namespace LiteCore.Interop
 {
 
 
-    internal unsafe struct C4PredictiveModel
+	internal unsafe struct FLDeepIterator
     {
-        public void* context;
-        public IntPtr prediction;
-        public IntPtr unregistered;
     }
 
+	internal unsafe struct FLPathComponent
+    {
+        public FLSlice key;
+        public uint index;
+    }
 }

@@ -1,7 +1,7 @@
 //
 // C4Collection_native.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 using LiteCore.Util;
@@ -33,7 +34,7 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_hasCollection(C4Database* db, C4CollectionSpec spec);
 
-        public static bool c4db_hasScope(C4Database* db, string name)
+        public static bool c4db_hasScope(C4Database* db, string? name)
         {
             using(var name_ = new C4String(name)) {
                 return NativeRaw.c4db_hasScope(db, name_.AsFLSlice());
@@ -47,9 +48,10 @@ namespace LiteCore.Interop
         public static extern C4Collection* c4db_createCollection(C4Database* db, C4CollectionSpec spec, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_deleteCollection(C4Database* db, C4CollectionSpec spec, C4Error* outError);
 
-        public static FLMutableArray* c4db_collectionNames(C4Database* db, string inScope, C4Error* outError)
+        public static FLMutableArray* c4db_collectionNames(C4Database* db, string? inScope, C4Error* outError)
         {
             using(var inScope_ = new C4String(inScope)) {
                 return NativeRaw.c4db_collectionNames(db, inScope_.AsFLSlice(), outError);
@@ -75,7 +77,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4coll_getLastSequence(C4Collection* x);
 
-        public static C4Document* c4coll_getDoc(C4Collection* collection, string docID, bool mustExist, C4DocContentLevel content, C4Error* outError)
+        public static C4Document* c4coll_getDoc(C4Collection* collection, string? docID, bool mustExist, C4DocContentLevel content, C4Error* outError)
         {
             using(var docID_ = new C4String(docID)) {
                 return NativeRaw.c4coll_getDoc(collection, docID_.AsFLSlice(), mustExist, content, outError);
@@ -87,7 +89,7 @@ namespace LiteCore.Interop
             return NativeRaw.c4coll_putDoc(collection, request, outCommonAncestorIndex, outError);
         }
 
-        public static C4Document* c4coll_createDoc(C4Collection* collection, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error)
+        public static C4Document* c4coll_createDoc(C4Collection* collection, string? docID, byte[]? body, C4RevisionFlags revisionFlags, C4Error* error)
         {
             using(var docID_ = new C4String(docID))
             fixed(byte *body_ = body) {
@@ -95,7 +97,7 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4coll_moveDoc(C4Collection* collection, string docID, C4Collection* toCollection, string newDocID, C4Error* error)
+        public static bool c4coll_moveDoc(C4Collection* collection, string? docID, C4Collection* toCollection, string? newDocID, C4Error* error)
         {
             using(var docID_ = new C4String(docID))
             using(var newDocID_ = new C4String(newDocID)) {
@@ -103,21 +105,21 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4coll_purgeDoc(C4Collection* collection, string docID, C4Error* outError)
+        public static bool c4coll_purgeDoc(C4Collection* collection, string? docID, C4Error* outError)
         {
             using(var docID_ = new C4String(docID)) {
                 return NativeRaw.c4coll_purgeDoc(collection, docID_.AsFLSlice(), outError);
             }
         }
 
-        public static bool c4coll_setDocExpiration(C4Collection* collection, string docID, long timestamp, C4Error* outError)
+        public static bool c4coll_setDocExpiration(C4Collection* collection, string? docID, long timestamp, C4Error* outError)
         {
             using(var docID_ = new C4String(docID)) {
                 return NativeRaw.c4coll_setDocExpiration(collection, docID_.AsFLSlice(), timestamp, outError);
             }
         }
 
-        public static long c4coll_getDocExpiration(C4Collection* collection, string docID, C4Error* outError)
+        public static long c4coll_getDocExpiration(C4Collection* collection, string? docID, C4Error* outError)
         {
             using(var docID_ = new C4String(docID)) {
                 return NativeRaw.c4coll_getDocExpiration(collection, docID_.AsFLSlice(), outError);
@@ -130,7 +132,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern long c4coll_purgeExpiredDocs(C4Collection* x, C4Error* outError);
 
-        public static bool c4coll_createIndex(C4Collection* collection, string name, string indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
+        public static bool c4coll_createIndex(C4Collection* collection, string? name, string? indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
         {
             using(var name_ = new C4String(name))
             using(var indexSpec_ = new C4String(indexSpec)) {
@@ -138,14 +140,14 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4coll_deleteIndex(C4Collection* collection, string name, C4Error* outError)
+        public static bool c4coll_deleteIndex(C4Collection* collection, string? name, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
                 return NativeRaw.c4coll_deleteIndex(collection, name_.AsFLSlice(), outError);
             }
         }
 
-        public static byte[] c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError)
+        public static byte[]? c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4coll_getIndexesInfo(collection, outError)) {
                 return ((FLSlice)retVal).ToArrayFast();

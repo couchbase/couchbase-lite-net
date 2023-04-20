@@ -1,7 +1,7 @@
 //
 // C4IndexTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,18 +33,19 @@ namespace LiteCore.Interop
         PredictiveIndex,
     }
 
-    internal unsafe partial struct C4IndexOptions
+	internal unsafe partial struct C4IndexOptions
     {
         private IntPtr _language;
         private byte _ignoreDiacritics;
         private byte _disableStemming;
         private IntPtr _stopWords;
 
-        public string language
+        public string? language
         {
             get {
                 return Marshal.PtrToStringAnsi(_language);
-            } set {
+            }
+            set {
                 var old = Interlocked.Exchange(ref _language, Marshal.StringToHGlobalAnsi(value));
                 Marshal.FreeHGlobal(old);
             }
@@ -54,7 +55,8 @@ namespace LiteCore.Interop
         {
             get {
                 return Convert.ToBoolean(_ignoreDiacritics);
-            } set {
+            }
+            set {
                 _ignoreDiacritics = Convert.ToByte(value);
             }
         }
@@ -63,16 +65,18 @@ namespace LiteCore.Interop
         {
             get {
                 return Convert.ToBoolean(_disableStemming);
-            } set {
+            }
+            set {
                 _disableStemming = Convert.ToByte(value);
             }
         }
 
-        public string stopWords
+        public string? stopWords
         {
             get {
                 return Marshal.PtrToStringAnsi(_stopWords);
-            } set {
+            }
+            set {
                 var old = Interlocked.Exchange(ref _stopWords, Marshal.StringToHGlobalAnsi(value));
                 Marshal.FreeHGlobal(old);
             }

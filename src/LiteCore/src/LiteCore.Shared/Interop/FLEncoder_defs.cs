@@ -1,5 +1,5 @@
 //
-// C4PredictiveQuery_defs.cs
+// FLEncoder_defs.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -25,13 +25,10 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-
-
-    internal unsafe struct C4PredictiveModel
+    internal enum FLEncoderFormat
     {
-        public void* context;
-        public IntPtr prediction;
-        public IntPtr unregistered;
+        EncodeFleece,
+        EncodeJSON,
+        EncodeJSON5
     }
-
 }

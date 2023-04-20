@@ -1,5 +1,5 @@
 //
-// C4PredictiveQuery_defs.cs
+// FLMutable_defs.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -25,13 +25,11 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-
-
-    internal unsafe struct C4PredictiveModel
+    internal enum FLCopyFlags
     {
-        public void* context;
-        public IntPtr prediction;
-        public IntPtr unregistered;
+        DefaultCopy        = 0,
+        DeepCopy           = 1,
+        CopyImmutables     = 2,
+        DeepCopyImmutables = (DeepCopy | CopyImmutables),
     }
-
 }

@@ -1,5 +1,5 @@
 //
-// C4PredictiveQuery_native.cs
+// FLDoc_native.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -28,11 +28,19 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4pred_registerModel([MarshalAs(UnmanagedType.LPStr)]string name, C4PredictiveModel x);
+        public static extern FLDoc* FLDoc_FromResultData(FLSliceResult data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4pred_unregisterModel([MarshalAs(UnmanagedType.LPStr)]string name);
+        public static extern void FLDoc_Release(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLValue* FLDoc_GetRoot(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSharedKeys* FLDoc_GetSharedKeys(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDoc* FLValue_FindDoc(FLValue* value);
 
 
     }

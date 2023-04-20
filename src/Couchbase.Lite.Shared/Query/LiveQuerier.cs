@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Internal.Query
             _queryBase.ThreadSafety.DoLocked(() =>
             {
                 var handle = GCHandle.Alloc(this);
-                _queryObserver = NativeRaw.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                _queryObserver = Native.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
             });
 
             return this;
@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (Interlocked.Increment(ref _startedObserving) == 1) {
                 _changed.Add(cbEventHandler);
-                NativeRaw.c4queryobs_setEnabled(_queryObserver, true);
+                Native.c4queryobs_setEnabled(_queryObserver, true);
             }
 
             return _changed;
@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (Interlocked.Decrement(ref _startedObserving) == 0) {
                 _changed.Remove(listenerToken);
-                NativeRaw.c4queryobs_setEnabled(_queryObserver, false);
+                Native.c4queryobs_setEnabled(_queryObserver, false);
             }
         }
 
@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             var newEnum = (C4QueryEnumerator*)_queryBase.ThreadSafety.DoLockedBridge(err =>
             {
-                return NativeRaw.c4queryobs_getEnumerator(_queryObserver, true, err);
+                return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
             });
 
             if (newEnum != null) {

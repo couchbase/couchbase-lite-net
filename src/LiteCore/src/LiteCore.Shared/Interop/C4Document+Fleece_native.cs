@@ -1,7 +1,7 @@
 //
 // C4Document+Fleece_native.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLDict* c4doc_getProperties(C4Document* x);
 
-        public static bool c4doc_isOldMetaProperty(string prop)
+        public static bool c4doc_isOldMetaProperty(string? prop)
         {
             using(var prop_ = new C4String(prop)) {
                 return NativeRaw.c4doc_isOldMetaProperty(prop_.AsFLSlice());
@@ -41,17 +41,20 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_dictContainsBlobs(FLDict* dict);
 
-        public static string c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError)
+        public static string? c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError)
         {
-            using (var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError)) {
+            using(var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError)) {
                 return ((FLSlice)retVal).CreateString();
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLEncoder* c4db_createFleeceEncoder(C4Database* db);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLEncoder* c4db_getSharedFleeceEncoder(C4Database* db);
 
-        public static byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError)
+        public static byte[]? c4db_encodeJSON(C4Database* db, string? jsonData, C4Error* outError)
         {
             using(var jsonData_ = new C4String(jsonData)) {
                 using(var retVal = NativeRaw.c4db_encodeJSON(db, jsonData_.AsFLSlice(), outError)) {

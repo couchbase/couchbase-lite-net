@@ -1,5 +1,5 @@
 //
-// C4Base_native.cs
+// FLValue_native.cs
 //
 // Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
@@ -28,65 +28,61 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void* c4base_retain(void* obj);
+        public static extern FLValueType FLValue_GetType(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4base_release(void* obj);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLValue_IsInteger(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_retain(C4Document* x);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLValue_IsUnsigned(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* x);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLValue_IsDouble(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Socket* c4socket_retain(C4Socket* socket);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLValue_AsBool(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4doc_release(C4Document* x);
+        public static extern long FLValue_AsInt(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4queryenum_release(C4QueryEnumerator* x);
+        public static extern ulong FLValue_AsUnsigned(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_release(C4Socket* socket);
+        public static extern float FLValue_AsFloat(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4CollectionObserver* x);
+        public static extern double FLValue_AsDouble(FLValue* value);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4docobs_free(C4DocumentObserver* observer);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4enum_free(C4DocEnumerator* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4listener_free(C4Listener* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4queryobs_free(C4QueryObserver* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4repl_free(C4Replicator* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4stream_close(C4ReadStream* stream);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4stream_closeWriter(C4WriteStream* stream);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int c4_getObjectCount();
-
-        public static string? c4_getVersion()
+        public static string? FLValue_AsString(FLValue* value)
         {
-            using(var retVal = NativeRaw.c4_getVersion()) {
+            return NativeRaw.FLValue_AsString(value).CreateString();
+        }
+
+        public static byte[]? FLValue_AsData(FLValue* value)
+        {
+            return (NativeRaw.FLValue_AsData(value)).ToArrayFast();
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLArray* FLValue_AsArray(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDict* FLValue_AsDict(FLValue* value);
+
+        public static string? FLValue_ToString(FLValue* value)
+        {
+            using(var retVal = NativeRaw.FLValue_ToString(value)) {
                 return ((FLSlice)retVal).CreateString();
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4_now();
+        public static extern void FLValue_Release(FLValue* value);
 
 
     }
@@ -94,7 +90,13 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4_getVersion();
+        public static extern FLSlice FLValue_AsString(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice FLValue_AsData(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLValue_ToString(FLValue* value);
 
 
     }

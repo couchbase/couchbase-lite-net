@@ -1,7 +1,7 @@
 //
 // C4Certificate_native.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,22 +27,22 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static C4Cert* c4cert_fromData(byte[] certData, C4Error* outError)
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4cert_getValidTimespan(C4Cert* cert, long* outCreated, long* outExpires);
+
+        public static C4Cert* c4cert_fromData(byte[]? certData, C4Error* outError)
         {
             fixed(byte *certData_ = certData) {
                 return NativeRaw.c4cert_fromData(new FLSlice(certData_, certData == null ? 0 : (ulong)certData.Length), outError);
             }
         }
 
-        public static byte[] c4cert_copyData(C4Cert* x, bool pemEncoded)
+        public static byte[]? c4cert_copyData(C4Cert* x, bool pemEncoded)
         {
             using(var retVal = NativeRaw.c4cert_copyData(x, pemEncoded)) {
                 return ((FLSlice)retVal).ToArrayFast();
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4cert_getValidTimespan(C4Cert* cert, long* outCreated, long* outExpires);
 
         public static C4Cert* c4cert_createRequest(C4CertNameComponent* nameComponents, ulong nameCount, C4CertUsage certUsages, C4KeyPair* subjectKey, C4Error* outError)
         {
@@ -55,7 +55,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_nextInChain(C4Cert* x);
 
-        public static byte[] c4cert_copyChainData(C4Cert* x)
+        public static byte[]? c4cert_copyChainData(C4Cert* x)
         {
             using(var retVal = NativeRaw.c4cert_copyChainData(x)) {
                 return ((FLSlice)retVal).ToArrayFast();
@@ -65,10 +65,9 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4KeyPair* c4keypair_generate(C4KeyPairAlgorithm algorithm, uint sizeInBits, [MarshalAs(UnmanagedType.U1)]bool persistent, C4Error* outError);
 
-        public static byte[] c4keypair_privateKeyData(C4KeyPair* x)
+        public static byte[]? c4keypair_privateKeyData(C4KeyPair* x)
         {
-            using (var retVal = NativeRaw.c4keypair_privateKeyData(x))
-            {
+            using(var retVal = NativeRaw.c4keypair_privateKeyData(x)) {
                 return ((FLSlice)retVal).ToArrayFast();
             }
         }

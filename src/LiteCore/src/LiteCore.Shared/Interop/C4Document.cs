@@ -20,4 +20,18 @@ namespace LiteCore.Interop
 {
     internal unsafe delegate FLSliceResult C4DocDeltaApplier(void* context, C4Revision* baseRevision,
         FLSlice delta, C4Error* outError);
+
+    internal unsafe partial struct C4Document
+    {
+        // This definition is simply so silly in the C header that it is 
+        // more effort than it is worth to try to parse it via script
+        void* _internal1;
+        void* _internal2;
+        public C4DocumentFlags flags;
+        public FLHeapSlice docID;
+        public FLHeapSlice revID;
+        public ulong sequence;
+        public C4Revision selectedRev;
+        public C4ExtraInfo extraInfo;
+    }
 }

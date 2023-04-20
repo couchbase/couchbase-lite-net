@@ -1,7 +1,7 @@
 //
 // C4BlobStore_native.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,14 +27,14 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static bool c4blob_keyFromString(string str, C4BlobKey* x)
+        public static bool c4blob_keyFromString(string? str, C4BlobKey* x)
         {
             using(var str_ = new C4String(str)) {
                 return NativeRaw.c4blob_keyFromString(str_.AsFLSlice(), x);
             }
         }
 
-        public static string c4blob_keyToString(C4BlobKey key)
+        public static string? c4blob_keyToString(C4BlobKey key)
         {
             using(var retVal = NativeRaw.c4blob_keyToString(key)) {
                 return ((FLSlice)retVal).CreateString();
@@ -44,7 +44,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4BlobStore* c4db_getBlobStore(C4Database* db, C4Error* outError);
 
-        public static C4BlobStore* c4blob_openStore(string dirPath, C4DatabaseFlags flags, C4EncryptionKey* encryptionKey, C4Error* outError)
+        public static C4BlobStore* c4blob_openStore(string? dirPath, C4DatabaseFlags flags, C4EncryptionKey* encryptionKey, C4Error* outError)
         {
             using(var dirPath_ = new C4String(dirPath)) {
                 return NativeRaw.c4blob_openStore(dirPath_.AsFLSlice(), flags, encryptionKey, outError);
@@ -58,21 +58,21 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern long c4blob_getSize(C4BlobStore* store, C4BlobKey key);
 
-        public static byte[] c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError)
+        public static byte[]? c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4blob_getContents(store, key, outError)) {
                 return ((FLSlice)retVal).ToArrayFast();
             }
         }
 
-        public static string c4blob_getFilePath(C4BlobStore* store, C4BlobKey key, C4Error* outError)
+        public static string? c4blob_getFilePath(C4BlobStore* store, C4BlobKey key, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4blob_getFilePath(store, key, outError)) {
                 return ((FLSlice)retVal).CreateString();
             }
         }
 
-        public static bool c4blob_create(C4BlobStore* store, byte[] contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error)
+        public static bool c4blob_create(C4BlobStore* store, byte[]? contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error)
         {
             fixed(byte *contents_ = contents) {
                 return NativeRaw.c4blob_create(store, new FLSlice(contents_, contents == null ? 0 : (ulong)contents.Length), expectedKey, outKey, error);

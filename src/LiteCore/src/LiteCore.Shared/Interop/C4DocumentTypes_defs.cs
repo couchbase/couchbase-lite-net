@@ -1,7 +1,7 @@
 //
 // C4DocumentTypes_defs.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,10 +28,10 @@ namespace LiteCore.Interop
     [Flags]
     internal enum C4DocumentFlags : uint
     {
-        DocDeleted         = 0x01,
-        DocConflicted      = 0x02,
-        DocHasAttachments  = 0x04,
-        DocExists          = 0x1000
+        DocDeleted        = 0x01,
+        DocConflicted     = 0x02,
+        DocHasAttachments = 0x04,
+        DocExists         = 0x1000
     }
 
     [Flags]
@@ -61,19 +61,7 @@ namespace LiteCore.Interop
         public ulong sequence;
     }
 
-    internal unsafe struct C4Document
-    {
-        void* _internal1;
-        void* _internal2;
-        public C4DocumentFlags flags;
-        public FLHeapSlice docID;
-        public FLHeapSlice revID;
-        public ulong sequence;
-        public C4Revision selectedRev;
-        public C4ExtraInfo extraInfo;
-    }
-
-    internal unsafe partial struct C4DocPutRequest
+	internal unsafe partial struct C4DocPutRequest
     {
         public FLSlice body;
         public FLSlice docID;
@@ -130,18 +118,17 @@ namespace LiteCore.Interop
             }
         }
 
-        public C4DocDeltaApplier deltaCB
+        public C4DocDeltaApplier? deltaCB
         {
             get {
-                return Marshal.GetDelegateForFunctionPointer<C4DocDeltaApplier>(_deltaCB);
+                return  Marshal.GetDelegateForFunctionPointer<C4DocDeltaApplier>(_deltaCB);
             }
             set {
-                _deltaCB = Marshal.GetFunctionPointerForDelegate(value);
+                _deltaCB = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
             }
         }
     }
 
-    // C4DatabaseChange replaced by
 	internal unsafe struct C4CollectionChange
     {
         public FLHeapSlice docID;
@@ -151,7 +138,7 @@ namespace LiteCore.Interop
         public C4RevisionFlags flags;
     }
 
-    internal unsafe struct C4CollectionObservation
+	internal unsafe struct C4CollectionObservation
     {
         public uint numChanges;
         private byte _external;
@@ -161,7 +148,8 @@ namespace LiteCore.Interop
         {
             get {
                 return Convert.ToBoolean(_external);
-            } set {
+            }
+            set {
                 _external = Convert.ToByte(value);
             }
         }
