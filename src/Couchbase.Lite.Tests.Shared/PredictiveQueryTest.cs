@@ -29,8 +29,6 @@ using Couchbase.Lite.Query;
 
 using FluentAssertions;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
 
 using Newtonsoft.Json;

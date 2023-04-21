@@ -35,8 +35,6 @@ using Couchbase.Lite.Util;
 
 using FluentAssertions;
 
-using JetBrains.Annotations;
-
 using Test.Util;
 #if !WINDOWS_UWP
 using Xunit;
