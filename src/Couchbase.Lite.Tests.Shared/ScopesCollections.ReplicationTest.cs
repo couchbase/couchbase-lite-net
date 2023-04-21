@@ -79,8 +79,8 @@ namespace Test
         public void TestCreateConfigWithDatabase()
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
-            config.Collections.Should().Contain(Db.DefaultCollection, "Because Default collection configuration with default collection is created with ReplicatorConfiguration init.");
-            var collConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            config.Collections.Should().Contain(Db.GetDefaultCollection(), "Because Default collection configuration with default collection is created with ReplicatorConfiguration init.");
+            var collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             collConfig.GetType().Should().Be(typeof(CollectionConfiguration));
             collConfig.Equals(config.DefaultCollectionConfig).Should().BeTrue();
             collConfig.ConflictResolver.Should().Be(ConflictResolver.Default);
@@ -101,7 +101,7 @@ namespace Test
                 ConflictResolver = new FakeConflictResolver()
             });
 
-            var collConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            var collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             collConfig.ConflictResolver.Should().Be(config.ConflictResolver);
         }
 
@@ -110,14 +110,14 @@ namespace Test
         public void TestUpdateConflictResolverForDefaultCollection()
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { ConflictResolver = new FakeConflictResolver() };
-            var collConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            var collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             collConfig.ConflictResolver.Should().Be(config.ConflictResolver);
             config.ConflictResolver = new TestConflictResolver((conflict) => { return conflict.LocalDocument; });
-            collConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             collConfig.ConflictResolver.Should().Be(config.ConflictResolver);
             collConfig.ConflictResolver = new FakeConflictResolver();
-            config.AddCollection(Db.DefaultCollection, collConfig);
-            collConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            config.AddCollection(Db.GetDefaultCollection(), collConfig);
+            collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             collConfig.ConflictResolver.Should().Be(config.ConflictResolver);
         }
 
@@ -134,7 +134,7 @@ namespace Test
                 PushFilter = _replicator__filterCallbackTrue
             };
 
-            var defaultCollConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            var defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             defaultCollConfig.Channels.Should().BeSameAs(config.Channels);
             defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
             defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
@@ -155,7 +155,7 @@ namespace Test
                 PushFilter = _replicator__filterCallbackTrue
             };
 
-            var defaultCollConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            var defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             defaultCollConfig.Channels.Should().BeSameAs(config.Channels);
             defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
             defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
@@ -168,7 +168,7 @@ namespace Test
             config.PullFilter = _replicator__filterCallbackFalse;
             config.PushFilter = _replicator__filterCallbackFalse;
 
-            defaultCollConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             defaultCollConfig.Channels.Should().BeSameAs(config.Channels);
             defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
             defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
@@ -181,9 +181,9 @@ namespace Test
             defaultCollConfig.PullFilter = _replicator__filterCallbackTrue;
             defaultCollConfig.PushFilter = _replicator__filterCallbackTrue;
 
-            config.AddCollection(Db.DefaultCollection, defaultCollConfig);
+            config.AddCollection(Db.GetDefaultCollection(), defaultCollConfig);
 
-            defaultCollConfig = config.GetCollectionConfig(Db.DefaultCollection);
+            defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
             defaultCollConfig.Channels.Should().BeSameAs(config.Channels);
             defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
             defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
@@ -948,7 +948,7 @@ namespace Test
 
             config.AddCollections(new List<Collection>() { colA, colB });
 
-            var defaultCollection = Db.DefaultCollection;
+            var defaultCollection = Db.GetDefaultCollection();
 
             // set the outer filters after adding default collection
             config.AddCollection(defaultCollection);
@@ -972,7 +972,7 @@ namespace Test
         public void TestUpdateCollectionConfigWithDefault()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
-            var defaultCollection = Db.DefaultCollection;
+            var defaultCollection = Db.GetDefaultCollection();
 
             var targetEndpoint = new URLEndpoint(new Uri("wss://foo:4984/"));
             var replConfig = new ReplicatorConfiguration(targetEndpoint);
