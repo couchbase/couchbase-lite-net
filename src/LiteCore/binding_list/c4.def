@@ -289,7 +289,6 @@ c4listener_shareCollection
 c4listener_unshareCollection
 
 c4cert_getValidTimespan
-c4cert_copyChainData
 c4cert_copyData
 c4cert_createRequest
 c4cert_fromData

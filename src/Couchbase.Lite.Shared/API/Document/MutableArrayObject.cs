@@ -81,7 +81,7 @@ namespace Couchbase.Lite
             _array.InitAsCopyOf(array, isMutable);
         }
 
-        internal MutableArrayObject(MValue mv, MCollection parent)
+        internal MutableArrayObject(MValue mv, MCollection? parent)
             : base(mv, parent)
         {
             
@@ -384,7 +384,12 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray SetJSON(string json)
         {
-            return SetData(DataOps.ParseTo<List<object>>(json));
+            var data = DataOps.ParseTo<List<object>>(json);
+            if(data == null) {
+                throw new ArgumentException("Bad json received in SetJSON", json);
+            }
+
+            return SetData(data);
         }
 
         #endregion

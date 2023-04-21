@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public MRoot()
         {
-            
+            _slot = new MValue(default(object));
         }
 
         public MRoot(MContext context, FLValue* value, bool isMutable)
@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Public Methods
 
-        public static object AsObject(FLSlice fleeceData, bool mutableContainers = true)
+        public static object? AsObject(FLSlice fleeceData, bool mutableContainers = true)
         {
             using (var root = new MRoot(fleeceData, mutableContainers)) {
                 return root.AsObject();
@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Internal.Doc
             return !root._slot.IsEmpty;
         }
 
-        public object AsObject()
+        public object? AsObject()
         {
             return _slot.AsObject(this);
         }

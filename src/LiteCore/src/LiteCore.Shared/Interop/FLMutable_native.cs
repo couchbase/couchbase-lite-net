@@ -55,7 +55,7 @@ namespace LiteCore.Interop
         public static void FLSlot_SetData(FLSlot* x, byte[]? slice)
         {
             fixed(byte *slice_ = slice) {
-                NativeRaw.FLSlot_SetData(x, new FLSlice(slice_, (ulong)slice.Length));
+                NativeRaw.FLSlot_SetData(x, new FLSlice(slice_, slice == null ? 0 : (ulong)slice.Length));
             }
         }
 

@@ -108,7 +108,7 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnNetworkChange(object sender, EventArgs e)
+        private void OnNetworkChange(object? sender, EventArgs e)
         {
             WriteLog.To.Sync.I(Tag, "Network change detected, analyzing connection status...");
             NetworkReachabilityStatus status;

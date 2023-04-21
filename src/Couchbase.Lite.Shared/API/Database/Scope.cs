@@ -120,7 +120,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                Collection coll = null;
+                Collection? coll = null;
                 var c4c = GetCollectionFromLiteCore(name);
                 if (c4c != null) {
                     coll = new Collection(Database, name, this, c4c);
@@ -227,10 +227,11 @@ namespace Couchbase.Lite
                 if (error.code == 0) {
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
                     for (uint i = 0; i < collsCnt; i++) {
-                        var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        var c4c = GetCollectionFromLiteCore(collStr);
+                        var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                        var c4c = collStr != null ? GetCollectionFromLiteCore(collStr) : null;
                         if (c4c != null) {
-                            var coll = new Collection(Database, collStr, this, c4c);
+                            // if c4c is not null, it is because collStr is not null
+                            var coll = new Collection(Database, collStr!, this, c4c);
                             cos.Add(coll);
                         }
                     }
@@ -262,12 +263,12 @@ namespace Couchbase.Lite
                 var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
                 if (error.code == 0) {
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
-                    if (_collections?.Count > collsCnt)
+                    if (_collections.Count > collsCnt)
                         _collections.Clear();
 
                     for (uint i = 0; i < collsCnt; i++) {
-                        var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        if (!_collections.ContainsKey(collStr)) {
+                        var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                        if (collStr != null && !_collections.ContainsKey(collStr)) {
                             var c4c = GetCollectionFromLiteCore(collStr);
                             if (c4c != null) {
                                 var coll = new Collection(Database, collStr, this, c4c);

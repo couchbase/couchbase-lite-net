@@ -329,7 +329,8 @@ namespace Couchbase.Lite.Sync
             IPAddress? ip = null;
             try {
                 //Get the ip address base on the given address family
-                ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address;
+                var fallback = af == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any;
+                ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address ?? fallback;
                 //Create and return tcp client, if ip address is null, ArgumentNullException will be thrown
                 return new TcpClient(new IPEndPoint(ip, 0));
             } catch (Exception e) {

@@ -427,7 +427,9 @@ namespace Couchbase.Lite.Sync
                         var cnt = (int)Native.FLArray_Count(flarr);
                         for (int i = 0; i < cnt; i++) {
                             var flv = Native.FLArray_Get(flarr, (uint)i);
-                            result.Add(Native.FLValue_AsString(flv));
+                            var nextId = Native.FLValue_AsString(flv);
+                            Debug.Assert(nextId != null);
+                            result.Add(nextId);
                         }
 
                         Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
@@ -475,10 +477,10 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            var collName = collectionSpec.name.CreateString();
-            var scope = collectionSpec.scope.CreateString();
+            var collName = collectionSpec.name.CreateString()!;
+            var scope = collectionSpec.scope.CreateString()!;
             var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
+            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString()!, dict, flags);
         }
 
         #if __IOS__

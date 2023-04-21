@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Internal.Logging
         }
 
         [Conditional("DEBUG")]
-        internal void D(string tag, string format, params object[] args)
+        internal void D(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Debug, String.Format(FormatMessage(tag, format), args));
         }
@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Internal.Logging
             SendToLoggers(LogLevel.Error, FormatMessage(tag, msg, tr));
         }
 
-        internal void E(string tag, string format, params object[] args)
+        internal void E(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Error, String.Format(FormatMessage(tag, format), args));
         }
@@ -90,7 +90,7 @@ namespace Couchbase.Lite.Internal.Logging
             SendToLoggers(LogLevel.Info, FormatMessage(tag, msg, tr));
         }
 
-        internal void I(string tag, string format, params object[] args)
+        internal void I(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Info, String.Format(FormatMessage(tag, format), args));
         }
@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Internal.Logging
             SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg, tr));
         }
 
-        internal void V(string tag, string format, params object[] args)
+        internal void V(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Verbose, String.Format(FormatMessage(tag, format), args));
         }
@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Internal.Logging
             SendToLoggers(LogLevel.Warning, FormatMessage(tag, msg, tr));
         }
 
-        internal void W(string tag, string format, params object[] args)
+        internal void W(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Warning, String.Format(FormatMessage(tag, format), args));
         }

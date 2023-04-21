@@ -55,13 +55,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_nextInChain(C4Cert* x);
 
-        public static byte[]? c4cert_copyChainData(C4Cert* x)
-        {
-            using(var retVal = NativeRaw.c4cert_copyChainData(x)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
-
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4KeyPair* c4keypair_generate(C4KeyPairAlgorithm algorithm, uint sizeInBits, [MarshalAs(UnmanagedType.U1)]bool persistent, C4Error* outError);
 
@@ -90,9 +83,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_createRequest(C4CertNameComponent* nameComponents, UIntPtr nameCount, C4CertUsage certUsages, C4KeyPair* subjectKey, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4cert_copyChainData(C4Cert* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4keypair_privateKeyData(C4KeyPair* x);

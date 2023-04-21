@@ -72,7 +72,7 @@ namespace Couchbase.Lite
             _threadSafety = SetupThreadSafety();
         }
 
-        internal ArrayObject(MValue mv, MCollection parent)
+        internal ArrayObject(MValue mv, MCollection? parent)
         {
             _array.InitInSlot(mv, parent);
             _threadSafety = SetupThreadSafety();
@@ -141,9 +141,9 @@ namespace Couchbase.Lite
             });
         }
 
-        private static object GetObject(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+        private static object? GetObject(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
 
-        private static T GetObject<T>(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) where T : class 
+        private static T? GetObject<T>(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) where T : class 
             => GetObject(array, index, threadSafety) as T ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Invalid cast in GetObject<T>");
 
         private ThreadSafety SetupThreadSafety()
@@ -161,10 +161,10 @@ namespace Couchbase.Lite
         #region IArray
 
         /// <inheritdoc />
-        public ArrayObject GetArray(int index) => GetObject<ArrayObject>(_array, index, _threadSafety);
+        public ArrayObject? GetArray(int index) => GetObject<ArrayObject>(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public Blob GetBlob(int index) => GetObject<Blob>(_array, index, _threadSafety);
+        public Blob? GetBlob(int index) => GetObject<Blob>(_array, index, _threadSafety);
 
         /// <inheritdoc />
         public bool GetBoolean(int index) => DataOps.ConvertToBoolean(GetObject(_array, index, _threadSafety));
@@ -173,7 +173,7 @@ namespace Couchbase.Lite
         public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary(int index) => GetObject<DictionaryObject>(_array, index, _threadSafety);
+        public DictionaryObject? GetDictionary(int index) => GetObject<DictionaryObject>(_array, index, _threadSafety);
 
         /// <inheritdoc />
         public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(_array, index, _threadSafety));
@@ -188,10 +188,10 @@ namespace Couchbase.Lite
         public long GetLong(int index) => DataOps.ConvertToLong(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public object GetValue(int index) => GetObject(_array, index, _threadSafety);
+        public object? GetValue(int index) => GetObject(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
+        public string? GetString(int index) => GetObject<string>(_array, index, _threadSafety);
 
         #endregion
 

@@ -172,9 +172,8 @@ namespace Couchbase.Lite.Support
 
         private void ProcessAsync()
         {
-            SerialQueueItem next;
             var oldThread = _currentProcessingThread;
-            while(_queue.TryDequeue(out next)) {
+            while(_queue.TryDequeue(out var next)) {
                 
                 State = SerialQueueState.Processing;
                 lock(_executionLock) {
@@ -183,15 +182,15 @@ namespace Couchbase.Lite.Support
                         next.Action();
                         next.SyncContext.Post(s =>
                         {
-                            var item = (SerialQueueItem) s;
-                            item.Tcs.SetResult(true);
+                            var item = (SerialQueueItem?) s;
+                            item?.Tcs?.SetResult(true);
                         }, next);
                     } catch(Exception e) {
                         WriteLog.To.Database.W(Tag, "Exception during DispatchAsync", e);
                         next.SyncContext.Post(s =>
                         {
-                            var item = (SerialQueueItem)s;
-                            item.Tcs.SetResult(true);
+                            var item = (SerialQueueItem?)s;
+                            item?.Tcs?.SetResult(true);
                         }, next);
                     } finally {
                         _currentProcessingThread = oldThread;

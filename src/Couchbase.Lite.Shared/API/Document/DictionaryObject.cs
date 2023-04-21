@@ -186,7 +186,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static object GetObject(MDict dict, string key, IThreadSafety? threadSafety = null) 
+        private static object? GetObject(MDict dict, string key, IThreadSafety? threadSafety = null) 
             => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
 
         private static T? GetObject<T>(MDict dict, string key, IThreadSafety? threadSafety = null) where T : class 
@@ -237,7 +237,7 @@ namespace Couchbase.Lite
         public long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public object GetValue(string key) => GetObject(_dict, key, _threadSafety);
+        public object? GetValue(string key) => GetObject(_dict, key, _threadSafety);
 
         /// <inheritdoc />
         public string? GetString(string key) => GetObject<string>(_dict, key, _threadSafety);

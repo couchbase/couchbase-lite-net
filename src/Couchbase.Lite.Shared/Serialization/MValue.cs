@@ -16,7 +16,6 @@
 //  limitations under the License.
 // 
 
-using System;
 using System.Diagnostics;
 using System.Text;
 
@@ -28,7 +27,7 @@ using static LiteCore.Constants;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
-    internal sealed unsafe class MValue : IDisposable, IFLEncodable, IFLSlotSetable
+    internal sealed unsafe class MValue : IFLEncodable, IFLSlotSetable
     {
         #region Constants
 
@@ -76,7 +75,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Public Methods
 
-        public object AsObject(MCollection parent)
+        public object? AsObject(MCollection parent)
         {
             if (NativeObject != null || Value == null) {
                 return NativeObject;
@@ -101,19 +100,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Private Methods
 
-        private static MCollection CollectionFromObject(object obj)
-        {
-            switch (obj) {
-                case ArrayObject arr:
-                    return arr.ToMCollection();
-                case DictionaryObject dict:
-                    return dict.ToMCollection();
-                default:
-                    return null;
-            }
-        }
-
-        private static object CreateSpecialObject(string type, FLDict* properties, DocContext context)
+        private static object? CreateSpecialObject(string? type, FLDict* properties, DocContext context)
         {
             Debug.Assert(context != null);
             return type == ObjectTypeBlob || FLValueConverter.IsOldAttachment(properties)
@@ -121,18 +108,18 @@ namespace Couchbase.Lite.Internal.Serialization
                 : null;
         }
 
-        private static object ToObject(MValue mv, MCollection parent, ref bool cache)
+        private static object? ToObject(MValue mv, MCollection parent, ref bool cache)
         {
             var type = Native.FLValue_GetType(mv.Value);
             switch (type) {
                 case FLValueType.Array:
                     cache = true;
-                    return parent?.MutableChildren == true 
+                    return parent.MutableChildren 
                         ? new MutableArrayObject(mv, parent) 
                         : new ArrayObject(mv, parent);
                 case FLValueType.Dict:
                     cache = true;
-                    var context = parent?.Context as DocContext;
+                    var context = (DocContext)parent.Context!;
                     var flDict = Native.FLValue_AsDict(mv.Value);
                     var subType = Native.FLValue_AsString(Native.FLDict_Get(flDict,
                         Encoding.UTF8.GetBytes(ObjectTypeProperty)));
@@ -141,28 +128,11 @@ namespace Couchbase.Lite.Internal.Serialization
                         return obj;
                     }
 
-                    return parent?.MutableChildren == true
+                    return parent.MutableChildren == true
                         ? new MutableDictionaryObject(mv, parent)
                         : new DictionaryObject(mv, parent);
                 default:
                     return FLSliceExtensions.ToObject(mv.Value);
-            }
-        }
-
-        private void NativeChangeSlot(MValue newSlot)
-        {
-            var collection = CollectionFromObject(NativeObject);
-            collection?.SetSlot(newSlot, this);
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            if (NativeObject != null) {
-                NativeChangeSlot(null);
             }
         }
 
@@ -190,6 +160,7 @@ namespace Couchbase.Lite.Internal.Serialization
             if (Value == null) {
                 Native.FLSlot_SetNull(slot);
             } else {
+                Debug.Assert(NativeObject != null);
                 NativeObject.FLSlotSet(slot);
             }
         }

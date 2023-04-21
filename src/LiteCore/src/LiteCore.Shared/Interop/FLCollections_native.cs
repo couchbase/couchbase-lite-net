@@ -63,7 +63,7 @@ namespace LiteCore.Interop
         public static FLValue* FLDict_Get(FLDict* dict, byte[]? keyString)
         {
             fixed(byte *keyString_ = keyString) {
-                return NativeRaw.FLDict_Get(dict, new FLSlice(keyString_, (ulong)keyString.Length));
+                return NativeRaw.FLDict_Get(dict, new FLSlice(keyString_, keyString == null ? 0 : (ulong)keyString.Length));
             }
         }
 

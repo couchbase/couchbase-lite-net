@@ -76,7 +76,7 @@ namespace LiteCore.Interop
         public static bool FLEncoder_WriteData(FLEncoder* encoder, byte[]? slice)
         {
             fixed(byte *slice_ = slice) {
-                return NativeRaw.FLEncoder_WriteData(encoder, new FLSlice(slice_, (ulong)slice.Length));
+                return NativeRaw.FLEncoder_WriteData(encoder, new FLSlice(slice_, slice == null ? 0 : (ulong)slice.Length));
             }
         }
 

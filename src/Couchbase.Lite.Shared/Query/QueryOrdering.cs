@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public virtual object? ToJSON()
         {
-            var obj = new List<object>();
+            var obj = new List<object?>();
             if (Orders != null) {
                 foreach (var o in Orders.OfType<QueryOrderBy>()) {
                     obj.Add(o.ToJSON());

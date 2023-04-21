@@ -30,11 +30,11 @@ namespace LiteCore.Interop
         public static FLValue* FLValue_FromData(byte[]? data, FLTrust trust)
         {
             fixed(byte *data_ = data) {
-                return NativeRaw.FLValue_FromData(new FLSlice(data_, (ulong)data.Length), trust);
+                return NativeRaw.FLValue_FromData(new FLSlice(data_, data == null ? 0 : (ulong)data.Length), trust);
             }
         }
 
-        public static string FLJSON5_ToJSON(string json5, FLSlice* outErrorMessage, UIntPtr* outErrPos, FLError* err)
+        public static string? FLJSON5_ToJSON(string json5, FLSlice* outErrorMessage, UIntPtr* outErrPos, FLError* err)
         {
             using(var json5_ = new C4String(json5)) {
                 using(var retVal = NativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsFLSlice(), outErrorMessage, outErrPos, err)) {
@@ -45,7 +45,7 @@ namespace LiteCore.Interop
         public static byte[]? FLData_ConvertJSON(byte[]? json, FLError* outError)
         {
             fixed(byte *json_ = json) {
-                using(var retVal = NativeRaw.FLData_ConvertJSON(new FLSlice(json_, (ulong)json.Length), outError)) {
+                using(var retVal = NativeRaw.FLData_ConvertJSON(new FLSlice(json_, json == null ? 0 : (ulong)json.Length), outError)) {
                     return ((FLSlice)retVal).ToArrayFast();
                 }
             }

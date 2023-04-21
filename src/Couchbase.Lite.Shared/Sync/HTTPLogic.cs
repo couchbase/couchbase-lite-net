@@ -190,7 +190,7 @@ namespace Couchbase.Lite.Sync
         private static string GetUserAgent()
 		{
 
-			var versionAtt = (AssemblyInformationalVersionAttribute)typeof(Database).GetTypeInfo().Assembly
+			var versionAtt = (AssemblyInformationalVersionAttribute?)typeof(Database).GetTypeInfo().Assembly
 				.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
 			var version = versionAtt?.InformationalVersion ?? "Unknown";
             var regex = new Regex("([0-9]+\\.[0-9]+\\.[0-9]+)-b([0-9]+)");
@@ -225,13 +225,11 @@ namespace Couchbase.Lite.Sync
 
         private bool Redirect(HttpMessageParser parser)
         {
-            string location;
-            if (!parser.Headers.TryGetValue("location", out location)) {
+            if (!parser.Headers.TryGetValue("location", out var location)) {
                 return false;
             }
 
-            Uri url;
-            if (!Uri.TryCreate(UrlRequest, location, out url)) {
+            if (!Uri.TryCreate(UrlRequest, location, out var url)) {
                 return false;
             }
 

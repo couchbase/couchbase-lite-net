@@ -293,7 +293,7 @@ namespace Couchbase.Lite
                 Debug.Assert(Database != null);
                 Misc.SafeSwap(ref _root,
                     new MRoot(new DocContext(Database, _c4Doc), (FLValue*) Data, IsMutable));
-                Collection?.ThreadSafety?.DoLocked(() => _dict = (DictionaryObject) _root!.AsObject());
+                Collection?.ThreadSafety?.DoLocked(() => _dict = (DictionaryObject?) _root!.AsObject());
             } else {
                 Misc.SafeSwap(ref _root, null);
                 _dict = IsMutable ? new InMemoryDictionary() : new DictionaryObject();
@@ -435,10 +435,11 @@ namespace Couchbase.Lite
                 return "";
             }
 
+            // This will throw if null, so ! is safe
             return LiteCoreBridge.Check(err =>
             {
                 return Native.c4doc_bodyAsJSON(c4Doc.RawDoc, true, err);
-            });
+            })!;
         }
         #endregion
     }

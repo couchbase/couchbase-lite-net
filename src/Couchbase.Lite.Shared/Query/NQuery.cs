@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
@@ -100,6 +101,9 @@ namespace Couchbase.Lite.Internal.Query
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
                 var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+                if(titleStr == null) {
+                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Null column title in query!");
+                }
 
                 if (map.ContainsKey(titleStr)) {
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,

@@ -116,7 +116,7 @@ namespace Couchbase.Lite.Internal.Logging
             // To signal us when they change the log level
             RecalculateLevel();
 
-            var domainName = Native.c4log_getDomainName(domain);
+            var domainName = Native.c4log_getDomainName(domain) ?? "";
             var logDomain = To.DomainForString(domainName);
             var actualMessage = message.ToUTF8String();
             Database.Log.Console.Log((LogLevel)level, logDomain, actualMessage);

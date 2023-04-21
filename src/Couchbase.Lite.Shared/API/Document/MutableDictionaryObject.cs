@@ -202,7 +202,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetBlob(string key, Blob value)
+        public IMutableDictionary SetBlob(string key, Blob? value)
         {
             SetValueInternal(key, value);
             return this;
@@ -216,14 +216,14 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetArray(string key, ArrayObject value)
+        public IMutableDictionary SetArray(string key, ArrayObject? value)
         {
             SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetDictionary(string key, DictionaryObject value)
+        public IMutableDictionary SetDictionary(string key, DictionaryObject? value)
         {
             SetValueInternal(key, value);
             return this;
@@ -232,7 +232,12 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableDictionary SetJSON(string json)
         {
-            return SetData(DataOps.ParseTo<Dictionary<string, object>>(json));
+            var data = DataOps.ParseTo<Dictionary<string, object?>>(json);
+            if(data == null) {
+                throw new ArgumentException("Bad json received in SetJSON", json);
+            }
+
+            return SetData(data);
         }
 
         #endregion

@@ -109,7 +109,7 @@ namespace LiteCore.Interop
         /// </summary>
         public string SerialNumber
         {
-            get => _c4CertIssuerParams.serialNumber.CreateString();
+            get => _c4CertIssuerParams.serialNumber.CreateString() ?? "1";
             set {
                 _serialNumber.Dispose();
                 _serialNumber = new C4String(value);

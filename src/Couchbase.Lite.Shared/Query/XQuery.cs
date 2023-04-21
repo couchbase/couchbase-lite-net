@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Internal.Query
 
         protected QueryJoin? JoinImpl { get; set; }
 
-        protected IExpression LimitValue { get; set; }
+        protected IExpression? LimitValue { get; set; }
 
         protected QueryOrderBy? OrderByImpl { get; set; }
 
@@ -183,7 +183,7 @@ namespace Couchbase.Lite.Internal.Query
             for (int i = 0; i < columnCnt; i++) {
                 var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
 
-                if (titleStr.StartsWith("*")) {
+                if (titleStr!.StartsWith("*")) {
                     titleStr = fromImpl.ColumnName;
                 }
 
@@ -205,7 +205,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private string EncodeAsJSON()
         {
-            var parameters = new Dictionary<string, object>();
+            var parameters = new Dictionary<string, object?>();
             if (WhereImpl != null) {
                 parameters["WHERE"] = WhereImpl.ConvertToJSON();
             }

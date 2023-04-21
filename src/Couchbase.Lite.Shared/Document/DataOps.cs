@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Internal.Doc
                         default:
                             return jToken.ToObject<object>();
                     }
-                case IDictionary<string, object> dict:
+                case IDictionary<string, object?> dict:
                     return ConvertDictionary(dict);
                 case IList list:
                     return ConvertList(list);
@@ -208,7 +208,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Private Methods
 
-        private static MutableDictionaryObject ConvertDictionary(IDictionary<string, object> dictionary)
+        private static MutableDictionaryObject ConvertDictionary(IDictionary<string, object?> dictionary)
         {
             var subdocument = new MutableDictionaryObject();
             subdocument.SetData(dictionary);

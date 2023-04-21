@@ -27,7 +27,7 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>
+    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object?>
     {
         #region Variables
 
@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Fleece
 
         public bool IsReadOnly => !IsMutable;
 
-        public object this[int index]
+        public object? this[int index]
         {
             get => Get(index).AsObject(this);
             set => Set(index, value);
@@ -207,17 +207,17 @@ namespace Couchbase.Lite.Fleece
             _vec.Clear();
         }
 
-        public bool Contains(object item)
+        public bool Contains(object? item)
         {
             throw new NotImplementedException();
         }
 
-        public void CopyTo(object[] array, int arrayIndex)
+        public void CopyTo(object?[] array, int arrayIndex)
         {
             throw new NotImplementedException();
         }
 
-        public bool Remove(object item)
+        public bool Remove(object? item)
         {
             throw new NotImplementedException();
         }
@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Fleece
 
         #region IEnumerable<object>
 
-        public IEnumerator<object> GetEnumerator()
+        public IEnumerator<object?> GetEnumerator()
         {
             return new Enumerator(this);
         }
@@ -274,7 +274,7 @@ namespace Couchbase.Lite.Fleece
 
         #region IList<object>
 
-        public int IndexOf(object item)
+        public int IndexOf(object? item)
         {
             throw new NotImplementedException();
         }
@@ -308,7 +308,7 @@ namespace Couchbase.Lite.Fleece
 
         internal string ToJSON()
         {
-            return Native.FLValue_ToJSON((FLValue*)BaseArray);
+            return Native.FLValue_ToJSON((FLValue*)BaseArray)!;
         }
 
         #endregion
@@ -324,7 +324,7 @@ namespace Couchbase.Lite.Fleece
 
         #region Nested
 
-        private class Enumerator : IEnumerator<object>
+        private class Enumerator : IEnumerator<object?>
         {
             #region Variables
 
@@ -335,9 +335,9 @@ namespace Couchbase.Lite.Fleece
 
             #region Properties
 
-            public object Current => _parent[_current];
+            public object? Current => _parent[_current];
 
-            object IEnumerator.Current => Current;
+            object? IEnumerator.Current => Current;
 
             #endregion
 

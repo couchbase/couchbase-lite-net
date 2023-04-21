@@ -209,8 +209,8 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        private readonly ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType?>>> _eventMap =
-            new ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType?>>>();
+        private readonly ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType>>> _eventMap =
+            new ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType>>>();
 
         private readonly object _locker = new object();
 
@@ -218,9 +218,9 @@ namespace Couchbase.Lite.Util
 
         #region Public Methods
 
-        public int Add(CouchbaseEventHandler<TFilterType, TEventType?> handler)
+        public int Add(CouchbaseEventHandler<TFilterType, TEventType> handler)
         {
-            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType?>>());
+            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>());
 
             lock (_locker) {
                 collection.Add(handler);
@@ -231,11 +231,11 @@ namespace Couchbase.Lite.Util
         public int Remove(ListenerToken token, out TFilterType? filter)
         {
             filter = default(TFilterType);
-            if (!(token.EventHandler is CouchbaseEventHandler<TFilterType, TEventType?> handler)) {
+            if (!(token.EventHandler is CouchbaseEventHandler<TFilterType, TEventType> handler)) {
                 return -1;
             }
 
-            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType?>>());
+            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>());
 
             lock (_locker) {
                 collection.Remove(handler);
@@ -248,9 +248,9 @@ namespace Couchbase.Lite.Util
 
         #region Internal Methods
 
-        internal void Fire(TFilterType key, object sender, TEventType? args)
+        internal void Fire(TFilterType key, object sender, TEventType args)
         {
-            var collection = _eventMap.GetOrAdd(key, new HashSet<CouchbaseEventHandler<TEventType?>>());
+            var collection = _eventMap.GetOrAdd(key, new HashSet<CouchbaseEventHandler<TEventType>>());
 
             lock (_locker) {
                 foreach (var method in collection) {

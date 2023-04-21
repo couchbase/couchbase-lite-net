@@ -308,7 +308,12 @@ namespace Couchbase.Lite.Internal.Doc
 
         public IMutableDictionary SetJSON(string json)
         {
-            return SetData(DataOps.ParseTo<Dictionary<string, object?>>(json));
+            var data = DataOps.ParseTo<Dictionary<string, object?>>(json);
+            if(data == null) {
+                throw new ArgumentException("Bad json received in SetJSON", nameof(json));
+            }
+
+            return SetData(data);
         }
 
         #endregion

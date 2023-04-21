@@ -45,7 +45,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal DocumentFragment(Document doc)
+        internal DocumentFragment(Document? doc)
         {
             Document = doc;
         }

@@ -167,7 +167,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     var i = default(FLDictIterator);
                     Native.FLDictIterator_Begin(dict, &i);
                     do {
-                        var key = Native.FLDictIterator_GetKeyString(&i);
+                        var key = Native.FLDictIterator_GetKeyString(&i)!;
                         retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
                     } while (Native.FLDictIterator_Next(&i));
 

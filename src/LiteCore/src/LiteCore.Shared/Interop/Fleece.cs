@@ -376,7 +376,7 @@ namespace LiteCore.Interop
                     Native.FLDictIterator_Begin(dict, &i);
                     do {
                         var rawKey = Native.FLDictIterator_GetKey(&i);
-                        string key = Native.FLValue_AsString(rawKey);
+                        string? key = Native.FLValue_AsString(rawKey);
                         if (key == null) {
                             break;
                         }
@@ -407,7 +407,7 @@ namespace LiteCore.Interop
             }
         }
 
-        public static FLSliceResult FLEncode(this object obj)
+        public static FLSliceResult FLEncode(this object? obj)
         {
             var enc = Native.FLEncoder_New();
             try {

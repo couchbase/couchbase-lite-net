@@ -46,7 +46,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_setCallbackLevel(C4LogLevel level);
 
-        public static string c4log_getDomainName(C4LogDomain* x)
+        public static string? c4log_getDomainName(C4LogDomain* x)
         {
             var retVal = NativeRaw.c4log_getDomainName(x);
             return Marshal.PtrToStringAnsi((IntPtr)retVal);

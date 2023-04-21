@@ -948,7 +948,7 @@ namespace Couchbase.Lite
         /// </param>
         /// <exception cref="ArgumentException">Throw if the given blob dictionary is not valid.</exception>
         /// <returns>The contained value, or <c>null</c> if it's digest information doesn’t exist.</returns>
-        public Blob? GetBlob(Dictionary<string, object> blobDict)
+        public Blob? GetBlob(Dictionary<string, object?> blobDict)
         {
             if (!blobDict.ContainsKey(Blob.DigestKey) || blobDict[Blob.DigestKey] == null)
                 return null;
@@ -958,7 +958,7 @@ namespace Couchbase.Lite
             }
 
             C4BlobKey expectedKey = new C4BlobKey();
-            var keyFromStr = Native.c4blob_keyFromString((string)blobDict[Blob.DigestKey], &expectedKey);
+            var keyFromStr = Native.c4blob_keyFromString((string?)blobDict[Blob.DigestKey], &expectedKey);
             if (!keyFromStr) {
                 return null;
             }
@@ -1224,11 +1224,13 @@ namespace Couchbase.Lite
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                             Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                         }
-                        if (resolvedDoc.Collection == null) {
+
+                        // Compiler doesn't realize that this is swapped to another non-null just above
+                        if (resolvedDoc!.Collection == null) {
                             resolvedDoc.Collection = collection ?? GetDefaultCollection();
                         } else if (resolvedDoc.Database != this) {
                             throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.ResolvedDocWrongDb,
-                                resolvedDoc.Database.Name, this.Name));
+                                resolvedDoc.Database?.Name, this.Name));
                         }
                     }
 
@@ -1498,8 +1500,8 @@ namespace Couchbase.Lite
                         _scopes.Clear();
 
                     for (uint i = 0; i < scopesCnt; i++) {
-                        var scopeStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
-                        if (!_scopes.ContainsKey(scopeStr)) {
+                        var scopeStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
+                        if (scopeStr != null && !_scopes.ContainsKey(scopeStr)) {
                             var s = new Scope(this, scopeStr);
                             var cnt = s.GetCollections().Count;
                             if(scopeStr == _defaultCollectionName || cnt > 0)

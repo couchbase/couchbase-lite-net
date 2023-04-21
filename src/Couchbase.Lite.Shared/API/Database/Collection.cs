@@ -275,8 +275,9 @@ namespace Couchbase.Lite
                     }
                 } else {
                     if (_documentChanged.Remove(token, out var docID) == 0) {
-                        if (_docObs.TryGetValue(docID, out var observer)) {
-                            _docObs.Remove(docID);
+                        // docID is guaranteed non-null if return of Remove is 0 or higher
+                        if (_docObs.TryGetValue(docID!, out var observer)) {
+                            _docObs.Remove(docID!);
                             Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
                             observer.Item2.Free();
                         }
@@ -690,7 +691,7 @@ namespace Couchbase.Lite
             var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
             dbObj?._callbackFactory.StartNew(() =>
             {
-                dbObj.PostDocChanged(docId.CreateString());
+                dbObj.PostDocChanged(docId.CreateString()!);
             });
         }
 
@@ -704,6 +705,10 @@ namespace Couchbase.Lite
 
                 return new DocumentChangedEventArgs(documentID, this);
             });
+
+            if(change == null) {
+                return;
+            }
 
             _documentChanged.Fire(documentID, this, change);
         }
@@ -790,7 +795,7 @@ namespace Couchbase.Lite
                 var committed = false;
                 try {
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(c4Db, err));
-                    var baseDoc = baseDocument == null ? null : baseDocument.c4Doc.RawDoc;
+                    var baseDoc = baseDocument?.c4Doc == null ? null : baseDocument.c4Doc.RawDoc;
                     Save(document, &newDoc, baseDoc, deletion);
                     if (newDoc == null) {
                         // Handle conflict:
@@ -958,7 +963,7 @@ namespace Couchbase.Lite
 
                     external = newExternal;
                     for (var i = 0; i < nChanges; i++) {
-                        docIDs.Add(changes[i].docID.CreateString());
+                        docIDs.Add(changes[i].docID.CreateString()!);
                     }
 
                     Native.c4dbobs_releaseChanges(changes, nChanges);

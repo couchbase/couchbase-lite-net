@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Query
         /// <param name="locale">The locale to use when performing full text searching</param>
         /// <returns>The beginning of an FTS based index</returns>
         public FullTextIndexConfiguration(string[] expressions, bool ignoreAccents = false, 
-            string locale = null)
+            string? locale = null)
             : base(C4IndexType.FullTextIndex, expressions)
         {
             IgnoreAccents = ignoreAccents;

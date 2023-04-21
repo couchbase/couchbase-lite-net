@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Internal.Doc
             Native.c4doc_release(RawDoc);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (!(obj is C4DocumentWrapper other)) {
                 return false;
