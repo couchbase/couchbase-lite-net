@@ -104,7 +104,7 @@ namespace Couchbase.Lite.DI
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public static void AutoRegister(Assembly assembly)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(assembly), assembly);
+            if (assembly == null) throw new ArgumentNullException(nameof(assembly));
 
             foreach (var type in assembly.GetTypes().Where(x => x.GetTypeInfo().IsClass)) {
                 var ti = type.GetTypeInfo();

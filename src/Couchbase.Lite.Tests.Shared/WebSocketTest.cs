@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#nullable disable
+
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
 using FluentAssertions;

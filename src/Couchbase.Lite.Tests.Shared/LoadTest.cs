@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#nullable disable
+
 #if PERFORMANCE
 using System;
 using System.Collections.Generic;

@@ -15,6 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+
+#nullable disable
 #if !CBL_NO_EXTERN_FILES
 using System.Collections.Generic;
 using System.Text;
@@ -113,9 +115,9 @@ namespace LiteCore.Tests
                      *  changes can be coalesced.
                      *  \note The new observer needs to be enabled by calling \ref c4queryobs_setEnabled.
                      */
-                    _queryObserver = NativeRaw.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _queryObserver = Native.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     /** Enables a query observer so its callback can be called, or disables it to stop callbacks. */
-                    NativeRaw.c4queryobs_setEnabled(_queryObserver, true);
+                    Native.c4queryobs_setEnabled(_queryObserver, true);
 
                     WriteLine("---- Waiting for query observer...");
                     Thread.Sleep(2000);
@@ -137,7 +139,7 @@ namespace LiteCore.Tests
                          * @param error  If the last evaluation of the query failed, the error will be stored here.
                          * @return  The current query results, or NULL if the query hasn't run or has failed. 
                          */
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver, true, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
                     });
                     //REQUIRE(e);
                     //CHECK(c4queryobs_getEnumerator(state.obs, true, &error) == nullptr);
@@ -168,13 +170,13 @@ namespace LiteCore.Tests
                     _queryCallbackCalls.Should().Be(2, "because we should have received a callback");
                     var e2 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver, false, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver, false, err);
                     });
                     //REQUIRE(e2);
                     //CHECK(e2 != e);
                     var e3 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver, false, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver, false, err);
                     });
                     //CHECK(e3 == e2);
                     Native.c4queryenum_getRowCount(e2, &error).Should().Be(9);
@@ -196,7 +198,7 @@ namespace LiteCore.Tests
                     _queryCallbackCalls.Should().Be(3, "because we should have received a callback");
                     e2 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver, true, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
                     });
                     //REQUIRE(e2);
                     //CHECK(e2 != e);
@@ -217,13 +219,13 @@ namespace LiteCore.Tests
                     Compile(Json5("['=', ['.', 'contact', 'address', 'state'], 'CA']"));
                     C4Error error;
 
-                    _queryObserver = NativeRaw.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _queryObserver = Native.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     //CHECK(_queryObserver);
-                    NativeRaw.c4queryobs_setEnabled(_queryObserver, true);
+                    Native.c4queryobs_setEnabled(_queryObserver, true);
 
-                    _queryObserver2 = NativeRaw.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _queryObserver2 = Native.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     //CHECK(_queryObserver2);
-                    NativeRaw.c4queryobs_setEnabled(_queryObserver2, true);
+                    Native.c4queryobs_setEnabled(_queryObserver2, true);
 
                     WriteLine("---- Waiting for query observers...");
                     Thread.Sleep(2000);
@@ -232,7 +234,7 @@ namespace LiteCore.Tests
                     _queryCallbackCalls.Should().Be(1, "because we should have received a callback");
                     var e1 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver, true, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
                     });
                     //REQUIRE(e1);
                     //CHECK(error.code == 0);
@@ -240,16 +242,16 @@ namespace LiteCore.Tests
                     _queryCallbackCalls2.Should().Be(1, "because we should have received a callback");
                     var e2 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver2, true, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver2, true, err);
                     });
                     //REQUIRE(e2);
                     //CHECK(error.code == 0);
                     //CHECK(e2 != e1);
                     Native.c4queryenum_getRowCount(e2, &error).Should().Be(8);
 
-                    _queryObserver3 = NativeRaw.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _queryObserver3 = Native.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     //CHECK(_queryObserver3);
-                    NativeRaw.c4queryobs_setEnabled(_queryObserver3, true);
+                    Native.c4queryobs_setEnabled(_queryObserver3, true);
 
                     WriteLine("---- Waiting for a new query observer...");
                     Thread.Sleep(2000);
@@ -258,7 +260,7 @@ namespace LiteCore.Tests
                     _queryCallbackCalls3.Should().Be(1, "because we should have received a callback");
                     var e3 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver3, true, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver3, true, err);
                     });
                     //REQUIRE(e3);
                     //CHECK(error.code == 0);
@@ -309,9 +311,9 @@ namespace LiteCore.Tests
                     //CHECK(explain);
                     WriteLine($"Explain = {explain}");
 
-                    _queryObserver = NativeRaw.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _queryObserver = Native.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     //CHECK(_queryObserver);
-                    NativeRaw.c4queryobs_setEnabled(_queryObserver, true);
+                    Native.c4queryobs_setEnabled(_queryObserver, true);
 
                     WriteLine("---- Waiting for query observers...");
                     Thread.Sleep(2000);
@@ -320,7 +322,7 @@ namespace LiteCore.Tests
                     _queryCallbackCalls.Should().Be(1, "because we should have received a callback");
                     var e1 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver, true, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
                     });
                     //REQUIRE(e);
                     //CHECK(c4queryobs_getEnumerator(state.obs, true, &error) == nullptr);
@@ -336,7 +338,7 @@ namespace LiteCore.Tests
                     _queryCallbackCalls.Should().Be(2, "because we should have received a callback");
                     var e2 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
-                        return NativeRaw.c4queryobs_getEnumerator(_queryObserver, true, err);
+                        return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
                     });
                     //REQUIRE(e2);
                     //CHECK(error.code == 0);

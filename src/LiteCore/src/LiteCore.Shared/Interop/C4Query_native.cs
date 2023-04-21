@@ -66,6 +66,9 @@ namespace LiteCore.Interop
         public static extern bool c4queryenum_next(C4QueryEnumerator* e, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long c4queryenum_getRowCount(C4QueryEnumerator* e, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4queryenum_seek(C4QueryEnumerator* e, long rowIndex, C4Error* outError);
 

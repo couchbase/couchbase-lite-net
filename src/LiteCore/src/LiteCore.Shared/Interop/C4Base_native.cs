@@ -67,6 +67,9 @@ namespace LiteCore.Interop
         public static extern void c4queryobs_free(C4QueryObserver* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4raw_free(C4RawDocument* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_free(C4Replicator* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]

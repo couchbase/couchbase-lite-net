@@ -15,6 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+
+#nullable disable
 #if !CBL_NO_EXTERN_FILES
 using LiteCore.Interop;
 using FluentAssertions;

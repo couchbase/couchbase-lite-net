@@ -15,6 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
+#nullable disable
 #if PERFORMANCE
 using System;
 using System.Collections.Generic;

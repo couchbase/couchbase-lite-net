@@ -79,6 +79,10 @@ c4db_getFLSharedKeys
 c4db_encodeJSON
 c4db_maintenance
 
+c4raw_put
+c4raw_get
+c4raw_free
+
 c4doc_retain
 c4doc_release
 c4doc_selectRevision
@@ -113,6 +117,7 @@ c4queryenum_refresh
 c4queryenum_close
 c4queryenum_retain
 c4queryenum_release
+c4queryenum_getRowCount
 
 c4query_new2
 c4query_setParameters
@@ -217,6 +222,7 @@ FLValue_ToString
 FLValue_ToJSON
 FLValue_ToJSONX
 FLValue_Release
+FLValue_IsEqual
 
 FLData_ConvertJSON
 FLJSON5_ToJSON

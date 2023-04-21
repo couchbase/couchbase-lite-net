@@ -32,4 +32,9 @@ namespace LiteCore.Interop
             return c4stream_write(stream, bytes, (ulong)bytes.Length, outError);
         }
     }
+
+    internal partial struct C4BlobKey
+    {
+        public const int Size = 20;
+    }
 }

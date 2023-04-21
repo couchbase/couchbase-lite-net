@@ -105,6 +105,24 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_isInTransaction(C4Database* database);
 
+        public static C4RawDocument* c4raw_get(C4Database* database, string? storeName, string? docID, C4Error* outError)
+        {
+            using(var storeName_ = new C4String(storeName))
+            using(var docID_ = new C4String(docID)) {
+                return NativeRaw.c4raw_get(database, storeName_.AsFLSlice(), docID_.AsFLSlice(), outError);
+            }
+        }
+
+        public static bool c4raw_put(C4Database* database, string? storeName, string? key, string? meta, string? body, C4Error* outError)
+        {
+            using(var storeName_ = new C4String(storeName))
+            using(var key_ = new C4String(key))
+            using(var meta_ = new C4String(meta))
+            using(var body_ = new C4String(body)) {
+                return NativeRaw.c4raw_put(database, storeName_.AsFLSlice(), key_.AsFLSlice(), meta_.AsFLSlice(), body_.AsFLSlice(), outError);
+            }
+        }
+
 
     }
 
@@ -123,6 +141,13 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4db_getPath(C4Database* db);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError);
 
 
     }

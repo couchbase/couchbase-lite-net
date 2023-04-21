@@ -144,7 +144,7 @@ namespace Couchbase.Lite
         private static object? GetObject(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
 
         private static T? GetObject<T>(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) where T : class 
-            => GetObject(array, index, threadSafety) as T ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Invalid cast in GetObject<T>");
+            => GetObject(array, index, threadSafety) as T;
 
         private ThreadSafety SetupThreadSafety()
         {
