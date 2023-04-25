@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IResultSet
 
-        public List<Result?> AllResults() => this.ToList();
+        public List<Result> AllResults() => this.ToList();
 
         #endregion
 

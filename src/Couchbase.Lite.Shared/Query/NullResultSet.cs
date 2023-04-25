@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -23,7 +24,7 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class NullResultSet : IResultSet, IEnumerator<Result?>
+    internal sealed class NullResultSet : IResultSet, IEnumerator<Result>
     {
         #region Properties
 
@@ -31,7 +32,7 @@ namespace Couchbase.Lite.Internal.Query
 
         object? IEnumerator.Current => Current;
 
-        public Result? Current { get; } = null;
+        public Result Current => throw new InvalidOperationException("NullResultSet cannot be iterated, it is empty");
 
         #endregion
 
@@ -52,7 +53,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IEnumerable<Result>
 
-        public IEnumerator<Result?> GetEnumerator() => this;
+        public IEnumerator<Result> GetEnumerator() => this;
 
         #endregion
 
@@ -69,7 +70,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IResultSet
 
-        public List<Result?> AllResults() => new List<Result?>();
+        public List<Result> AllResults() => new List<Result>();
 
         #endregion
     }

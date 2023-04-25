@@ -289,7 +289,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="CouchbaseLiteError.CantOpenFile"/> if the
         /// directory indicated in <paramref name="configuration"/> could not be created</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition was returned by LiteCore</exception>
-        public Database(string name, DatabaseConfiguration ?configuration = null)
+        public Database(string name, DatabaseConfiguration? configuration = null)
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             if(name == "") {
