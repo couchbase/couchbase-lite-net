@@ -1,7 +1,7 @@
 //
 // C4Base_defs.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,17 +32,20 @@ namespace LiteCore.Interop
         public void* pointer;
         private IntPtr _destructor;
 
-        public C4ExtraInfoDestructor destructor
+        public C4ExtraInfoDestructor? destructor
         {
             get => Marshal.GetDelegateForFunctionPointer<C4ExtraInfoDestructor>(_destructor);
-            set => _destructor = Marshal.GetFunctionPointerForDelegate(value);
+            set => _destructor = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
         }
     }
     
 
 	internal unsafe partial struct C4BlobKey
     {
-        public fixed byte bytes[20];
+    }
+
+	internal unsafe partial struct C4Address
+    {
     }
 
 	internal unsafe struct C4BlobStore
@@ -57,12 +60,15 @@ namespace LiteCore.Interop
     {
     }
 
-    // C4DatabaseObserver is replaced
-    internal unsafe struct C4CollectionObserver
+	internal unsafe struct C4CollectionObserver
     {
     }
 
 	internal unsafe struct C4Database
+    {
+    }
+
+	internal unsafe partial struct C4Document
     {
     }
 
@@ -86,7 +92,15 @@ namespace LiteCore.Interop
     {
     }
 
+	internal unsafe partial struct C4QueryEnumerator
+    {
+    }
+
 	internal unsafe struct C4QueryObserver
+    {
+    }
+
+	internal unsafe partial struct C4RawDocument
     {
     }
 
@@ -99,6 +113,10 @@ namespace LiteCore.Interop
     }
 
 	internal unsafe struct C4Socket
+    {
+    }
+
+	internal unsafe partial struct C4SocketFactory
     {
     }
 

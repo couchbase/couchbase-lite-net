@@ -1,3 +1,1 @@
-{0}using(var retVal = NativeRaw.{1}{2}) {{
-{0}    return retVal.CreateString();
-{0}}}
+{0}return NativeRaw.{1}{2}.CreateString();

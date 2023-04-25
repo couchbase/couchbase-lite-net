@@ -30,11 +30,11 @@ namespace Couchbase.Lite.Sync
 
         public HttpStatusCode StatusCode { get; }
 
-        public string Reason { get; }
+        public string? Reason { get; }
 
         public IReadOnlyDictionary<string, string> Headers => _headers;
 
-        public HttpMessageParser(string firstLine)
+        public HttpMessageParser(string? firstLine)
         {
             if (firstLine?.StartsWith("HTTP") == true) {
                 var split = firstLine.Split(' ');
@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Sync
         {
             using (var reader = new StreamReader(new MemoryStream(data), Encoding.ASCII)) {
                 var firstLine = reader.ReadLine();
-                if (firstLine.StartsWith("HTTP")) {
+                if (firstLine?.StartsWith("HTTP") == true) {
                     var split = firstLine.Split(' ');
                     StatusCode = (HttpStatusCode)Int32.Parse(split[1]);
                     Reason = split[2];
@@ -55,13 +55,13 @@ namespace Couchbase.Lite.Sync
 
                 while (!reader.EndOfStream) {
                     var line = reader.ReadLine();
-                    var colonPos = line.IndexOf(':');
+                    var colonPos = line?.IndexOf(':') ?? -1;
                     if (colonPos == -1) {
                         continue;
                     }
 
-                    var headerKey = line.Substring(0, colonPos);
-                    var headerValue = line.Substring(colonPos + 1).TrimStart();
+                    var headerKey = line!.Substring(0, colonPos);
+                    var headerValue = line!.Substring(colonPos + 1).TrimStart();
                     _headers[headerKey] = headerValue;
                 }
             }

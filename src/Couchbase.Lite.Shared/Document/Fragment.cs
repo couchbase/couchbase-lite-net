@@ -21,9 +21,6 @@ using System.Diagnostics;
 
 using Couchbase.Lite.Internal.Logging;
 
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
-
 namespace Couchbase.Lite.Internal.Doc
 {
     internal sealed class Fragment : IFragment, IMutableFragment
@@ -32,7 +29,6 @@ namespace Couchbase.Lite.Internal.Doc
 
         private const string Tag = nameof(Fragment);
 
-        [NotNull]
         public static readonly Fragment Null = new Fragment(null, null);
 
         #endregion
@@ -40,8 +36,8 @@ namespace Couchbase.Lite.Internal.Doc
         #region Variables
 
         private int _index;
-        private string _key;
-        private object _parent;
+        private string? _key;
+        private object? _parent;
 
         #endregion
 
@@ -51,7 +47,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         IFragment IDictionaryFragment.this[string key] => GetForKey(key);
 
-        public Blob Blob
+        public Blob? Blob
         {
             get => Value as Blob;
             set => Value = value;
@@ -96,13 +92,13 @@ namespace Couchbase.Lite.Internal.Doc
             set => Value = value;
         }
 
-        public string String
+        public string? String
         {
             get => Value as string;
             set => Value = value;
         }
 
-        public object Value
+        public object? Value
         {
             get {
                 if (_parent == null) {
@@ -132,21 +128,21 @@ namespace Couchbase.Lite.Internal.Doc
 
         }
 
-        ArrayObject IFragment.Array => Value as ArrayObject;
+        ArrayObject? IFragment.Array => Value as ArrayObject;
 
-        DictionaryObject IFragment.Dictionary => Value as DictionaryObject;
+        DictionaryObject? IFragment.Dictionary => Value as DictionaryObject;
 
         IMutableFragment IMutableArrayFragment.this[int index] => GetForIndex(index);
 
         IMutableFragment IMutableDictionaryFragment.this[string key] => GetForKey(key);
 
-        MutableArrayObject IMutableFragment.Array
+        MutableArrayObject? IMutableFragment.Array
         {
             get => Value as MutableArrayObject;
             set => Value = value;
         }
 
-        MutableDictionaryObject IMutableFragment.Dictionary
+        MutableDictionaryObject? IMutableFragment.Dictionary
         {
             get => Value as MutableDictionaryObject;
             set => Value = value;
@@ -156,7 +152,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
-        internal Fragment(IDictionaryObject parent, string parentKey)
+        internal Fragment(IDictionaryObject? parent, string? parentKey)
         {
             _parent = parent;
             _key = parentKey;
@@ -172,7 +168,6 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Private Methods
 
-        [NotNull]
         private Fragment GetForIndex(int index)
         {
             var value = Value;
@@ -190,8 +185,7 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        [NotNull]
-        private Fragment GetForKey([NotNull]string key)
+        private Fragment GetForKey(string key)
         {
             Debug.Assert(key != null);
             var value = Value;
@@ -208,8 +202,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Overrides
 
-        [CanBeNull]
-        public override string ToString() => Value?.ToString();
+        public override string? ToString() => Value?.ToString();
 
         #endregion
     }

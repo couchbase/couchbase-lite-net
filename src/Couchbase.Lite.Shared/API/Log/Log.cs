@@ -18,8 +18,6 @@
 
 using Couchbase.Lite.DI;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
@@ -32,18 +30,16 @@ namespace Couchbase.Lite.Logging
         /// <summary>
         /// Gets the logging facility that logs to a debugging console
         /// </summary>
-        [NotNull]
         public IConsoleLogger Console { get; } = Service.GetRequiredInstance<IConsoleLogger>();
 
         /// <summary>
         /// Gets or sets the user defined logging facility
         /// </summary>
-        public ILogger Custom { get; set; }
+        public ILogger? Custom { get; set; }
 
         /// <summary>
         /// Gets the logging facility that logs to files on the disk
         /// </summary>
-        [NotNull]
         public FileLogger File { get; } = new FileLogger();
 
         #endregion

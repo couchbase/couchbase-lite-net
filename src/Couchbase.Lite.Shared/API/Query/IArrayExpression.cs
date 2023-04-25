@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -33,8 +31,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">An expression that evaluates to a collection type</param>
         /// <returns>An object that will determine the predicate for the contents
         /// of the collection</returns>
-        [NotNull]
-        IArrayExpressionSatisfies In([NotNull]IExpression expression);
+        IArrayExpressionSatisfies In(IExpression expression);
     }
 
     /// <summary>
@@ -49,7 +46,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The predicate expression to apply</param>
         /// <returns>The overall expression for further processing</returns>
-        [NotNull]
-        IExpression Satisfies([NotNull]IExpression expression);
+        IExpression Satisfies(IExpression expression);
     }
 }

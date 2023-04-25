@@ -17,11 +17,11 @@
 // 
 
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -50,24 +50,26 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region Overrides
+#region Overrides
 
         protected override object ToJSON()
         {
             var obj = new List<object> { _operation };
             foreach (var subp in _subpredicates) {
                 var queryExp = Misc.TryCast<IExpression, QueryExpression>(subp);
-                obj.Add(queryExp.ConvertToJSON());
+                var queryExpJson = queryExp.ConvertToJSON();
+                Debug.Assert(queryExpJson != null);
+                obj.Add(queryExpJson);
             }
 
             return obj;
         }
 
-        #endregion
+#endregion
 
         #region IFullTextExpression
 
-        public IExpression Match([NotNull]string query)
+        public IExpression Match(string query)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(query), query);
             _subpredicates[_subpredicates.Length - 1] = Expression.String(query);

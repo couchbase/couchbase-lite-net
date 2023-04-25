@@ -16,14 +16,13 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
-
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -39,7 +38,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        [NotNull] private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
+        private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
         private C4QueryObserver* _queryObserver;
         private bool _disposed;
         private QueryBase _queryBase;
@@ -68,7 +67,7 @@ namespace Couchbase.Lite.Internal.Query
             _queryBase.ThreadSafety.DoLocked(() =>
             {
                 var handle = GCHandle.Alloc(this);
-                _queryObserver = NativeRaw.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                _queryObserver = Native.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
             });
 
             return this;
@@ -78,7 +77,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (Interlocked.Increment(ref _startedObserving) == 1) {
                 _changed.Add(cbEventHandler);
-                NativeRaw.c4queryobs_setEnabled(_queryObserver, true);
+                Native.c4queryobs_setEnabled(_queryObserver, true);
             }
 
             return _changed;
@@ -88,7 +87,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (Interlocked.Decrement(ref _startedObserving) == 0) {
                 _changed.Remove(listenerToken);
-                NativeRaw.c4queryobs_setEnabled(_queryObserver, false);
+                Native.c4queryobs_setEnabled(_queryObserver, false);
             }
         }
 
@@ -122,6 +121,11 @@ namespace Couchbase.Lite.Internal.Query
         private static void QueryObserverCallback(C4QueryObserver* obs, C4Query* query, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr)context).Target as LiveQuerier;
+            if(obj == null) {
+                WriteLog.To.Query.E(Tag, "Failed to retrieve LiveQuerier from GCHandle");
+                return;
+            }
+
             obj.QueryObserverCalled(obs, query);
         }
 
@@ -129,7 +133,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             _queryBase.DispatchQueue.DispatchSync(() =>
             {
-                Exception exp = null;
+                Exception? exp = null;
                 var newEnum = GetResults();
 
                 if (newEnum != null) {
@@ -138,11 +142,11 @@ namespace Couchbase.Lite.Internal.Query
             });
         }
 
-        private QueryResultSet GetResults()
+        private QueryResultSet? GetResults()
         {
             var newEnum = (C4QueryEnumerator*)_queryBase.ThreadSafety.DoLockedBridge(err =>
             {
-                return NativeRaw.c4queryobs_getEnumerator(_queryObserver, true, err);
+                return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
             });
 
             if (newEnum != null) {

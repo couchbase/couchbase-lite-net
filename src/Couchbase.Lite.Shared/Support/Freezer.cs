@@ -19,8 +19,6 @@
 using System;
 using System.Runtime.CompilerServices;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Support
 {
     internal sealed class Freezer
@@ -28,19 +26,19 @@ namespace Couchbase.Lite.Support
         #region Variables
 
         private bool _frozen;
-        private string _message;
+        private string? _message;
 
         #endregion
 
         #region Public Methods
 
-        public void Freeze([NotNull]string message)
+        public void Freeze(string message)
         {
             _frozen = true;
             _message = message;
         }
 
-        public void PerformAction([NotNull]Action a, [CallerMemberName]string caller = null)
+        public void PerformAction(Action a, [CallerMemberName]string? caller = null)
         {
             if (_frozen) {
                 throw new InvalidOperationException($"{CouchbaseLiteErrorMessage.ReadOnlyObject} '{caller}' ({_message})");
@@ -49,7 +47,7 @@ namespace Couchbase.Lite.Support
             a();
         }
 
-        public void SetValue<T>(ref T location, T newValue, [CallerMemberName]string caller = null)
+        public void SetValue<T>(ref T location, T newValue, [CallerMemberName]string? caller = null)
         {
             if (_frozen) {
                 throw new InvalidOperationException($"{CouchbaseLiteErrorMessage.ReadOnlyObject} '{caller}' ({_message})");

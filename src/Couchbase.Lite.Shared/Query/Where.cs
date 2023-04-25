@@ -18,7 +18,6 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -42,7 +41,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
-        public IGroupBy GroupBy([ItemNotNull]params IExpression[] expressions)
+        public IGroupBy GroupBy(params IExpression[] expressions)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
             return new QueryGroupBy(this, expressions);
@@ -52,7 +51,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
+        public IOrderBy OrderBy(params IOrdering[] orderings)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             return new QueryOrderBy(this, orderings);

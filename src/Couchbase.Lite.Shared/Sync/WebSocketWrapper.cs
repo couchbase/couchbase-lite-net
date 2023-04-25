@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -36,8 +37,6 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
 
 using LiteCore.Interop;
 
@@ -114,26 +113,26 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        public event EventHandler<TlsCertificateReceivedEventArgs> PeerCertificateReceived; 
-        public event EventHandler<string> CookiesToSetReceived;
+        public event EventHandler<TlsCertificateReceivedEventArgs>? PeerCertificateReceived; 
+        public event EventHandler<string>? CookiesToSetReceived;
 
-        [NotNull] private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
-        [NotNull] private readonly SerialQueue _c4Queue = new SerialQueue();
-        [NotNull] private readonly HTTPLogic _logic;
-        [NotNull] private readonly ReplicatorOptionsDictionary _options;
+        private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
+        private readonly SerialQueue _c4Queue = new SerialQueue();
+        private readonly HTTPLogic _logic;
+        private readonly ReplicatorOptionsDictionary _options;
 
-        [NotNull] private readonly SerialQueue _queue = new SerialQueue();
+        private readonly SerialQueue _queue = new SerialQueue();
 
-        private TlsCertificateException _validationException;
+        private TlsCertificateException? _validationException;
 
         private readonly unsafe C4Socket* _socket;
-        private TcpClient _client;
+        private TcpClient? _client;
         private bool _closed;
-        private string _expectedAcceptHeader;
-        private CancellationTokenSource _readWriteCancellationTokenSource;
+        private string? _expectedAcceptHeader;
+        private CancellationTokenSource? _readWriteCancellationTokenSource;
         private uint _receivedBytesPending;
-        private ManualResetEventSlim _receivePause;
-        private BlockingCollection<byte[]> _writeQueue;
+        private ManualResetEventSlim? _receivePause;
+        private BlockingCollection<byte[]>? _writeQueue;
         private readonly object _writeQueueLock = new object(); // Used to avoid disposal race
 
         private readonly IReachability _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
@@ -142,13 +141,13 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
-        public Stream NetworkStream { get; private set; }
+        public Stream? NetworkStream { get; private set; }
 
         #endregion
 
         #region Constructors
 
-        public unsafe WebSocketWrapper(Uri url, C4Socket* socket, [NotNull]ReplicatorOptionsDictionary options)
+        public unsafe WebSocketWrapper(Uri url, C4Socket* socket, ReplicatorOptionsDictionary options)
         {
             _socket = socket;
             _logic = new HTTPLogic(url);
@@ -247,7 +246,7 @@ namespace Couchbase.Lite.Sync
                 // STEP 2.5: The IProxy interface will detect a system wide proxy that is set
                 // And if it is, it will return an IWebProxy object to use
                 // Sending "CONNECT" request if IWebProxy object is not null
-                IProxy proxy = Service.GetInstance<IProxy>();
+                IProxy? proxy = Service.GetInstance<IProxy>();
 
                 try {
                     if (_client != null && !_client.Connected) {
@@ -278,8 +277,8 @@ namespace Couchbase.Lite.Sync
 
         private TcpClient CreateClientFromNetworkInterface()
         {
-            NetworkInterface ni;
-            IPAddress addr, hostAddr;
+            NetworkInterface? ni;
+            IPAddress? addr, hostAddr;
             bool isRemoteHostIP = false;
 
             try
@@ -307,7 +306,7 @@ namespace Couchbase.Lite.Sync
                 isRemoteHostIP = IPAddress.TryParse(_logic.UrlRequest.Host, out hostAddr);
             
                 if (isRemoteHostIP) {
-                    return GetTcpClient(hostAddr.AddressFamily, addresses);
+                    return GetTcpClient(hostAddr!.AddressFamily, addresses);
                 }
 
                 if (ni.Supports(NetworkInterfaceComponent.IPv6)) {
@@ -327,10 +326,11 @@ namespace Couchbase.Lite.Sync
 
         private TcpClient GetTcpClient(AddressFamily af, UnicastIPAddressInformationCollection localAddresses)
         {
-            IPAddress ip = null;
+            IPAddress? ip = null;
             try {
                 //Get the ip address base on the given address family
-                ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address;
+                var fallback = af == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any;
+                ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address ?? fallback;
                 //Create and return tcp client, if ip address is null, ArgumentNullException will be thrown
                 return new TcpClient(new IPEndPoint(ip, 0));
             } catch (Exception e) {
@@ -356,9 +356,9 @@ namespace Couchbase.Lite.Sync
             return Convert.ToBase64String(hashed);
         }
 
-        private static bool CheckHeader([NotNull]HttpMessageParser parser, [NotNull]string key, string expectedValue, bool caseSens)
+        private static bool CheckHeader(HttpMessageParser parser, string key, string expectedValue, bool caseSens)
         {
-            string value = null;
+            string? value = null;
             if (parser.Headers?.TryGetValue(key, out value) != true) {
                 return false;
             }
@@ -402,7 +402,8 @@ namespace Couchbase.Lite.Sync
                 _logic.HasProxy = true;
 
                 //create remote endpoint (proxyServer.Address.Host can be either IPAddress or DNS)
-                await _client.ConnectAsync(proxyServer.Address.Host, proxyServer.Address.Port).ConfigureAwait(false);
+                Debug.Assert(_client != null);
+                await _client.ConnectAsync(proxyServer.Address!.Host, proxyServer.Address.Port).ConfigureAwait(false);
 
                 NetworkStream = _client.GetStream();
                 var proxyRequest = _logic.ProxyRequest();
@@ -413,7 +414,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private unsafe void DidClose(C4WebSocketCloseCode closeCode, string reason)
+        private unsafe void DidClose(C4WebSocketCloseCode closeCode, string? reason)
         {
             if (closeCode == C4WebSocketCloseCode.WebSocketCloseNormal) {
                 DidClose(null);
@@ -435,7 +436,7 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        private unsafe void DidClose(Exception e)
+        private unsafe void DidClose(Exception? e)
         {
             ResetConnections();
 
@@ -465,6 +466,7 @@ namespace Couchbase.Lite.Sync
             // STEP 6: Read and parse the HTTP response
             WriteLog.To.Sync.V(Tag, "WebSocket sent HTTP request...");
             try {
+                Debug.Assert(NetworkStream != null);
                 using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
                     var parser = new HttpMessageParser(await streamReader.ReadLineAsync().ConfigureAwait(false));
                     while (true) {
@@ -629,7 +631,7 @@ namespace Couchbase.Lite.Sync
                         return;
                     }
 
-                    byte[] nextData;
+                    byte[]? nextData;
                     lock (_writeQueueLock) {
                         nextData = _writeQueue?.Take(cancelSource.Token);
                     }
@@ -670,7 +672,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        private void ReachabilityChanged(object? sender, NetworkReachabilityChangeEventArgs e)
         {
             _queue.DispatchAsync(() =>
             {
@@ -704,12 +706,12 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        private unsafe void ReceivedHttpResponse([NotNull]HttpMessageParser parser)
+        private unsafe void ReceivedHttpResponse(HttpMessageParser parser)
         {
             // STEP 7: Determine if the HTTP response was a success
             _logic.ReceivedResponse(parser);
 
-            string cookiesString = null;
+            string? cookiesString = null;
             if (parser.Headers?.TryGetValue("Set-Cookie", out cookiesString) == true) {
                 if (!String.IsNullOrEmpty(cookiesString)) {
                     CookiesToSetReceived?.Invoke(this, cookiesString);
@@ -750,7 +752,7 @@ namespace Couchbase.Lite.Sync
                 DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Connection' header");
             } else if (!CheckHeader(parser, "Upgrade", "websocket", false)) {
                 DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Upgrade' header");
-            } else if (!CheckHeader(parser, "Sec-WebSocket-Accept", _expectedAcceptHeader, true)) {
+            } else if (!CheckHeader(parser, "Sec-WebSocket-Accept", _expectedAcceptHeader!, true)) {
                 DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Sec-WebSocket-Accept' header");
             } else {
                 Connected();
@@ -846,14 +848,15 @@ namespace Couchbase.Lite.Sync
                 }
 
                 var stream = new SslStream(baseStream, false, ValidateServerCert);
-                X509CertificateCollection clientCerts = null;
+                X509CertificateCollection? clientCerts = null;
                 if (_options.ClientCert != null) {
                     clientCerts = new X509CertificateCollection(new[] { _options.ClientCert as X509Certificate });
                 }
 
                 try {
                     // STEP 3A: TLS handshake
-                    stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false)
+                    Debug.Assert(_logic.UrlRequest != null);
+                    stream.AuthenticateAsClientAsync(_logic.UrlRequest.Host, clientCerts, SslProtocols.Tls12, false)
                         .ContinueWith(
                             t =>
                             {
@@ -895,8 +898,12 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private bool ValidateServerCert(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
         {
+            if(certificate == null) {
+                return false;
+            }
+
             X509Certificate2 cert2 = new X509Certificate2(certificate);
             PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(cert2));
 
@@ -910,7 +917,7 @@ namespace Couchbase.Lite.Sync
             }
 
             if (_options.PinnedServerCertificate != null) {
-                retVal = IsPinnedCertMatchOneCertInServerCertChain(chain);
+                retVal = IsPinnedCertMatchOneCertInServerCertChain(chain!);
                 if(!retVal) {
                     WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
                     _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
@@ -928,7 +935,7 @@ namespace Couchbase.Lite.Sync
 
             if (!onlySelfSigned && sslPolicyErrors != SslPolicyErrors.None) {
                 WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
-                if (chain.ChainElements != null) {
+                if (chain!.ChainElements != null) {
                     foreach(var element in chain.ChainElements) {
                         if (element.ChainElementStatus != null) {
                             foreach (var status in element.ChainElementStatus) {
@@ -956,7 +963,7 @@ namespace Couchbase.Lite.Sync
                     }
                 }
             } else if (onlySelfSigned) {
-                if (chain.ChainElements.Count != 1) {
+                if (chain!.ChainElements.Count != 1) {
                     WriteLog.To.Sync.E(Tag, "ValidateServerCert failed due to cert chain ChainElements's Count != 1");
                     _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
                         C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
@@ -995,7 +1002,7 @@ namespace Couchbase.Lite.Sync
         {
             var chainCount = chain?.ChainElements?.Count;
             if(chainCount > 1) {
-                foreach (var c in chain.ChainElements) {
+                foreach (var c in chain!.ChainElements) {
                     if(c.Certificate.Equals(_options.PinnedServerCertificate))
                         return true;
                 }

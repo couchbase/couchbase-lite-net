@@ -17,7 +17,6 @@
 // 
 #if __IOS__
 using System;
-using System.Collections.Generic;
 using System.Threading;
 
 using Couchbase.Lite.DI;

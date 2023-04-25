@@ -18,13 +18,11 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -38,7 +36,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        private string _as;
+        private string? _as;
         private string _collection;
         private string _scope;
         private bool _legacyColumn;
@@ -47,7 +45,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Properties
 
-        internal override string ColumnName
+        internal override string? ColumnName
         {
             get {
                 if (_as != null) {
@@ -58,21 +56,21 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        internal Collection Collection => Source as Collection;
+        internal Collection? Collection => Source as Collection;
 
         #endregion
 
         #region Constructors
 
-        internal DatabaseSource([NotNull] Collection collection, [NotNull] ThreadSafety threadSafety) : base(collection, threadSafety)
+        internal DatabaseSource(Collection collection, ThreadSafety threadSafety) : base(collection, threadSafety)
         {
             Debug.Assert(collection != null);
             _collection = collection.Name;
             _scope = collection.Scope.Name;
         }
 
-        internal DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety)
-            : this(database?.GetDefaultCollection(), threadSafety)
+        internal DatabaseSource(Database database, ThreadSafety threadSafety)
+            : this(database.GetDefaultCollection(), threadSafety)
         {
             _legacyColumn = true;
         }
@@ -83,22 +81,17 @@ namespace Couchbase.Lite.Internal.Query
 
         public override object ToJSON()
         {
-            Dictionary<string, object> dict = null;
+            Dictionary<string, object?> dict = new();
             if (Collection != null) {
-                dict = new Dictionary<string, object>
-                {
-                    ["SCOPE"] = _scope,
-                    ["COLLECTION"] = _collection
-                };
+                dict.Add("SCOPE", _scope);
+                dict.Add("COLLECTION", _collection);
             }
 
             if (ColumnName != null) {
-                if (dict == null)
-                    dict = new Dictionary<string, object>();
-
                 dict.Add("AS", ColumnName);
             }
 
+            Debug.Assert(dict.Any());
             return dict;
         }
 
@@ -106,7 +99,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IDataSourceAs
 
-        public IDataSource As([NotNull]string alias)
+        public IDataSource As(string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
 

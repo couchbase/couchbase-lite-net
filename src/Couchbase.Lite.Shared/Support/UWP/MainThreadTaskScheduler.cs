@@ -25,8 +25,6 @@ using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 
-using JetBrains.Annotations;
-
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
 
@@ -43,7 +41,6 @@ namespace Couchbase.Lite.Support
 
         #region Variables
 
-        [NotNull]
         private CoreDispatcher _dispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
 
         #endregion

@@ -17,7 +17,6 @@
 // 
 
 using Couchbase.Lite.Sync;
-using JetBrains.Annotations;
 using System;
 using System.Threading.Tasks;
 
@@ -30,24 +29,24 @@ namespace Couchbase.Lite
 
     public interface IChangeObservable<TEventType> : IChangeObservableRemovable where TEventType : EventArgs
     {
-        ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<TEventType> handler);
+        ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<TEventType> handler);
 
-        ListenerToken AddChangeListener([NotNull] EventHandler<TEventType> handler);
+        ListenerToken AddChangeListener(EventHandler<TEventType> handler);
     }
 
     public interface IDocumentChangeObservable : IChangeObservableRemovable
     {
-        ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
-            [NotNull] EventHandler<DocumentChangedEventArgs> handler);
+        ListenerToken AddDocumentChangeListener(string id, TaskScheduler? scheduler,
+            EventHandler<DocumentChangedEventArgs> handler);
 
-        ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler);
+        ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler);
     }
 
     public interface IDocumentReplicatedObservable : IChangeObservableRemovable
     {
-        ListenerToken AddDocumentReplicationListener([NotNull] EventHandler<DocumentReplicationEventArgs> handler);
+        ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler);
 
-        ListenerToken AddDocumentReplicationListener([CanBeNull] TaskScheduler scheduler,
-            [NotNull] EventHandler<DocumentReplicationEventArgs> handler);
+        ListenerToken AddDocumentReplicationListener(TaskScheduler? scheduler,
+            EventHandler<DocumentReplicationEventArgs> handler);
     }
 }

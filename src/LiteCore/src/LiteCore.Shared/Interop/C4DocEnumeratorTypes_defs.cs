@@ -1,7 +1,7 @@
 //
 // C4DocEnumeratorTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ namespace LiteCore.Interop
         public C4EnumeratorFlags flags;
     }
 
-	internal unsafe struct C4DocumentInfo
+	internal unsafe partial struct C4DocumentInfo
     {
         public C4DocumentFlags flags;
         public FLHeapSlice docID;

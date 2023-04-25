@@ -16,6 +16,8 @@
 //  limitations under the License.
 // 
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -32,8 +34,6 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
 using FluentAssertions;
-
-using JetBrains.Annotations;
 
 using Test.Util;
 #if !WINDOWS_UWP

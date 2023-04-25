@@ -24,10 +24,7 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using Newtonsoft.Json;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -42,22 +39,22 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        private object _serialized;
+        private object? _serialized;
 
         #endregion
 
         #region Public Methods
 
-        public static object EncodeToJSON([NotNull]IList expressions)
+        public static object EncodeToJSON(IList expressions)
         {
             Debug.Assert(expressions != null);
             return EncodeExpressions(expressions);
         }
 
-        public IExpression Match([NotNull]IExpression expression) => 
+        public IExpression Match(IExpression expression) => 
             GetOperator(BinaryOpType.Matches, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression NotIn([ItemNotNull]params IExpression[] expressions) => Expression.Negated(In(expressions));
+        public IExpression NotIn(params IExpression[] expressions) => Expression.Negated(In(expressions));
 
         #endregion
 
@@ -68,13 +65,13 @@ namespace Couchbase.Lite.Internal.Query
             _serialized = null;
         }
 
-        protected abstract object ToJSON();
+        protected abstract object? ToJSON();
 
         #endregion
 
         #region Internal Methods
 
-        internal object ConvertToJSON()
+        internal object? ConvertToJSON()
         {
             return _serialized ?? (_serialized = ToJSON());
         }
@@ -85,14 +82,14 @@ namespace Couchbase.Lite.Internal.Query
 
         private static IList EncodeExpressions(IList expressions)
         {
-            var result = new List<object>();
+            var result = new List<object?>();
             foreach (var r in expressions) {
-                object jsonObj;
+                object? jsonObj;
                 var arr = r as IList;
                 if (arr != null) {
                     jsonObj = arr;
                 } else {
-                    QueryExpression expr;
+                    QueryExpression? expr;
                     var str = r as string;
                     if (str != null) {
                         expr = new QueryTypeExpression(str, ExpressionType.KeyPath);
@@ -113,8 +110,7 @@ namespace Couchbase.Lite.Internal.Query
             return result;
         }
 
-        [NotNull]
-        private QueryExpression GetBetweenExpression([NotNull]IExpression expression)
+        private QueryExpression GetBetweenExpression(IExpression expression)
         {
             Debug.Assert(expression != null);
             switch (expression) {
@@ -128,7 +124,6 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        [NotNull]
         private QueryExpression GetOperator(BinaryOpType type, IExpression expression)
         {
             var lhs = this;
@@ -150,13 +145,13 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IExpression
 
-        public IExpression Add([NotNull]IExpression expression) => 
+        public IExpression Add(IExpression expression) => 
             GetOperator(BinaryOpType.Add, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression And([NotNull]IExpression expression) => 
+        public IExpression And(IExpression expression) => 
             new QueryCompoundExpression("AND", this, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression Between([NotNull]IExpression expression1, [NotNull]IExpression expression2)
+        public IExpression Between(IExpression expression1, IExpression expression2)
         {
             if (!(this is QueryTypeExpression lhs)) {
                 throw new NotSupportedException();
@@ -171,7 +166,7 @@ namespace Couchbase.Lite.Internal.Query
             return new QueryBinaryExpression(lhs, rhs, BinaryOpType.Between);
         }
 
-        public IExpression Collate([NotNull]ICollation collation)
+        public IExpression Collate(ICollation collation)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collation), collation);
             var col = Misc.TryCast<ICollation, QueryCollation>(collation);
@@ -180,19 +175,19 @@ namespace Couchbase.Lite.Internal.Query
             return col;
         }
 
-        public IExpression Divide([NotNull]IExpression expression) => 
+        public IExpression Divide(IExpression expression) => 
             GetOperator(BinaryOpType.Divide, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression EqualTo([NotNull]IExpression expression) => 
+        public IExpression EqualTo(IExpression expression) => 
             GetOperator(BinaryOpType.EqualTo, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression GreaterThan([NotNull]IExpression expression) => 
+        public IExpression GreaterThan(IExpression expression) => 
             GetOperator(BinaryOpType.GreaterThan, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression GreaterThanOrEqualTo([NotNull]IExpression expression) => 
+        public IExpression GreaterThanOrEqualTo(IExpression expression) => 
             GetOperator(BinaryOpType.GreaterThanOrEqualTo, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression In([ItemNotNull]params IExpression[] expressions)
+        public IExpression In(params IExpression[] expressions)
         {
             if (!(this is QueryTypeExpression lhs)) {
                 throw new NotSupportedException();
@@ -203,36 +198,36 @@ namespace Couchbase.Lite.Internal.Query
             return new QueryBinaryExpression(lhs, rhs, BinaryOpType.In);
         }
 
-        public IExpression Is([NotNull]IExpression expression) => 
+        public IExpression Is(IExpression expression) => 
             GetOperator(BinaryOpType.Is, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression IsNot([NotNull]IExpression expression) => 
+        public IExpression IsNot(IExpression expression) => 
             GetOperator(BinaryOpType.IsNot, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
         [Obsolete("This query expression deprecated, please use IsNotValued().")]
         public IExpression IsNullOrMissing() => new QueryUnaryExpression(this, UnaryOpType.Null)
             .Or(new QueryUnaryExpression(this, UnaryOpType.Missing));
         public IExpression IsNotValued() => Expression.Not(IsValued());
         public IExpression IsValued() => new QueryUnaryExpression(this, UnaryOpType.Valued);
-        public IExpression LessThan([NotNull]IExpression expression) => 
+        public IExpression LessThan(IExpression expression) => 
             GetOperator(BinaryOpType.LessThan, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression LessThanOrEqualTo([NotNull]IExpression expression) => 
+        public IExpression LessThanOrEqualTo(IExpression expression) => 
             GetOperator(BinaryOpType.LessThanOrEqualTo, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-        public IExpression Like([NotNull]IExpression expression) => 
+        public IExpression Like(IExpression expression) => 
             GetOperator(BinaryOpType.Like, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-        public IExpression Modulo([NotNull]IExpression expression) => 
+        public IExpression Modulo(IExpression expression) => 
             GetOperator(BinaryOpType.Modulus, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-        public IExpression Multiply([NotNull]IExpression expression) => 
+        public IExpression Multiply(IExpression expression) => 
             GetOperator(BinaryOpType.Multiply, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-        public IExpression NotEqualTo([NotNull]IExpression expression) => 
+        public IExpression NotEqualTo(IExpression expression) => 
             GetOperator(BinaryOpType.NotEqualTo, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
         [Obsolete("This query expression deprecated, please use IsValued().")]
         public IExpression NotNullOrMissing() => Expression.Not(IsNullOrMissing());
-        public IExpression Or([NotNull]IExpression expression) => 
+        public IExpression Or(IExpression expression) => 
             new QueryCompoundExpression("OR", this, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-        public IExpression Regex([NotNull]IExpression expression) => 
+        public IExpression Regex(IExpression expression) => 
             GetOperator(BinaryOpType.RegexLike, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-        public IExpression Subtract([NotNull]IExpression expression) => 
+        public IExpression Subtract(IExpression expression) => 
             GetOperator(BinaryOpType.Subtract, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         #endregion

@@ -28,13 +28,13 @@ namespace Couchbase.Lite.Internal.Doc
 
         public Database Db { get; }
 
-        public C4DocumentWrapper Doc { get; }
+        public C4DocumentWrapper? Doc { get; }
 
         #endregion
 
         #region Constructors
 
-        public DocContext(Database database, C4DocumentWrapper doc)
+        public DocContext(Database database, C4DocumentWrapper? doc)
             : base(new FLSlice())
         {
             Db = database;
@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Public Methods
 
-        public object ToObject(FLValue* value, bool dotNetType)
+        public object? ToObject(FLValue* value, bool dotNetType)
         {
             return FLValueConverter.ToCouchbaseObject(value, Db, dotNetType);
         }

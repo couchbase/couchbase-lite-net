@@ -24,14 +24,12 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -63,21 +61,16 @@ namespace Couchbase.Lite
 
         private C4CollectionObserver* _obs;
 
-        [NotNull]
         private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
             new FilteredEvent<string, DocumentChangedEventArgs>();
 
-        [NotNull]
         private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
 
-        [NotNull]
         private readonly Event<CollectionChangedEventArgs> _databaseChanged =
             new Event<CollectionChangedEventArgs>();
 
-        [NotNull]
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
 
-        [NotNull]
         private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
 
         #endregion
@@ -104,12 +97,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets the database that this collection belongs to, if any
+        /// Gets the database that this collection belongs to
         /// </summary>
-        [NotNull]
         internal Database Database { get; set; }
 
-        [NotNull]
         internal ThreadSafety ThreadSafety { get; }
 
         /// <summary>
@@ -138,7 +129,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Collection([NotNull] Database database, string name, Scope scope, C4Collection* c4c)
+        internal Collection(Database database, string name, Scope scope, C4Collection* c4c)
         {
             Database = database;
             ThreadSafety = database.ThreadSafety;
@@ -177,7 +168,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<CollectionChangedEventArgs> handler)
+        public ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<CollectionChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
 
@@ -204,7 +195,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddChangeListener([NotNull] EventHandler<CollectionChangedEventArgs> handler) => AddChangeListener(null, handler);
+        public ListenerToken AddChangeListener(EventHandler<CollectionChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         #endregion
 
@@ -223,7 +214,7 @@ namespace Couchbase.Lite
         /// is <c>null</c></exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
         /// is called after the collection is closed</exception>
-        public ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
+        public ListenerToken AddDocumentChangeListener(string id, TaskScheduler? scheduler, EventHandler<DocumentChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
@@ -255,7 +246,7 @@ namespace Couchbase.Lite
         /// is <c>null</c></exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
         /// is called after the collection is closed</exception>
-        public ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+        public ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
         #endregion
 
@@ -284,8 +275,9 @@ namespace Couchbase.Lite
                     }
                 } else {
                     if (_documentChanged.Remove(token, out var docID) == 0) {
-                        if (_docObs.TryGetValue(docID, out var observer)) {
-                            _docObs.Remove(docID);
+                        // docID is guaranteed non-null if return of Remove is 0 or higher
+                        if (_docObs.TryGetValue(docID!, out var observer)) {
+                            _docObs.Remove(docID!);
                             Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
                             observer.Item2.Free();
                         }
@@ -312,7 +304,7 @@ namespace Couchbase.Lite
         /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public void Delete([NotNull] Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
+        public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// Deletes the given <see cref="Document"/> from this collection
@@ -327,7 +319,7 @@ namespace Couchbase.Lite
         /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public bool Delete([NotNull] Document document, ConcurrencyControl concurrencyControl)
+        public bool Delete(Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             return Save(doc, null, concurrencyControl, true);
@@ -340,8 +332,7 @@ namespace Couchbase.Lite
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        [CanBeNull]
-        public Document GetDocument([NotNull] string id)
+        public Document? GetDocument(string id)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
 
@@ -357,7 +348,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public void Purge([NotNull] Document document)
+        public void Purge(Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             ThreadSafety.DoLocked(() =>
@@ -382,7 +373,7 @@ namespace Couchbase.Lite
         /// of the docId doesn't exist.</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public void Purge([NotNull] string docId)
+        public void Purge(string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
             Database.InBatch(() => PurgeDocById(docId));
@@ -398,7 +389,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public void Save([NotNull] MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
+        public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// Saves the given <see cref="MutableDocument"/> into this collection
@@ -410,7 +401,7 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public bool Save([NotNull] MutableDocument document, ConcurrencyControl concurrencyControl)
+        public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             return Save(doc, null, concurrencyControl, false);
@@ -427,11 +418,11 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public bool Save(MutableDocument document, Func<MutableDocument, Document, bool> conflictHandler)
+        public bool Save(MutableDocument document, Func<MutableDocument, Document?, bool> conflictHandler)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(conflictHandler), conflictHandler);
-            Document baseDoc = null;
+            Document? baseDoc = null;
             var saved = false;
             do {
                 saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
@@ -536,7 +527,7 @@ namespace Couchbase.Lite
         /// provided ones is used</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public void CreateIndex([NotNull] string name, [NotNull] IIndex index)
+        public void CreateIndex(string name, IIndex index)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(index), index);
@@ -571,8 +562,6 @@ namespace Couchbase.Lite
         /// <returns>The list of created index names</returns>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        [NotNull]
-        [ItemNotNull]
         public IList<string> GetIndexes()
         {
             List<string> retVal = new List<string>();
@@ -589,19 +578,22 @@ namespace Couchbase.Lite
                 var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
                 if (val == null) {
                     Native.FLSliceResult_Release(result);
-                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
+                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "FLValue_FromData failed...");
                 }
 
-                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, Database, true) as IList<object>;
+                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, Database, true) as IList<object> 
+                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "ToCouchbaseObject failed...");
+
                 foreach (var a in indexesInfo) {
-                    var indexInfo = a as Dictionary<string, object>;
-                    retVal.Add((string)indexInfo["name"]);
+                    var indexInfo = a as Dictionary<string, object>
+                        ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt entry in indexesInfo");
+                    retVal.Add(indexInfo["name"] as string ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt index data..."));
                 }
 
                 Native.FLSliceResult_Release(result);
             });
 
-            return retVal as IList<string> ?? new List<string>();
+            return retVal;
         }
 
         /// <summary>
@@ -620,7 +612,7 @@ namespace Couchbase.Lite
         /// provided ones is used</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public void CreateIndex([NotNull] string name, [NotNull] IndexConfiguration indexConfig)
+        public void CreateIndex(string name, IndexConfiguration indexConfig)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(indexConfig), indexConfig);
@@ -647,7 +639,7 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the index to delete</param>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
         /// if this method is called after the collection is closed</exception>
-        public void DeleteIndex([NotNull] string name)
+        public void DeleteIndex(string name)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
@@ -662,7 +654,7 @@ namespace Couchbase.Lite
 
         #region Public Methods - QueryFactory
 
-        public IQuery CreateQuery([NotNull] string queryExpression)
+        public IQuery CreateQuery(string queryExpression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
             CheckCollectionValid();
@@ -699,21 +691,24 @@ namespace Couchbase.Lite
             var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
             dbObj?._callbackFactory.StartNew(() =>
             {
-                dbObj.PostDocChanged(docId.CreateString());
+                dbObj.PostDocChanged(docId.CreateString()!);
             });
         }
 
-        private void PostDocChanged([NotNull] string documentID)
+        private void PostDocChanged(string documentID)
         {
-            DocumentChangedEventArgs change = null;
-            ThreadSafety.DoLocked(() =>
+            DocumentChangedEventArgs? change = ThreadSafety.DoLocked(() =>
             {
                 if (IsClosed || !_docObs.ContainsKey(documentID)) {
-                    return;
+                    return null;
                 }
 
-                change = new DocumentChangedEventArgs(documentID, this);
+                return new DocumentChangedEventArgs(documentID, this);
             });
+
+            if(change == null) {
+                return;
+            }
 
             _documentChanged.Fire(documentID, this, change);
         }
@@ -747,8 +742,7 @@ namespace Couchbase.Lite
 
         #region Private Methods - Documents
 
-        [CanBeNull]
-        private Document GetDocumentInternal([NotNull] string docID)
+        private Document? GetDocumentInternal(string docID)
         {
             CheckCollectionValid();
             var doc = new Document(this, docID);
@@ -763,7 +757,7 @@ namespace Couchbase.Lite
             return doc;
         }
 
-        private void VerifyCollection([NotNull] Document document)
+        private void VerifyCollection(Document document)
         {
             if (document.Collection == null) {
                 document.Collection = this;
@@ -782,7 +776,7 @@ namespace Couchbase.Lite
             });
         }
 
-        private bool Save([NotNull] Document document, [CanBeNull] Document baseDocument,
+        private bool Save(Document document, Document? baseDocument,
             ConcurrencyControl concurrencyControl, bool deletion)
         {
             Debug.Assert(document != null);
@@ -801,7 +795,7 @@ namespace Couchbase.Lite
                 var committed = false;
                 try {
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(c4Db, err));
-                    var baseDoc = baseDocument == null ? null : baseDocument.c4Doc.RawDoc;
+                    var baseDoc = baseDocument?.c4Doc == null ? null : baseDocument.c4Doc.RawDoc;
                     Save(document, &newDoc, baseDoc, deletion);
                     if (newDoc == null) {
                         // Handle conflict:
@@ -859,7 +853,7 @@ namespace Couchbase.Lite
             return success;
         }
 
-        private void Save([NotNull] Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
+        private void Save(Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
         {
             var revFlags = (C4RevisionFlags)0;
             if (deletion) {
@@ -969,7 +963,7 @@ namespace Couchbase.Lite
 
                     external = newExternal;
                     for (var i = 0; i < nChanges; i++) {
-                        docIDs.Add(changes[i].docID.CreateString());
+                        docIDs.Add(changes[i].docID.CreateString()!);
                     }
 
                     Native.c4dbobs_releaseChanges(changes, nChanges);
@@ -1036,7 +1030,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj == null)
                 return false;

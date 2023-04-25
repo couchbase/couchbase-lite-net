@@ -40,7 +40,7 @@ namespace LiteCore.Util
         /// Constructor
         /// </summary>
         /// <param name="s">The string to store in this instance</param>
-        public C4String(string s)
+        public C4String(string? s)
         {
             _byteCount = 0;
             _bytes = null;

@@ -42,10 +42,10 @@ namespace Couchbase.Lite.Support
 
         private DispatchQueue _queue;
 
-        private NetworkReachability _ref;
+        private NetworkReachability? _ref;
         private bool _started;
 
-        public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+        public event EventHandler<NetworkReachabilityChangeEventArgs>? StatusChanged;
 
 #endregion
 
@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Support
 
         public bool ReachabilityKnown { get; private set; }
 
-        public Uri Url { get; set; }
+        public Uri? Url { get; set; }
 
 #endregion
 
@@ -143,7 +143,6 @@ namespace Couchbase.Lite.Support
 
                 _started = false;
                 ReachabilityKnown = false;
-                _ref?.SetDispatchQueue(null);
                 _ref?.Dispose();
                 _ref = null;
             });

@@ -1,7 +1,7 @@
 //
 // C4ReplicatorTypes_defs.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ namespace LiteCore.Interop
         ReplProgressPerAttachment,
     }
 
-	internal unsafe struct C4Address
+	internal unsafe partial struct C4Address
     {
         public FLSlice scheme;
         public FLSlice hostname;
@@ -105,7 +105,7 @@ namespace LiteCore.Interop
         }
     }
 
-	internal unsafe struct C4ReplicationCollection
+    internal unsafe struct C4ReplicationCollection
     {
         public C4CollectionSpec collection;
         public C4ReplicatorMode push;
@@ -122,8 +122,8 @@ namespace LiteCore.Interop
         public IntPtr onStatusChanged;
         public IntPtr onDocumentEnded;
         public IntPtr onBlobProgress;
-        public IntPtr onPropertyEncryption;
-        public IntPtr onPropertyDecryption;
+		public IntPtr propertyEncryptor;
+		public IntPtr propertyDecryptor;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
         public C4ReplicationCollection* collections;

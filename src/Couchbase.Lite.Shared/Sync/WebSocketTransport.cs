@@ -22,11 +22,10 @@ using System.Threading;
 
 using Couchbase.Lite.Internal.Logging;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Sync
 {
@@ -36,7 +35,6 @@ namespace Couchbase.Lite.Sync
 
         private const string Tag = nameof(WebSocketTransport);
 
-        [NotNull]
         private static readonly ConcurrentDictionary<int, WebSocketWrapper> Sockets = new ConcurrentDictionary<int, WebSocketWrapper>();
 
         #endregion
@@ -115,7 +113,8 @@ namespace Couchbase.Lite.Sync
 
             var opts =
                 FLSliceExtensions.ToObject(NativeRaw.FLValue_FromData((FLSlice) options, FLTrust.Trusted)) as
-                    Dictionary<string, object>;
+                    Dictionary<string, object?>;
+            Debug.Assert(opts != null);
             var replicationOptions = new ReplicatorOptionsDictionary(opts);
             
             var id = Interlocked.Increment(ref _NextID);

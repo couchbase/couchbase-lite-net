@@ -1,7 +1,7 @@
 //
 // C4Listener_native.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error);
 
-        public static bool c4listener_shareDB(C4Listener* listener, string name, C4Database* db, C4Error* outError)
+        public static bool c4listener_shareDB(C4Listener* listener, string? name, C4Database* db, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
                 return NativeRaw.c4listener_shareDB(listener, name_.AsFLSlice(), db, outError);
@@ -41,16 +41,17 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4listener_unshareDB(C4Listener* listener, C4Database* db, C4Error* outError);
 
-        public static bool c4listener_shareCollection(C4Listener* listener, string name, C4Collection* collection, C4Error* outError)
+        public static bool c4listener_shareCollection(C4Listener* listener, string? name, C4Collection* collection, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
                 return NativeRaw.c4listener_shareCollection(listener, name_.AsFLSlice(), collection, outError);
             }
         }
 
-        public static bool c4listener_unshareCollection(C4Listener* listener, string name, C4Collection* collection, C4Error* outError)
+        public static bool c4listener_unshareCollection(C4Listener* listener, string? name, C4Collection* collection, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
                 return NativeRaw.c4listener_unshareCollection(listener, name_.AsFLSlice(), collection, outError);
@@ -76,9 +77,11 @@ namespace LiteCore.Interop
         public static extern bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4listener_shareCollection(C4Listener* listener, FLSlice name, C4Collection* collection, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4listener_unshareCollection(C4Listener* listener, FLSlice name, C4Collection* collection, C4Error* outError);
 
 

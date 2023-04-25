@@ -23,9 +23,6 @@ using System.Threading;
 
 using Couchbase.Lite.Logging;
 
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
-
 namespace Couchbase.Lite.Internal.Logging
 {
     internal sealed class DomainLogger
@@ -40,7 +37,7 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Constructors
 
-        internal DomainLogger(string domainStr, LogDomain domain)
+        internal DomainLogger(string? domainStr, LogDomain domain)
         {
             Subdomain = domainStr ?? "Default";
             Domain = domain;
@@ -51,85 +48,79 @@ namespace Couchbase.Lite.Internal.Logging
         #region Internal Methods
 
         [Conditional("DEBUG")]
-        internal void D([NotNull]string tag, [NotNull]string msg)
+        internal void D(string tag, string msg)
         {
             SendToLoggers(LogLevel.Debug, FormatMessage(tag, msg));
         }
 
         [Conditional("DEBUG")]
-        internal void D([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
+        internal void D(string tag, string msg, Exception tr)
         {
             SendToLoggers(LogLevel.Debug, FormatMessage(tag, msg, tr));
         }
 
         [Conditional("DEBUG")]
-        [StringFormatMethod("format")]
-        internal void D([NotNull]string tag, [NotNull]string format, params object[] args)
+        internal void D(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Debug, String.Format(FormatMessage(tag, format), args));
         }
 
-        internal void E([NotNull]string tag, [NotNull]string msg)
+        internal void E(string tag, string msg)
         {
             SendToLoggers(LogLevel.Error, FormatMessage(tag, msg));
         }
 
-        internal void E([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
+        internal void E(string tag, string msg, Exception tr)
         {
             SendToLoggers(LogLevel.Error, FormatMessage(tag, msg, tr));
         }
 
-        [StringFormatMethod("format")]
-        internal void E([NotNull]string tag, [NotNull]string format, params object[] args)
+        internal void E(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Error, String.Format(FormatMessage(tag, format), args));
         }
 
-        internal void I([NotNull]string tag, [NotNull]string msg)
+        internal void I(string tag, string msg)
         {
             SendToLoggers(LogLevel.Info, FormatMessage(tag, msg));
         }
 
-        internal void I([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
+        internal void I(string tag, string msg, Exception tr)
         {
             SendToLoggers(LogLevel.Info, FormatMessage(tag, msg, tr));
         }
 
-        [StringFormatMethod("format")]
-        internal void I([NotNull]string tag, [NotNull]string format, params object[] args)
+        internal void I(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Info, String.Format(FormatMessage(tag, format), args));
         }
 
-
-        internal void V([NotNull]string tag, [NotNull]string msg)
+        internal void V(string tag, string msg)
         {
            SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg));
         }
 
-        internal void V([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
+        internal void V(string tag, string msg, Exception tr)
         {
             SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg, tr));
         }
 
-        [StringFormatMethod("format")]
-        internal void V([NotNull]string tag, [NotNull]string format, params object[] args)
+        internal void V(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Verbose, String.Format(FormatMessage(tag, format), args));
         }
 
-        internal void W([NotNull]string tag, [NotNull]string msg)
+        internal void W(string tag, string msg)
         {
             SendToLoggers(LogLevel.Warning, FormatMessage(tag, msg));
         }
 
-        internal void W([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
+        internal void W(string tag, string msg, Exception tr)
         {
             SendToLoggers(LogLevel.Warning, FormatMessage(tag, msg, tr));
         }
 
-        [StringFormatMethod("format")]
-        internal void W([NotNull]string tag, [NotNull]string format, params object[] args)
+        internal void W(string tag, string format, params object?[] args)
         {
             SendToLoggers(LogLevel.Warning, String.Format(FormatMessage(tag, format), args));
         }
@@ -138,8 +129,7 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Private Methods
 
-        [NotNull]
-        private string FormatMessage([NotNull]string tag, [NotNull]string message)
+        private string FormatMessage(string tag, string message)
         {
             Debug.Assert(tag != null && message != null);
 
@@ -150,8 +140,7 @@ namespace Couchbase.Lite.Internal.Logging
             return $"({tag}) [{threadId}] {message}";
         }
 
-        [NotNull]
-        private string FormatMessage([NotNull]string tag, [NotNull]string message, [NotNull]Exception e)
+        private string FormatMessage(string tag, string message, Exception e)
         {
             Debug.Assert(tag != null && message != null && e != null);
 
@@ -162,7 +151,7 @@ namespace Couchbase.Lite.Internal.Logging
             return $"({tag}) [{threadId}] {message}: {e}";
         }
 
-        private void SendToLoggers(LogLevel level, [NotNull]string msg)
+        private void SendToLoggers(LogLevel level, string msg)
 		{
             Database.Log.Console.Log(level, Domain, msg);
 		    var fileSucceeded = false;
@@ -186,7 +175,7 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Overrides
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             var other = obj as DomainLogger;
             if (other == null) {
@@ -208,7 +197,7 @@ namespace Couchbase.Lite.Internal.Logging
     {
         #region Constants
 
-        [NotNull] private static readonly Dictionary<string, LogDomain> DomainMap = new Dictionary<string, LogDomain>
+         private static readonly Dictionary<string, LogDomain> DomainMap = new Dictionary<string, LogDomain>
         {
             ["DB"] = LogDomain.Database,
             ["SQL"] = LogDomain.Database,
@@ -239,19 +228,19 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Properties
 
-        [NotNull]
+        
         internal IEnumerable<DomainLogger> All => _allLoggers;
 
-        [NotNull]
+        
         internal DomainLogger Database => _allLoggers[0];
 
-        [NotNull]
+        
         internal DomainLogger Query => _allLoggers[1];
 
-        [NotNull]
+        
         internal DomainLogger Sync => _allLoggers[2];
 
-        [NotNull]
+        
         internal DomainLogger Listener => _allLoggers[3];
 
         #endregion
@@ -297,7 +286,7 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Private Methods
 
-        private void CreateAndAddLogger([NotNull]string domainStr, LogDomain domain, int index)
+        private void CreateAndAddLogger(string domainStr, LogDomain domain, int index)
         {
             Debug.Assert(domainStr != null);
             var logger = new DomainLogger(domainStr, domain);

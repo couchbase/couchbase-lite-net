@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -2255,18 +2257,6 @@ namespace Test
             resultsFloat.Length.Should().Be(1);
             resultsLong.Length.Should().Be(1);
             resultsValue.Length.Should().Be(1);
-        }
-
-        [Fact]
-        public void TestNullResultSet()
-        {
-            NullResultSet resultset = new NullResultSet();
-            var resultCnt = resultset.Count();
-            var current = resultset?.Current;
-            var enumerator = resultset?.GetEnumerator();
-            var canMoveNext = resultset?.MoveNext();
-            var allresult = resultset?.AllResults();
-            //resultset.Dispose();
         }
 
         [Fact]

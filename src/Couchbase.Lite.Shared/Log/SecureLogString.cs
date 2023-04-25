@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-using JetBrains.Annotations;
 using Newtonsoft.Json;
 using System.Linq;
 using System.Text;
@@ -56,15 +55,14 @@ namespace Couchbase.Lite.Logging
     {
         #region Variables
 
-        private readonly byte[] _bytes;
-        private readonly object _obj;
-        private string _string;
+        private readonly byte[]? _bytes;
+        private readonly object? _obj;
+        private string? _string;
 
         #endregion
 
         #region Properties
 
-        [NotNull]
         private string String
         {
             get {
@@ -76,7 +74,7 @@ namespace Couchbase.Lite.Logging
                 if (_bytes != null) {
                     str = Encoding.UTF8.GetString(_bytes);
                 } else if (_obj != null) {
-                    str = _obj.ToString();
+                    str = _obj.ToString()!;
                 } else {
                     str = "(null)";
                 }
@@ -110,7 +108,6 @@ namespace Couchbase.Lite.Logging
 
         #region Overrides
 
-        [NotNull]
         public override string ToString() => String;
 
         #endregion
@@ -120,14 +117,13 @@ namespace Couchbase.Lite.Logging
     {
         #region Variables
 
-        private readonly object _object;
-        private string _str;
+        private readonly object? _object;
+        private string? _str;
 
         #endregion
 
         #region Properties
         
-        [NotNull]
         private string String 
         {
             get {
@@ -155,7 +151,6 @@ namespace Couchbase.Lite.Logging
 
         #region Overrides
 
-        [NotNull]
         public override string ToString() => String;
 
         #endregion

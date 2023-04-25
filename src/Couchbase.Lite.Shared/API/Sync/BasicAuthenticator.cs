@@ -18,13 +18,9 @@
 
 using System;
 using System.Diagnostics;
-using System.Net;
 using System.Security;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Sync
 {
@@ -45,21 +41,18 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the username that this object holds
         /// </summary>
-        [NotNull]
         public string Username { get; }
 
         /// <summary>
         /// [DEPRECATED] Gets the password that this object holds
         /// </summary>
         [Obsolete("This property is deprecated, please use SecureString PasswordSecureString instead.")]
-        [NotNull]
-        public string Password { get; }
+        public string Password { get; } = "";
 
         /// <summary>
         /// Gets the password that this object holds
         /// </summary>
-        [NotNull]
-        public SecureString PasswordSecureString { get; }
+        public SecureString PasswordSecureString { get; } = new SecureString();
 
         #endregion
 
@@ -71,7 +64,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
         [Obsolete("This constructor is deprecated, please use BasicAuthenticator([NotNull]string username, [NotNull]SecureString password) instead.")]
-        public BasicAuthenticator([NotNull]string username, [NotNull]string password)
+        public BasicAuthenticator(string username, string password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
             Password = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
@@ -82,7 +75,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
-        public BasicAuthenticator([NotNull]string username, [NotNull]SecureString password)
+        public BasicAuthenticator(string username, SecureString password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
             PasswordSecureString = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
@@ -92,7 +85,7 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
-        internal override void Authenticate([NotNull]ReplicatorOptionsDictionary options)
+        internal override void Authenticate(ReplicatorOptionsDictionary options)
         {
             Debug.Assert(options != null);
 

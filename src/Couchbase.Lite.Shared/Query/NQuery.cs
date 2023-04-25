@@ -16,11 +16,13 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -82,6 +84,7 @@ namespace Couchbase.Lite.Internal.Query
         protected override unsafe void CreateQuery()
         {
             if (_c4Query == null) {
+                Debug.Assert(Database != null);
                 C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
                 {
                     return Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
@@ -98,6 +101,9 @@ namespace Couchbase.Lite.Internal.Query
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
                 var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+                if(titleStr == null) {
+                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Null column title in query!");
+                }
 
                 if (map.ContainsKey(titleStr)) {
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,

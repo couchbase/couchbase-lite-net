@@ -1,7 +1,7 @@
 //
 // C4CertificateTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,14 +28,14 @@ namespace LiteCore.Interop
     [Flags]
     internal enum C4CertUsage : byte
     {
-        CertUsage_NotSpecified      = 0x00,
-        CertUsage_TLSClient         = 0x80,
-        CertUsage_TLSServer         = 0x40,
-        CertUsage_Email             = 0x20,
-        CertUsage_ObjectSigning     = 0x10,
-        CertUsage_TLS_CA            = 0x04,
-        CertUsage_Email_CA          = 0x02,
-        CertUsage_ObjectSigning_CA  = 0x01
+        CertUsage_NotSpecified     = 0x00,
+        CertUsage_TLSClient        = 0x80,
+        CertUsage_TLSServer        = 0x40,
+        CertUsage_Email            = 0x20,
+        CertUsage_ObjectSigning    = 0x10,
+        CertUsage_TLS_CA           = 0x04,
+        CertUsage_Email_CA         = 0x02,
+        CertUsage_ObjectSigning_CA = 0x01
     }
 
     internal enum C4KeyPairAlgorithm : byte
@@ -52,6 +52,12 @@ namespace LiteCore.Interop
         SignatureDigestSHA384,
         SignatureDigestSHA512,
         SignatureDigestRIPEMD160,
+    }
+
+	internal unsafe struct C4CertNameInfo
+    {
+        public FLSliceResult id;
+        public FLSliceResult value;
     }
 
 	internal unsafe struct C4CertNameComponent

@@ -22,26 +22,27 @@ using System.Diagnostics;
 
 using Couchbase.Lite.Internal.Logging;
 
-using NotNull = JetBrains.Annotations.NotNullAttribute;
-using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
-using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Util
 {
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage]
     internal static class CBDebug
     {
-        #if DEBUG
-        [ContractAnnotation("assertion:false => halt")]
-        #endif
-        public static void AssertAndLog([NotNull]DomainLogger logger, bool assertion, [NotNull]string tag, [NotNull]string message)
+            public static void AssertAndLog(DomainLogger logger,
+#if NET6_0_OR_GREATER
+                [DoesNotReturnIf(false)]
+#endif
+                bool assertion, string tag, string message)
         {
             Debug.Assert(assertion, message);
             logger.W(tag, message);
         }
 
-        [ContractAnnotation("=> halt")]
-        public static void LogAndThrow([NotNull]DomainLogger logger, [NotNull]Exception e, [NotNull]string tag, [CanBeNull]string message, bool fatal)
+        #if NET6_0_OR_GREATER
+        [DoesNotReturn]
+        #endif
+        public static void LogAndThrow(DomainLogger logger, Exception e, string tag, string? message, bool fatal)
         {
             if (fatal) {
                 logger.E(tag, message ?? e.Message, e);
@@ -52,8 +53,7 @@ namespace Couchbase.Lite.Util
             throw e;
         }
 
-        [NotNull]
-        public static T MustNotBeNull<T>([NotNull]DomainLogger logger, [NotNull]string tag, [NotNull]string argumentName, T argumentValue) where T : class
+        public static T MustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, T? argumentValue) where T : class
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
@@ -63,8 +63,7 @@ namespace Couchbase.Lite.Util
             return argumentValue;
         }
 
-        [NotNull]
-        public static IEnumerable<T> ItemsMustNotBeNull<T>([NotNull]DomainLogger logger, [NotNull]string tag, [NotNull]string argumentName, IEnumerable<T> argumentValues) where T : class
+        public static IEnumerable<T> ItemsMustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, IEnumerable<T> argumentValues) where T : class
         {
             Debug.Assert(argumentValues != null);
             if (argumentValues == null) {
@@ -82,8 +81,7 @@ namespace Couchbase.Lite.Util
             return argumentValues;
         }
 
-        [NotNull]
-        public static unsafe void* MustNotBeNullPointer([NotNull]DomainLogger logger, [NotNull]string tag, [NotNull]string argumentName, void* argumentValue)
+        public static unsafe void* MustNotBeNullPointer(DomainLogger logger, string tag, string argumentName, void* argumentValue)
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
@@ -92,7 +90,10 @@ namespace Couchbase.Lite.Util
 
             return argumentValue;
         }
-    
+
+        #if NET6_0_OR_GREATER
+        [DoesNotReturn]
+        #endif
         private static void ThrowArgumentNullException(DomainLogger logger, string tag, string message)
         {
             var ex = new ArgumentNullException(message);

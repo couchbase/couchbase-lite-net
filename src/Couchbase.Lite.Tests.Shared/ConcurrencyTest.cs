@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#nullable disable
+
 // The tests simply take too much time in debug mode
 #if !DEBUG
 using System;

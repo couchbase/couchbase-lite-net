@@ -15,6 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+
+#nullable disable
 #if COUCHBASE_ENTERPRISE
 using System;
 using System.Collections.Generic;
@@ -26,8 +28,6 @@ using Couchbase.Lite.Enterprise.Query;
 using Couchbase.Lite.Query;
 
 using FluentAssertions;
-
-using JetBrains.Annotations;
 
 using LiteCore.Interop;
 

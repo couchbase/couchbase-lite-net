@@ -17,8 +17,6 @@
 // 
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -27,12 +25,12 @@ namespace Couchbase.Lite
         /// <summary>
         /// The callback default conflict resolve method, if conflict occurs.
         /// </summary>
-        public Document Resolve(Conflict conflict)
+        public Document? Resolve(Conflict conflict)
         {
             return ResolveFunc(conflict);
         }
 
-        private Document ResolveFunc(Conflict conflict)
+        private Document? ResolveFunc(Conflict conflict)
         {
             if (conflict.RemoteDocument == null || conflict.LocalDocument == null)
                 return null;

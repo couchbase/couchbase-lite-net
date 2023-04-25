@@ -16,15 +16,11 @@
 // limitations under the License.
 // 
 
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using Couchbase.Lite.Info;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 using LiteCore.Interop;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -32,10 +28,10 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Variables
 
-        private readonly IFullTextIndexItem[] _ftsItems;
+        private readonly IFullTextIndexItem[]? _ftsItems;
         private bool _ignoreAccents = Constants.DefaultFullTextIndexIgnoreAccents;
         private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
-        private readonly IValueIndexItem[] _valueItems;
+        private readonly IValueIndexItem[]? _valueItems;
 
         #endregion
 
@@ -61,9 +57,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal virtual object ToJSON()
+        internal virtual object? ToJSON()
         {
-            object jsonObj = null;
+            object? jsonObj = null;
             if (_ftsItems != null) {
                 jsonObj = QueryExpression.EncodeToJSON(_ftsItems.OfType<QueryIndexItem>().Select(x => x.Expression)
                     .ToList());

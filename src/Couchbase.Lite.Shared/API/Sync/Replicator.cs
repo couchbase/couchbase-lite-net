@@ -34,11 +34,9 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Sync
 {
@@ -55,7 +53,6 @@ namespace Couchbase.Lite.Sync
 
         private const string Tag = nameof(Replicator);
 
-        [NotNull]
         private static readonly C4ReplicatorMode[] Modes = {
             C4ReplicatorMode.Disabled, C4ReplicatorMode.Disabled, C4ReplicatorMode.OneShot, C4ReplicatorMode.Continuous
         };
@@ -64,23 +61,23 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        [NotNull]private readonly ThreadSafety _databaseThreadSafety;
+        private readonly ThreadSafety _databaseThreadSafety;
 
-        [NotNull]private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
+        private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
             new Event<DocumentReplicationEventArgs>();
 
-        [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
+        private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
 
-        private string _desc;
+        private string? _desc;
         private bool _disposed;
 
-        private ReplicatorParameters _nativeParams;
+        private ReplicatorParameters? _nativeParams;
         private C4ReplicatorStatus _rawStatus;
-        private IReachability _reachability;
+        private IReachability? _reachability;
         private C4Replicator* _repl;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
-        private IImmutableSet<string> _pendingDocIds;
+        private IImmutableSet<string>? _pendingDocIds;
         private ReplicatorConfiguration _config;
 
         #endregion
@@ -91,7 +88,6 @@ namespace Couchbase.Lite.Sync
         /// Gets the configuration that was used to create this Replicator
         /// </summary>
         /// <exception cref="CouchbaseLiteException">Thrown if the replicator configuration doesn't contain any collection.</exception>
-        [NotNull]
         public ReplicatorConfiguration Config => _config.Collections.Count > 0 ? _config 
             : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on the replicator configuration without any collection.");
 
@@ -107,7 +103,7 @@ namespace Couchbase.Lite.Sync
         /// The developer could save the certificate and pin the certificate next time when setting up the replicator to 
         /// provide an SSH type of authentication.
         /// </summary>
-        public X509Certificate2 ServerCertificate { get; private set; }
+        public X509Certificate2? ServerCertificate { get; private set; }
 
         #endregion
 
@@ -122,7 +118,7 @@ namespace Couchbase.Lite.Sync
         /// Constructs a replicator based on the given <see cref="ReplicatorConfiguration"/>
         /// </summary>
         /// <param name="config">The configuration to use to create the replicator</param>
-        public Replicator([NotNull]ReplicatorConfiguration config)
+        public Replicator(ReplicatorConfiguration config)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config);
             if (config.Collections.Count <= 0)
@@ -149,7 +145,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
+        public ListenerToken AddChangeListener(EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
         }
@@ -163,8 +159,8 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
-            [NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
+        public ListenerToken AddChangeListener(TaskScheduler? scheduler,
+            EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -181,7 +177,7 @@ namespace Couchbase.Lite.Sync
         /// </remarks>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -200,8 +196,8 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
-            [NotNull]EventHandler<DocumentReplicationEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener(TaskScheduler? scheduler,
+            EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
@@ -312,7 +308,6 @@ namespace Couchbase.Lite.Sync
         /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         [Obsolete("GetPendingDocumentIDs() is deprecated, please use GetPendingDocumentIDs(Collection collection)")]
-        [NotNull]
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
             return GetPendingDocumentIDs(Config.Database.GetDefaultCollection());
@@ -328,7 +323,7 @@ namespace Couchbase.Lite.Sync
         /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         [Obsolete("IsDocumentPending(string documentID) is deprecated, please use IsDocumentPending(string documentID, Collection collection)")]
-        public bool IsDocumentPending([NotNull]string documentID)
+        public bool IsDocumentPending(string documentID)
         {
             return IsDocumentPending(documentID, Config.Database.GetDefaultCollection());
         }
@@ -344,7 +339,7 @@ namespace Couchbase.Lite.Sync
         /// and <c>false</c> means that all revisions on the document have been pushed</returns>
         /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        public bool IsDocumentPending([NotNull] string documentID, [NotNull] Collection collection)
+        public bool IsDocumentPending(string documentID, Collection collection)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
@@ -353,7 +348,7 @@ namespace Couchbase.Lite.Sync
             DispatchQueue.DispatchSync(() => {
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
-                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString()!, true);
                 }
 
                 if (!IsPushing(collection)) {
@@ -392,17 +387,16 @@ namespace Couchbase.Lite.Sync
         /// <returns>An immutable set of strings, each of which is a document ID</returns>
         /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        [NotNull]
-        public IImmutableSet<string> GetPendingDocumentIDs([NotNull] Collection collection)
+        public IImmutableSet<string> GetPendingDocumentIDs(Collection collection)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
             var result = new HashSet<string>();
-            byte[] pendingDocIds = null;
+            byte[]? pendingDocIds = null;
 
             DispatchQueue.DispatchSync(() => {
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
-                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString()!, true);
                 }
 
                 if (!IsPushing(collection)) {
@@ -433,7 +427,9 @@ namespace Couchbase.Lite.Sync
                         var cnt = (int)Native.FLArray_Count(flarr);
                         for (int i = 0; i < cnt; i++) {
                             var flv = Native.FLArray_Get(flarr, (uint)i);
-                            result.Add(Native.FLValue_AsString(flv));
+                            var nextId = Native.FLValue_AsString(flv);
+                            Debug.Assert(nextId != null);
+                            result.Add(nextId);
                         }
 
                         Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
@@ -471,8 +467,7 @@ namespace Couchbase.Lite.Sync
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
+                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid null replicator, aborting and returning true...");
                 return true;
             }
 
@@ -482,10 +477,10 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            var collName = collectionSpec.name.CreateString();
-            var scope = collectionSpec.scope.CreateString();
+            var collName = collectionSpec.name.CreateString()!;
+            var scope = collectionSpec.scope.CreateString()!;
             var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
+            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString()!, dict, flags);
         }
 
         #if __IOS__
@@ -495,8 +490,7 @@ namespace Couchbase.Lite.Sync
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
+                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid null replicator, aborting and returning true...");
                 return true;
             }
 
@@ -506,23 +500,43 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            var collName = collectionSpec.name.CreateString();
-            var scope = collectionSpec.scope.CreateString();
+            var collName = collectionSpec.name.CreateString()!;
+            var scope = collectionSpec.scope.CreateString()!;
             var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
+            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString()!, dict, flags);
         }
 
         private bool PullValidateCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
             var coll = Config.Database.GetCollection(collName, scope);
+            if(coll == null) {
+                WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
+                return true;
+            }
+
             var config = Config.GetCollectionConfig(coll);
+            if(config?.PullFilter == null) {
+                WriteLog.To.Sync.E(Tag, "Unable to find filter inside PullValidateCallback, aborting and returning true...");
+                return true;
+            }
+
             return config.PullFilter(new Document(coll, docID, revID, value), flags);
         }
 
         private bool PushFilterCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
             var coll = Config.Database.GetCollection(collName, scope);
+            if (coll == null) {
+                WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PushFilterCallback, aborting and returning true...");
+                return true;
+            }
+
             var config = Config.GetCollectionConfig(coll);
+            if (config?.PushFilter == null) {
+                WriteLog.To.Sync.E(Tag, "Unable to find filter inside PushFilterCallback, aborting and returning true...");
+                return true;
+            }
+
             return config.PushFilter(new Document(coll, docID, revID, value), flags);
         }
 
@@ -583,9 +597,9 @@ namespace Couchbase.Lite.Sync
                 Task t = Task.Run(() =>
                 {
                     try {
-                        var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName);
+                        var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName)!;
                         var collectionConfig = Config.GetCollectionConfig(coll);
-                        Config.Database.ResolveConflict(replication.Id, collectionConfig.ConflictResolver, coll);
+                        Config.Database.ResolveConflict(replication.Id, collectionConfig!.ConflictResolver, coll);
                         replication = replication.ClearError();
                     } catch (CouchbaseException e) {
                         replication.Error = e;
@@ -727,7 +741,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        private void ReachabilityChanged(object? sender, NetworkReachabilityChangeEventArgs e)
         {
             Debug.Assert(e != null);
 
@@ -745,7 +759,8 @@ namespace Couchbase.Lite.Sync
 
         private bool IsPushing(Collection collection)
         {
-            var collConfig = Config.GetCollectionConfig(collection);
+            var collConfig = Config.GetCollectionConfig(collection)
+                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Collection config not found inside IsPushing");
             return collConfig.ReplicatorType.HasFlag(ReplicatorType.Push);
         }
 
@@ -754,15 +769,15 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-        private void OnTlsCertificate(object sender, TlsCertificateReceivedEventArgs e)
+        private void OnTlsCertificate(object? sender, TlsCertificateReceivedEventArgs e)
         {
-            ((WebSocketWrapper) sender).PeerCertificateReceived -= OnTlsCertificate;
+            (sender as WebSocketWrapper)!.PeerCertificateReceived -= OnTlsCertificate;
             ServerCertificate = e.PeerCertificate;
         }
 
-        private void OnCookiesToSetReceived(object sender, string e)
+        private void OnCookiesToSetReceived(object? sender, string e)
         {
-            ((WebSocketWrapper) sender).CookiesToSetReceived -= OnCookiesToSetReceived;
+            (sender as WebSocketWrapper)!.CookiesToSetReceived -= OnCookiesToSetReceived;
 
             var remoteUrl = (Config.Target as URLEndpoint)?.Url;
             if (remoteUrl == null) {
@@ -813,9 +828,9 @@ namespace Couchbase.Lite.Sync
 
             // Target:
             var addr = new C4Address();
-            Database otherDB = null;
+            Database? otherDB = null;
             var remoteUrl = Config.RemoteUrl;
-            string dbNameStr = remoteUrl?.Segments?.Last().TrimEnd('/');
+            string? dbNameStr = remoteUrl?.Segments?.Last().TrimEnd('/');
             using (var dbNameStr_ = new C4String(dbNameStr))
             using (var remoteUrlStr_ = new C4String(remoteUrl?.AbsoluteUri)) {
                 FLSlice dn = dbNameStr_.AsFLSlice();
@@ -835,7 +850,7 @@ namespace Couchbase.Lite.Sync
                                 continue;
                             }
 
-                            Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
+                            Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim()!, pieces[1]?.Trim()));
                         }
                     }
                 } else {
@@ -910,7 +925,7 @@ namespace Couchbase.Lite.Sync
                                 &localErr);
                         else
 #endif
-                            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr_.AsFLSlice(), _nativeParams.C4Params, &localErr);
                     }
 
                     if (_documentEndedUpdate.Counter > 0) {
@@ -945,7 +960,7 @@ namespace Couchbase.Lite.Sync
 
         private void UpdateStateProperties(C4ReplicatorStatus state)
         {
-            Exception error = null;
+            Exception? error = null;
             if (state.error.code > 0) {
                 error = CouchbaseException.Create(state.error);
             }

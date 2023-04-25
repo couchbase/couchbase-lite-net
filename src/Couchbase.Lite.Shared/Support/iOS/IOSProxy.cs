@@ -49,30 +49,30 @@ namespace Couchbase.Lite.Support
 
         private static readonly int kCFNumberIntType = 9;
 
-        public unsafe Task<WebProxy> CreateProxyAsync(Uri destination)
+        public unsafe Task<WebProxy?> CreateProxyAsync(Uri destination)
         {
             IntPtr cFNetworkHandle = LoadCFNetwork();
             if (cFNetworkHandle == IntPtr.Zero) {
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             var proxySettings = CopySystemProxySettings(cFNetworkHandle);
             if (proxySettings == IntPtr.Zero) {
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             var cfUrlString = CFStringCreateWithCString(IntPtr.Zero, destination.AbsoluteUri,
                 kCFStringEncodingASCII);
             if (cfUrlString == IntPtr.Zero) {
                 CFRelease(proxySettings);
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             var cfDestination = CFURLCreateWithString(IntPtr.Zero, cfUrlString, IntPtr.Zero);
             if (cfDestination == IntPtr.Zero) {
                 CFRelease(proxySettings);
                 CFRelease(cfUrlString);
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             var proxies = CopyProxiesForURL(cFNetworkHandle, cfDestination, proxySettings);
@@ -82,14 +82,14 @@ namespace Couchbase.Lite.Support
 
             if (CFArrayGetCount(proxies) == 0) {
                 CFRelease(proxies);
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             var proxy = CFArrayGetValueAtIndex(proxies, 0);
             var proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyTypeKey);
             if (proxyKeyValue == kCFProxyTypeNone) {
                 CFRelease(proxies);
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyHostNameKey);
@@ -98,11 +98,11 @@ namespace Couchbase.Lite.Support
             var port = 0;
             if (!CFNumberGetValue(proxyKeyValue, kCFNumberIntType, &port)) {
                 CFRelease(proxies);
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             CFRelease(proxies);
-            return Task.FromResult(new WebProxy(new Uri($"{hostUrlString}:{port}")));
+            return Task.FromResult<WebProxy?>(new WebProxy(new Uri($"{hostUrlString}:{port}")));
         }
 
         private static IntPtr LoadCFNetwork()
@@ -122,7 +122,7 @@ namespace Couchbase.Lite.Support
             return libHandle;
         }
 
-        private static IntPtr GetPointer(IntPtr libHandle, string symbolName, string libPath = null)
+        private static IntPtr GetPointer(IntPtr libHandle, string symbolName, string? libPath = null)
         {
             var symbolHandle = dlsym(libHandle, symbolName);
             if (symbolHandle == IntPtr.Zero) {
@@ -144,7 +144,7 @@ namespace Couchbase.Lite.Support
             return Marshal.ReadIntPtr(symbolHandle);
         }
 
-        private static string GetCString(IntPtr /* CFStringRef */ theString)
+        private static string? GetCString(IntPtr /* CFStringRef */ theString)
         {
             var pointer = CFStringGetCStringPtr(theString, kCFStringEncodingASCII);
             return Marshal.PtrToStringAnsi(pointer);

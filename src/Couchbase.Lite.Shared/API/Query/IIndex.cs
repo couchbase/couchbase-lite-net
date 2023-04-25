@@ -16,8 +16,6 @@
 // limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -47,7 +45,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="ignoreAccents">Whether or not to ignore accents</param>
         /// <returns>The index for further processing</returns>
-        [NotNull]
         IFullTextIndex IgnoreAccents(bool ignoreAccents);
 
         /// <summary>
@@ -55,7 +52,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="language">The language code in the form of ISO-639 language code</param>
         /// <returns>The index for further processing</returns>
-        [NotNull]
         IFullTextIndex SetLanguage(string language);
     }
 }

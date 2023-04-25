@@ -22,9 +22,6 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
-
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class From : LimitedQuery, IFrom
@@ -37,13 +34,13 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal From([NotNull]XQuery query, IDataSource impl)
+        internal From(XQuery query, IDataSource impl)
         {
             Debug.Assert(query != null);
 
             Copy(query);
 
-            FromImpl = impl as QueryDataSource;
+            FromImpl = Misc.TryCast<IDataSource, QueryDataSource>(impl);
             Collection = (impl as DatabaseSource)?.Collection;
         }
 
@@ -51,7 +48,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Public Methods
 
-        public object ToJSON()
+        public object? ToJSON()
         {
             return FromImpl?.ToJSON();
         }
@@ -60,7 +57,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
-        public IGroupBy GroupBy([ItemNotNull]params IExpression[] expressions)
+        public IGroupBy GroupBy(params IExpression[] expressions)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
             ValidateParams(expressions);
@@ -71,7 +68,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        public IJoins Join([ItemNotNull]params IJoin[] joins)
+        public IJoins Join(params IJoin[] joins)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
             ValidateParams(joins);
@@ -82,7 +79,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
+        public IOrderBy OrderBy(params IOrdering[] orderings)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             ValidateParams(orderings);
@@ -92,7 +89,8 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         #region IWhereRouter
-        public IWhere Where([NotNull]IExpression expression)
+
+        public IWhere Where(IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             return new Where(this, expression);

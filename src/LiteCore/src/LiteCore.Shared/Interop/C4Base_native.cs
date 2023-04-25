@@ -1,7 +1,7 @@
 //
 // C4Base_native.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ namespace LiteCore.Interop
         public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Socket* c4socket_retain(C4Socket* x);
+        public static extern C4Socket* c4socket_retain(C4Socket* socket);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4doc_release(C4Document* x);
@@ -49,10 +49,10 @@ namespace LiteCore.Interop
         public static extern void c4queryenum_release(C4QueryEnumerator* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_release(C4Socket* x);
+        public static extern void c4socket_release(C4Socket* socket);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4CollectionObserver* observer);
+        public static extern void c4dbobs_free(C4CollectionObserver* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4docobs_free(C4DocumentObserver* observer);
@@ -81,7 +81,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int c4_getObjectCount();
 
-        public static string c4_getVersion()
+        public static string? c4_getVersion()
         {
             using(var retVal = NativeRaw.c4_getVersion()) {
                 return ((FLSlice)retVal).CreateString();

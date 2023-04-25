@@ -18,7 +18,6 @@
 using System;
 using System.Collections.Generic;
 using System.Security;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Sync
 {
@@ -47,7 +46,6 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
-        [NotNull]
         private static readonly string[] AuthTypes = {
             "Basic", "Session", "OpenID Connect", "Facebook", "Client Cert"
         };
@@ -69,8 +67,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// [DEPRECATED] Gets or sets the password for the credentials (not applicable in all cases)
         /// </summary>
-        [CanBeNull]
-        public string Password
+        public string? Password
         {
             get => this[PasswordKey] as string;
             set => this[PasswordKey] = value;
@@ -79,8 +76,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the password for the credentials (not applicable in all cases)
         /// </summary>
-        [CanBeNull]
-        public SecureString PasswordSecureString
+        public SecureString? PasswordSecureString
         {
             get => this[PasswordKey] as SecureString;
             set => this[PasswordKey] = value;
@@ -101,8 +97,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the username to be used
         /// </summary>
-        [CanBeNull]
-        public string Username
+        public string? Username
         {
             get => this[UsernameKey] as string;
             set => this[UsernameKey] = value;
@@ -120,10 +115,10 @@ namespace Couchbase.Lite.Sync
             Type = AuthType.HttpBasic;
             Username = String.Empty;
             Password = String.Empty;
-            PasswordSecureString = null;
+            PasswordSecureString = new SecureString();
         }
 
-        internal AuthOptionsDictionary(Dictionary<string, object> raw) : base(raw)
+        internal AuthOptionsDictionary(Dictionary<string, object?> raw) : base(raw)
         {
             
         }
@@ -137,7 +132,7 @@ namespace Couchbase.Lite.Sync
             return key == TypeKey || key == UsernameKey || key == PasswordKey;
         }
 
-        internal override bool Validate(string key, object value)
+        internal override bool Validate(string key, object? value)
         {
             switch (key) {
                 case TypeKey:

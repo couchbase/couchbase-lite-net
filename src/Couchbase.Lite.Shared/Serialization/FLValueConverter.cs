@@ -22,8 +22,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-using JetBrains.Annotations;
-
 using LiteCore;
 using LiteCore.Interop;
 using Couchbase.Lite.Fleece;
@@ -41,14 +39,13 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Variables
 
-        [NotNull]
         public delegate object ObjectConvertDelegate(FLDict* dict);
 
         #endregion
 
         #region Public Methods
 
-        public static object ToCouchbaseObject(FLValue* value, Database db, bool dotNetTypes, Type hintType1 = null)
+        public static object? ToCouchbaseObject(FLValue* value, Database? db, bool dotNetTypes, Type? hintType1 = null)
         {
             switch (Native.FLValue_GetType(value)) {
                 case FLValueType.Array: {
@@ -89,7 +86,7 @@ namespace Couchbase.Lite.Internal.Serialization
             return flDigest != null && flLength != null && flStub != null && flRevPos != null;
         }
 
-        internal static bool IsOldAttachment(IDictionary<string, object> dict)
+        internal static bool IsOldAttachment(IDictionary<string, object?> dict)
         {
             var digest = dict.Get("digest");
             var length = dict.Get("length");
@@ -102,29 +99,31 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Private Methods
 
-        private static object ConvertDictionary(IDictionary<string, object> dict, Database database)
+        private static object? ConvertDictionary(IDictionary<string, object?>? dict, Database? database)
         {
             if (dict == null) {
                 return null;
             }
 
+            if (database != null) { 
             var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
-            if (type == null) {
-                if(IsOldAttachment(dict)) {
+                if (type == null) {
+                    if (IsOldAttachment(dict)) {
+                        return new Blob(database, dict);
+                    }
+
+                    return dict;
+                }
+
+                if (type == Constants.ObjectTypeBlob) {
                     return new Blob(database, dict);
                 }
-                
-                return dict;
-            }
-
-            if(type == Constants.ObjectTypeBlob) {
-                return new Blob(database, dict);
             }
             
             return dict;
         }
 
-        private static object ToObject(FLValue* value, Database db, int level = 0, Type hintType1 = null)
+        private static object? ToObject(FLValue* value, Database? db, int level = 0, Type? hintType1 = null)
         {
             if (value == null) {
                 return null;
@@ -141,7 +140,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
                     var retVal =
                         (IList)Activator.CreateInstance(typeof(List<>).GetTypeInfo().MakeGenericType(hintType),
-                            count);
+                            count)!;
 
                     var i = default(FLArrayIterator);
                     Native.FLArrayIterator_Begin(arr, &i);
@@ -164,15 +163,15 @@ namespace Couchbase.Lite.Internal.Serialization
                         return new Dictionary<string, object>();
                     }
 
-                    var retVal = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeof(string), hintType), count);
+                    var retVal = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeof(string), hintType), count)!;
                     var i = default(FLDictIterator);
                     Native.FLDictIterator_Begin(dict, &i);
                     do {
-                        var key = Native.FLDictIterator_GetKeyString(&i);
+                        var key = Native.FLDictIterator_GetKeyString(&i)!;
                         retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
                     } while (Native.FLDictIterator_Next(&i));
 
-                    return ConvertDictionary(retVal as IDictionary<string, object>, db) ?? retVal;
+                    return ConvertDictionary((retVal as IDictionary<string, object>)!, db) ?? retVal;
                 }
                 case FLValueType.Null:
                     return null;

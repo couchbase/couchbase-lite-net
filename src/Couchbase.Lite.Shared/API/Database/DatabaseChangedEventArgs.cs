@@ -20,8 +20,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
@@ -36,21 +34,18 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the database in which the change occurred
         /// </summary>
-        [NotNull]
         public Database Database { get; }
 
         /// <summary>
         /// Gets the document that was changed
         /// </summary>
-        [NotNull]
-        [ItemNotNull]
         public IReadOnlyList<string> DocumentIDs { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DatabaseChangedEventArgs([NotNull] Database database, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs)
+        internal DatabaseChangedEventArgs(Database database, IReadOnlyList<string> documentIDs)
         {
             Debug.Assert(database != null);
             Debug.Assert(documentIDs != null);

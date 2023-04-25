@@ -19,21 +19,19 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-
-using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace LiteCore.Util
 {
     /// <summary>
     /// Simple utility for timing arbitrary logic and listing hotspots
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage]
     public static class PerfTimer
     {
         #region Constants
 
-        [NotNull]
         private static readonly ConcurrentDictionary<string, LinkedList<PerfEvent>> _EventMap = 
             new ConcurrentDictionary<string, LinkedList<PerfEvent>>();
 
@@ -70,8 +68,8 @@ namespace LiteCore.Util
         public static void StopEvent(string name)
         {
             var list = _EventMap[name];
-            var evt = list.Last.Value;
-            evt.StopTiming();
+            var evt = list.Last?.Value;
+            evt?.StopTiming();
         }
 
         /// <summary>
@@ -112,11 +110,11 @@ namespace LiteCore.Util
     {
         #region Variables
 
-        [NotNull]private readonly Stopwatch _sw = new Stopwatch();
+        private readonly Stopwatch _sw = new Stopwatch();
         private long _startMemory;
         private long _endMemory;
-        [NotNull]private readonly int[] _startCollections= { 0, 0, 0 };
-        [NotNull]private readonly int[] _endCollections = { 0, 0, 0 };
+        private readonly int[] _startCollections= { 0, 0, 0 };
+        private readonly int[] _endCollections = { 0, 0, 0 };
 
         #endregion
 

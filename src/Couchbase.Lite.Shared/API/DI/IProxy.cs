@@ -24,6 +24,6 @@ namespace Couchbase.Lite.DI
 {
     internal interface IProxy
     {
-        Task<WebProxy> CreateProxyAsync(Uri destination);
+        Task<WebProxy?> CreateProxyAsync(Uri destination);
     }
 }

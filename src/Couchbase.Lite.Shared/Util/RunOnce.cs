@@ -1,9 +1,24 @@
-﻿using System;
+﻿// 
+//  RefCountedDisposable.cs
+// 
+//  Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// 
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+// 
+//  http://www.apache.org/licenses/LICENSE-2.0
+// 
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// 
+
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Util
 {
@@ -11,14 +26,14 @@ namespace Couchbase.Lite.Util
     {
         #region Constants
 
-        [NotNull] private static readonly ConcurrentDictionary<string, byte> Instances =
+        private static readonly ConcurrentDictionary<string, byte> Instances =
             new ConcurrentDictionary<string, byte>();
 
         #endregion
 
         #region Public Methods
 
-        public static void Once([NotNull]string identifier, [NotNull] Action a)
+        public static void Once(string identifier, Action a)
         {
             Debug.Assert(identifier != null);
             Debug.Assert(a != null);
@@ -34,7 +49,7 @@ namespace Couchbase.Lite.Util
 
 #if DEBUG
 
-        internal static void Clear([NotNull] string identifier)
+        internal static void Clear(string identifier)
         {
             Instances.TryRemove(identifier, out var tmp);
         }

@@ -19,22 +19,18 @@
 using LiteCore.Interop;
 using Couchbase.Lite.Internal.Serialization;
 
-using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>
+    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object?>
     {
         #region Variables
 
-        [NotNull]
-        [ItemNotNull]
         private List<MValue> _vec = new List<MValue>();
 
         #endregion
@@ -47,7 +43,7 @@ namespace Couchbase.Lite.Fleece
 
         public bool IsReadOnly => !IsMutable;
 
-        public object this[int index]
+        public object? this[int index]
         {
             get => Get(index).AsObject(this);
             set => Set(index, value);
@@ -62,7 +58,7 @@ namespace Couchbase.Lite.Fleece
 
         }
 
-        public FleeceMutableArray(MValue mv, MCollection parent)
+        public FleeceMutableArray(MValue mv, MCollection? parent)
         {
             InitInSlot(mv, parent);
         }
@@ -71,7 +67,6 @@ namespace Couchbase.Lite.Fleece
 
         #region Public Methods
 
-        [NotNull]
         public MValue Get(int index)
         {
             if (index < 0 || index >= _vec.Count) {
@@ -87,7 +82,7 @@ namespace Couchbase.Lite.Fleece
             return val;
         }
 
-        public void InitInSlot(MValue mv, MCollection parent)
+        public void InitInSlot(MValue mv, MCollection? parent)
         {
             InitInSlot(mv, parent, parent?.MutableChildren ?? false);
         }
@@ -123,7 +118,7 @@ namespace Couchbase.Lite.Fleece
             _vec.RemoveRange(start, count);
         }
 
-        public void Set(int index, object val)
+        public void Set(int index, object? val)
         {
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableMArray);
@@ -181,7 +176,7 @@ namespace Couchbase.Lite.Fleece
             _vec = a?._vec ?? new List<MValue>();
         }
 
-        protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
+        protected override void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
         {
             base.InitInSlot(slot, parent, isMutable);
             Debug.Assert(BaseArray == null);
@@ -193,7 +188,7 @@ namespace Couchbase.Lite.Fleece
 
         #region ICollection<object>
 
-        public void Add(object item)
+        public void Add(object? item)
         {
             Insert(Count, item);
         }
@@ -212,17 +207,17 @@ namespace Couchbase.Lite.Fleece
             _vec.Clear();
         }
 
-        public bool Contains(object item)
+        public bool Contains(object? item)
         {
             throw new NotImplementedException();
         }
 
-        public void CopyTo(object[] array, int arrayIndex)
+        public void CopyTo(object?[] array, int arrayIndex)
         {
             throw new NotImplementedException();
         }
 
-        public bool Remove(object item)
+        public bool Remove(object? item)
         {
             throw new NotImplementedException();
         }
@@ -240,7 +235,7 @@ namespace Couchbase.Lite.Fleece
 
         #region IEnumerable<object>
 
-        public IEnumerator<object> GetEnumerator()
+        public IEnumerator<object?> GetEnumerator()
         {
             return new Enumerator(this);
         }
@@ -279,12 +274,12 @@ namespace Couchbase.Lite.Fleece
 
         #region IList<object>
 
-        public int IndexOf(object item)
+        public int IndexOf(object? item)
         {
             throw new NotImplementedException();
         }
 
-        public void Insert(int index, object val)
+        public void Insert(int index, object? val)
         {
             if (!IsMutable) {
                 throw new InvalidOperationException("Cannot insert items in a non-mutable FleeceMutableArray");
@@ -313,7 +308,7 @@ namespace Couchbase.Lite.Fleece
 
         internal string ToJSON()
         {
-            return Native.FLValue_ToJSON((FLValue*)BaseArray);
+            return Native.FLValue_ToJSON((FLValue*)BaseArray)!;
         }
 
         #endregion
@@ -329,7 +324,7 @@ namespace Couchbase.Lite.Fleece
 
         #region Nested
 
-        private class Enumerator : IEnumerator<object>
+        private class Enumerator : IEnumerator<object?>
         {
             #region Variables
 
@@ -340,9 +335,9 @@ namespace Couchbase.Lite.Fleece
 
             #region Properties
 
-            public object Current => _parent[_current];
+            public object? Current => _parent[_current];
 
-            object IEnumerator.Current => Current;
+            object? IEnumerator.Current => Current;
 
             #endregion
 

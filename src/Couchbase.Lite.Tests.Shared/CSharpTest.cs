@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#nullable disable
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -135,7 +137,6 @@ namespace Test
                     list[4].Should().BeAssignableTo<IDictionary<string, object>>();
 
                     var mVal = new MValue();
-                    mVal.Dispose();
                     Native.FLDoc_Release(fleeceDoc);
                 }
             } finally {

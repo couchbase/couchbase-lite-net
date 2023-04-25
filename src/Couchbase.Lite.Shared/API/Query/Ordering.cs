@@ -19,7 +19,6 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
@@ -41,8 +40,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to use when sorting</param>
         /// <returns>The object that will perform the sort</returns>
-        [NotNull]
-        public static ISortOrder Expression([NotNull]IExpression expression) => 
+        public static ISortOrder Expression(IExpression expression) => 
             new SortOrder(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
@@ -52,8 +50,7 @@ namespace Couchbase.Lite.Query
         /// <param name="property">The path of the property whose value will be used
         /// to sort the results of the query</param>
         /// <returns>The object that will perform the sort</returns>
-        [NotNull]
-        public static ISortOrder Property([NotNull]string property) => Expression(Lite.Query.Expression.Property(property));
+        public static ISortOrder Property(string property) => Expression(Lite.Query.Expression.Property(property));
 
         #endregion
     }

@@ -78,7 +78,7 @@ namespace LiteCore.Interop
             slice.size = 0;
         }
 
-        public byte[] ToArrayFast()
+        public byte[]? ToArrayFast()
         {
             if (buf == null) {
                 return null;
@@ -90,7 +90,7 @@ namespace LiteCore.Interop
             return bytes;
         }
 
-        public string CreateString()
+        public string? CreateString()
         {
             if(buf == null) {
                 return null;
@@ -113,7 +113,7 @@ namespace LiteCore.Interop
             return hasher.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             var other = Null;
             switch (obj) {
@@ -157,7 +157,7 @@ namespace LiteCore.Interop
             return new FLSlice(input.buf, input.size);
         }
 
-        public string CreateString()
+        public string? CreateString()
         {
             return ((FLSlice) this).CreateString();
         }
@@ -173,7 +173,7 @@ namespace LiteCore.Interop
             return hasher.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             var other = FLSlice.Null;
             switch (obj) {
@@ -254,7 +254,7 @@ namespace LiteCore.Interop
                 return;
             }
 
-            (new MutableDictionaryObject((IDictionary<string, object>)dict)).FLSlotSet(slot);
+            (new MutableDictionaryObject((IDictionary<string, object?>)dict)).FLSlotSet(slot);
         }
 
         public static void FLSlotSet(this IList list, FLSlot* slot)
@@ -335,7 +335,7 @@ namespace LiteCore.Interop
 
     internal static unsafe class FLSliceExtensions
     {
-        public static object ToObject(FLValue* value)
+        public static object? ToObject(FLValue* value)
         {
             if (value == null) {
                 return null;
@@ -345,7 +345,7 @@ namespace LiteCore.Interop
                 case FLValueType.Array:
                 {
                     var arr = Native.FLValue_AsArray(value);
-                    var retVal = new object[Native.FLArray_Count(arr)];
+                    var retVal = new object?[Native.FLArray_Count(arr)];
                     if (retVal.Length == 0) {
                         return retVal;
                     }
@@ -367,7 +367,7 @@ namespace LiteCore.Interop
                 {
                     var dict = Native.FLValue_AsDict(value);
                     var count = (int) Native.FLDict_Count(dict);
-                    var retVal = new Dictionary<string, object>(count);
+                    var retVal = new Dictionary<string, object?>(count);
                     if (count == 0) {
                         return retVal;
                     }
@@ -376,7 +376,7 @@ namespace LiteCore.Interop
                     Native.FLDictIterator_Begin(dict, &i);
                     do {
                         var rawKey = Native.FLDictIterator_GetKey(&i);
-                        string key = Native.FLValue_AsString(rawKey);
+                        string? key = Native.FLValue_AsString(rawKey);
                         if (key == null) {
                             break;
                         }
@@ -407,7 +407,7 @@ namespace LiteCore.Interop
             }
         }
 
-        public static FLSliceResult FLEncode(this object obj)
+        public static FLSliceResult FLEncode(this object? obj)
         {
             var enc = Native.FLEncoder_New();
             try {
@@ -434,7 +434,7 @@ namespace LiteCore.Interop
             Native.FLEncoder_BeginDict(enc, (ulong) dict.Count);
             foreach (var pair in dict) {
                 Native.FLEncoder_WriteKey(enc, pair.Key);
-                pair.Value.FLEncode(enc);
+                FLEncode(pair.Value, enc);
             }
 
             Native.FLEncoder_EndDict(enc);
@@ -490,7 +490,7 @@ namespace LiteCore.Interop
             Native.FLEncoder_WriteBool(enc, b);
         }
 
-        public static void FLEncode(this object obj, FLEncoder* enc)
+        public static void FLEncode(this object? obj, FLEncoder* enc)
         {
             switch (obj) {
                 case null:

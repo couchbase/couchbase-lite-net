@@ -26,10 +26,7 @@ using System.Runtime.InteropServices;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
 using LiteCore.Interop;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
@@ -61,7 +58,7 @@ namespace Couchbase.Lite
 
         private bool Changed => (_dict as MutableDictionaryObject)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;
 
-        private IMutableDictionary Dict => _dict as IMutableDictionary;
+        private IMutableDictionary? Dict => _dict as IMutableDictionary;
 
         /// <inheritdoc />
         public new IMutableFragment this[string key] => Dict?[key] ?? Fragment.Null;
@@ -82,7 +79,7 @@ namespace Couchbase.Lite
         /// Creates a document given an ID
         /// </summary>
         /// <param name="id">The ID for the document</param>
-        public MutableDocument(string id)
+        public MutableDocument(string? id)
             : this(null, id ?? Misc.CreateGuid(), null)
         {
             
@@ -92,7 +89,7 @@ namespace Couchbase.Lite
         /// Creates a document with the given properties
         /// </summary>
         /// <param name="data">The properties of the document</param>
-        public MutableDocument(IDictionary<string, object> data)
+        public MutableDocument(IDictionary<string, object?> data)
             : this()
         {
             SetData(data);
@@ -103,7 +100,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID for the document</param>
         /// <param name="data">The properties for the document</param>
-        public MutableDocument(string id, IDictionary<string, object> data)
+        public MutableDocument(string? id, IDictionary<string, object?> data)
             : this(id)
         {
             SetData(data);
@@ -122,25 +119,25 @@ namespace Couchbase.Lite
             SetJSON(json);
         }
 
-        internal MutableDocument([NotNull]Collection collection, [NotNull]string id)
+        internal MutableDocument(Collection collection, string id)
             : base(collection, id)
         {
 
         }
 
-        internal MutableDocument([NotNull]Document doc)
+        internal MutableDocument(Document doc)
             : this(doc.Collection, doc.Id, doc.c4Doc?.Retain<C4DocumentWrapper>())
         {
 
         }
 
-        private MutableDocument([CanBeNull] Collection collection, [NotNull]string id, [CanBeNull]C4DocumentWrapper c4Doc)
+        private MutableDocument(Collection? collection, string id, C4DocumentWrapper? c4Doc)
             : base(collection, id, c4Doc)
         {
             
         }
 
-        private MutableDocument([NotNull]MutableDocument other)
+        private MutableDocument(MutableDocument other)
             : this((Document)other)
         {
             var dict = new MutableDictionaryObject();
@@ -180,7 +177,7 @@ namespace Couchbase.Lite
         }
         #endif
 
-        private static object MutableCopy(object original)
+        private static object? MutableCopy(object? original)
         {
             switch (original) {
                 case DictionaryObject dict:
@@ -227,6 +224,10 @@ namespace Couchbase.Lite
                 Native.FLEncoder_SetExtraInfo(encoder, (void *)GCHandle.ToIntPtr(handle));
 
                 try {
+                    if(_dict == null) {
+                        throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Null dictionary in MutableDocument.Encode");
+                    }
+
                     _dict.FLEncode(encoder);
                 } catch (Exception) {
                     Native.FLEncoder_Reset(encoder);
@@ -257,13 +258,13 @@ namespace Couchbase.Lite
         #region IMutableDictionary
 
         /// <inheritdoc />
-        public new MutableArrayObject GetArray(string key)
+        public new MutableArrayObject? GetArray(string key)
         {
             return Dict?.GetArray(key);
         }
 
         /// <inheritdoc />
-        public new MutableDictionaryObject GetDictionary(string key)
+        public new MutableDictionaryObject? GetDictionary(string key)
         {
             return Dict?.GetDictionary(key);
         }
@@ -276,21 +277,21 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetValue(string key, object value)
+        public IMutableDictionary SetValue(string key, object? value)
         {
             Dict?.SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetData(IDictionary<string, object> dictionary)
+        public IMutableDictionary SetData(IDictionary<string, object?> dictionary)
         {
             Dict?.SetData(dictionary);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetString(string key, string value)
+        public IMutableDictionary SetString(string key, string? value)
         {
             Dict?.SetString(key, value);
             return this;
@@ -332,7 +333,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetBlob(string key, Blob value)
+        public IMutableDictionary SetBlob(string key, Blob? value)
         {
             Dict?.SetBlob(key, value);
             return this;
@@ -346,23 +347,24 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetArray(string key, ArrayObject value)
+        public IMutableDictionary SetArray(string key, ArrayObject? value)
         {
             Dict?.SetArray(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetDictionary(string key, DictionaryObject value)
+        public IMutableDictionary SetDictionary(string key, DictionaryObject? value)
         {
             Dict?.SetDictionary(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary SetJSON([NotNull] string json)
+        public IMutableDictionary SetJSON(string json)
         {
-            return Dict?.SetJSON(json);
+            Dict?.SetJSON(json);
+            return this;
         }
 
         #endregion

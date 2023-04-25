@@ -24,13 +24,13 @@ namespace Couchbase.Lite.Internal.Serialization
     {
         #region Variables
 
-        private MValue _slot;
+        private MValue? _slot;
 
         #endregion
 
         #region Properties
 
-        public MContext Context { get; private set; }
+        public MContext? Context { get; private set; }
 
         public bool IsMutable { get; private set; }
 
@@ -38,7 +38,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public bool MutableChildren { get; set; }
 
-        public MCollection Parent { get; private set; }
+        public MCollection? Parent { get; private set; }
 
         #endregion
 
@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Protected Methods
 
-        protected virtual void InitInSlot(MValue slot, MCollection parent, bool isMutable)
+        protected virtual void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
         {
             Debug.Assert(slot != null);
             Debug.Assert(Context == MContext.Null);

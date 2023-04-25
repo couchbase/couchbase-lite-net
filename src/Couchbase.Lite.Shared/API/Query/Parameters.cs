@@ -18,14 +18,12 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
 
 using LiteCore.Interop;
 
@@ -46,12 +44,12 @@ namespace Couchbase.Lite.Query
 
         #region Variables
 
-        [NotNull] private readonly Freezer _freezer = new Freezer();
+        private readonly Freezer _freezer = new Freezer();
 
-        [NotNull] private readonly Dictionary<string, object> _params;
+        private readonly Dictionary<string, object?> _params;
 
         // LiveQuerier needs QueryBase to SetParameters.
-        [CanBeNull] private QueryBase _query;
+        private QueryBase? _query;
 
         #endregion
 
@@ -62,27 +60,27 @@ namespace Couchbase.Lite.Query
         /// </summary>
         public Parameters()
         {
-            _params = new Dictionary<string, object>();
+            _params = new Dictionary<string, object?>();
         }
 
         /// <summary>
         /// Copy constructor
         /// </summary>
         /// <param name="parameters">The object to copy values from</param>
-        public Parameters([NotNull]Parameters parameters)
+        public Parameters(Parameters parameters)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(parameters), parameters);
-            _params = new Dictionary<string, object>(parameters._params);
+            _params = new Dictionary<string, object?>(parameters._params);
         }
 
-        internal Parameters([NotNull]Dictionary<string, object> values)
+        internal Parameters(Dictionary<string, object?> values)
         {
             _params = values;
         }
 
         internal Parameters(QueryBase query)
         {
-            _params = new Dictionary<string, object>();
+            _params = new Dictionary<string, object?>();
             _query = query;
         }
 
@@ -95,7 +93,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="key">The key to lookup</param>
         /// <returns>The value of the key, or <c>null</c> if it does not exist</returns>
-        public object GetValue([NotNull]string key) => 
+        public object? GetValue(string key) => 
             _params.TryGetValue(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key), out var existing) ? existing : null;
 
         /// <summary>
@@ -104,8 +102,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetBlob([NotNull]string name, [CanBeNull]Blob value)
+        public Parameters SetBlob(string name, Blob? value)
         {
             SetValue(name, value);
             return this;
@@ -117,8 +114,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetBoolean([NotNull]string name, bool value)
+        public Parameters SetBoolean(string name, bool value)
         {
             SetValue(name, value);
             return this;
@@ -130,8 +126,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetDate([NotNull]string name, [CanBeNull]DateTimeOffset value)
+        public Parameters SetDate(string name, DateTimeOffset value)
         {
             SetValue(name, value);
             return this;
@@ -143,8 +138,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetDouble([NotNull]string name, double value)
+        public Parameters SetDouble(string name, double value)
         {
             SetValue(name, value);
             return this;
@@ -156,8 +150,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetFloat([NotNull]string name, float value)
+        public Parameters SetFloat(string name, float value)
         {
             SetValue(name, value);
             return this;
@@ -169,8 +162,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetInt([NotNull]string name, int value)
+        public Parameters SetInt(string name, int value)
         {
             SetValue(name, value);
             return this;
@@ -182,8 +174,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetLong([NotNull]string name, long value)
+        public Parameters SetLong(string name, long value)
         {
             SetValue(name, value);
             return this;
@@ -195,8 +186,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetString([NotNull]string name, [CanBeNull]string value)
+        public Parameters SetString(string name, string? value)
         {
             SetValue(name, value);
             return this;
@@ -208,8 +198,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
-        [NotNull]
-        public Parameters SetValue([NotNull]string name, [CanBeNull]object value)
+        public Parameters SetValue(string name, object? value)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
 
@@ -229,7 +218,6 @@ namespace Couchbase.Lite.Query
 
         #region Internal Methods
 
-        [NotNull]
         internal Parameters Freeze()
         {
             var retVal = new Parameters(this);
@@ -247,7 +235,6 @@ namespace Couchbase.Lite.Query
         #region Overrides
 
         /// <inheritdoc />
-        [NotNull]
         public override string ToString()
         {
             return JsonConvert.SerializeObject(_params) ?? "(null)";

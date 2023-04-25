@@ -1,7 +1,7 @@
 //
 // C4Socket_native.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,10 +31,10 @@ namespace LiteCore.Interop
         public static extern void c4socket_registerFactory(C4SocketFactory factory);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4Socket_setNativeHandle(C4Socket* x, void* y);
+        public static extern void c4Socket_setNativeHandle(C4Socket* socket, void* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void* c4Socket_getNativeHandle(C4Socket* x);
+        public static extern void* c4Socket_getNativeHandle(C4Socket* socket);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus, FLSlice responseHeadersFleece);
@@ -45,7 +45,7 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_closed(C4Socket* socket, C4Error errorIfAny);
 
-        public static void c4socket_closeRequested(C4Socket* socket, int status, string message)
+        public static void c4socket_closeRequested(C4Socket* socket, int status, string? message)
         {
             using(var message_ = new C4String(message)) {
                 NativeRaw.c4socket_closeRequested(socket, status, message_.AsFLSlice());
@@ -57,7 +57,7 @@ namespace LiteCore.Interop
             NativeRaw.c4socket_completedWrite(socket, (UIntPtr)byteCount);
         }
 
-        public static void c4socket_received(C4Socket* socket, byte[] data)
+        public static void c4socket_received(C4Socket* socket, byte[]? data)
         {
             fixed(byte *data_ = data) {
                 NativeRaw.c4socket_received(socket, new FLSlice(data_, data == null ? 0 : (ulong)data.Length));

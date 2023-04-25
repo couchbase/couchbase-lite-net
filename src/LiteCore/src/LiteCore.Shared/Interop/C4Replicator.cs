@@ -68,10 +68,10 @@ namespace LiteCore.Interop
         private C4ReplicatorParameters _c4Params;
         private C4SocketFactory _factoryKeepAlive;
         private bool _hasFactory;
-        private C4ReplicatorDocumentEndedCallback _onDocumentEnded;
-        private C4ReplicatorStatusChangedCallback _onStatusChanged;
-        private ReplicationCollection[] _replicationCollections;
-        private C4ReplicationCollection[] _rawReplicationCollectionHandles;
+        private C4ReplicatorDocumentEndedCallback? _onDocumentEnded;
+        private C4ReplicatorStatusChangedCallback? _onStatusChanged;
+        private ReplicationCollection[]? _replicationCollections;
+        private C4ReplicationCollection[]? _rawReplicationCollectionHandles;
         private GCHandle _replicationCollectionsHandle;
 
         #endregion
@@ -80,7 +80,7 @@ namespace LiteCore.Interop
 
         public C4ReplicatorParameters C4Params => _c4Params;
 
-        public unsafe object Context
+        public unsafe object? Context
         {
             get => GCHandle.FromIntPtr((IntPtr) _c4Params.callbackContext).Target;
             set {
@@ -94,21 +94,21 @@ namespace LiteCore.Interop
             }
         }
 
-        public C4ReplicatorDocumentEndedCallback OnDocumentEnded
+        public C4ReplicatorDocumentEndedCallback? OnDocumentEnded
         {
             get => _onDocumentEnded;
             set {
                 _onDocumentEnded = value;
-                _c4Params.onDocumentEnded = Marshal.GetFunctionPointerForDelegate(value);
+                _c4Params.onDocumentEnded = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
             }
         }
 
-        public C4ReplicatorStatusChangedCallback OnStatusChanged
+        public C4ReplicatorStatusChangedCallback? OnStatusChanged
         {
             get => _onStatusChanged;
             set {
                 _onStatusChanged = value;
-                _c4Params.onStatusChanged = Marshal.GetFunctionPointerForDelegate(value);
+                _c4Params.onStatusChanged = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
             }
         }
 
@@ -133,7 +133,7 @@ namespace LiteCore.Interop
             }
         }
 
-        public ReplicationCollection[] ReplicationCollections
+        public ReplicationCollection[]? ReplicationCollections
         {
             get => _replicationCollections;
             set => _replicationCollections = value;
@@ -143,7 +143,7 @@ namespace LiteCore.Interop
 
         #region Constructors
 
-        public ReplicatorParameters(IDictionary<string, object> options)
+        public ReplicatorParameters(IDictionary<string, object?> options)
         {
             if (options != null) {
                 _c4Params.optionsDictFleece = (FLSlice) options.FLEncode();
@@ -192,7 +192,7 @@ namespace LiteCore.Interop
                 return;
             }
 
-            _rawReplicationCollectionHandles = new C4ReplicationCollection[_replicationCollections.Length];
+            _rawReplicationCollectionHandles = new C4ReplicationCollection[_replicationCollections!.Length];
             for (int i = 0; i < _replicationCollections.Length; i++) {
                 _rawReplicationCollectionHandles[i] = _replicationCollections[i].C4ReplicationCol;
             }
@@ -248,9 +248,9 @@ namespace LiteCore.Interop
         #region Variables
 
         private C4ReplicationCollection _c4ReplicationCol;
-        private C4ReplicatorValidationFunction _pushFilter;
-        private C4ReplicatorValidationFunction _validation;
-        private CollectionSpec _spec;
+        private C4ReplicatorValidationFunction? _pushFilter;
+        private C4ReplicatorValidationFunction? _validation;
+        private CollectionSpec? _spec;
 
         #endregion
 
@@ -258,7 +258,7 @@ namespace LiteCore.Interop
 
         public C4ReplicationCollection C4ReplicationCol => _c4ReplicationCol;
 
-        public unsafe object Context
+        public unsafe object? Context
         {
             get => GCHandle.FromIntPtr((IntPtr)_c4ReplicationCol.callbackContext).Target;
             set {
@@ -279,12 +279,12 @@ namespace LiteCore.Interop
             set => _c4ReplicationCol.pull = value;
         }
 
-        public C4ReplicatorValidationFunction PullFilter
+        public C4ReplicatorValidationFunction? PullFilter
         {
             get => _validation;
             set {
                 _validation = value;
-                _c4ReplicationCol.pullFilter = Marshal.GetFunctionPointerForDelegate(value);
+                _c4ReplicationCol.pullFilter = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
             }
         }
 
@@ -294,21 +294,21 @@ namespace LiteCore.Interop
             set => _c4ReplicationCol.push = value;
         }
 
-        public C4ReplicatorValidationFunction PushFilter
+        public C4ReplicatorValidationFunction? PushFilter
         {
             get => _pushFilter;
             set {
                 _pushFilter = value;
-                _c4ReplicationCol.pushFilter = Marshal.GetFunctionPointerForDelegate(value);
+                _c4ReplicationCol.pushFilter = value != null ? Marshal.GetFunctionPointerForDelegate(value) : IntPtr.Zero;
             }
         }
 
-        public CollectionSpec Spec
+        public CollectionSpec? Spec
         {
             get => _spec;
             set {
                 _spec = value;
-                _c4ReplicationCol.collection = _spec;
+                _c4ReplicationCol.collection = _spec ?? new C4CollectionSpec();
             }
         }
 
@@ -316,7 +316,7 @@ namespace LiteCore.Interop
 
         #region Constructors
 
-        public ReplicationCollection(IDictionary<string, object> options)
+        public ReplicationCollection(IDictionary<string, object?> options)
         {
             if (options != null) {
                 _c4ReplicationCol.optionsDictFleece = (FLSlice)options.FLEncode();
@@ -359,7 +359,7 @@ namespace LiteCore.Interop
     {
         #region Public Methods
 
-        public static C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, string remoteDatabaseName, C4ReplicatorParameters @params, C4Error* err)
+        public static C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, string? remoteDatabaseName, C4ReplicatorParameters @params, C4Error* err)
         {
             using (var remoteDatabaseName_ = new C4String(remoteDatabaseName)) {
                 return c4repl_new(db, remoteAddress, remoteDatabaseName_.AsFLSlice(), @params, err);

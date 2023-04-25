@@ -26,12 +26,9 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
@@ -56,10 +53,10 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private readonly Dictionary<string, object> _properties;
-        private byte[] _content;
-        private Database _db;
-        private Stream _initialContentStream;
+        private readonly Dictionary<string, object?>? _properties;
+        private byte[]? _content;
+        private Database? _db;
+        private Stream? _initialContentStream;
 
         #endregion
 
@@ -72,9 +69,8 @@ namespace Couchbase.Lite
         /// Gets the contents of the blob as an in-memory array
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown if this blob has no associated data (unusual)</exception>
-        [CanBeNull]
         [JsonIgnore]
-        public byte[] Content
+        public byte[]? Content
         {
             get {
                 if(_content != null) {
@@ -138,9 +134,8 @@ namespace Couchbase.Lite
         /// <remarks>
         /// The caller is responsible for disposing the Stream when finished with it.
         /// </remarks>
-        [CanBeNull]
         [JsonIgnore]
-        public Stream ContentStream
+        public Stream? ContentStream
         {
             get {
                 if(_db != null) {
@@ -157,16 +152,14 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the content type of the blob
         /// </summary>
-        [CanBeNull]
         [JsonProperty("content_type")]
-        public string ContentType { get; }
+        public string? ContentType { get; }
 
         /// <summary>
         /// Gets the digest of the blob, once it is saved
         /// </summary>
-        [CanBeNull]
         [JsonProperty("digest")]
-        public string Digest { get; internal set; }
+        public string? Digest { get; internal set; }
 
         /// <summary>
         /// Gets the length of the data that the blob contains
@@ -177,17 +170,15 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the metadata of the blob instance
         /// </summary>
-        [NotNull]
         [JsonIgnore]
-        public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(PropertiesInDict);
+        public IReadOnlyDictionary<string, object?> Properties => new ReadOnlyDictionary<string, object?>(PropertiesInDict);
 
-        [NotNull]
-        internal IReadOnlyDictionary<string, object> JsonRepresentation
+        internal IReadOnlyDictionary<string, object?> JsonRepresentation
         {
             get {
-                var json = new Dictionary<string, object>(MutableProperties) {
+                var json = new Dictionary<string, object?>(MutableProperties) {
                     [Constants.ObjectTypeProperty] = Constants.ObjectTypeBlob,
-                    [LengthKey] = Length > 0 ? (object)Length : null
+                    [LengthKey] = Length > 0 ? Length : null
                 };
                 if (Digest != null) {
                     json[DigestKey] = Digest;
@@ -199,8 +190,7 @@ namespace Couchbase.Lite
             }
         }
 
-        [NotNull]
-        private IDictionary<string, object> MutableProperties
+        private IDictionary<string, object?> MutableProperties
         {
             get {
                 if(_properties != null) {
@@ -211,14 +201,14 @@ namespace Couchbase.Lite
             }
         }
 
-        private IDictionary<string, object> PropertiesInDict
+        private IDictionary<string, object?> PropertiesInDict
         {
             get
             {
-                return new NonNullDictionary<string, object>
+                return new NonNullDictionary<string, object?>
                 {
                     [DigestKey] = Digest,
-                    [LengthKey] = Length > 0 ? (object)Length : null,
+                    [LengthKey] = Length > 0 ? Length : null,
                     [ContentTypeKey] = ContentType
                 };
             }
@@ -239,7 +229,7 @@ namespace Couchbase.Lite
         /// <param name="content">The content of the blob</param>
         /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>content</c> is <c>null</c></exception>
-        public Blob(string contentType, [NotNull]byte[] content)
+        public Blob(string contentType, byte[] content)
         {
             ContentType = contentType;
             _content = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(content), content);
@@ -253,7 +243,7 @@ namespace Couchbase.Lite
         /// <param name="stream">The stream containing the blob content</param>
         /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>stream</c> is <c>null</c></exception>
-        public Blob(string contentType, [NotNull]Stream stream)
+        public Blob(string contentType, Stream stream)
         {
             ContentType = contentType;
             _initialContentStream = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(stream), stream);
@@ -267,7 +257,7 @@ namespace Couchbase.Lite
         /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>fileUrl</c> is <c>null</c></exception>
         /// <exception cref="ArgumentException">Thrown if fileUrl is not a file based URL</exception>
-        public Blob(string contentType, [NotNull]Uri fileUrl)
+        public Blob(string contentType, Uri fileUrl)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(fileUrl), fileUrl);
 
@@ -279,11 +269,11 @@ namespace Couchbase.Lite
             _initialContentStream = File.OpenRead(fileUrl.AbsolutePath);
         }
 
-        internal Blob([NotNull]Database db, [NotNull]IDictionary<string, object> properties)
+        internal Blob(Database db, IDictionary<string, object?> properties)
         {
             SetupProperties(properties);
             _db = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(db), db);
-            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, 
+            _properties = new Dictionary<string, object?>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, 
                 nameof(properties), properties));
             _content = properties.GetCast<byte[]>(DataKey);
             ContentType = properties.GetCast<string>(ContentTypeKey);
@@ -292,15 +282,15 @@ namespace Couchbase.Lite
             }
         }
 
-        internal Blob([NotNull]IDictionary<string, object> properties)
+        internal Blob(IDictionary<string, object?> properties)
         {
-            if (!Blob.IsBlob(properties)) {
+            if (!IsBlob(properties)) {
                 throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidJSONDictionaryForBlob);
             }
 
             Length = properties.GetCast<int>(LengthKey);
             Digest = properties.GetCast<string>(DigestKey);
-            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag,
+            _properties = new Dictionary<string, object?>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag,
                 nameof(properties), properties));
             ContentType = properties.GetCast<string>(ContentTypeKey);
         }
@@ -321,13 +311,13 @@ namespace Couchbase.Lite
         /// digest       | String                 | Yes       | The cryptographic digest of the Blob’s content.
         /// </param>
         /// <returns>Return true if the given dictionary represents Blob, otherwise return false</returns>
-        public static bool IsBlob(IDictionary<string, object> blobDict)
+        public static bool IsBlob(IDictionary<string, object?> blobDict)
         {
-            if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || blobDict[Constants.ObjectTypeProperty].GetType() != typeof(string) 
-                || (string) blobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
-                || (blobDict.ContainsKey(Blob.ContentTypeKey) && blobDict[Blob.ContentTypeKey].GetType() != typeof(string))
-                || (blobDict.ContainsKey(Blob.LengthKey) && Convert.ToInt64(blobDict[Blob.LengthKey]).GetType() != typeof(Int64))
-                || blobDict[Blob.DigestKey].GetType() != typeof(string)) {
+            if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || blobDict[Constants.ObjectTypeProperty]?.GetType() != typeof(string) 
+                || blobDict[Constants.ObjectTypeProperty] as string != Constants.ObjectTypeBlob
+                || (blobDict.ContainsKey(ContentTypeKey) && blobDict[ContentTypeKey]?.GetType() != typeof(string))
+                || (blobDict.ContainsKey(LengthKey) && Convert.ToInt64(blobDict[LengthKey]).GetType() != typeof(Int64))
+                || blobDict[DigestKey]?.GetType() != typeof(string)) {
                 return false;
             }
 
@@ -343,8 +333,10 @@ namespace Couchbase.Lite
             var extra = Native.FLEncoder_GetExtraInfo(enc);
             if (extra != null) {
                 // This blob is attached to a document, so save the full metadata
-                var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument;
-                var database = document.Database;
+                var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument
+                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Failed to get MutableDocument from GCHandle");
+                var database = document.Database
+                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Document from FLEncoder doesn't have database set");
                 try {
                     Install(database);
                 } catch (Exception) {
@@ -363,9 +355,9 @@ namespace Couchbase.Lite
 
         internal bool JSONEquals(Dictionary<string, object> obj)
         {
-            if ((obj.ContainsKey(DigestKey) & Digest.Equals(obj[DigestKey])) && 
+            if ((obj.ContainsKey(DigestKey) & Digest?.Equals(obj[DigestKey]) == true) && 
                 (obj.ContainsKey(LengthKey) & Length == (Int64)obj[LengthKey]) && 
-                (obj.ContainsKey(ContentTypeKey) & ContentType.Equals(obj[ContentTypeKey])) &&
+                (obj.ContainsKey(ContentTypeKey) & ContentType?.Equals(obj[ContentTypeKey]) == true) &&
                 (obj.ContainsKey(Constants.ObjectTypeProperty) & Type.Equals(obj[Constants.ObjectTypeProperty]))) {
                 return true;
             }
@@ -373,7 +365,7 @@ namespace Couchbase.Lite
             return false;
         }
 
-        internal void Install([NotNull]Database db)
+        internal void Install(Database db)
         {
             Debug.Assert(db != null);
 
@@ -439,7 +431,7 @@ namespace Couchbase.Lite
  
         #region Private Methods
 
-        private void SetupProperties([NotNull] IDictionary<string, object> properties)
+        private void SetupProperties(IDictionary<string, object?> properties)
         {
             properties.Remove(Constants.ObjectTypeProperty);
 
@@ -450,7 +442,7 @@ namespace Couchbase.Lite
         private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
         {
             try {
-                *outBlobStore = _db.BlobStore;
+                *outBlobStore = _db != null ? _db.BlobStore : null;
                 return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
             } catch(InvalidOperationException) {
                 return false;
@@ -467,7 +459,7 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the specified object is equal to the current object; otherwise, <c>false</c>.</returns>
         /// <param name="obj">The object to compare with the current object. </param>
 #pragma warning disable 659
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
 #pragma warning restore 659
         {
             if (obj is Blob other) {

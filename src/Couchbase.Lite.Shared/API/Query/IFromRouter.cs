@@ -16,8 +16,6 @@
 // limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -33,8 +31,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to use in the FROM portion of the query</param>
         /// <returns>The next FROM portion of the query for further processing</returns>
-        [NotNull]
-        IFrom From([NotNull]IDataSource dataSource);
+        IFrom From(IDataSource dataSource);
 
         #endregion
     }

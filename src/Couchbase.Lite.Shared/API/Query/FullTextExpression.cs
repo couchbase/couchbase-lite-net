@@ -20,8 +20,6 @@ using System;
 
 using Couchbase.Lite.Internal.Query;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -40,7 +38,6 @@ namespace Couchbase.Lite.Query
         /// check against</param>
         /// <returns>The generated query expression</returns>
         [Obsolete("This class deprecated, please use Match(string indexName, string query) in FullTextFunction class.")]
-        [NotNull]
         public static IFullTextExpression Index(string name) =>
             new QueryCompoundExpression("MATCH()", Expression.String(name), Expression.String(String.Empty));
 

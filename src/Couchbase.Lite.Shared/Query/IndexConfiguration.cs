@@ -18,6 +18,7 @@
 
 using LiteCore.Interop;
 using System;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -28,7 +29,7 @@ namespace Couchbase.Lite.Internal.Query
         /// <summary>
         /// Gets the expressions to use to create the index
         /// </summary>
-        public string[] Expressions { get; }
+        public string[]? Expressions { get; }
 
         internal C4QueryLanguage QueryLanguage { get; }
 
@@ -58,6 +59,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal string ToN1QL()
         {
+            Debug.Assert(Expressions != null);
             if (Expressions.Length == 1)
                 return Expressions[0];
 

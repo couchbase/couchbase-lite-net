@@ -1,7 +1,7 @@
 //
 // C4QueryTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ namespace LiteCore.Interop
         public uint length;
     }
 
-	internal unsafe struct C4QueryEnumerator
+	internal unsafe partial struct C4QueryEnumerator
     {
         public FLArrayIterator columns;
         public ulong missingColumns;

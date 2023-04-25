@@ -17,12 +17,11 @@
 // 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -44,6 +43,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryGroupBy(IList<IExpression> expressions)
         {
+            Debug.Assert(expressions != null);
             _expressions = expressions;
             GroupByImpl = this;
         }
@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Internal.Query
             GroupByImpl = this;
         }
 
-        internal QueryGroupBy([NotNull]IExpression expression)
+        internal QueryGroupBy(IExpression expression)
         {
             Debug.Assert(expression != null);
             _expressions = new[] {expression};
@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public object ToJSON()
         {
-            var obj = new List<object>();
+            var obj = new List<object?>();
             foreach (var o in _expressions.OfType<QueryExpression>()) {
                 obj.Add(o.ConvertToJSON());
             }
@@ -80,7 +80,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IHavingRouter
 
-        public IHaving Having([NotNull]IExpression expression)
+        public IHaving Having(IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             return new Having(this, expression);
@@ -90,7 +90,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
+        public IOrderBy OrderBy(params IOrdering[] orderings)
         {
             CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             return new QueryOrderBy(this, orderings);

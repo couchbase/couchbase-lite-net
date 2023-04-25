@@ -25,10 +25,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
@@ -497,7 +494,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private delegate string ErrorMessageVisitor(C4Error err);
+        private delegate string? ErrorMessageVisitor(C4Error err);
 
         #endregion
 
@@ -530,7 +527,7 @@ namespace Couchbase.Lite
         {
         }
         
-        internal CouchbaseException(C4Error err, string message, Exception innerException) : base(message, innerException)
+        internal CouchbaseException(C4Error err, string message, Exception? innerException) : base(message, innerException)
         {
             LiteCoreError = err;
             Error = MapError(err);
@@ -539,7 +536,6 @@ namespace Couchbase.Lite
 
         #endregion
 
-        [NotNull]
         internal static CouchbaseException Create(C4Error err)
         {
             switch (err.domain) {
@@ -601,8 +597,6 @@ namespace Couchbase.Lite
             }
         }
 
-        [NotNull]
-        [ItemNotNull]
         private static IEnumerable<ErrorMessageVisitor> MessageVisitors()
         {
             yield return VisitBugReportList;
@@ -610,7 +604,7 @@ namespace Couchbase.Lite
             yield return VisitDefault;
         }
 
-        private static string VisitBugReportList(C4Error err)
+        private static string? VisitBugReportList(C4Error err)
         {
             if (err.domain == C4ErrorDomain.LiteCoreDomain && _BugReportErrors.Contains(err.code)) {
                 return
@@ -620,7 +614,7 @@ namespace Couchbase.Lite
             return null;
         }
 
-        private static string VisitCantUpgrade(C4Error err)
+        private static string? VisitCantUpgrade(C4Error err)
         {
             if (err.domain == C4ErrorDomain.LiteCoreDomain && err.code == (int) C4ErrorCode.CantUpgradeDatabase) {
                 return

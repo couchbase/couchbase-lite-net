@@ -59,13 +59,13 @@ namespace LiteCore.Interop
         private static readonly SocketCompletedReceiveDelegate _completedReceive;
         private static readonly SocketDisposeDelegate _dispose;
 
-        private static SocketOpenDelegate _externalOpen;
-        private static SocketCloseDelegate _externalClose;
-        private static SocketRequestCloseDelegateManaged _externalRequestClose;
-        private static SocketWriteDelegateManaged _externalWrite;
-        private static SocketCompletedReceiveDelegateManaged _externalCompletedReceive;
-        private static SocketErrorDelegate _error;
-        private static SocketDisposeDelegate _externalDispose;
+        private static SocketOpenDelegate? _externalOpen;
+        private static SocketCloseDelegate? _externalClose;
+        private static SocketRequestCloseDelegateManaged? _externalRequestClose;
+        private static SocketWriteDelegateManaged? _externalWrite;
+        private static SocketCompletedReceiveDelegateManaged? _externalCompletedReceive;
+        private static SocketErrorDelegate? _error;
+        private static SocketDisposeDelegate? _externalDispose;
 
         internal static C4SocketFactory InternalFactory { get; }
 
@@ -96,7 +96,7 @@ namespace LiteCore.Interop
         private static void SocketRequestClose(C4Socket* socket, int status, FLSlice message)
         {
             try {
-                _externalRequestClose?.Invoke(socket, status, message.CreateString());
+                _externalRequestClose?.Invoke(socket, status, message.CreateString() ?? "");
             } catch (Exception e) {
                 _error?.Invoke(socket, new Exception("Error requesting socket close", e));
             }
@@ -172,7 +172,7 @@ namespace LiteCore.Interop
         private static void SocketWrittenTo(C4Socket* socket, FLSliceResult allocatedData)
         {
             try {
-                _externalWrite?.Invoke(socket, ((FLSlice) allocatedData).ToArrayFast());
+                _externalWrite?.Invoke(socket, ((FLSlice) allocatedData).ToArrayFast() ?? new byte[0]);
             } catch (Exception e) {
                 _error?.Invoke(socket, new Exception("Error writing to socket", e));
                 Native.c4socket_closed(socket, new C4Error(C4ErrorCode.UnexpectedError));
@@ -201,7 +201,7 @@ namespace LiteCore.Interop
     internal static unsafe partial class Native
     {
         public static void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus,
-            IDictionary<string, object> headers)
+            IDictionary<string, object>? headers)
         {
             using (var headers_ = headers.FLEncode()) {
                 c4socket_gotHTTPResponse(socket, httpStatus, (FLSlice)headers_);

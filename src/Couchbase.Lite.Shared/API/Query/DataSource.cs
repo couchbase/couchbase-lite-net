@@ -20,7 +20,6 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
 using System;
 
 namespace Couchbase.Lite.Query
@@ -44,8 +43,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="collection">The collection to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
-        [NotNull]
-        public static IDataSourceAs Collection([NotNull] Collection collection)
+        public static IDataSourceAs Collection(Collection collection)
         {
             var c = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
             return new DatabaseSource(c, c.ThreadSafety);
@@ -58,8 +56,7 @@ namespace Couchbase.Lite.Query
         /// <param name="database">The database to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
         [Obsolete("DataSource.Database is deprecated, please use DataSource.Collection")]
-        [NotNull]
-        public static IDataSourceAs Database([NotNull]Database database)
+        public static IDataSourceAs Database(Database database)
         {
             var db = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(database), database);
 

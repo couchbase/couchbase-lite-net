@@ -45,8 +45,8 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
-        private string _authorizationHeader;
+        private readonly Dictionary<string, string?> _headers = new Dictionary<string, string?>();
+        private string? _authorizationHeader;
         private uint _redirectCount;
         private UriBuilder _urlRequest;
 
@@ -54,9 +54,9 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
-        public NetworkCredential Credential { get; set; }
+        public NetworkCredential? Credential { get; set; }
 
-        public Exception Error { get; private set; }
+        public Exception? Error { get; private set; }
 
         public bool HandleRedirects { get; set; }
 
@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Sync
 
         public int HttpStatus { get; private set; }
 
-        public string this[string key]
+        public string? this[string key]
         {
             get => _headers[key];
             set => _headers[key] = value?.TrimEnd();
@@ -190,7 +190,7 @@ namespace Couchbase.Lite.Sync
         private static string GetUserAgent()
 		{
 
-			var versionAtt = (AssemblyInformationalVersionAttribute)typeof(Database).GetTypeInfo().Assembly
+			var versionAtt = (AssemblyInformationalVersionAttribute?)typeof(Database).GetTypeInfo().Assembly
 				.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
 			var version = versionAtt?.InformationalVersion ?? "Unknown";
             var regex = new Regex("([0-9]+\\.[0-9]+\\.[0-9]+)-b([0-9]+)");
@@ -212,7 +212,7 @@ namespace Couchbase.Lite.Sync
             return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";
 		}
 
-        private string CreateAuthHeader()
+        private string? CreateAuthHeader()
         {
             if (Credential == null) {
                 return null;
@@ -225,13 +225,11 @@ namespace Couchbase.Lite.Sync
 
         private bool Redirect(HttpMessageParser parser)
         {
-            string location;
-            if (!parser.Headers.TryGetValue("location", out location)) {
+            if (!parser.Headers.TryGetValue("location", out var location)) {
                 return false;
             }
 
-            Uri url;
-            if (!Uri.TryCreate(UrlRequest, location, out url)) {
+            if (!Uri.TryCreate(UrlRequest, location, out var url)) {
                 return false;
             }
 

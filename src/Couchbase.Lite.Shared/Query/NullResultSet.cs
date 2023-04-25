@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -29,9 +30,9 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count { get; } = 0;
 
-        object IEnumerator.Current => Current;
+        object? IEnumerator.Current => Current;
 
-        public Result Current { get; } = null;
+        public Result Current => throw new InvalidOperationException("NullResultSet cannot be iterated, it is empty");
 
         #endregion
 

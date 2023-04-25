@@ -25,9 +25,6 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Info;
-
-using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
@@ -52,7 +49,6 @@ namespace Couchbase.Lite.Logging
 
         #region Variables
 
-        [NotNull]
         private readonly Freezer _freezer = new Freezer();
 
         private int _maxRotateCount = Constants.DefaultLogFileMaxRotateCount;
@@ -66,7 +62,6 @@ namespace Couchbase.Lite.Logging
         /// <summary>
         /// Gets the directory that the log files are stored in.
         /// </summary>
-        [NotNull]
         public string Directory { get; }
 
         /// <summary>
@@ -113,7 +108,7 @@ namespace Couchbase.Lite.Logging
         /// Constructs a file configuration object with the given directory
         /// </summary>
         /// <param name="directory">The directory that logs will be written to</param>
-        public LogFileConfiguration([NotNull]string directory)
+        public LogFileConfiguration(string directory)
         {
             Directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(directory), directory);
         }
@@ -123,7 +118,7 @@ namespace Couchbase.Lite.Logging
         /// that it may be modified
         /// </summary>
         /// <param name="other">The other configuration to copy settings from</param>
-        public LogFileConfiguration([NotNull]LogFileConfiguration other)
+        public LogFileConfiguration(LogFileConfiguration other)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(other), other);
             Directory = other.Directory;
@@ -138,7 +133,7 @@ namespace Couchbase.Lite.Logging
         /// </summary>
         /// <param name="directory">The directory that logs will be written to</param>
         /// <param name="other">The other configuration to copy the other settings from</param>
-        public LogFileConfiguration([NotNull]string directory, LogFileConfiguration other)
+        public LogFileConfiguration(string directory, LogFileConfiguration? other)
             : this(directory)
         {
             if (other != null) {
@@ -170,10 +165,9 @@ namespace Couchbase.Lite.Logging
     {
         #region Variables
 
-        [NotNull]
         private readonly Dictionary<LogDomain,IntPtr> _domainObjects = new Dictionary<LogDomain, IntPtr>();
 
-        private LogFileConfiguration _config;
+        private LogFileConfiguration? _config;
 
         #endregion
 
@@ -184,7 +178,7 @@ namespace Couchbase.Lite.Logging
         /// Note that once it is set, it can no longer be modified and doing so
         /// will throw an exception.
         /// </summary>
-        public LogFileConfiguration Config
+        public LogFileConfiguration? Config
         {
             get => _config;
             set {
@@ -204,13 +198,13 @@ namespace Couchbase.Lite.Logging
         /// </summary>
         public LogLevel Level
         {
-            get => (LogLevel)NativeRaw.c4log_binaryFileLevel();
+            get => (LogLevel)Native.c4log_binaryFileLevel();
             set {
                 if (Config == null) {
                     throw new InvalidOperationException("Cannot set logging level without a configuration");
                 }
 
-                NativeRaw.c4log_setBinaryFileLevel((C4LogLevel) value);
+                Native.c4log_setBinaryFileLevel((C4LogLevel) value);
             }
         }
 
@@ -224,7 +218,7 @@ namespace Couchbase.Lite.Logging
         public FileLogger()
         {
             SetupDomainObjects();
-            NativeRaw.c4log_setBinaryFileLevel(C4LogLevel.None);
+            Native.c4log_setBinaryFileLevel(C4LogLevel.None);
         }
 
         #endregion
@@ -246,7 +240,7 @@ namespace Couchbase.Lite.Logging
             _domainObjects[LogDomain.Replicator] = (IntPtr)Native.c4log_getDomain(bytes, true);
 
             foreach (var domain in _domainObjects) {
-                NativeRaw.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),
+                Native.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),
                     C4LogLevel.Debug);
             }
 
@@ -255,7 +249,7 @@ namespace Couchbase.Lite.Logging
                 WriteLog.LogDomainSyncBusy, 
                 WriteLog.LogDomainWebSocket
             }) {
-                NativeRaw.c4log_setLevel(domain, C4LogLevel.Debug);
+                Native.c4log_setLevel(domain, C4LogLevel.Debug);
             }
         }
 
@@ -276,7 +270,7 @@ namespace Couchbase.Lite.Logging
                     use_plaintext = _config?.UsePlaintext ?? false,
                     header = header.AsFLSlice()
                 };
-                LiteCoreBridge.Check(err => NativeRaw.c4log_writeToBinaryFile(options, err));
+                LiteCoreBridge.Check(err => Native.c4log_writeToBinaryFile(options, err));
             }
         }
 

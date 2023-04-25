@@ -28,4 +28,10 @@ namespace LiteCore.Interop
             flags = C4EnumeratorFlags.IncludeNonConflicted | C4EnumeratorFlags.IncludeBodies
         };
     }
+
+    internal partial struct C4DocumentInfo
+    {
+        public const long TimestampError = -1;
+        public const long TimestampNone = 0;
+    }
 }

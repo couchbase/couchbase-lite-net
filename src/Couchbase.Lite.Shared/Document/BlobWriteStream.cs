@@ -21,13 +21,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
-
 using LiteCore;
 using LiteCore.Interop;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Doc
 {
@@ -62,7 +57,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
-        public BlobWriteStream([NotNull]C4BlobStore* store)
+        public BlobWriteStream(C4BlobStore* store)
         {
             Debug.Assert(store != null);
 

@@ -17,14 +17,12 @@
 // 
 
 using Couchbase.Lite.Support;
-using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -63,10 +61,8 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the database that this document belongs to, if any
         /// </summary>
-        [NotNull]
         internal Database Database { get; set; }
 
-        [NotNull]
         internal ThreadSafety ThreadSafety { get; }
 
         /// <summary>
@@ -83,13 +79,13 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Scope([NotNull] Database database)
+        internal Scope(Database database)
         {
             Database = database;
             ThreadSafety = database.ThreadSafety;
         }
 
-        internal Scope([NotNull] Database database, string scope)
+        internal Scope(Database database, string scope)
             :this(database)
         {
             Name = scope;
@@ -108,7 +104,7 @@ namespace Couchbase.Lite
         /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// if <see cref="Database"/> is closed</exception>
         /// <exception cref = "InvalidOperationException" > Thrown if <see cref="Collection"/> is not valid.</exception>
-        public Collection GetCollection(string name)
+        public Collection? GetCollection(string name)
         {
             return ThreadSafety.DoLocked(() =>
             {
@@ -124,7 +120,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                Collection coll = null;
+                Collection? coll = null;
                 var c4c = GetCollectionFromLiteCore(name);
                 if (c4c != null) {
                     coll = new Collection(Database, name, this, c4c);
@@ -143,7 +139,8 @@ namespace Couchbase.Lite
         public IReadOnlyList<Collection> GetCollections()
         {
             GetCollectionList();
-            return _collections?.Values as IReadOnlyList<Collection>;
+            return _collections.Values as IReadOnlyList<Collection>
+                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Invalid cast in GetCollections()");
         }
 
         #endregion
@@ -166,7 +163,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                Collection co = null;
+                Collection co;
                 using (var collName_ = new C4String(collectionName))
                 using (var scopeName_ = new C4String(Name)) {
                     var collectionSpec = new C4CollectionSpec() 
@@ -180,10 +177,9 @@ namespace Couchbase.Lite
                         return Native.c4db_createCollection(c4Db, collectionSpec, err);
                     });
 
-                    if (c4c != null) {
-                        co = new Collection(Database, collectionName, this, c4c);
-                        _collections.TryAdd(collectionName, co); 
-                    }
+                    // c4c is not null now, otherwise the above throws an exception
+                    co = new Collection(Database, collectionName, this, c4c);
+                    _collections.TryAdd(collectionName, co);
                 }
                 
                 return co;
@@ -231,10 +227,11 @@ namespace Couchbase.Lite
                 if (error.code == 0) {
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
                     for (uint i = 0; i < collsCnt; i++) {
-                        var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        var c4c = GetCollectionFromLiteCore(collStr);
+                        var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                        var c4c = collStr != null ? GetCollectionFromLiteCore(collStr) : null;
                         if (c4c != null) {
-                            var coll = new Collection(Database, collStr, this, c4c);
+                            // if c4c is not null, it is because collStr is not null
+                            var coll = new Collection(Database, collStr!, this, c4c);
                             cos.Add(coll);
                         }
                     }
@@ -266,12 +263,12 @@ namespace Couchbase.Lite
                 var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
                 if (error.code == 0) {
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
-                    if (_collections?.Count > collsCnt)
+                    if (_collections.Count > collsCnt)
                         _collections.Clear();
 
                     for (uint i = 0; i < collsCnt; i++) {
-                        var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        if (!_collections.ContainsKey(collStr)) {
+                        var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                        if (collStr != null && !_collections.ContainsKey(collStr)) {
                             var c4c = GetCollectionFromLiteCore(collStr);
                             if (c4c != null) {
                                 var coll = new Collection(Database, collStr, this, c4c);
@@ -311,7 +308,8 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region object
+        #region Overrides
+
         /// <inheritdoc />
         public override int GetHashCode()
         {
@@ -319,7 +317,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (!(obj is Scope other)) {
                 return false;
@@ -330,6 +328,7 @@ namespace Couchbase.Lite
 
         /// <inheritdoc />
         public override string ToString() => $"SCOPE[{Name}]";
+
         #endregion
 
         #region IDisposable

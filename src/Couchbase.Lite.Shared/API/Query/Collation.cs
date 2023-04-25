@@ -19,8 +19,6 @@
 using System.Globalization;
 using Couchbase.Lite.Internal.Query;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -37,14 +35,12 @@ namespace Couchbase.Lite.Query
         /// Creates an ASCII based collation instance
         /// </summary>
         /// <returns>An ASCII based collation instance</returns>
-        [NotNull]
         public static IASCIICollation ASCII() => new QueryCollation(false);
 
         /// <summary>
         /// Creates a Unicode based collation instance (http://unicode.org/reports/tr10/)
         /// </summary>
         /// <returns>A Unicode based collation instance</returns>
-        [NotNull]
         public static IUnicodeCollation Unicode() => new QueryCollation(true);
     }
 }

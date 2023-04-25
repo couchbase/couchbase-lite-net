@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Support
             return Task.Delay(time).ContinueWith(t => DispatchSync(a));
         }
 
-        public Task<TResult> DispatchAfter<TResult>(Func<TResult> f, TimeSpan time)
+        public Task<TResult?> DispatchAfter<TResult>(Func<TResult> f, TimeSpan time)
         {
             return Task.Delay(time).ContinueWith(t => DispatchSync(f));
         }
@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Support
             if(a.Target is Sync.WebSocketWrapper)
                 WriteLog.To.Sync.V(Tag, $"DispatchAsync {a.Method}");
             var tcs = new TaskCompletionSource<bool>();
-            _queue.Enqueue(new SerialQueueItem { Action = a, Tcs = tcs, SyncContext = SynchronizationContext.Current ?? new SynchronizationContext() });
+            _queue.Enqueue(new SerialQueueItem(a, SynchronizationContext.Current ?? new SynchronizationContext(), tcs));
             StartProcessAsync();
 
             return tcs.Task;
@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Support
             }
         }
 
-        public T DispatchSync<T>(Func<T> f)
+        public T? DispatchSync<T>(Func<T?> f)
         {
             var retVal = default(T);
             DispatchSync(new Action(() => retVal = f()));
@@ -172,9 +172,8 @@ namespace Couchbase.Lite.Support
 
         private void ProcessAsync()
         {
-            SerialQueueItem next;
             var oldThread = _currentProcessingThread;
-            while(_queue.TryDequeue(out next)) {
+            while(_queue.TryDequeue(out var next)) {
                 
                 State = SerialQueueState.Processing;
                 lock(_executionLock) {
@@ -183,15 +182,15 @@ namespace Couchbase.Lite.Support
                         next.Action();
                         next.SyncContext.Post(s =>
                         {
-                            var item = (SerialQueueItem) s;
-                            item.Tcs.SetResult(true);
+                            var item = (SerialQueueItem?) s;
+                            item?.Tcs?.SetResult(true);
                         }, next);
                     } catch(Exception e) {
                         WriteLog.To.Database.W(Tag, "Exception during DispatchAsync", e);
                         next.SyncContext.Post(s =>
                         {
-                            var item = (SerialQueueItem)s;
-                            item.Tcs.SetResult(true);
+                            var item = (SerialQueueItem?)s;
+                            item?.Tcs?.SetResult(true);
                         }, next);
                     } finally {
                         _currentProcessingThread = oldThread;
@@ -227,6 +226,13 @@ namespace Couchbase.Lite.Support
             public SynchronizationContext SyncContext;
 
             public TaskCompletionSource<bool> Tcs;
+
+            public SerialQueueItem(Action action, SynchronizationContext syncContext, TaskCompletionSource<bool> tcs)
+            {
+                Action = action;
+                SyncContext = syncContext;
+                Tcs = tcs;
+            }
 
             #endregion
         }

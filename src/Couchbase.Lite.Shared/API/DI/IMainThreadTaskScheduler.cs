@@ -18,8 +18,6 @@
 
 using System.Threading.Tasks;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.DI
 {
     /// <summary>
@@ -47,7 +45,6 @@ namespace Couchbase.Lite.DI
         /// it can be used for various .NET framework methods
         /// </summary>
         /// <returns>The main thread scheduler cast to a <see cref="TaskScheduler"/></returns>
-        [NotNull]
         TaskScheduler AsTaskScheduler();
 
         #endregion

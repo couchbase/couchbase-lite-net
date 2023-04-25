@@ -1,7 +1,7 @@
 //
 // C4SocketTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,14 +34,14 @@ namespace LiteCore.Interop
         WebSocketCloseNoCode           = 1005,
         WebSocketCloseAbnormal         = 1006,
         WebSocketCloseBadMessageFormat = 1007,
-        WebSocketClosePolicyError      = 1008,
-        WebSocketCloseMessageTooBig    = 1009,
+        WebSocketClosePolicyError = 1008,
+        WebSocketCloseMessageTooBig = 1009,
         WebSocketCloseMissingExtension = 1010,
         WebSocketCloseCantFulfill      = 1011,
         WebSocketCloseTLSFailure       = 1015,
-        WebSocketCloseAppTransient     = 4001,
-        WebSocketCloseAppPermanent     = 4002,
-        WebSocketCloseFirstAvailable   = 5000,
+        WebSocketCloseAppTransient = 4001,
+        WebSocketCloseAppPermanent = 4002,
+        WebSocketCloseFirstAvailable = 5000,
     }
 
     internal enum C4SocketFraming : byte
@@ -51,7 +51,7 @@ namespace LiteCore.Interop
         WebSocketServerFraming,
     }
 
-    internal unsafe struct C4SocketFactory
+    internal unsafe partial struct C4SocketFactory
     {
         public C4SocketFraming framing;
         public void* context;

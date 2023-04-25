@@ -32,7 +32,11 @@ namespace Couchbase.Lite.Support
 			get {
 				var manufacturer = Build.Manufacturer;
 				var model = Build.Model;
-				if (model.StartsWith(manufacturer, StringComparison.InvariantCultureIgnoreCase)) {
+				if(model == null) {
+					return $"{manufacturer ?? "Unknown Manufacturer"} Unknown Model";
+				}
+
+				if (manufacturer == null || model.StartsWith(manufacturer, StringComparison.InvariantCultureIgnoreCase)) {
 					return Capitalize(model);
 				} else {
 					return $"{Capitalize(manufacturer)} {model}";

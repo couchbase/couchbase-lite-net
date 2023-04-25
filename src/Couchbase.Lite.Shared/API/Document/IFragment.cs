@@ -18,8 +18,6 @@
 
 using System;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -37,7 +35,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check</param>
         /// <returns>The value of the given key, or lack thereof</returns>
-        [NotNull]
         IFragment this[string key] { get; }
 
         #endregion
@@ -58,7 +55,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to check</param>
         /// <returns>The value of the given index, or lack thereof</returns>
-        [NotNull]
         IFragment this[int index] { get; }
 
         #endregion
@@ -78,20 +74,17 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the value of the fragment as an untyped object
         /// </summary>
-        [CanBeNull]
-        object Value { get; }
+        object? Value { get; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="ArrayObject"/>
         /// </summary>
-        [CanBeNull]
-        ArrayObject Array { get; }
+        ArrayObject? Array { get; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="Blob"/>
         /// </summary>
-        [CanBeNull]
-        Blob Blob { get; }
+        Blob? Blob { get; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="Boolean" />
@@ -113,8 +106,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contained value as a <see cref="DictionaryObject"/>
         /// </summary>
-        [CanBeNull]
-        DictionaryObject Dictionary { get; }
+        DictionaryObject? Dictionary { get; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="Double"/>
@@ -147,7 +139,6 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contained value as a <see cref="String"/>
         /// </summary>
-        [CanBeNull]
-        string String { get; }
+        string? String { get; }
     }
 }

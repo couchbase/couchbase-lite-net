@@ -24,11 +24,7 @@ using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc
 {
@@ -42,7 +38,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Variables
 
-        private IDictionary<string, object> _dict;
+        private IDictionary<string, object?> _dict;
 
         #endregion
 
@@ -64,16 +60,16 @@ namespace Couchbase.Lite.Internal.Doc
 
         public InMemoryDictionary()
         {
-            _dict = new Dictionary<string, object>();
+            _dict = new Dictionary<string, object?>();
         }
 
-        public InMemoryDictionary(IDictionary<string, object> dictionary)
+        public InMemoryDictionary(IDictionary<string, object?> dictionary)
         {
-            _dict = new Dictionary<string, object>(dictionary);
+            _dict = new Dictionary<string, object?>(dictionary);
             HasChanges = _dict.Count > 0;
         }
 
-        public InMemoryDictionary([NotNull]InMemoryDictionary other)
+        public InMemoryDictionary(InMemoryDictionary other)
             : this(other._dict)
         {
             
@@ -83,7 +79,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Private Methods
 
-        private void SetObject([NotNull]string key, object value)
+        private void SetObject(string key, object? value)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
 
@@ -104,12 +100,12 @@ namespace Couchbase.Lite.Internal.Doc
             return _dict.ContainsKey(key);
         }
 
-        public ArrayObject GetArray(string key)
+        public ArrayObject? GetArray(string key)
         {
             return GetValue(key) as ArrayObject;
         }
 
-        public Blob GetBlob(string key)
+        public Blob? GetBlob(string key)
         {
              return GetValue(key) as Blob;
         }
@@ -124,7 +120,7 @@ namespace Couchbase.Lite.Internal.Doc
             return DataOps.ConvertToDate(GetValue(key));
         }
 
-        public DictionaryObject GetDictionary(string key)
+        public DictionaryObject? GetDictionary(string key)
         {
             return GetValue(key) as DictionaryObject;
         }
@@ -149,12 +145,12 @@ namespace Couchbase.Lite.Internal.Doc
             return DataOps.ConvertToLong(GetValue(key));
         }
 
-        public string GetString(string key)
+        public string? GetString(string key)
         {
             return GetValue(key) as string;
         }
 
-        public object GetValue(string key)
+        public object? GetValue(string key)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
 
@@ -163,14 +159,14 @@ namespace Couchbase.Lite.Internal.Doc
             }
 
             var cblObj = DataOps.ToCouchbaseObject(obj);
-            if (cblObj != obj && cblObj?.GetType() != obj.GetType()) {
+            if (cblObj != obj && cblObj?.GetType() != obj?.GetType()) {
                 _dict[key] = cblObj;
             }
 
             return cblObj;
         }
 
-        public Dictionary<string, object> ToDictionary()
+        public Dictionary<string, object?> ToDictionary()
         {
             return _dict.ToDictionary(x => x.Key, x => DataOps.ToNetObject(x.Value));
         }
@@ -188,7 +184,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IEnumerable<KeyValuePair<string,object>>
 
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
         {
             return _dict.GetEnumerator();
         }
@@ -215,12 +211,12 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IMutableDictionary
 
-        MutableArrayObject IMutableDictionary.GetArray(string key)
+        MutableArrayObject? IMutableDictionary.GetArray(string key)
         {
             return GetValue(key) as MutableArrayObject;
         }
 
-        MutableDictionaryObject IMutableDictionary.GetDictionary(string key)
+        MutableDictionaryObject? IMutableDictionary.GetDictionary(string key)
         {
             return GetValue(key) as MutableDictionaryObject;
         }
@@ -237,13 +233,13 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IMutableDictionary SetArray(string key, ArrayObject value)
+        public IMutableDictionary SetArray(string key, ArrayObject? value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary SetBlob(string key, Blob value)
+        public IMutableDictionary SetBlob(string key, Blob? value)
         {
             SetObject(key, value);
             return this;
@@ -255,7 +251,7 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IMutableDictionary SetData(IDictionary<string, object> dictionary)
+        public IMutableDictionary SetData(IDictionary<string, object?> dictionary)
         {
             _dict = dictionary.ToDictionary(x => x.Key, x => DataOps.ToCouchbaseObject(x.Value));
             HasChanges = true;
@@ -268,7 +264,7 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IMutableDictionary SetDictionary(string key, DictionaryObject value)
+        public IMutableDictionary SetDictionary(string key, DictionaryObject? value)
         {
             SetObject(key, value);
             return this;
@@ -298,21 +294,26 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IMutableDictionary SetString(string key, string value)
+        public IMutableDictionary SetString(string key, string? value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary SetValue(string key, object value)
+        public IMutableDictionary SetValue(string key, object? value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary SetJSON([NotNull] string json)
+        public IMutableDictionary SetJSON(string json)
         {
-            return SetData(DataOps.ParseTo<Dictionary<string, object>>(json));
+            var data = DataOps.ParseTo<Dictionary<string, object?>>(json);
+            if(data == null) {
+                throw new ArgumentException("Bad json received in SetJSON", nameof(json));
+            }
+
+            return SetData(data);
         }
 
         #endregion

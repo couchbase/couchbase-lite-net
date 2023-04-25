@@ -1,7 +1,7 @@
 //
-// Fleece_defs.cs
+// FLBase_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,26 +49,6 @@ namespace LiteCore.Interop
         Trusted
     }
 
-    internal enum FLValueType
-    {
-        Undefined = -1,
-        Null = 0,
-        Boolean,
-        Number,
-        String,
-        Data,
-        Array,
-        Dict
-    }
-
-    internal enum FLCopyFlags
-    {
-        DefaultCopy        = 0,
-        DeepCopy           = 1,
-        CopyImmutables     = 2,
-        DeepCopyImmutables = (DeepCopy | CopyImmutables),
-    }
-
 	internal unsafe struct FLValue
     {
     }
@@ -104,48 +84,4 @@ namespace LiteCore.Interop
 	internal unsafe struct FLSharedKeys
     {
     }
-
-    internal unsafe struct FLArrayIterator
-    {
-        #pragma warning disable CS0169
-
-        private void* _private1;
-        private uint _private2;
-        private byte _private3;
-        private void* _private4;
-
-        #pragma warning restore CS0169
-    }
-
-    internal unsafe struct FLDictIterator
-    {
-        #pragma warning disable CS0169
-
-        private void* _private1;
-        private uint _private2;
-        private byte _private3;
-
-        // _private4[4]
-        private void* _private4a;
-        private void* _private4b;
-        private void* _private4c;
-        private void* _private4d;
-        private int _private5;
-
-        #pragma warning restore CS0169
-    }
-
-    internal unsafe struct FLDictKey
-    {
-        #pragma warning disable CS0169
-
-        private FLSlice _private1;
-        private void* _private2;
-        private uint _private3;
-        private uint _private4;
-        private byte _private5;
-
-        #pragma warning restore CS0169
-    }
-
 }

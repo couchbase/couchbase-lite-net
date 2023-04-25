@@ -18,7 +18,6 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
@@ -40,8 +39,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
-        [NotNull]
-        public static IJoin CrossJoin([NotNull]IDataSource dataSource)
+        public static IJoin CrossJoin(IDataSource dataSource)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new QueryJoin("CROSS", dataSource);
@@ -52,8 +50,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
-        [NotNull]
-        public static IJoinOn InnerJoin([NotNull]IDataSource dataSource)
+        public static IJoinOn InnerJoin(IDataSource dataSource)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new QueryJoin(null, dataSource);
@@ -64,8 +61,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
-        [NotNull]
-        public static IJoinOn LeftJoin([NotNull]IDataSource dataSource)
+        public static IJoinOn LeftJoin(IDataSource dataSource)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return LeftOuterJoin(dataSource);
@@ -76,8 +72,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
-        [NotNull]
-        public static IJoinOn LeftOuterJoin([NotNull]IDataSource dataSource)
+        public static IJoinOn LeftOuterJoin(IDataSource dataSource)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new QueryJoin("LEFT OUTER", dataSource);

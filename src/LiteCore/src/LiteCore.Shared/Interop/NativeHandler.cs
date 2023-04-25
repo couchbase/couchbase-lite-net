@@ -45,9 +45,9 @@ namespace LiteCore.Interop
     /// </summary>
     internal unsafe delegate int C4TryLogicDelegate3(C4Error* err);
 
-    internal unsafe delegate byte[] C4TryLogicDelegate4(C4Error* err);
+    internal unsafe delegate byte[]? C4TryLogicDelegate4(C4Error* err);
 
-    internal unsafe delegate string C4TryLogicDelegate5(C4Error* err);
+    internal unsafe delegate string? C4TryLogicDelegate5(C4Error* err);
 
     #endregion
 
@@ -57,11 +57,9 @@ namespace LiteCore.Interop
     /// </summary>
     internal sealed class NativeHandler
     {
-
-
         #region Variables
 
-        private Action<CouchbaseException> _exceptionHandler;
+        private Action<CouchbaseException>? _exceptionHandler;
 
         private readonly List<C4Error> _allowedErrors = new List<C4Error>();
 
@@ -72,7 +70,7 @@ namespace LiteCore.Interop
         /// <summary>
         /// Gets the exception thrown during the operation, if any
         /// </summary>
-        public CouchbaseException Exception { get; private set; }
+        public CouchbaseException? Exception { get; private set; }
 
         #endregion
 
@@ -197,7 +195,7 @@ namespace LiteCore.Interop
             return retVal;
         }
 
-        public unsafe byte[] Execute(C4TryLogicDelegate4 block)
+        public unsafe byte[]? Execute(C4TryLogicDelegate4 block)
         {
             Debug.Assert(block != null);
 
@@ -213,7 +211,7 @@ namespace LiteCore.Interop
             return retVal;
         }
 
-        public unsafe string Execute(C4TryLogicDelegate5 block)
+        public unsafe string? Execute(C4TryLogicDelegate5 block)
         {
             Debug.Assert(block != null);
 

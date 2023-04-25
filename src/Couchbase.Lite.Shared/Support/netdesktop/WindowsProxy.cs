@@ -38,7 +38,7 @@ namespace Couchbase.Lite.Support
     {
         #region Variables
 
-        private SafeWinHttpHandle _parentHandle = null;
+        private SafeWinHttpHandle? _parentHandle = null;
 
         #endregion
 
@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Support
 
         #region Public Methods
 
-        public static void DisposeAndClearHandle(ref SafeWinHttpHandle safeHandle)
+        public static void DisposeAndClearHandle(ref SafeWinHttpHandle? safeHandle)
         {
             if (safeHandle != null)
             {
@@ -155,7 +155,7 @@ namespace Couchbase.Lite.Support
 
         [DllImport("winhttp.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         private static extern SafeWinHttpHandle WinHttpOpen([In] [Optional] [MarshalAs(UnmanagedType.LPWStr)]
-            string pwszUserAgent,
+            string? pwszUserAgent,
             [In] uint dwAccessType, [In] [MarshalAs(UnmanagedType.LPWStr)] string pwszProxyName,
             [In] [MarshalAs(UnmanagedType.LPWStr)] string pwszProxyBypass, [In] uint dwFlags);
 
@@ -163,14 +163,14 @@ namespace Couchbase.Lite.Support
 
         #region IProxy
 
-        public Task<WebProxy> CreateProxyAsync(Uri destination)
+        public Task<WebProxy?> CreateProxyAsync(Uri destination)
         {
             var ieProxy = new WINHTTP_CURRENT_USER_IE_PROXY_CONFIG();
             var success = WinHttpGetIEProxyConfigForCurrentUser(out ieProxy);
             if (success && ieProxy.Proxy != IntPtr.Zero) {
                 var proxyUrl = Marshal.PtrToStringUni(ieProxy.Proxy);
                 var bypassList = Marshal.PtrToStringUni(ieProxy.ProxyBypass)?.Split(';', ' ', '\t', '\r', '\n');
-                return Task.FromResult(new WebProxy(new Uri($"http://{proxyUrl}"), bypassList?.Contains("<local>") ?? false, bypassList));
+                return Task.FromResult<WebProxy?>(new WebProxy(new Uri($"http://{proxyUrl}"), bypassList?.Contains("<local>") ?? false, bypassList));
             }
 
             var session = WinHttpOpen(null, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
@@ -178,7 +178,7 @@ namespace Couchbase.Lite.Support
             if (session.IsInvalid) {
                 WriteLog.To.Sync.W(Tag,
                     $"Unable to open WinHttp session to query for proxy (error code: {Marshal.GetLastWin32Error()})");
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             var options = new WINHTTP_AUTOPROXY_OPTIONS
@@ -209,18 +209,18 @@ namespace Couchbase.Lite.Support
                     WriteLog.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl failed (possible direct connection)...");
                 }
 
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             if (info.Proxy == IntPtr.Zero) {
                 WriteLog.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl succeed, however, proxy server list is null.");
-                return Task.FromResult<WebProxy>(null);
+                return Task.FromResult(default(WebProxy));
             }
 
             var url = Marshal.PtrToStringUni(info.Proxy);
             var bypass = Marshal.PtrToStringUni(info.ProxyBypass)?.Split(';', ' ', '\t', '\r', '\n');
             //TODO: free memory allocated by proxy server list and bypass list
-            return Task.FromResult(new WebProxy(new Uri($"http://{url}"), bypass?.Contains("<local>") ?? false, bypass));
+            return Task.FromResult<WebProxy?>(new WebProxy(new Uri($"http://{url}"), bypass?.Contains("<local>") ?? false, bypass));
         }
 
         #endregion
@@ -233,7 +233,7 @@ namespace Couchbase.Lite.Support
             public uint Flags;
             public uint AutoDetectFlags;
             [MarshalAs(UnmanagedType.LPWStr)]
-            public string AutoConfigUrl;
+            public string? AutoConfigUrl;
             public IntPtr Reserved1;
             public uint Reserved2;
             [MarshalAs(UnmanagedType.Bool)]

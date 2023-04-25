@@ -1,7 +1,7 @@
 //
 // FLSlice_native.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,10 +38,10 @@ namespace LiteCore.Interop
         public static extern FLSliceResult FLSlice_Copy(FLSlice slice);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void _FLBuf_Retain(void* FL_NULLABLE);
+        public static extern void _FLBuf_Retain(void* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void _FLBuf_Release(void* FL_NULLABLE);
+        public static extern void _FLBuf_Release(void* x);
 
 
     }

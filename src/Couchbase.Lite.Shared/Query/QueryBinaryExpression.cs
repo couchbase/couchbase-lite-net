@@ -17,8 +17,7 @@
 // 
 using System.Collections.Generic;
 using System.Diagnostics;
-
-using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -69,7 +68,7 @@ namespace Couchbase.Lite.Internal.Query
 
         protected override object ToJSON()
         {
-            var obj = new List<object>();
+            var obj = new List<object?>();
             var useArrayOp = false;
             switch (_type) {
                 case BinaryOpType.Add:

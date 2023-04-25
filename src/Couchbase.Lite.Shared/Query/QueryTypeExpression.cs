@@ -15,16 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
-using Newtonsoft.Json;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -46,9 +42,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        private readonly IList<IExpression> _subpredicates;
-        private string _from;
-        private string _columnName;
+        private readonly IList<IExpression>? _subpredicates;
+        private string? _from;
+        private string? _columnName;
 
         #endregion
 
@@ -56,9 +52,9 @@ namespace Couchbase.Lite.Internal.Query
         
         internal ExpressionType ExpressionType { get; }
 
-        internal string KeyPath { get; }
+        internal string? KeyPath { get; }
 
-        internal string ColumnName => _columnName ?? (_columnName = KeyPath.Split('.').Last());
+        internal string? ColumnName => _columnName ?? (_columnName = KeyPath?.Split('.')?.Last());
 
         #endregion
 
@@ -96,7 +92,7 @@ namespace Couchbase.Lite.Internal.Query
                     ? '?'
                     : '.';
 
-            if (KeyPath.StartsWith("rank(")) {
+            if (KeyPath?.StartsWith("rank(") == true) {
                 return new object[] {"rank()", new[] {op.ToString(), KeyPath.Substring(5, KeyPath.Length - 6)}};
             }
 
@@ -107,7 +103,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Overrides
 
-        protected override object ToJSON()
+        protected override object? ToJSON()
         {
             switch (ExpressionType) {
                 case ExpressionType.KeyPath:
@@ -116,10 +112,12 @@ namespace Couchbase.Lite.Internal.Query
                     return CalculateKeyPath();
                 case ExpressionType.Aggregate:
                 {
-                    var obj = new List<object>();
-                    foreach (var entry in _subpredicates) {
-                        var queryExp = Misc.TryCast<IExpression, QueryExpression>(entry);
-                        obj.Add(queryExp.ConvertToJSON());
+                    var obj = new List<object?>();
+                    if (_subpredicates != null) {
+                        foreach (var entry in _subpredicates) {
+                            var queryExp = Misc.TryCast<IExpression, QueryExpression>(entry);
+                            obj.Add(queryExp.ConvertToJSON());
+                        }
                     }
 
                     return obj;
@@ -129,7 +127,7 @@ namespace Couchbase.Lite.Internal.Query
             return null;
         }
 
-        public IExpression From([NotNull]string alias)
+        public IExpression From(string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
             _from = alias;

@@ -19,7 +19,6 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
@@ -44,8 +43,7 @@ namespace Couchbase.Lite.Query
         /// <param name="variable">The name to assign to the variable that will be used later
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
-        [NotNull]
-        public static IArrayExpressionIn Any([NotNull]IVariableExpression variable) => 
+        public static IArrayExpressionIn Any(IVariableExpression variable) => 
             new QueryTernaryExpression("ANY",
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
@@ -59,8 +57,7 @@ namespace Couchbase.Lite.Query
         /// <param name="variable">The name to assign to the variable that will be used later
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
-        [NotNull]
-        public static IArrayExpressionIn AnyAndEvery([NotNull]IVariableExpression variable) => 
+        public static IArrayExpressionIn AnyAndEvery(IVariableExpression variable) => 
             new QueryTernaryExpression("ANY AND EVERY",
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
@@ -74,8 +71,7 @@ namespace Couchbase.Lite.Query
         /// <param name="variable">The name to assign to the variable that will be used later
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
-        [NotNull]
-        public static IArrayExpressionIn Every([NotNull]IVariableExpression variable) => 
+        public static IArrayExpressionIn Every(IVariableExpression variable) => 
             new QueryTernaryExpression("EVERY",
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
@@ -85,8 +81,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="name">The name of the variable</param>
         /// <returns>An expression representing the value of a named variable</returns>
-        [NotNull]
-        public static IVariableExpression Variable([NotNull]string name) => 
+        public static IVariableExpression Variable(string name) => 
             new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
                 ExpressionType.Variable);
     }

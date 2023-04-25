@@ -21,8 +21,6 @@ using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -35,35 +33,35 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         internal readonly IExpression Expression;
-        private string _alias;
+        private string? _alias;
         private string _from = String.Empty;
 
-        internal QuerySelectResult([NotNull]IExpression expression)
+        internal QuerySelectResult(IExpression expression)
         {
             Debug.Assert(expression != null);
             Expression = expression;
         }
 
-        public ISelectResult As([NotNull]string alias)
+        public ISelectResult As(string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
             _alias = alias;
             return this;
         }
 
-        public ISelectResult From([NotNull]string alias)
+        public ISelectResult From(string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
             _from = $"{alias}.";
-            (Expression as QueryTypeExpression).From(alias);
+            Misc.TryCast<IExpression, QueryTypeExpression>(Expression).From(alias);
             return this;
         }
 
-        public object ToJSON()
+        public object? ToJSON()
         {
-            var json = (Expression as QueryExpression).ConvertToJSON();
+            var json = Misc.TryCast<IExpression, QueryExpression>(Expression).ConvertToJSON();
             if (!String.IsNullOrEmpty(_alias))
-                json = new object[] { "AS", json, _alias };
+                json = new object?[] { "AS", json, _alias };
             return json;
         }
     }

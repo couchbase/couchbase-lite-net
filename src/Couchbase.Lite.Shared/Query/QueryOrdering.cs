@@ -20,8 +20,6 @@ using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Query;
-using JetBrains.Annotations;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -29,13 +27,13 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Properties
 
-        internal IList<IOrdering> Orders { get; }
+        internal IList<IOrdering>? Orders { get; }
 
         #endregion
 
         #region Constructors
 
-        internal QueryOrderBy(IList<IOrdering> orderBy)
+        internal QueryOrderBy(IList<IOrdering>? orderBy)
         {
             Orders = orderBy;
             OrderByImpl = this;
@@ -50,11 +48,13 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        public virtual object ToJSON()
+        public virtual object? ToJSON()
         {
-            var obj = new List<object>();
-            foreach (var o in Orders.OfType<QueryOrderBy>()) {
-                obj.Add(o.ToJSON());
+            var obj = new List<object?>();
+            if (Orders != null) {
+                foreach (var o in Orders.OfType<QueryOrderBy>()) {
+                    obj.Add(o.ToJSON());
+                }
             }
 
             return obj;
@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal SortOrder([NotNull]IExpression expression) : base(null)
+        internal SortOrder(IExpression expression) : base(null)
         {
             Debug.Assert(expression != null);
             IsAscending = true;
@@ -82,9 +82,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        public override object ToJSON()
+        public override object? ToJSON()
         {
-            var obj = new List<object>();
+            var obj = new List<object?>();
             if (Expression is QueryExpression exp) {
                 if (!IsAscending) {
                     obj.Add("DESC");

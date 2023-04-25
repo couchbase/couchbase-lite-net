@@ -18,8 +18,6 @@
 using System;
 using System.Collections.Generic;
 
-using JetBrains.Annotations;
-
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite
@@ -28,7 +26,7 @@ namespace Couchbase.Lite
     /// An interface representing a readonly key-value collection with type-safe accessors
     /// </summary>
     [JsonConverter(typeof(IDictionaryObjectConverter))]
-    public interface IDictionaryObject : IDictionaryFragment, IEnumerable<KeyValuePair<string, object>>
+    public interface IDictionaryObject : IDictionaryFragment, IEnumerable<KeyValuePair<string, object?>>
     {
         #region Properties
 
@@ -40,8 +38,6 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets all the keys held by this dictionary
         /// </summary>
-        [NotNull]
-        [ItemNotNull]
         ICollection<string> Keys { get; }
 
         #endregion
@@ -53,23 +49,21 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check for</param>
         /// <returns><c>true</c> if the dictionary contains the key, else <c>false</c></returns>
-        bool Contains([NotNull]string key);
+        bool Contains(string key);
 
         /// <summary>
         /// Gets the value of a given key as an <see cref="IArray"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [CanBeNull]
-        ArrayObject GetArray([NotNull]string key);
+        ArrayObject? GetArray(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Blob"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [CanBeNull]
-        Blob GetBlob([NotNull]string key);
+        Blob? GetBlob(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Boolean"/>
@@ -78,22 +72,21 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks>Any non-zero object will be treated as true, so don't rely on 
         /// any sort of parsing</remarks>
-        bool GetBoolean([NotNull]string key);
+        bool GetBoolean(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="DateTimeOffset"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or a default value</returns>
-        DateTimeOffset GetDate([NotNull]string key);
+        DateTimeOffset GetDate(string key);
 
         /// <summary>
         /// Gets the value of a given key as a readonly dictionary
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [CanBeNull]
-        DictionaryObject GetDictionary([NotNull]string key);
+        DictionaryObject? GetDictionary(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Double"/>
@@ -102,7 +95,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1.0, and everything else that
         /// is non-numeric will be 0.0</remarks>
-        double GetDouble([NotNull]string key);
+        double GetDouble(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Single"/>
@@ -111,7 +104,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
         /// is non-numeric will be 0.0f</remarks>
-        float GetFloat([NotNull]string key);
+        float GetFloat(string key);
 
         /// <summary>
         /// Gets the value of a given key as an <see cref="Int32"/>
@@ -120,7 +113,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
         /// will be rounded, and everything else non-numeric will be 0</remarks>
-        int GetInt([NotNull]string key);
+        int GetInt(string key);
 
         /// <summary>
         /// Gets the value of a given key as an <see cref="Int64"/>
@@ -129,7 +122,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
         /// will be rounded, and everything else non-numeric will be 0</remarks>
-        long GetLong([NotNull]string key);
+        long GetLong(string key);
 
         /// <summary>
         /// Gets the value of a given key as an untyped object
@@ -139,24 +132,21 @@ namespace Couchbase.Lite
         /// <remarks>This method should be avoided for numeric types, whose
         /// underlying representation is subject to change and thus
         /// <see cref="InvalidCastException"/>s </remarks>
-        [CanBeNull]
-        object GetValue([NotNull]string key);
+        object? GetValue(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="String"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [CanBeNull]
-        string GetString([NotNull]string key);
+        string? GetString(string key);
 
         /// <summary>
         /// Converts this object to a standard .NET string to object
         /// <see cref="Dictionary{TKey, TValue}"/>
         /// </summary>
         /// <returns>The contents of this object as a .NET dictionary</returns>
-        [NotNull]
-        Dictionary<string, object> ToDictionary();
+        Dictionary<string, object?> ToDictionary();
 
         #endregion
     }

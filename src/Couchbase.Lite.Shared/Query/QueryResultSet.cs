@@ -19,13 +19,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
-
-using JetBrains.Annotations;
 
 using LiteCore.Interop;
 
@@ -42,9 +41,9 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly C4QueryEnumerator* _c4Enum;
-        [NotNull]private readonly QueryResultContext _context;
+        private readonly QueryResultContext _context;
         private readonly QueryBase _query;
-        [NotNull]private readonly ThreadSafety _threadSafety;
+        private readonly ThreadSafety _threadSafety;
         private bool _disposed;
         private bool _enumeratorGenerated;
 
@@ -54,7 +53,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal IDictionary<string, int> ColumnNames { get; }
 
-        internal Collection Collection => _query?.Collection;
+        internal Collection? Collection => _query?.Collection;
 
         internal Result this[int index]
         {
@@ -76,21 +75,22 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryResultSet(QueryBase query, [NotNull]ThreadSafety threadSafety, C4QueryEnumerator* e,
+        internal QueryResultSet(QueryBase query, ThreadSafety threadSafety, C4QueryEnumerator* e,
             IDictionary<string, int> columnNames)
         {
             _query = query;
             _c4Enum = e;
             ColumnNames = columnNames;
             _threadSafety = threadSafety;
-            _context = new QueryResultContext(query?.Database, e);
+            Debug.Assert(query.Database != null);
+            _context = new QueryResultContext(query.Database, e);
         }
 
         #endregion
 
         #region Public Methods
 
-        public QueryResultSet Refresh()
+        public QueryResultSet? Refresh()
         {
             var query = _query;
             if (query == null) {
@@ -169,7 +169,7 @@ namespace Couchbase.Lite.Internal.Query
             #region Variables
 
             private readonly C4QueryEnumerator* _enum;
-            [NotNull]private readonly QueryResultSet _parent;
+            private readonly QueryResultSet _parent;
 
             #endregion
 
@@ -192,7 +192,7 @@ namespace Couchbase.Lite.Internal.Query
 
             #region Constructors
 
-            public Enumerator([NotNull]QueryResultSet parent)
+            public Enumerator(QueryResultSet parent)
             {
                 _parent = parent;
                 _enum = _parent._c4Enum;

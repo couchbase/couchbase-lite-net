@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -29,7 +27,6 @@ namespace Couchbase.Lite
         /// Access IConflictResolver.Default to get the singleton DefaultConflictResolver object.
         /// Then call methods on that instance.
         /// </summary>
-        [NotNull]
         public static IConflictResolver Default { get; } = new DefaultConflictResolver();
     }
 }

@@ -18,8 +18,6 @@
 
 using Couchbase.Lite.Internal.Doc;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -33,8 +31,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the <see cref="Document"/> from the document fragment
         /// </summary>
-        [CanBeNull]
-        public Document Document { get; }
+        public Document? Document { get; }
 
         /// <summary>
         /// Gets whether or not this document is in the database
@@ -48,7 +45,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal DocumentFragment(Document doc)
+        internal DocumentFragment(Document? doc)
         {
             Document = doc;
         }

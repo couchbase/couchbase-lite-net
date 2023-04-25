@@ -1,4 +1,4 @@
-        public string {0}
+        public string? {0}
         {{
             get {{
                 return Marshal.PtrToStringAnsi(_{0});

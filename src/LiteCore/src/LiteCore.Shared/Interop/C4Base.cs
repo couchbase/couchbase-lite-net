@@ -77,7 +77,7 @@ namespace LiteCore.Interop
 
         #region Overrides
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is C4Error other) {
                 return other.code == code && other.domain == domain;

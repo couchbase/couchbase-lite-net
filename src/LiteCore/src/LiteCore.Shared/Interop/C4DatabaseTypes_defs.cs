@@ -1,7 +1,7 @@
 //
 // C4DatabaseTypes_defs.cs
 //
-// Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// Copyright (c) 2023 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,12 @@ namespace LiteCore.Interop
     [Flags]
     internal enum C4DatabaseFlags : uint
     {
-        Create        = 0x01,
-        ReadOnly      = 0x02,
-        AutoCompact   = 0x04,
-        VersionVectors= 0x08,
-        NoUpgrade     = 0x20,
-        NonObservable = 0x40,
+        Create         = 0x01,
+        ReadOnly       = 0x02,
+        AutoCompact    = 0x04,
+        VersionVectors = 0x08,
+        NoUpgrade      = 0x20,
+        NonObservable  = 0x40,
     }
 
     internal enum C4EncryptionAlgorithm : uint
@@ -54,6 +54,13 @@ namespace LiteCore.Interop
         IntegrityCheck,
         QuickOptimize,
         FullOptimize,
+    }
+
+    internal enum C4DocumentVersioning : uint
+    {
+        TreeVersioning_v2,
+        TreeVersioning,
+        VectorVersioning
     }
 
 	internal unsafe partial struct C4EncryptionKey
@@ -80,10 +87,29 @@ namespace LiteCore.Interop
         public FLSlice scope;
     }
 
-	internal unsafe struct C4RawDocument
+	internal unsafe partial struct C4RawDocument
     {
         public FLSlice key;
         public FLSlice meta;
         public FLSlice body;
+    }
+
+	internal unsafe partial struct C4DatabaseConfig
+    {
+        public C4DatabaseFlags flags;
+        private IntPtr _storageEngine;
+        public C4DocumentVersioning versioning;
+        public C4EncryptionKey encryptionKey;
+
+        public string? storageEngine
+        {
+            get {
+                return Marshal.PtrToStringAnsi(_storageEngine);
+            }
+            set {
+                var old = Interlocked.Exchange(ref _storageEngine, Marshal.StringToHGlobalAnsi(value));
+                Marshal.FreeHGlobal(old);
+            }
+        }
     }
 }

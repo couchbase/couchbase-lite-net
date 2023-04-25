@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 
-using JetBrains.Annotations;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite
@@ -28,7 +27,7 @@ namespace Couchbase.Lite
     /// An interface representing a read-only linear collection of objects
     /// </summary>
     [JsonConverter(typeof(IArrayConverter))]
-    public interface IArray : IArrayFragment, IEnumerable<object>
+    public interface IArray : IArrayFragment, IEnumerable<object?>
     {
         #region Properties
 
@@ -46,16 +45,14 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [CanBeNull]
-        ArrayObject GetArray(int index);
+        ArrayObject? GetArray(int index);
 
         /// <summary>
         /// Gets the value at the given index as a <see cref="Blob"/>
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [CanBeNull]
-        Blob GetBlob(int index);
+        Blob? GetBlob(int index);
 
         /// <summary>
         /// Gets the value at the given index as a <see cref="bool"/>
@@ -78,8 +75,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [CanBeNull]
-        DictionaryObject GetDictionary(int index);
+        DictionaryObject? GetDictionary(int index);
 
         /// <summary>
         /// Gets the value at the given index as a <see cref="Double"/>
@@ -122,8 +118,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [CanBeNull]
-        string GetString(int index);
+        string? GetString(int index);
 
         /// <summary>
         /// Gets the value at the given index as an untyped object
@@ -133,14 +128,13 @@ namespace Couchbase.Lite
         /// <remarks>This method should be avoided for numeric types, whose
         /// underlying representation is subject to change and thus
         /// <see cref="InvalidCastException"/>s </remarks>
-        [CanBeNull]
-        object GetValue(int index);
+        object? GetValue(int index);
 
         /// <summary>
         /// Converts the contents of the array to a .NET list type
         /// </summary>
         /// <returns>The contents of the array as a .NET list</returns>
-        List<object> ToList();
+        List<object?> ToList();
 
         #endregion
     }

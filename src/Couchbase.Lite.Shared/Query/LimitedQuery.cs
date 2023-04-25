@@ -19,7 +19,6 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -33,7 +32,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region ILimitRouter
 
-        public ILimit Limit([NotNull]IExpression limit)
+        public ILimit Limit(IExpression limit)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
 
@@ -41,7 +40,7 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        public ILimit Limit([NotNull]IExpression limit, [CanBeNull]IExpression offset)
+        public ILimit Limit(IExpression limit, IExpression? offset)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
 

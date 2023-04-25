@@ -18,8 +18,6 @@
 
 using System;
 
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -35,7 +33,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to lookup the value for</param>
         /// <returns>The value, or lack thereof, wrapped in a <see cref="IMutableFragment"/></returns>
-        [NotNull]
         IMutableFragment this[string key] { get; }
 
         #endregion
@@ -54,7 +51,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup the value for</param>
         /// <returns>The value, or lack thereof, wrapped in a <see cref="IMutableFragment"/></returns>
-        [NotNull]
         IMutableFragment this[int index] { get; }
 
         #endregion
@@ -72,20 +68,17 @@ namespace Couchbase.Lite
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when a value is attempted to be
         /// set on a key path that does not exist</exception>
-        [CanBeNull]
-        object Value { get; set; }
+        object? Value { get; set; }
         
         /// <summary>
         /// Gets the contained value as a <see cref="MutableArrayObject"/>
         /// </summary>
-        [CanBeNull]
-        MutableArrayObject Array { get; set; }
+        MutableArrayObject? Array { get; set; }
         
         /// <summary>
         /// Gets the contained value as a <see cref="Blob"/>
         /// </summary>
-        [CanBeNull]
-        Blob Blob { get; set; }
+        Blob? Blob { get; set; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="Boolean"/>
@@ -100,8 +93,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contained value as a <see cref="MutableDictionaryObject"/>
         /// </summary>
-        [CanBeNull]
-        MutableDictionaryObject Dictionary { get; set; }
+        MutableDictionaryObject? Dictionary { get; set; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="Double"/>
@@ -126,7 +118,6 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contained value as a <see cref="String"/>
         /// </summary>
-        [CanBeNull]
-        string String { get; set; }
+        string? String { get; set; }
     }
 }
