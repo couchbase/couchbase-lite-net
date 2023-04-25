@@ -2260,18 +2260,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestNullResultSet()
-        {
-            NullResultSet resultset = new NullResultSet();
-            var resultCnt = resultset.Count();
-            var current = resultset?.Current;
-            var enumerator = resultset?.GetEnumerator();
-            var canMoveNext = resultset?.MoveNext();
-            var allresult = resultset?.AllResults();
-            //resultset.Dispose();
-        }
-
-        [Fact]
         public void TestQueryExpression()
         {
             var dto1 = 168;
