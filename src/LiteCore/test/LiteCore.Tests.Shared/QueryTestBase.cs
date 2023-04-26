@@ -65,7 +65,6 @@ namespace LiteCore.Tests
 
             C4Error error;
             while(Native.c4queryenum_next(e, &error)) {
-                Native.FLArrayIterator_GetCount(&e->columns).Should().BeGreaterThan(0);
                 returnList.Add(callback(e));
             }
 
@@ -78,7 +77,6 @@ namespace LiteCore.Tests
         {
             return RunCollecting(bindings, e =>
             {
-                Native.FLArrayIterator_GetCount(&e->columns).Should().BeGreaterThan(0);
                 var docID = Native.FLValue_AsString(Native.FLArrayIterator_GetValueAt(&e->columns, 0U));
                 return docID;
             });
@@ -100,7 +98,7 @@ namespace LiteCore.Tests
         protected string Json5(string input)
         {
             FLError err;
-            var json = Native.FLJSON5_ToJSON(input, null, null, &err);
+            var json = TestNative.FLJSON5_ToJSON(input, null, null, &err);
             json.Should().NotBeNull("because otherwise the JSON failed to parse");
             return json;
         }

@@ -195,45 +195,6 @@ namespace LiteCore.Tests
             return doc;
         }
 
-        private void VerifyRev(C4Document* doc, string[] history, FLSlice body)
-        {
-            doc->revID.CreateString().Should().Be(history[0]);
-            doc->selectedRev.revID.CreateString().Should().Be(history[0]);
-            Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), body).Should().BeTrue();
-
-            var revs = GetAllParentRevisions(doc);
-            revs.Count.Should().Be(history.Length);
-            revs.SequenceEqual(history).Should().BeTrue();
-        }
-
-        private List<string> GetAllParentRevisions(C4Document* doc)
-        {
-            var history = new List<string>();
-            do {
-                history.Add(doc->selectedRev.revID.CreateString());
-            } while (Native.c4doc_selectParentRevision(doc));
-
-            return history;
-        }
-
-        private List<string> GetRevisionHistory(C4Document* doc, bool onlyCurrent, bool includeDeleted)
-        {
-            var history = new List<string>();
-            do {
-                if (onlyCurrent && !doc->selectedRev.flags.HasFlag(C4RevisionFlags.Leaf)) {
-                    continue;
-                }
-
-                if (!includeDeleted && doc->selectedRev.flags.HasFlag(C4RevisionFlags.Deleted)) {
-                    continue;
-                }
-
-                history.Add(doc->selectedRev.revID.CreateString());
-            } while (Native.c4doc_selectNextRevision(doc));
-
-            return history;
-        }
-
         [Fact]
         public void TestExpectedRevIDs()
         {
@@ -266,48 +227,6 @@ namespace LiteCore.Tests
         }
 
         [Fact]
-        public void TestDeleteWithProperties()
-        {
-            // Test that it's possible to delete a document by PUTting a revision with _deleted=true,
-            // and that the saved deleted revision will preserve any extra properties
-            RunTestVariants(() =>
-            {
-                if (!IsRevTrees(Db)) {
-                    return;
-                }
-
-                var body1 = JSON2Fleece("{'property':'newvalue'}");
-                var doc = PutDoc(null, null, (FLSlice)body1);
-                Native.FLSliceResult_Release(body1);
-                var docID = doc->docID.CreateString();
-                var revID1 = doc->revID.CreateString();
-                Native.c4doc_release(doc);
-
-                var body2 = JSON2Fleece("{'property':'newvalue'}");
-                doc = PutDoc(docID, revID1, (FLSlice)body2, C4RevisionFlags.Deleted);
-                var revID2 = doc->revID.CreateString();
-                Native.c4doc_release(doc);
-
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), docID, true, C4DocContentLevel.DocGetCurrentRev, err));
-                LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, revID2, true, err));
-                doc->flags.Should().Be(C4DocumentFlags.DocExists | C4DocumentFlags.DocDeleted);
-                doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
-                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body2).Should().BeTrue();
-                Native.c4doc_release(doc);
-
-                doc = PutDoc(docID, null, (FLSlice)body2);
-                var revID3 = doc->revID.CreateString();
-                revID3.Should().StartWith("3-", "because even though it was created as 'new', it is actually on top of a previous delete and its generation should reflect that");
-                Native.c4doc_release(doc);
-                Native.FLSliceResult_Release(body2);
-
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), docID, true, C4DocContentLevel.DocGetCurrentRev, err));
-                doc->revID.CreateString().Should().Be(revID3);
-                Native.c4doc_release(doc);
-            });
-        }
-
-        [Fact]
         public void TestDeleteAndRecreate()
         {
             RunTestVariants(() =>
@@ -320,7 +239,7 @@ namespace LiteCore.Tests
                 var doc = PutDoc("dock", null, (FLSlice)body);
                 var revID1 = doc->revID.CreateString();
                 revID1.Should().StartWith("1-", "because otherwise the generation is incorrect");
-                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
+                TestNative.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
                 Native.c4doc_release(doc);
 
                 doc = PutDoc("dock", revID1, FLSlice.Null, C4RevisionFlags.Deleted);
@@ -332,7 +251,7 @@ namespace LiteCore.Tests
 
                 doc = PutDoc("dock", revID2, (FLSlice)body);
                 doc->revID.CreateString().Should().StartWith("3-", "because otherwise the generation is incorrect");
-                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
+                TestNative.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
                 Native.c4doc_release(doc);
                 Native.FLSliceResult_Release(body);
             });

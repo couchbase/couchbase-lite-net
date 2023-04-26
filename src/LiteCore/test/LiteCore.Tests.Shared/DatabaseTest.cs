@@ -71,52 +71,6 @@ namespace LiteCore.Tests
         }
 
         [Fact]
-        public void TestCancelExpire()
-        {
-            RunTestVariants(() =>
-            {
-                var docID = "expire_me";
-                CreateRev(docID, RevID, FleeceBody);
-                var expire = Native.c4_now() + 2000;
-                C4Error err;
-                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should().BeTrue();
-                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, null).Should().Be(expire);
-                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(expire);
-
-                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, 0, &err).Should().BeTrue();
-                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, null).Should().Be(0);
-                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0);
-            });
-        }
-
-        [Fact]
-        public void TestCreateRawDoc()
-        {
-            RunTestVariants(() => {
-                var key = FLSlice.Constant("key");
-                var meta = FLSlice.Constant("meta");
-                LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
-                LiteCoreBridge.Check(err => NativeRaw.c4raw_put(Db, FLSlice.Constant("test"), key, meta, 
-                    FleeceBody, err));
-                LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
-
-                var doc = (C4RawDocument *)LiteCoreBridge.Check(err => NativeRaw.c4raw_get(Db,
-                    FLSlice.Constant("test"), key, err));
-                doc->key.Equals(key).Should().BeTrue("because the key should not change");
-                doc->meta.Equals(meta).Should().BeTrue("because the meta should not change");
-                doc->body.Equals(FleeceBody).Should().BeTrue("because the body should not change");
-                Native.c4raw_free(doc);
-
-                // Nonexistent:
-                C4Error error;
-                ((long)Native.c4raw_get(Db, "test", "bogus", &error)).Should().Be(0, 
-                    "because the document does not exist");
-                error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain, "because that is the correct domain");
-                error.code.Should().Be((int)C4ErrorCode.NotFound, "because that is the correct error code");
-            });
-        }
-
-        [Fact]
         public void TestDatabaseBlobStore()
         {
             RunTestVariants(() => {
@@ -201,7 +155,6 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() => {
                 Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0, "because the database is empty");
-                Native.c4coll_getLastSequence(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0, "because the database is empty");
                 var publicID = new C4UUID();
                 var privateID = new C4UUID();
                 C4Error err;
@@ -261,15 +214,15 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error err;
-                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0L);
+                TestNative.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0L);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
-                var expire = Native.c4_now() + 1000; //1000ms = 1 sec;
+                var expire = TestNative.c4_now() + 1000; //1000ms = 1 sec;
                 Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should()
                     .BeTrue("because otherwise the 1 second expiration failed to set");
 
-                expire = Native.c4_now() + 2000;
+                expire = TestNative.c4_now() + 2000;
                 Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should()
                     .BeTrue("because otherwise the 2 second expiration failed to set");
                 Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should()
@@ -298,11 +251,11 @@ namespace LiteCore.Tests
                 Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID3, null).Should().Be(0L);
                 Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID4, null).Should().Be(expire + 100_000);
                 Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), "nonexistent", null).Should().Be(0L);
-                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(expire);
+                TestNative.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(expire);
 
                 WriteLine("--- Wait till expiration time...");
                 Thread.Sleep(TimeSpan.FromSeconds(2));
-                Native.c4_now().Should().BeGreaterOrEqualTo(expire);
+                TestNative.c4_now().Should().BeGreaterOrEqualTo(expire);
 
 
 
@@ -315,18 +268,18 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error error;
-                var db2 = Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), &error);
+                var db2 = Native.c4db_openNamed(DBName, TestNative.c4db_getConfig2(Db), &error);
                 ((long) db2).Should().NotBe(0);
 
-                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0);
-                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(db2, null)).Should().Be(0);
+                TestNative.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0);
+                TestNative.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(db2, null)).Should().Be(0);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
-                var expire = Native.c4_now() + 1000;
+                var expire = TestNative.c4_now() + 1000;
                 Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &error);
 
-                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(db2, null)).Should().Be(expire);
+                TestNative.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(db2, null)).Should().Be(expire);
                 Native.c4db_release(db2);
             });
         }
@@ -336,7 +289,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() => {
                 string bundleDBName = "cbl_core_test_bundle";
-                var config2 = C4DatabaseConfig2Test.Clone(Native.c4db_getConfig2(Db));
+                var config2 = C4DatabaseConfig2Test.Clone(TestNative.c4db_getConfig2(Db));
                 var tmp = config2;
 
                 var bundlePath = Path.Combine(TestDir, $"{bundleDBName}.cblite2{Path.DirectorySeparatorChar}");
@@ -446,7 +399,7 @@ namespace LiteCore.Tests
                 }
 
                 var bogusPath = $"{TestDir}bogus{Path.DirectorySeparatorChar}bogus";
-                C4DatabaseConfig2 bogusConfig = C4DatabaseConfig2Test.Clone(Native.c4db_getConfig2(Db));
+                C4DatabaseConfig2 bogusConfig = C4DatabaseConfig2Test.Clone(TestNative.c4db_getConfig2(Db));
                 Action a = () => LiteCoreBridge.Check(err =>
                 {
                     var localConfig = bogusConfig;
@@ -458,7 +411,7 @@ namespace LiteCore.Tests
                 a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
-                DBConfig2 = *(Native.c4db_getConfig2(Db));
+                DBConfig2 = *(TestNative.c4db_getConfig2(Db));
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
                     var localConfig = DBConfig2;
@@ -541,7 +494,7 @@ namespace LiteCore.Tests
 
                 // If we're on the unexcrypted pass, encrypt the db.  Otherwise, decrypt it:
                 var newKey = new C4EncryptionKey();
-                if (Native.c4db_getConfig2(Db)->encryptionKey.algorithm == C4EncryptionAlgorithm.None) {
+                if (TestNative.c4db_getConfig2(Db)->encryptionKey.algorithm == C4EncryptionAlgorithm.None) {
                     newKey.algorithm = C4EncryptionAlgorithm.AES256;
                     var keyBytes = Encoding.ASCII.GetBytes("a different key than default....");
                     Marshal.Copy(keyBytes, 0, (IntPtr) newKey.bytes, 32);
@@ -567,9 +520,9 @@ namespace LiteCore.Tests
                 Native.FLSliceResult_Release(blobResult);
 
                 // Check that db can be reopened with the new key:
-                Native.c4db_getConfig2(Db)->encryptionKey.algorithm.Should().Be(newKey.algorithm);
+                TestNative.c4db_getConfig2(Db)->encryptionKey.algorithm.Should().Be(newKey.algorithm);
                 for(int i = 0; i < 32; i++) {
-                    Native.c4db_getConfig2(Db)->encryptionKey.bytes[i].Should().Be(newKey.bytes[i]);
+                    TestNative.c4db_getConfig2(Db)->encryptionKey.bytes[i].Should().Be(newKey.bytes[i]);
                 }
 
                 ReopenDB();

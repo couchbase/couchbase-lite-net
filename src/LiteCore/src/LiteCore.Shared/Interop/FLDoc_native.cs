@@ -36,12 +36,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDoc_GetRoot(FLDoc* x);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSharedKeys* FLDoc_GetSharedKeys(FLDoc* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDoc* FLValue_FindDoc(FLValue* value);
-
 
     }
 

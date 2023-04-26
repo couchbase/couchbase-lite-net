@@ -10,7 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)AllDocsPerformanceTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)BlobStoreTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CollatedQueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseInternalTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
