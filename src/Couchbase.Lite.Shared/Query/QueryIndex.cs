@@ -118,16 +118,16 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Constructors
 
-        internal QueryIndex([ItemNotNull]params IFullTextIndexItem[] items)
+        internal QueryIndex(params IFullTextIndexItem[] items)
             : base(items)
         {
-            Debug.Assert(items.All(x => x != null));
+            System.Diagnostics.Debug.Assert(items.All(x => x != null));
         }
 
-        internal QueryIndex([ItemNotNull]params IValueIndexItem[] items)
+        internal QueryIndex(params IValueIndexItem[] items)
             :base(items)
         {
-            Debug.Assert(items.All(x => x != null));
+            System.Diagnostics.Debug.Assert(items.All(x => x != null));
         }
 
         #endregion
