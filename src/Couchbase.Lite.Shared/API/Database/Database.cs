@@ -316,7 +316,7 @@ namespace Couchbase.Lite
         }
 
         #if !COUCHBASE_ENTERPRISE
-        [ExcludeFromCodeCoverage]
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         #endif
         // Used for predictive query callback
         internal Database(C4Database* c4db)

@@ -24,7 +24,8 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <DebugType Condition=" !$(TargetFramework.StartsWith('uap')) and !$(TargetFramework.StartsWith('net6.0-windows')) ">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
-	<LangVersion Condition=" $(TargetFramework.StartsWith('net6')) ">9.0</LangVersion>
+      <Nullable>enable</Nullable>
+      <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>
