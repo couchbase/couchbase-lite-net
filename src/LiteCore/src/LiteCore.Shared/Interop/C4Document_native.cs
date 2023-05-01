@@ -31,25 +31,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_save(C4Document* doc, uint maxRevTreeDepth, C4Error* outError);
 
-        public static bool c4doc_selectRevision(C4Document* doc, string? revID, bool withBody, C4Error* outError)
-        {
-            using(var revID_ = new C4String(revID)) {
-                return NativeRaw.c4doc_selectRevision(doc, revID_.AsFLSlice(), withBody, outError);
-            }
-        }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_selectCurrentRevision(C4Document* doc);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_loadRevisionBody(C4Document* doc, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_hasRevisionBody(C4Document* doc);
-
         public static byte[]? c4doc_getRevisionBody(C4Document* doc)
         {
             return (NativeRaw.c4doc_getRevisionBody(doc)).ToArrayFast();
@@ -57,42 +38,12 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_selectParentRevision(C4Document* doc);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_selectNextRevision(C4Document* doc);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectNextLeafRevision(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool includeDeleted, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
-
-        public static bool c4doc_selectCommonAncestorRevision(C4Document* doc, string? rev1ID, string? rev2ID)
-        {
-            using(var rev1ID_ = new C4String(rev1ID))
-            using(var rev2ID_ = new C4String(rev2ID)) {
-                return NativeRaw.c4doc_selectCommonAncestorRevision(doc, rev1ID_.AsFLSlice(), rev2ID_.AsFLSlice());
-            }
-        }
-
-        public static uint c4db_getRemoteDBID(C4Database* db, string? remoteAddress, bool canCreate, C4Error* outError)
-        {
-            using(var remoteAddress_ = new C4String(remoteAddress)) {
-                return NativeRaw.c4db_getRemoteDBID(db, remoteAddress_.AsFLSlice(), canCreate, outError);
-            }
-        }
 
         public static uint c4rev_getGeneration(string? revID)
         {
             using(var revID_ = new C4String(revID)) {
                 return NativeRaw.c4rev_getGeneration(revID_.AsFLSlice());
-            }
-        }
-
-        public static int c4doc_purgeRevision(C4Document* doc, string? revID, C4Error* outError)
-        {
-            using(var revID_ = new C4String(revID)) {
-                return NativeRaw.c4doc_purgeRevision(doc, revID_.AsFLSlice(), outError);
             }
         }
 
@@ -118,24 +69,10 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_selectRevision(C4Document* doc, FLSlice revID, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice c4doc_getRevisionBody(C4Document* doc);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_selectCommonAncestorRevision(C4Document* doc, FLSlice rev1ID, FLSlice rev2ID);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4db_getRemoteDBID(C4Database* db, FLSlice remoteAddress, [MarshalAs(UnmanagedType.U1)]bool canCreate, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4rev_getGeneration(FLSlice revID);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int c4doc_purgeRevision(C4Document* doc, FLSlice revID, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

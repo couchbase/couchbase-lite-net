@@ -39,9 +39,64 @@ using LiteCore.Tests.Util;
 
 namespace LiteCore.Tests
 {
-    #if WINDOWS_UWP
+    internal static class Constants
+    {
+#if __IOS__
+        internal const string DllName = "@rpath/LiteCore.framework/LiteCore";
+#else
+        internal const string DllName = "LiteCore";
+#endif
+    }
+
+    internal static unsafe class TestNative
+    {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long c4_now();
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long c4coll_nextDocExpiration(C4Collection* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4CollectionSpec c4coll_getSpec(C4Collection* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLSlice_Equal(FLSlice a, FLSlice b);
+
+        public static string FLJSON5_ToJSON(string json5, FLSlice* outErrorMessage, UIntPtr* outErrPos, FLError* err)
+        {
+            using (var json5_ = new C4String(json5)) {
+                using (var retVal = TestNativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsFLSlice(), outErrorMessage, outErrPos, err)) {
+                    return ((FLSlice)retVal).CreateString();
+                }
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLData_ConvertJSON(FLSlice json, FLError* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long c4queryenum_getRowCount(C4QueryEnumerator* e, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint FLArrayIterator_GetCount(FLArrayIterator* i);
+    }
+
+    internal static unsafe class TestNativeRaw
+    {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLJSON5_ToJSON(FLSlice json5, FLSlice* outErrorMessage, UIntPtr* outErrorPos, FLError* outError);
+    }
+
+#if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-    #endif
+#endif
     public unsafe class Test : TestBase
     {
         #if __ANDROID__
@@ -110,11 +165,6 @@ namespace LiteCore.Tests
         }
         #endif
 
-        internal static C4Document* c4enum_nextDocument(C4DocEnumerator* e, C4Error* outError)
-        {
-            return Native.c4enum_next(e, outError) ? Native.c4enum_getDocument(e, outError) : null;
-        }
-
         internal FLSliceResult JSON2Fleece(string body)
         {
             using (var body_ = new C4String(body)) {
@@ -125,11 +175,11 @@ namespace LiteCore.Tests
         internal FLSliceResult JSON2Fleece(FLSlice body)
         {
             FLError err;
-            var jsonStr = NativeRaw.FLJSON5_ToJSON(body, null, null, &err);
+            var jsonStr = TestNativeRaw.FLJSON5_ToJSON(body, null, null, &err);
             LiteCoreBridge.Check(c4err => Native.c4db_beginTransaction(Db, c4err));
             var success = false;
             try {
-                var encodedBody = NativeRaw.c4db_encodeJSON(Db, (FLSlice)jsonStr, null);
+                var encodedBody = TestNative.c4db_encodeJSON(Db, (FLSlice)jsonStr, null);
                 ((long) encodedBody.buf).Should().NotBe(0);
                 success = true;
                 return encodedBody;
@@ -140,7 +190,7 @@ namespace LiteCore.Tests
 
         internal bool IsRevTrees(C4Database* db)
         {
-            return (Native.c4db_getConfig2(db)->flags & C4DatabaseFlags.VersionVectors) == 0;
+            return (TestNative.c4db_getConfig2(db)->flags & C4DatabaseFlags.VersionVectors) == 0;
         }
 
         protected void DeleteAndRecreateDB()
@@ -156,10 +206,6 @@ namespace LiteCore.Tests
 
         protected override void SetupVariant(int option)
         {
-            _objectCount = Native.c4_getObjectCount();
-
-            Native.c4_shutdown(null);
-
             var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
             WriteLine($"Opening {encryptedStr} SQLite database");
 
@@ -339,7 +385,7 @@ namespace LiteCore.Tests
             try {
                 ReadFileByLines(path, line => {
                     C4Error error;
-                    var body = NativeRaw.c4db_encodeJSON(Db, (FLSlice)line, &error);
+                    var body = TestNative.c4db_encodeJSON(Db, (FLSlice)line, &error);
                     ((long)body.buf).Should().NotBe(0, "because otherwise the encode failed");
 
                     var docID = (numDocs + 1).ToString("D7");
@@ -391,8 +437,8 @@ namespace LiteCore.Tests
         {
             var config = DBConfig2;
             // Update _dbConfig in case db was reopened with different flags or encryption:
-            config.flags = Native.c4db_getConfig2(Db)->flags;
-            config.encryptionKey = Native.c4db_getConfig2(Db)->encryptionKey;
+            config.flags = TestNative.c4db_getConfig2(Db)->flags;
+            config.encryptionKey = TestNative.c4db_getConfig2(Db)->encryptionKey;
 
             LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
             Native.c4db_release(Db);
@@ -434,14 +480,14 @@ namespace LiteCore.Tests
                 keys.Add(key);
                 var keyStr = Native.c4blob_keyToString(key);
                 json.Append(
-                    $"{{'{Constants.ObjectTypeProperty}': '{Constants.ObjectTypeBlob}', 'digest': '{keyStr}', length: {att.Length}, 'content_type': '{contentType}'}},");
+                    $"{{'{LiteCore.Constants.ObjectTypeProperty}': '{LiteCore.Constants.ObjectTypeBlob}', 'digest': '{keyStr}', length: {att.Length}, 'content_type': '{contentType}'}},");
             }
 
             json.Append("]}");
-            var jsonStr = Native.FLJSON5_ToJSON(json.ToString(), null, null, null);
+            var jsonStr = TestNative.FLJSON5_ToJSON(json.ToString(), null, null, null);
             using (var jsonStr_ = new C4String(jsonStr)) {
                 C4Error error; 
-                var body = NativeRaw.c4db_encodeJSON(Db, jsonStr_.AsFLSlice(), &error);
+                var body = TestNative.c4db_encodeJSON(Db, jsonStr_.AsFLSlice(), &error);
                 ((long) body.buf).Should().NotBe(0, "because otherwise the encode failed");
 
                 var rq = new C4DocPutRequest();
@@ -514,7 +560,7 @@ namespace LiteCore.Tests
             FLError error;
             FLSliceResult fleeceData;
             fixed (byte* jsonData_ = jsonData) {
-                fleeceData = NativeRaw.FLData_ConvertJSON(new FLSlice(jsonData_, (ulong)jsonData.Length), &error);
+                fleeceData = TestNative.FLData_ConvertJSON(new FLSlice(jsonData_, (ulong)jsonData.Length), &error);
             }
 
             ((long)fleeceData.buf).Should().NotBe(0, "because otherwise the conversion failed");

@@ -30,10 +30,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Collection* c4db_getDefaultCollection(C4Database* db, C4Error* outError);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_hasCollection(C4Database* db, C4CollectionSpec spec);
-
         public static bool c4db_hasScope(C4Database* db, string? name)
         {
             using(var name_ = new C4String(name)) {
@@ -66,16 +62,10 @@ namespace LiteCore.Interop
         public static extern bool c4coll_isValid(C4Collection* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4CollectionSpec c4coll_getSpec(C4Collection* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Database* c4coll_getDatabase(C4Collection* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4coll_getDocumentCount(C4Collection* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ulong c4coll_getLastSequence(C4Collection* x);
 
         public static C4Document* c4coll_getDoc(C4Collection* collection, string? docID, bool mustExist, C4DocContentLevel content, C4Error* outError)
         {
@@ -94,14 +84,6 @@ namespace LiteCore.Interop
             using(var docID_ = new C4String(docID))
             fixed(byte *body_ = body) {
                 return NativeRaw.c4coll_createDoc(collection, docID_.AsFLSlice(), new FLSlice(body_, body == null ? 0 : (ulong)body.Length), revisionFlags, error);
-            }
-        }
-
-        public static bool c4coll_moveDoc(C4Collection* collection, string? docID, C4Collection* toCollection, string? newDocID, C4Error* error)
-        {
-            using(var docID_ = new C4String(docID))
-            using(var newDocID_ = new C4String(newDocID)) {
-                return NativeRaw.c4coll_moveDoc(collection, docID_.AsFLSlice(), toCollection, newDocID_.AsFLSlice(), error);
             }
         }
 
@@ -125,12 +107,6 @@ namespace LiteCore.Interop
                 return NativeRaw.c4coll_getDocExpiration(collection, docID_.AsFLSlice(), outError);
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4coll_nextDocExpiration(C4Collection* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4coll_purgeExpiredDocs(C4Collection* x, C4Error* outError);
 
         public static bool c4coll_createIndex(C4Collection* collection, string? name, string? indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
         {
@@ -174,10 +150,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4coll_createDoc(C4Collection* collection, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4coll_moveDoc(C4Collection* collection, FLSlice docID, C4Collection* toCollection, FLSlice newDocID, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

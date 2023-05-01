@@ -34,13 +34,6 @@ namespace LiteCore.Interop
             }
         }
 
-        public static string? FLValue_ToJSONX(FLValue* v, bool json5, bool canonicalForm)
-        {
-            using(var retVal = NativeRaw.FLValue_ToJSONX(v, json5, canonicalForm)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
 
     }
 
@@ -48,9 +41,6 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult FLValue_ToJSON(FLValue* value);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLValue_ToJSONX(FLValue* v, [MarshalAs(UnmanagedType.U1)]bool json5, [MarshalAs(UnmanagedType.U1)]bool canonicalForm);
 
 
     }

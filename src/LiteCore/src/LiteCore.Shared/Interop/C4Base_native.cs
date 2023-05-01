@@ -34,12 +34,6 @@ namespace LiteCore.Interop
         public static extern void c4base_release(void* obj);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_retain(C4Document* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Socket* c4socket_retain(C4Socket* socket);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -58,16 +52,10 @@ namespace LiteCore.Interop
         public static extern void c4docobs_free(C4DocumentObserver* observer);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4enum_free(C4DocEnumerator* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4listener_free(C4Listener* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4queryobs_free(C4QueryObserver* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4raw_free(C4RawDocument* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_free(C4Replicator* x);
@@ -78,18 +66,12 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4stream_closeWriter(C4WriteStream* stream);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int c4_getObjectCount();
-
         public static string? c4_getVersion()
         {
             using(var retVal = NativeRaw.c4_getVersion()) {
                 return ((FLSlice)retVal).CreateString();
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4_now();
 
 
     }

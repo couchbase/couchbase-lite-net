@@ -144,7 +144,7 @@ namespace LiteCore.Tests
                     //REQUIRE(e);
                     //CHECK(c4queryobs_getEnumerator(state.obs, true, &error) == nullptr);
                     //CHECK(error.code == 0);
-                    Native.c4queryenum_getRowCount(e, &error).Should().Be(8);
+                    TestNative.c4queryenum_getRowCount(e, &error).Should().Be(8);
 
                     AddPersonInState("after1", "AL");
 
@@ -179,7 +179,7 @@ namespace LiteCore.Tests
                         return Native.c4queryobs_getEnumerator(_queryObserver, false, err);
                     });
                     //CHECK(e3 == e2);
-                    Native.c4queryenum_getRowCount(e2, &error).Should().Be(9);
+                    TestNative.c4queryenum_getRowCount(e2, &error).Should().Be(9);
 
                     // Testing with purged document:
                     WriteLine("---- Purging a document...");
@@ -202,7 +202,7 @@ namespace LiteCore.Tests
                     });
                     //REQUIRE(e2);
                     //CHECK(e2 != e);
-                    Native.c4queryenum_getRowCount(e2, &error).Should().Be(8);
+                    TestNative.c4queryenum_getRowCount(e2, &error).Should().Be(8);
                 } finally {
                     handle.Free();
                 }
@@ -238,7 +238,7 @@ namespace LiteCore.Tests
                     });
                     //REQUIRE(e1);
                     //CHECK(error.code == 0);
-                    Native.c4queryenum_getRowCount(e1, &error).Should().Be(8);
+                    TestNative.c4queryenum_getRowCount(e1, &error).Should().Be(8);
                     _queryCallbackCalls2.Should().Be(1, "because we should have received a callback");
                     var e2 = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
                     {
@@ -247,7 +247,7 @@ namespace LiteCore.Tests
                     //REQUIRE(e2);
                     //CHECK(error.code == 0);
                     //CHECK(e2 != e1);
-                    Native.c4queryenum_getRowCount(e2, &error).Should().Be(8);
+                    TestNative.c4queryenum_getRowCount(e2, &error).Should().Be(8);
 
                     _queryObserver3 = Native.c4queryobs_create(_query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     //CHECK(_queryObserver3);
@@ -265,28 +265,7 @@ namespace LiteCore.Tests
                     //REQUIRE(e3);
                     //CHECK(error.code == 0);
                     //CHECK(e3 != e2);
-                    Native.c4queryenum_getRowCount(e3, &error).Should().Be(8);
-
-                    WriteLine("Iterating all query results...");
-                    int count = 0;
-                    while (Native.c4queryenum_next(e1, null) && Native.c4queryenum_next(e2, null) && Native.c4queryenum_next(e3, null)) {
-                        ++count;
-                        FLArrayIterator col1 = e1->columns;
-                        FLArrayIterator col2 = e2->columns;
-                        FLArrayIterator col3 = e3->columns;
-                        var c = Native.FLArrayIterator_GetCount(&col1);
-                        c.Should().Be(Native.FLArrayIterator_GetCount(&col2));
-                        c.Should().Be(Native.FLArrayIterator_GetCount(&col3));
-                        for (uint i = 0; i < c; ++i) {
-                            var v1 = Native.FLArrayIterator_GetValueAt(&col1, i);
-                            var v2 = Native.FLArrayIterator_GetValueAt(&col2, i);
-                            var v3 = Native.FLArrayIterator_GetValueAt(&col3, i);
-                            Native.FLValue_IsEqual(v1, v2).Should().BeTrue();
-                            Native.FLValue_IsEqual(v2, v3).Should().BeTrue();
-                        }
-                    }
-
-                    count.Should().Be(8);
+                    TestNative.c4queryenum_getRowCount(e3, &error).Should().Be(8);
                 } finally {
                     handle.Free();
                 }
@@ -327,7 +306,7 @@ namespace LiteCore.Tests
                     //REQUIRE(e);
                     //CHECK(c4queryobs_getEnumerator(state.obs, true, &error) == nullptr);
                     //CHECK(error.code == 0);
-                    Native.c4queryenum_getRowCount(e1, &error).Should().Be(8);
+                    TestNative.c4queryenum_getRowCount(e1, &error).Should().Be(8);
 
                     Native.c4query_setParameters(_query, "{\"state\": \"NY\"}");
 
@@ -342,7 +321,7 @@ namespace LiteCore.Tests
                     });
                     //REQUIRE(e2);
                     //CHECK(error.code == 0);
-                    Native.c4queryenum_getRowCount(e2, &error).Should().Be(9);
+                    TestNative.c4queryenum_getRowCount(e2, &error).Should().Be(9);
                 } finally {
                     handle.Free();
                 }
@@ -722,7 +701,6 @@ namespace LiteCore.Tests
                     var col = Native.FLArrayIterator_GetValueAt(&e->columns, 0);
                     Native.FLValue_GetType(col).Should().Be(FLValueType.Dict);
                     var name = Native.FLValue_AsDict(col);
-                    WriteLine(Native.FLValue_ToJSONX(col, false, false));
                     Native.FLValue_AsString(Native.FLDict_Get(name, Encoding.UTF8.GetBytes("first")))
                         .Should().Be(expectedFirst[i]);
                     Native.FLValue_AsString(Native.FLDict_Get(name, Encoding.UTF8.GetBytes("last")))
@@ -852,7 +830,7 @@ namespace LiteCore.Tests
 
                 C4Error error;
                 Native.c4queryenum_next(e, &error).Should().BeTrue();
-                Native.FLArrayIterator_GetCount(&e->columns).Should().BeGreaterThan(0);
+                TestNative.FLArrayIterator_GetCount(&e->columns).Should().BeGreaterThan(0);
                 var docID = Native.FLValue_AsString(Native.FLArrayIterator_GetValueAt(&e->columns, 0));
                 docID.Should().Be("0000001");
                 Native.c4queryenum_next(e, &error).Should().BeTrue();

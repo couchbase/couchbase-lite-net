@@ -50,10 +50,6 @@ namespace LiteCore.Interop
         public static extern void c4repl_stop(C4Replicator* repl);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4repl_retry(C4Replicator* repl, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_setHostReachable(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool reachable);
 
         public static void c4repl_setOptions(C4Replicator* repl, byte[]? optionsDictFleece)

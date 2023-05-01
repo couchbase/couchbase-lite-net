@@ -31,10 +31,6 @@ namespace LiteCore.Interop
         public static extern uint FLArray_Count(FLArray* array);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool FLArray_IsEmpty(FLArray* array);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLArray_Get(FLArray* array, uint index);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -47,18 +43,11 @@ namespace LiteCore.Interop
         public static extern FLValue* FLArrayIterator_GetValueAt(FLArrayIterator* i, uint offset);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint FLArrayIterator_GetCount(FLArrayIterator* i);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLArrayIterator_Next(FLArrayIterator* i);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint FLDict_Count(FLDict* dict);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool FLDict_IsEmpty(FLDict* dict);
 
         public static FLValue* FLDict_Get(FLDict* dict, byte[]? keyString)
         {
@@ -85,20 +74,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLDictIterator_Next(FLDictIterator* i);
 
-        // Note: Allocates unmanaged heap memory; should only be used with constants
-        public static FLDictKey FLDictKey_Init(string str)
-        {
-            return NativeRaw.FLDictKey_Init(FLSlice.Constant(str));
-        }
-
-        public static string? FLDictKey_GetString(FLDictKey* dictKey)
-        {
-            return NativeRaw.FLDictKey_GetString(dictKey).CreateString();
-        }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLValue* FLDict_GetWithKey(FLDict* dict, FLDictKey* dictKey);
-
 
     }
 
@@ -109,12 +84,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice FLDictIterator_GetKeyString(FLDictIterator* i);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDictKey FLDictKey_Init(FLSlice @string);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSlice FLDictKey_GetString(FLDictKey* dictKey);
 
 
     }

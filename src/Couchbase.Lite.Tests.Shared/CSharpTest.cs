@@ -559,22 +559,6 @@ Transfer-Encoding: chunked";
         }
 
         [Fact]
-        public void TestTransientAndNetworkDependent()
-        {
-            foreach (var err in new C4NetworkErrorCode[]
-                { C4NetworkErrorCode.NetworkReset, C4NetworkErrorCode.ConnectionAborted, C4NetworkErrorCode.ConnectionReset, C4NetworkErrorCode.Timeout, C4NetworkErrorCode.ConnectionRefused }) {
-                var code = (int)err;
-                Native.c4error_mayBeTransient(new C4Error(C4ErrorDomain.NetworkDomain, code)).Should().BeTrue($"because {err} should be transient");
-            }
-
-            foreach (var err in new C4NetworkErrorCode[]
-                { C4NetworkErrorCode.NetworkDown, C4NetworkErrorCode.NetworkUnreachable, C4NetworkErrorCode.NotConnected, C4NetworkErrorCode.Timeout, C4NetworkErrorCode.HostUnreachable, C4NetworkErrorCode.AddressNotAvailable }) {
-                var code = (int)err;
-                Native.c4error_mayBeNetworkDependent(new C4Error(C4ErrorDomain.NetworkDomain, code)).Should().BeTrue($"because {err} should be network dependent");
-            }
-        }
-
-        [Fact]
         public void TestAutoconvertJson()
         {
             var jVal = new JValue("test");

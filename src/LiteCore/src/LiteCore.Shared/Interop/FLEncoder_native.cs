@@ -109,9 +109,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLEncoder_EndDict(FLEncoder* encoder);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDoc* FLEncoder_FinishDoc(FLEncoder* encoder, FLError* outError);
-
         public static byte[]? FLEncoder_Finish(FLEncoder* encoder, FLError* outError)
         {
             using(var retVal = NativeRaw.FLEncoder_Finish(encoder, outError)) {

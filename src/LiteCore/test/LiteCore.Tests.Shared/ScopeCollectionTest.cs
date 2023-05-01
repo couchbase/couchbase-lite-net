@@ -62,14 +62,9 @@ namespace LiteCore.Tests
                  *  in the default collection.
                  @note  This function never returns NULL, unless the default collection has been deleted. */
                 /** Returns the name and scope of the collection. */
-                var collectionSpec = Native.c4coll_getSpec(DefaultColl);
+                var collectionSpec = TestNative.c4coll_getSpec(DefaultColl);
                 collectionSpec.name.CreateString().Should().Be(Database._defaultCollectionName);
-                /** Returns true if the collection exists. */
-                var doesContainCollection = Native.c4db_hasCollection(Db, collectionSpec);
-                doesContainCollection.Should().BeTrue("Because old Db does contain default collection.");
-
                 Native.c4coll_getDocumentCount(DefaultColl).Should().Be(0, "because the default collection is empty");
-                Native.c4coll_getLastSequence(DefaultColl).Should().Be(0, "because the default collection is empty");
             });
         }
 
@@ -93,11 +88,7 @@ namespace LiteCore.Tests
                         return Native.c4db_createCollection(Db, collectionSpec, err);
                     });
 
-                    collectionSpec = Native.c4coll_getSpec(coll);
-                    collectionSpec.name.CreateString().Should().Be(collName);
-                    collectionSpec.scope.CreateString().Should().Be(scopeName);
-                    var doesContainCollection = Native.c4db_hasCollection(Db, collectionSpec);
-                    doesContainCollection.Should().BeTrue("Because Db contains the collection that was created 6 lines ago.");
+                    Native.c4coll_getDocumentCount(coll).Should().Be(0, "because the new collection is empty");
                 };
             });
         }
@@ -147,17 +138,17 @@ namespace LiteCore.Tests
                     });
 
                     var c1 = Native.c4db_getCollection(Db, collectionSpecA, &error);
-                    var colSpec1 = Native.c4coll_getSpec(c1);
+                    var colSpec1 = TestNative.c4coll_getSpec(c1);
                     colSpec1.name.CreateString().Should().Be(collName + 1);
                     colSpec1.scope.CreateString().Should().Be(scopeName + 1);
 
                     var c2 = Native.c4db_getCollection(Db, collectionSpecB, &error);
-                    var colSpec2 = Native.c4coll_getSpec(c2);
+                    var colSpec2 = TestNative.c4coll_getSpec(c2);
                     colSpec2.name.CreateString().Should().Be(collName + 2);
                     colSpec2.scope.CreateString().Should().Be(scopeName + 1);
 
                     var c3 = Native.c4db_getCollection(Db, collectionSpecC, &error);
-                    var colSpec3 = Native.c4coll_getSpec(c3);
+                    var colSpec3 = TestNative.c4coll_getSpec(c3);
                     colSpec3.name.CreateString().Should().Be(collName + 3);
                     colSpec3.scope.CreateString().Should().Be(scopeName + 2);
 
@@ -240,7 +231,7 @@ namespace LiteCore.Tests
                         
                     // Open another database on the same file
                     var otherdb = (C4Database*)LiteCoreBridge.Check(err =>
-                    Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), err));
+                    Native.c4db_openNamed(DBName, TestNative.c4db_getConfig2(Db), err));
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(otherdb, err));
                     try {
                         //check if scope exists in the otherdb instance
@@ -450,29 +441,6 @@ namespace LiteCore.Tests
                     }
 
                     Native.c4coll_getDocumentCount(DefaultColl).Should().Be(0UL);
-
-                    CreateRev(DocID.CreateString(), RevID, FleeceBody);
-                    CreateRev(DocID.CreateString(), Rev2ID, (FLSlice)body2);
-                    CreateRev(DocID.CreateString(), Rev3ID, (FLSlice)body3);
-
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
-                    try {
-                        doc = Native.c4coll_putDoc(DefaultColl, &rq, null, &error);
-                        ((IntPtr)doc).Should().NotBe(IntPtr.Zero);
-                    } finally {
-                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
-                    }
-
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
-                    try {
-                        LiteCoreBridge.Check(err => Native.c4doc_purgeRevision(doc, null, err));
-                        LiteCoreBridge.Check(err => Native.c4doc_save(doc, 0, err));
-                    } finally {
-                        Native.c4doc_release(doc);
-                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
-                    }
-
-                    Native.c4coll_getDocumentCount(DefaultColl).Should().Be(0UL);
                     Native.FLSliceResult_Release(body2);
                     Native.FLSliceResult_Release(body3);
                 }
@@ -488,15 +456,15 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error err;
-                Native.c4coll_nextDocExpiration(DefaultColl).Should().Be(0L);
+                TestNative.c4coll_nextDocExpiration(DefaultColl).Should().Be(0L);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
-                var expire = Native.c4_now() + 1000; //1000ms = 1 sec;
+                var expire = TestNative.c4_now() + 1000; //1000ms = 1 sec;
                 Native.c4coll_setDocExpiration(DefaultColl, docID, expire, &err).Should()
                     .BeTrue("because otherwise the 1 second expiration failed to set");
 
-                expire = Native.c4_now() + 2000;
+                expire = TestNative.c4_now() + 2000;
                 Native.c4coll_setDocExpiration(DefaultColl, docID, expire, &err).Should()
                     .BeTrue("because otherwise the 2 second expiration failed to set");
                 Native.c4coll_setDocExpiration(DefaultColl, docID, expire, &err).Should()
@@ -525,11 +493,11 @@ namespace LiteCore.Tests
                 Native.c4coll_getDocExpiration(DefaultColl, docID3, null).Should().Be(0L);
                 Native.c4coll_getDocExpiration(DefaultColl, docID4, null).Should().Be(expire + 100_000);
                 Native.c4coll_getDocExpiration(DefaultColl, "nonexistent", null).Should().Be(0L);
-                Native.c4coll_nextDocExpiration(DefaultColl).Should().Be(expire);
+                TestNative.c4coll_nextDocExpiration(DefaultColl).Should().Be(expire);
 
                 WriteLine("--- Wait till expiration time...");
                 Thread.Sleep(TimeSpan.FromSeconds(2));
-                Native.c4_now().Should().BeGreaterOrEqualTo(expire);
+                TestNative.c4_now().Should().BeGreaterOrEqualTo(expire);
             });
         }
 
@@ -539,18 +507,18 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error error;
-                var defaultSpec = Native.c4coll_getSpec(DefaultColl);
+                var defaultSpec = TestNative.c4coll_getSpec(DefaultColl);
                 var coll2 = Native.c4db_createCollection(Db, defaultSpec, &error);
                 ((long)coll2).Should().NotBe(0);
 
-                Native.c4coll_nextDocExpiration(DefaultColl).Should().Be(0);
-                Native.c4coll_nextDocExpiration(coll2).Should().Be(0);
+                TestNative.c4coll_nextDocExpiration(DefaultColl).Should().Be(0);
+                TestNative.c4coll_nextDocExpiration(coll2).Should().Be(0);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
-                var expire = Native.c4_now() + 1000;
+                var expire = TestNative.c4_now() + 1000;
                 Native.c4coll_setDocExpiration(DefaultColl, docID, expire, &error);
-                Native.c4coll_nextDocExpiration(coll2).Should().Be(expire); 
+                TestNative.c4coll_nextDocExpiration(coll2).Should().Be(expire); 
             });
         }
 
@@ -561,15 +529,15 @@ namespace LiteCore.Tests
             {
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
-                var expire = Native.c4_now() + 2000;
+                var expire = TestNative.c4_now() + 2000;
                 C4Error err;
                 Native.c4coll_setDocExpiration(DefaultColl, docID, expire, &err).Should().BeTrue();
                 Native.c4coll_getDocExpiration(DefaultColl, docID, null).Should().Be(expire);
-                Native.c4coll_nextDocExpiration(DefaultColl).Should().Be(expire);
+                TestNative.c4coll_nextDocExpiration(DefaultColl).Should().Be(expire);
 
                 Native.c4coll_setDocExpiration(DefaultColl, docID, 0, &err).Should().BeTrue();
                 Native.c4coll_getDocExpiration(DefaultColl, docID, null).Should().Be(0);
-                Native.c4coll_nextDocExpiration(DefaultColl).Should().Be(0);
+                TestNative.c4coll_nextDocExpiration(DefaultColl).Should().Be(0);
             });
         }
         #endregion

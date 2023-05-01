@@ -34,23 +34,6 @@ namespace LiteCore.Interop
             }
         }
 
-        public static string? FLJSON5_ToJSON(string json5, FLSlice* outErrorMessage, UIntPtr* outErrPos, FLError* err)
-        {
-            using(var json5_ = new C4String(json5)) {
-                using(var retVal = NativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsFLSlice(), outErrorMessage, outErrPos, err)) {
-                    return ((FLSlice)retVal).CreateString();
-                }
-            }
-        }
-        public static byte[]? FLData_ConvertJSON(byte[]? json, FLError* outError)
-        {
-            fixed(byte *json_ = json) {
-                using(var retVal = NativeRaw.FLData_ConvertJSON(new FLSlice(json_, json == null ? 0 : (ulong)json.Length), outError)) {
-                    return ((FLSlice)retVal).ToArrayFast();
-                }
-            }
-        }
-
 
     }
 
@@ -58,12 +41,6 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLValue_FromData(FLSlice data, FLTrust trust);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLJSON5_ToJSON(FLSlice json5, FLSlice* outErrorMessage, UIntPtr* outErrorPos, FLError* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLData_ConvertJSON(FLSlice json, FLError* outError);
 
 
     }

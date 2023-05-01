@@ -28,9 +28,6 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4ListenerAPIs c4listener_availableAPIs();
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error);
 
         public static bool c4listener_shareDB(C4Listener* listener, string? name, C4Database* db, C4Error* outError)
