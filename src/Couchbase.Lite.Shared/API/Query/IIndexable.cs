@@ -22,6 +22,10 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// An interface describing an object That can create, delete, or retrieve a list of existing
+    /// <see cref="IIndex"/> objects by name
+    /// </summary>
     public interface IIndexable
     {
         /// <summary>

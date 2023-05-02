@@ -22,6 +22,10 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Sync
 {
+    /// <summary>
+    /// A configuration object for setting the details of how to treat
+    /// a collection when used inside of a <see cref="Replicator"/>
+    /// </summary>
     public sealed class CollectionConfiguration
     {
         #region Constants
@@ -122,6 +126,9 @@ namespace Couchbase.Lite.Sync
 
         #region Constructor
 
+        /// <summary>
+        /// The default constructor
+        /// </summary>
         public CollectionConfiguration() {}
 
         internal CollectionConfiguration(CollectionConfiguration copy)

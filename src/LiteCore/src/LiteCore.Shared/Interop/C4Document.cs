@@ -16,6 +16,13 @@
 // limitations under the License.
 //
 
+#pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable CS0649  // Member never assigned to
+#pragma warning disable CS0169  // Member never used
+
+
+
 namespace LiteCore.Interop
 {
     internal unsafe delegate FLSliceResult C4DocDeltaApplier(void* context, C4Revision* baseRevision,
@@ -35,3 +42,8 @@ namespace LiteCore.Interop
         public C4ExtraInfo extraInfo;
     }
 }
+
+#pragma warning restore IDE0051 // Remove unused private members
+#pragma warning restore IDE0044 // Add readonly modifier
+#pragma warning restore CS0649  // Member never assigned to
+#pragma warning restore CS0169  // Member never used

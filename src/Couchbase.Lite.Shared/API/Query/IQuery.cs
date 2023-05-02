@@ -22,7 +22,7 @@ using Couchbase.Lite.Internal.Query;
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// Arguments for the <see cref="IQuery.AddChangeListener(TaskScheduler, EventHandler{QueryChangedEventArgs})" /> event
+    /// Arguments for the <see cref="IChangeObservable{TEventType}.AddChangeListener(EventHandler{TEventType})" /> event
     /// </summary>
     public sealed class QueryChangedEventArgs : EventArgs
     {

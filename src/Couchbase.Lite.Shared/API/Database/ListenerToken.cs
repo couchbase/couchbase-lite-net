@@ -33,7 +33,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A token that stores information about an event handler that
     /// is registered on a Couchbase Lite object (for example
-    /// <see cref="Database.AddChangeListener(System.EventHandler{DatabaseChangedEventArgs})"/>)
+    /// <see cref="Collection.AddChangeListener(System.EventHandler{CollectionChangedEventArgs})"/>)
     /// </summary>
     public struct ListenerToken
     {
@@ -59,6 +59,9 @@ namespace Couchbase.Lite
 
         #endregion
 
+        /// <summary>
+        /// Remove the linked change listener
+        /// </summary>
         public void Remove()
         {
             ChangeObservableRemovable.RemoveChangeListener(this);

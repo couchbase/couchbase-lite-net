@@ -21,6 +21,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading;
 
 using Microsoft.Win32;
@@ -49,7 +50,7 @@ namespace Couchbase.Lite.Support
         {
             var version1 = typeof(NetDesktop).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             if (version1 == null) {
-                throw new InvalidProgramException("This version of Couchbase.Lite.Support.iOS has no version!");
+                throw new InvalidProgramException("This version of Couchbase.Lite.Support.NetDesktop has no version!");
             }
             
             var cblAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == "Couchbase.Lite");
@@ -60,14 +61,18 @@ namespace Couchbase.Lite.Support
             var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             if (!version1.Equals(version2)) {
                 throw new InvalidProgramException(
-                    $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.NetDesktop ({version1.InformationalVersion})");
+                    $"Mismatch between Couchbase.Lite ({version2?.InformationalVersion ?? "<no version>"}) and Couchbase.Lite.Support.NetDesktop ({version1.InformationalVersion})");
             }
         }
 
-        #endregion
-
-        #region Internal Methods
-
+        /// <summary>
+        /// Loads the native LiteCore.dll from disk. This is needed on Windows because
+        /// the architecture is unknown until runtime and thus the correct dll needs
+        /// to be chosen.
+        /// </summary>
+        /// <exception cref="PlatformNotSupportedException">Thrown for 32-bit targets, they are not supported</exception>
+        /// <exception cref="DllNotFoundException">LiteCore.dll could not be found</exception>
+        /// <exception cref="BadImageFormatException">LiteCore.dll was the wrong architecture or corrupted in some way</exception>
         public static void LoadLiteCore()
         {
             if (Interlocked.Exchange(ref _Activated, 1) == 1) {
@@ -129,15 +134,22 @@ namespace Couchbase.Lite.Support
             }
         }
 
-#endregion
+        #endregion
 
-#region Private Methods
-
+        #region Private Methods
+        #if NET6_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+        #endif
         private static bool CheckVSRedist(string architecture)
         {
             // https://stackoverflow.com/a/34209692/1155387
             var key = Registry.ClassesRoot.OpenSubKey(@"Installer\Dependencies", false);
-            var subkeys = key.GetSubKeyNames();
+            var subkeys = key?.GetSubKeyNames();
+            if(subkeys == null) {
+                Console.WriteLine("Unable to find proper registry key!");
+                return false;
+            }
+
             foreach (var subkey in subkeys.Where(x => x.StartsWith("VC,redist"))) {
                 var keyComponents = subkey.Split(',');
                 if (keyComponents.Length != 5) {

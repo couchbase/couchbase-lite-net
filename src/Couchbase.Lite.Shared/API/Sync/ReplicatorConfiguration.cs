@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Lite.Info;
@@ -260,10 +261,10 @@ namespace Couchbase.Lite.Sync
         /// by the pull replicator when the user loses access to the document from both removed 
         /// and revoked scenarios. 
         /// * If set the property to <c>false</c>, AutoPurge is disabled, the replicator will notify the registered 
-        /// DocumentReplicationListener <see cref="Replicator.AddDocumentReplicationListener"/> with an "access removed" 
+        /// DocumentReplicationListener <see cref="Replicator.AddDocumentReplicationListener(EventHandler{DocumentReplicationEventArgs})"/> with an "access removed" 
         /// event <see cref="DocumentFlags.AccessRemoved"/> when access to the document is revoked on the Sync Gateway. 
         /// On receiving the event, the application may decide to manually purge the document. However, for performance reasons,
-        /// any DocumentReplicationListeners added <see cref="Replicator.AddDocumentReplicationListener"/> to the replicator 
+        /// any DocumentReplicationListeners added <see cref="Replicator.AddDocumentReplicationListener(EventHandler{DocumentReplicationEventArgs})"/> to the replicator 
         /// after the replicator is started will not receive the access removed events until the replicator is restarted or 
         /// reconnected with Sync Gateway.
         /// * auto-purge will not be performed when DocumentIDs filter <see cref="CollectionConfiguration.DocumentIDs"/> is used.
@@ -322,7 +323,7 @@ namespace Couchbase.Lite.Sync
         /// The default is null (5 min interval is applied).
         /// * <c>5</c> min interval is applied when MaxAttemptsWaitTime is set to null.
         /// * null will be returned when default <c>5</c> min interval is applied.
-        /// Default value is <see cref="Constants.DefaultReplicatorMaxAttemptsWaitTime" />
+        /// Default value is <see cref="Constants.DefaultReplicatorMaxAttemptWaitTime" />
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
@@ -357,7 +358,7 @@ namespace Couchbase.Lite.Sync
         public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
 
         //Pre 3.1 Default Collection Config
-        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(Database.GetDefaultCollection()) ? CollectionConfigs[Database.GetDefaultCollection()] 
+        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(DatabaseInternal.GetDefaultCollection()) ? CollectionConfigs[DatabaseInternal.GetDefaultCollection()] 
             : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
 
         internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
@@ -376,6 +377,13 @@ namespace Couchbase.Lite.Sync
             set => _freezer.SetValue(ref _otherDb, value);
         }
 
+        internal Database DatabaseInternal
+        {
+            get {
+                Debug.Assert(Collections.Any());
+                return Collections.First().Database;
+            }
+        }
 
         internal Uri? RemoteUrl
         {
@@ -398,7 +406,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <remarks>
         /// After the ReplicatorConfiguration created, use <see cref="AddCollection(Collection, CollectionConfiguration)"/> 
-        /// or <see cref="AddCollections(IList<Collection>, CollectionConfiguration)"/> to
+        /// or <see cref="AddCollections(IList{Collection}, CollectionConfiguration)"/> to
         /// configure the collections in the replication with the target. If there is no collection
         /// specified, the replicator will not start with a no collections specified error.
         /// </remarks>
@@ -464,9 +472,9 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
 
-            if (Collections.Count > 0 && collection.Database != Database)
+            if (Collections.Count > 0 && collection.Database != DatabaseInternal)
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, 
-                    $"The given collection database {collection.Database} doesn't match the database {Database} participating in the replication. All collections in the replication configuration must operate on the same database.");
+                    $"The given collection database {collection.Database} doesn't match the database {DatabaseInternal} participating in the replication. All collections in the replication configuration must operate on the same database.");
 
             config = config == null ? new CollectionConfiguration() : new CollectionConfiguration(config);
 

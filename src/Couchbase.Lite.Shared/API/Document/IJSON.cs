@@ -20,6 +20,9 @@ using System;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An interface desribing an object that can be serialized to JSON
+    /// </summary>
     public interface IJSON
     {
         #region Properties 

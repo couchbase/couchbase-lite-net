@@ -40,8 +40,6 @@ namespace LiteCore.Tests
 #endif
     public unsafe class DatabaseInternalTest : Test
     {
-        private uint _remoteDocID;
-
 #if !WINDOWS_UWP
         public DatabaseInternalTest(ITestOutputHelper output) : base(output)
         {
@@ -82,7 +80,6 @@ namespace LiteCore.Tests
                             historyCount = revID == null ? 0UL : 1UL,
                             body = encoded.buf == null ? body : (FLSlice)encoded,
                             revFlags = flags,
-                            remoteDBID = _remoteDocID,
                             save = true
                         };
 
@@ -154,7 +151,6 @@ namespace LiteCore.Tests
                             historyCount = (ulong)history.Length,
                             body = body,
                             revFlags = flags,
-                            remoteDBID = _remoteDocID,
                             save = true
                         };
 

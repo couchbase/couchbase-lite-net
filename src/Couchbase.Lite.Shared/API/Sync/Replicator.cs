@@ -125,7 +125,7 @@ namespace Couchbase.Lite.Sync
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator Configuration must contain at least one collection.");
 
             _config = config.Freeze();
-            _databaseThreadSafety = Config.Database.ThreadSafety;
+            _databaseThreadSafety = Config.DatabaseInternal.ThreadSafety;
         }
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace Couchbase.Lite.Sync
                         WriteLog.To.Sync.I(Tag, $"{this}: Starting");
                         Native.c4repl_start(_repl, Config.Options.Reset || reset);
                         Config.Options.Reset = false;
-                        Config.Database.AddActiveStoppable(this);
+                        Config.DatabaseInternal.AddActiveStoppable(this);
                         status = Native.c4repl_getStatus(_repl);
                     }
                 } else {
@@ -508,7 +508,7 @@ namespace Couchbase.Lite.Sync
 
         private bool PullValidateCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            var coll = Config.Database.GetCollection(collName, scope);
+            var coll = Config.Collections.FirstOrDefault(x => x.Name == collName && x.Scope.Name == scope);
             if(coll == null) {
                 WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
                 return true;
@@ -525,7 +525,7 @@ namespace Couchbase.Lite.Sync
 
         private bool PushFilterCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            var coll = Config.Database.GetCollection(collName, scope);
+            var coll = Config.Collections.FirstOrDefault(x => x.Name == collName && x.Scope.Name == scope);
             if (coll == null) {
                 WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PushFilterCallback, aborting and returning true...");
                 return true;
@@ -597,9 +597,9 @@ namespace Couchbase.Lite.Sync
                 Task t = Task.Run(() =>
                 {
                     try {
-                        var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName)!;
+                        var coll = Config.Collections.First(x => x.Name == replication.CollectionName && x.Scope.Name == replication.ScopeName);
                         var collectionConfig = Config.GetCollectionConfig(coll);
-                        Config.Database.ResolveConflict(replication.Id, collectionConfig!.ConflictResolver, coll);
+                        coll.Database.ResolveConflict(replication.Id, collectionConfig!.ConflictResolver, coll);
                         replication = replication.ClearError();
                     } catch (CouchbaseException e) {
                         replication.Error = e;
@@ -784,7 +784,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            Config.Database.SaveCookie(e, remoteUrl, Config.AcceptParentDomainCookies);
+            Config.DatabaseInternal.SaveCookie(e, remoteUrl, Config.AcceptParentDomainCookies);
         }
 
         private void Dispose(bool finalizing)
@@ -817,7 +817,7 @@ namespace Couchbase.Lite.Sync
 
         private C4Error SetupC4Replicator()
         {
-            Config.Database.CheckOpenLocked();
+            Config.DatabaseInternal.CheckOpenLocked();
             C4Error err = new C4Error();
             if (_repl != null) {
                 Native.c4repl_setOptions(_repl, ((FLSlice) Config.Options.FLEncode()).ToArrayFast());
@@ -840,7 +840,7 @@ namespace Couchbase.Lite.Sync
 
                 if (addrFromUrl) {
                     //get cookies from url and add to replicator options
-                    var cookiestring = Config.Database.GetCookies(remoteUrl);
+                    var cookiestring = Config.DatabaseInternal.GetCookies(remoteUrl);
                     if (!String.IsNullOrEmpty(cookiestring)) {
                         var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
                         foreach (var entry in split) {
@@ -921,11 +921,11 @@ namespace Couchbase.Lite.Sync
                     using (var replParamsPinned = _nativeParams.Pinned()) {
 #if COUCHBASE_ENTERPRISE
                         if (otherDB != null)
-                            _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                            _repl = Native.c4repl_newLocal(Config.DatabaseInternal.c4db, otherDB.c4db, _nativeParams.C4Params,
                                 &localErr);
                         else
 #endif
-                            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr_.AsFLSlice(), _nativeParams.C4Params, &localErr);
+                            _repl = Native.c4repl_new(Config.DatabaseInternal.c4db, addr, dbNameStr_.AsFLSlice(), _nativeParams.C4Params, &localErr);
                     }
 
                     if (_documentEndedUpdate.Counter > 0) {
@@ -955,7 +955,7 @@ namespace Couchbase.Lite.Sync
         private void Stopped()
         {
             Debug.Assert(_rawStatus.level == C4ReplicatorActivityLevel.Stopped);
-            Config.Database.RemoveActiveStoppable(this);
+            Config.DatabaseInternal.RemoveActiveStoppable(this);
         }
 
         private void UpdateStateProperties(C4ReplicatorStatus state)

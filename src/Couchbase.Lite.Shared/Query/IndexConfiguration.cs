@@ -22,6 +22,10 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Internal.Query
 {
+    /// <summary>
+    /// A configuration object that stores the details of how a given <see cref="Couchbase.Lite.Query.IIndex"/>
+    /// object should be created
+    /// </summary>
     public abstract class IndexConfiguration
     {
         #region Properties

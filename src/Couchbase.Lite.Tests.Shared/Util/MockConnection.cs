@@ -16,6 +16,8 @@
 //  limitations under the License.
 // 
 
+#nullable disable
+
 #if COUCHBASE_ENTERPRISE
 using System;
 using System.IO;

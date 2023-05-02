@@ -20,6 +20,9 @@ using System;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// An interface describing an object that is capable of creating an <see cref="IQuery"/> object
+    /// </summary>
     public interface IQueryFactory
     {
         /// <summary>

@@ -16,6 +16,12 @@
 // limitations under the License.
 //
 
+#pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable CS0649  // Member never assigned to
+#pragma warning disable CS0169  // Member never used
+
+
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -32,3 +38,8 @@ namespace LiteCore.Interop
         public fixed byte bytes[20];
     }
 }
+
+#pragma warning restore IDE0051 // Remove unused private members
+#pragma warning restore IDE0044 // Add readonly modifier
+#pragma warning restore CS0649  // Member never assigned to
+#pragma warning restore CS0169  // Member never used
