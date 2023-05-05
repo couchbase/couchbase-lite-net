@@ -318,9 +318,9 @@ namespace Couchbase.Lite.Sync
                 WriteLog.To.Sync.I(Tag, $"Network Interface {_options.NetworkInterface} supports neither IPv6 nor IPv4.");
                 throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownInterface);
 
-            } catch (Exception ex) {
+            } catch (Exception) {
                 WriteLog.To.Sync.I(Tag, $"Failed Creating Tcp Client with Network Interface {_options.NetworkInterface}.");
-                throw ex;
+                throw;
             }
         }
 
@@ -333,9 +333,9 @@ namespace Couchbase.Lite.Sync
                 ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address ?? fallback;
                 //Create and return tcp client, if ip address is null, ArgumentNullException will be thrown
                 return new TcpClient(new IPEndPoint(ip, 0));
-            } catch (Exception e) {
+            } catch (Exception) {
                 WriteLog.To.Sync.I(Tag, $"TcpClient failed to bind Network Interface {_options.NetworkInterface} with {ip} in family {af}.");
-                throw e;
+                throw;
             }
         }
 

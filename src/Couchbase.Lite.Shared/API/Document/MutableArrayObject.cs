@@ -69,7 +69,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates an array with the given json string
         /// </summary>
-        /// <param name="array">The data to populate the array with</param>
+        /// <param name="json">The data to populate the array with</param>
         public MutableArrayObject(string json)
             : this()
         {

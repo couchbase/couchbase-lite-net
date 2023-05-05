@@ -39,9 +39,13 @@ namespace Couchbase.Lite.Support
                 try {
                     var javaUri = new URI(EncodeUrl(destination));
                     var uriSelector = selector.Select(javaUri);
-                    var proxy = uriSelector.FirstOrDefault();
+                    var proxy = uriSelector?.FirstOrDefault();
                     if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
-                        webProxy = new WebProxy(address.HostString, address.Port);
+                        if (address.HostString == null) {
+                            WriteLog.To.Sync.W("CreateProxyAsync", "The host string returned from the proxy address is null.  Please check your system proxy setting.");
+                        } else {
+                            webProxy = new WebProxy(address.HostString, address.Port);
+                        }
                     }
                 } catch { // UriFormatException
                     WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");

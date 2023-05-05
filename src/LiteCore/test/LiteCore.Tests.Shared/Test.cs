@@ -119,8 +119,6 @@ namespace LiteCore.Tests
         protected override int NumberOfOptions => 1;
         #endif
 
-        private int _objectCount = 0;
-
         internal C4Database* Db { get; private set; }
         internal C4Collection* DefaultColl
         {

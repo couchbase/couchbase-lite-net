@@ -30,14 +30,19 @@ using LiteCore.Util;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A class representing a Couchbase Lite collection.  A collection is a logical group
+    /// of documents segregated in a domain specific way inside of a <see cref="Scope"/>.
+    /// It is comparable to a SQL table in a document based database world.
+    /// </summary>
     public sealed unsafe class Collection : IChangeObservable<CollectionChangedEventArgs>, IDocumentChangeObservable,
         IDisposable
     {
@@ -45,7 +50,14 @@ namespace Couchbase.Lite
 
         private const string Tag = nameof(Collection);
 
+        /// <summary>
+        /// The name of the default <see cref="Scope"/> that exists in every <see cref="Database"/>
+        /// </summary>
         public static readonly string DefaultScopeName = Database._defaultScopeName;
+
+        /// <summary>
+        /// The name of the default Collection that exists in every <see cref="Scope"/>
+        /// </summary>
         public static readonly string DefaultCollectionName = Database._defaultCollectionName;
 
         private static readonly C4DocumentObserverCallback _documentObserverCallback = DocObserverCallback;
@@ -603,8 +615,8 @@ namespace Couchbase.Lite
         /// index name will replace the old index; creating the same index with the same name will be no-ops.
         /// </summary>
         /// <param name="name">The index name</param>
-        /// <param name="index">The index</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
+        /// <param name="indexConfig">The index configuration</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="indexConfig"/>
         /// is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
@@ -654,6 +666,12 @@ namespace Couchbase.Lite
 
         #region Public Methods - QueryFactory
 
+        /// <summary>
+        /// Create an <see cref="IQuery"/> object using the given SQL++ query
+        /// expression.
+        /// </summary>
+        /// <param name="queryExpression">The SQL++ query expression (e.g. SELECT * FROM _)</param>
+        /// <returns>THe initialized query object, ready to execute</returns>
         public IQuery CreateQuery(string queryExpression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);

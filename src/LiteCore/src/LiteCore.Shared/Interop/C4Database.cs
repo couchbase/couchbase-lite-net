@@ -70,7 +70,6 @@ namespace LiteCore.Interop
     {
         private C4String _name;
         private C4String _scope;
-        private bool disposedValue;
 
         public FLSlice Name => _name.AsFLSlice();
 
@@ -82,14 +81,6 @@ namespace LiteCore.Interop
             _scope = new C4String(scope);
         }
 
-        private void Dispose(bool disposing)
-        {
-            if (!disposedValue) {
-                _name.Dispose();
-                _scope.Dispose();
-            }
-        }
-
         public static implicit operator C4CollectionSpec(CollectionSpec c)
         {
             return new C4CollectionSpec()
@@ -99,15 +90,10 @@ namespace LiteCore.Interop
             };
         }
 
-        ~CollectionSpec()
-        {
-            Dispose(false);
-        }
-
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            _name.Dispose();
+            _scope.Dispose();
         }
     }
 }

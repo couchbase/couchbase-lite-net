@@ -158,7 +158,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
         /// <returns>The <see cref="DocumentFragment"/> object</returns>
-        public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
+        public DocumentFragment this[string id] => new DocumentFragment(GetDefaultCollection().GetDocument(id));
 
         /// <summary>
         /// Gets the object that stores the available logging methods
@@ -703,6 +703,7 @@ namespace Couchbase.Lite
             GetDefaultCollection().CreateIndex(name, indexConfig);
         }
 
+        /// <summary>
         /// Creates a Query object from the given SQL++ string.
         /// </summary>
         /// <param name="queryExpression">SQL++ Expression</param>

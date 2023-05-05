@@ -88,7 +88,9 @@ namespace Couchbase.Lite.Util
 #endif
         public TV? this[TK index]
         {
+#pragma warning disable CS8766 // Funky because we want setting null to be a no-op, but returning to not allow null
             get => _data[index]!;
+#pragma warning restore CS8766
             set {
                 if(IsAddable(value)) {
                     _data[index] = value!;

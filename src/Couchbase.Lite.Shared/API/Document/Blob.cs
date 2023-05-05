@@ -62,6 +62,9 @@ namespace Couchbase.Lite
 
         #region Properties
 
+        /// <summary>
+        /// Gets the metadata type of this object (hardcoded to <see cref="Constants.ObjectTypeBlob"/>)
+        /// </summary>
         [JsonProperty("@type")]
         public string Type => Constants.ObjectTypeBlob;
 

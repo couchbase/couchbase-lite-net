@@ -26,6 +26,12 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An object representing a Couchbase Lite Scope.  Scopes are a grouping level above 
+    /// <see cref="Collection"/> objects that can segregate data.  There is not a direct
+    /// SQL equivalent but it can be thought of a a logical grouping of tables with potential
+    /// foreign key links.
+    /// </summary>
     public sealed unsafe class Scope : IDisposable
     {
         #region Variales
@@ -333,6 +339,7 @@ namespace Couchbase.Lite
 
         #region IDisposable
 
+        /// <inheritdoc />
         public void Dispose()
         {
             ThreadSafety.DoLocked(() =>

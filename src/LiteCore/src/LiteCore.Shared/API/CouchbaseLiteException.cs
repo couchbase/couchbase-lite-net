@@ -810,9 +810,9 @@ namespace Couchbase.Lite
 
     /// <summary>
     /// An exception that is thrown when a POSIX error code is received during operation.
-    /// This exception has a domain of <see cref="CouchbaseLiteErrorType.POSIX"/>.  The <see cref="CouchbaseException.Error"/>
-    /// values are dependent on the OS being run on.  They are defined in <see cref="PosixWindows"/>,
-    /// <see cref="PosixMac"/> and <see cref="PosixLinux"/>
+    /// This exception has a domain of <see cref="CouchbaseLiteErrorType.POSIX"/>.  
+    /// This exception type is now largely unused as the common ones have been mapped
+    /// to the appropriate <see cref="CouchbaseNetworkException"/>
     /// </summary>
     public sealed class CouchbasePosixException : CouchbaseException
     {
