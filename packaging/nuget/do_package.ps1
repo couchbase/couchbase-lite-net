@@ -24,9 +24,13 @@ if($env:WORKSPACE) {
     Copy-Item "$env:WORKSPACE\product-texts\mobile\couchbase-lite\license\LICENSE_community.txt" "$PSScriptRoot\LICENSE.txt"
 }
 
-Get-ChildItem "." -Filter *.nuspec |
+# Only do snupkg for the main package, since the support ones can contain 
+# native pdb which will be rejected by nuget.org
+..\..\nuget.exe pack couchbase-lite.nuspec -Properties version=$env:NUGET_VERSION -BasePath ..\..\ -Symbols -SymbolPackageFormat snupkg
+
+Get-ChildItem "." -Filter *support*.nuspec |
 ForEach-Object {
-    ..\..\nuget.exe pack $_.Name -Properties version=$env:NUGET_VERSION -BasePath ..\..\ -Symbols -SymbolPackageFormat snupkg
+    ..\..\nuget.exe pack $_.Name -Properties version=$env:NUGET_VERSION -BasePath ..\..\
     if($LASTEXITCODE) {
         Pop-Location
         throw "Failed to package $_"
