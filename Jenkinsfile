@@ -73,7 +73,7 @@ pipeline {
                                 popd
 
                                 pushd jenkins
-                                git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
+                                git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 --branch pre-3.2 proj
                                 popd
                                 '''
                             }
