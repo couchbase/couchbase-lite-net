@@ -268,7 +268,7 @@ namespace Test
             WriteLog.To.Database.W("TEST", "TEST WARNING");
             WriteLog.To.Database.E("TEST", "TEST ERROR");
             stringWriter.Flush();
-            stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
+            stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
                 .HaveCount(4, "because all levels should be logged");
 
             var currentCount = 1;
@@ -282,7 +282,7 @@ namespace Test
                 WriteLog.To.Database.W("TEST", "TEST WARNING");
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
                 stringWriter.Flush();
-                stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
+                stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
                     .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
                 currentCount++;
             }
