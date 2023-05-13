@@ -468,6 +468,9 @@ namespace Couchbase.Lite
         /// <summary>
         /// Get a collection in the specified scope by name. 
         /// If the collection doesn't exist, null will be returned.
+        /// Note that this will cache after the first retrieval
+        /// and return the same instance until said instance is disposed.  Be careful if using multiple 
+        /// instances because disposing one will invalidate them all.
         /// </summary>
         /// <param name="name">The name of the collection</param>
         /// <param name="scope">The scope of the collection</param>

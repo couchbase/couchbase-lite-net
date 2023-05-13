@@ -102,7 +102,9 @@ namespace Couchbase.Lite
         #region Public Methods
 
         /// <summary>
-        /// Gets one collection of the given name
+        /// Gets one collection of the given name.  Note that this will cache after the first retrieval
+        /// and return the same instance until said instance is disposed.  Be careful if using multiple 
+        /// instances because disposing one will invalidate them all.
         /// </summary>
         /// <param name="name">The collection name</param>
         /// <returns>The collection of the given name. null if the collection doesn't exist in the Scope</returns>
