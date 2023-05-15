@@ -1076,8 +1076,8 @@ namespace Test
             ContentType = blob.ContentType;
 
             var text = Encoding.UTF8.GetString(blob.Content);
-            var wc = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-            var sc = text.Split('.', StringSplitOptions.RemoveEmptyEntries).Length;
+            var wc = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
+            var sc = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
 
             var output = new MutableDictionaryObject();
             output.SetInt("wc", wc);

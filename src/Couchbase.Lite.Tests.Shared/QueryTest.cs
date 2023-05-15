@@ -1019,14 +1019,12 @@ namespace Test
             var PARAM_N1 = Expression.Parameter("num1");
             var PARAM_N2 = Expression.Parameter("num2");
 
-            using (var q = QueryBuilder.Select(SelectResult.Expression(NUMBER1))
-                .From(DataSource.Database(Db))
-                .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
-                .OrderBy(Ordering.Expression(NUMBER1))) {
+            Action<IQuery> validation = q =>
+            {
                 var parameters = new Parameters().SetInt("num1", 2).SetInt("num2", 5);
                 q.Parameters = parameters;
 
-                var expectedNumbers = new[] {2, 3, 4, 5};
+                var expectedNumbers = new[] { 2, 3, 4, 5 };
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var number = row.GetInt(0);
@@ -1034,7 +1032,17 @@ namespace Test
                 });
 
                 numRows.Should().Be(4);
+            };
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(NUMBER1))
+                .From(DataSource.Database(Db))
+                .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
+                .OrderBy(Ordering.Expression(NUMBER1))) {
+                validation(q);
             }
+
+            using var q2 = Db.CreateQuery("SELECT number1 FROM _ WHERE number1 BETWEEN $num1 and $num2 ORDER BY number1");
+            validation(q2);
         }
 
         // Verify fix of CBL-1107 Fix bad interpretation of '$' properties

@@ -56,6 +56,7 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             var options = C4QueryOptions.Default;
+            var paramJson = Parameters.FLEncode();
             var e = (C4QueryEnumerator*)ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
@@ -63,7 +64,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 var localOpts = options;
-                return NativeRaw.c4query_run(_c4Query, &localOpts, FLSlice.Null, err);
+                return NativeRaw.c4query_run(_c4Query, &localOpts, (FLSlice)paramJson, err);
             });
 
             if (e == null) {
