@@ -2041,6 +2041,25 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestDisposeRunningReplicator()
+        {
+            var config = CreateConfig(true, false, true);
+            var replicator = new Replicator(config);
+            var stoppedWait = new ManualResetEventSlim();
+            replicator.AddChangeListener((sender, args) =>
+            {
+                if(args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    stoppedWait.Set();
+                }
+            });
+            replicator.Start();
+
+            Thread.Sleep(500);
+            replicator.Dispose();
+            stoppedWait.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("because otherwise the replicator didn't stop");
+        }
+
         //end pending doc id tests
 
         /*

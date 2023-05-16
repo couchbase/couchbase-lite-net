@@ -26,6 +26,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
@@ -61,6 +62,13 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
+        private enum DisposalState
+        {
+            None,
+            Disposing,
+            Disposed
+        }
+
         private readonly ThreadSafety _databaseThreadSafety;
 
         private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
@@ -70,7 +78,7 @@ namespace Couchbase.Lite.Sync
             new Event<ReplicatorStatusChangedEventArgs>();
 
         private string? _desc;
-        private bool _disposed;
+        private DisposalState _disposalState;
 
         private ReplicatorParameters? _nativeParams;
         private C4ReplicatorStatus _rawStatus;
@@ -242,7 +250,7 @@ namespace Couchbase.Lite.Sync
             var status = default(C4ReplicatorStatus);
             DispatchQueue.DispatchSync(() =>
             {
-                if (_disposed) {
+                if (_disposalState != DisposalState.None) {
                     throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
@@ -585,7 +593,7 @@ namespace Couchbase.Lite.Sync
 
         private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
         {
-            if (_disposed) {
+            if (_disposalState != DisposalState.None) {
                 return;
             }
 
@@ -625,7 +633,7 @@ namespace Couchbase.Lite.Sync
 
         private void OnDocEnded(List<ReplicatedDocument> replications, bool pushing)
         {
-            if (_disposed) {
+            if (_disposalState != DisposalState.None) {
                 return;
             }
 
@@ -669,7 +677,11 @@ namespace Couchbase.Lite.Sync
         // Must be called from within the ThreadSafety
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
-            if (_disposed) {
+            if(_disposalState == DisposalState.Disposed) {
+                return;
+            }
+
+            if (_disposalState == DisposalState.Disposing && status.level != C4ReplicatorActivityLevel.Stopped) {
                 return;
             }
 
@@ -792,22 +804,22 @@ namespace Couchbase.Lite.Sync
             if(!finalizing) {
                 DispatchQueue.DispatchSync(() =>
                 {
-                    if (_disposed) {
+                    if (_disposalState != DisposalState.None) {
                         return;
                     }
 
-                    _nativeParams?.Dispose();
-                    Config.Options.Dispose();
+                    _disposalState = DisposalState.Disposing;
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
-                        var newStatus = new ReplicatorStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
-                        _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
-                        Status = newStatus;
+                        // This will defer the freeing until after Stop
+                        Stop();
+                    } else {
+                        // Already stopped, so go ahead and free
+                        _disposalState = DisposalState.Disposed;
+                        _nativeParams?.Dispose();
+                        Config.Options.Dispose();
+                        Native.c4repl_free(_repl);
+                        _repl = null;
                     }
-
-                    Stop();
-                    Native.c4repl_free(_repl);
-                    _repl = null;
-                    _disposed = true;
                 });
             } else {
                  Native.c4repl_free(_repl);
@@ -956,6 +968,13 @@ namespace Couchbase.Lite.Sync
         {
             Debug.Assert(_rawStatus.level == C4ReplicatorActivityLevel.Stopped);
             Config.DatabaseInternal.RemoveActiveStoppable(this);
+            if(_disposalState == DisposalState.Disposing) {
+                _disposalState = DisposalState.Disposed;
+                _nativeParams?.Dispose();
+                Config.Options.Dispose();
+                Native.c4repl_free(_repl);
+                _repl = null;
+            }
         }
 
         private void UpdateStateProperties(C4ReplicatorStatus state)
