@@ -611,7 +611,7 @@ namespace Couchbase.Lite
         /// index name will replace the old index; creating the same index with the same name will be no-ops.
         /// </summary>
         /// <param name="name">The index name</param>
-        /// <param name="index">The index</param>
+        /// <param name="indexConfig">The configuration object for the index</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
         /// is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>

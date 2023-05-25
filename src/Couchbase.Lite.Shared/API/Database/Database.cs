@@ -708,6 +708,7 @@ namespace Couchbase.Lite
             DefaultCollection.CreateIndex(name, indexConfig);
         }
 
+        /// <summary>
         /// Creates a Query object from the given SQL++ string.
         /// </summary>
         /// <param name="queryExpression">SQL++ Expression</param>
