@@ -160,8 +160,10 @@ namespace Couchbase.Lite.Support
             return GetDelegate<CFNetworkCopyProxiesForURL>(cFNetworkHandle)(url, proxySettings);
         }
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate /* CFDictionaryRef __nullable */ IntPtr CFNetworkCopySystemProxySettings();
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate /* CFArrayRef __nonnull */ IntPtr CFNetworkCopyProxiesForURL(/* CFURLRef __nonnull */ IntPtr url, /* CFDictionaryRef __nonnull */ IntPtr proxySettings);
 
         [DllImport(CoreFoundationLibrary)]
