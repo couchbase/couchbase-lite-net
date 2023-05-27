@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Info {
 	public static class Constants {
 
 		/// <summary>
-		/// Default value for <see cref="LogFileConfiguration.UsePlainText" /> (false)
+		/// Default value for <see cref="LogFileConfiguration.UsePlaintext" /> (false)
 		/// Plaintext is not used, and instead binary encoding is used in log files
 		/// </summary>
 		public static readonly bool DefaultLogFileUsePlainText = false;
@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Info {
 		public static readonly bool DefaultFullTextIndexIgnoreAccents = false;
 
 		/// <summary>
-		/// Default value for <see cref="ReplicatorConfiguration.Type" /> (ReplicatorType.PushAndPull)
+		/// Default value for <see cref="ReplicatorConfiguration.ReplicatorType" /> (ReplicatorType.PushAndPull)
 		/// Perform bidirectional replication
 		/// </summary>
 		public static readonly ReplicatorType DefaultReplicatorType = ReplicatorType.PushAndPull;
@@ -84,7 +84,7 @@ namespace Couchbase.Lite.Info {
 		public static readonly int DefaultReplicatorMaxAttemptsContinuous = Int32.MaxValue;
 
 		/// <summary>
-		/// Default value for <see cref="ReplicatorConfiguration.MaxAttemptWaitTime" /> (TimeSpan.FromSeconds(300))
+		/// Default value for <see cref="ReplicatorConfiguration.MaxAttemptsWaitTime" /> (TimeSpan.FromSeconds(300))
 		/// Max wait time between retry attempts in seconds
 		/// </summary>
 		public static readonly TimeSpan DefaultReplicatorMaxAttemptWaitTime = TimeSpan.FromSeconds(300);
@@ -96,13 +96,13 @@ namespace Couchbase.Lite.Info {
 		public static readonly bool DefaultReplicatorEnableAutoPurge = true;
 
 		/// <summary>
-		/// Default value for <see cref="ReplicatorConfiguration.SelfSignedCertificateOnly" /> (false)
+		/// Default value for <see cref="ReplicatorConfiguration.AcceptOnlySelfSignedServerCertificate" /> (false)
 		/// Whether or not a replicator only accepts self-signed certificates from the remote
 		/// </summary>
 		public static readonly bool DefaultReplicatorSelfSignedCertificateOnly = false;
 
 		/// <summary>
-		/// Default value for <see cref="ReplicatorConfiguration.AllowParentDomainCookies" /> (false)
+		/// Default value for <see cref="ReplicatorConfiguration.AcceptParentDomainCookies" /> (false)
 		/// Whether or not a replicator only accepts cookies for the sender's parent domains
 		/// </summary>
 		public static readonly bool DefaultReplicatorAcceptParentCookies = false;
