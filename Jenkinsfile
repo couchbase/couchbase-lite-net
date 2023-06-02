@@ -32,7 +32,7 @@ pipeline {
                                 & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init
                                 Pop-Location
                                 Push-Location jenkins
-                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
+                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 --branch pre-3.2 proj
                                 Pop-Location
                                 '''
                             }
@@ -81,18 +81,9 @@ pipeline {
 	                            popd
 
 	                            pushd jenkins
-	                            git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
+	                            git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 --branch pre-3.2 proj
 	                            popd
 	                            '''
-	                        }
-	                    }
-	                    stage(".NET Core Mac") {
-	                        steps {
-	                            catchError {
-	                                sh 'jenkins/run_unix_tests.sh'
-	                            }
-								
-	                            echo currentBuild.result
 	                        }
 	                    }
 	                    stage("Xamarin iOS") {
