@@ -26,14 +26,14 @@ using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Sync
 {
-    internal enum NetworkReachabilityStatus
+    public enum NetworkReachabilityStatus
     {
         Unknown,
         Reachable,
         Unreachable
     }
 
-    internal sealed class NetworkReachabilityChangeEventArgs : EventArgs
+    public sealed class NetworkReachabilityChangeEventArgs : EventArgs
     {
         #region Properties
 
