@@ -56,6 +56,8 @@ namespace Couchbase.Lite.DI
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         static Service()
         {
+            _Collection.Options.AllowOverridingRegistrations = true;
+
             // Windows 2012 doesn't define NETFRAMEWORK for some reason
             #if NETCOREAPP3_1_OR_GREATER || NETCOREAPP || NETFRAMEWORK || NET461
             AutoRegister(typeof(Database).GetTypeInfo().Assembly);
