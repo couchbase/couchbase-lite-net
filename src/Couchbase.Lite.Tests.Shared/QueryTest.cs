@@ -1041,8 +1041,9 @@ namespace Test
                 validation(q);
             }
 
-            using var q2 = Db.CreateQuery("SELECT number1 FROM _ WHERE number1 BETWEEN $num1 and $num2 ORDER BY number1");
-            validation(q2);
+            using (var q2 = Db.CreateQuery("SELECT number1 FROM _ WHERE number1 BETWEEN $num1 and $num2 ORDER BY number1")) {
+                validation(q2);
+            }
         }
 
         // Verify fix of CBL-1107 Fix bad interpretation of '$' properties
