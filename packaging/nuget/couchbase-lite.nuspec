@@ -21,50 +21,50 @@
       <group targetFramework="netstandard2.0" />
       <group targetFramework="net6.0">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="net6.0-windows10.0.19041.0">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.WinUI" version="[$version$]" />
       </group>
       <group targetFramework="net462">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="uap10.0.19041">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
       </group>
       <group targetFramework="net6.0-android31">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
       <group targetFramework="monoandroid10.0">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Xamarin.Essentials" version="1.7.4" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
       <group targetFramework="net6.0-ios14.2">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
       <group targetFramework="net6.0-maccatalyst14.2">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
       <group targetFramework="xamarinios">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
+        <dependency id="SimpleInjector" version="[5.2.1,6.0.0)" />
         <dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
