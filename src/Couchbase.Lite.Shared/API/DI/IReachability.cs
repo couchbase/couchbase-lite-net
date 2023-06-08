@@ -20,7 +20,7 @@ using Couchbase.Lite.Sync;
 
 namespace Couchbase.Lite.DI
 {
-    internal interface IReachability
+    public interface IReachability
     {
         #region Variables
 
