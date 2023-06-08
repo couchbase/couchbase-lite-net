@@ -53,6 +53,8 @@ namespace Couchbase.Lite.DI
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         static Service()
         {
+            _Collection.Options.AllowOverridingRegistrations = true;
+
             // Windows 2012 doesn't define NETFRAMEWORK for some reason
             #if (NET6_0_OR_GREATER || NETFRAMEWORK || NET462) && !NET6_0_WINDOWS10_0_19041_0 && !__MOBILE__
             AutoRegister(typeof(Database).GetTypeInfo().Assembly);
