@@ -12,6 +12,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)ArrayTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)BlobTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ConcurrencyTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CouchbaseTestFramework.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CSharpTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseEncryptionTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
@@ -44,6 +45,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\WaitAssert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocketTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)C\tests\data\*.*">
