@@ -3,8 +3,8 @@
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <TargetFrameworks>net6.0-ios14.2;net6.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
-    <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
+    <TargetFrameworks>net7.0-ios14.2;net7.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net7')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">13.1</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.iOS</RootNamespace>
@@ -54,8 +54,8 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.iOS.xml</DocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition="$(TargetFramework.StartsWith('net6.0-ios')) or $(TargetFramework.StartsWith('net6.0-maccatalyst'))">
-    <DefineConstants>$(DefineConstants);NET6_0_APPLE</DefineConstants>
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net7.0-ios')) or $(TargetFramework.StartsWith('net7.0-maccatalyst'))">
+    <DefineConstants>$(DefineConstants);NET_APPLE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">

@@ -79,7 +79,7 @@ namespace Test
         }
 
         #region TLSIdentity tests
-        #if !NET6_0_APPLE && !NET6_0_ANDROID
+        #if !NET_APPLE && !NET_ANDROID
         [Fact]
         public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(true);
 
@@ -117,7 +117,7 @@ namespace Test
         public void TestImportIdentity()
         {
             TLSIdentity id;
-            #if NET6_0_ANDROID
+            #if NET_ANDROID
             //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application
             //When export the cert, encryption has to be TripleDES-SHA1, AES256-SHA256 will not work...
             byte[] data = GetFileByteArray("certs.pfx", typeof(TLSIdentityTest));

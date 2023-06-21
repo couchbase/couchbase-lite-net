@@ -76,7 +76,7 @@ namespace Test
         public X509Certificate2 DefaultServerCert
         {
             get {
-                #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+                #if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
                 using (var cert =  FileSystem.OpenAppPackageFileAsync("SelfSigned.cer").Result)
                 #else
                 using (var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer"))

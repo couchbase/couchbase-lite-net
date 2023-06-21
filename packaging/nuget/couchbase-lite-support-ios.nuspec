@@ -18,20 +18,20 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <group targetFramework="net6.0-maccatalyst14.2" />
-      <group targetFramework="net6.0-ios14.2" />
+      <group targetFramework="net7.0-maccatalyst14.2" />
+      <group targetFramework="net7.0-ios14.2" />
       <group targetFramework="xamarinios" />
     </dependencies>
   </metadata>
   <files>
     <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="logo.png" src="packaging\nuget\logo.png" />
-    <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.dll" />
-    <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.pdb" />
-    <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.xml" />
-    <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.Support.iOS.dll" />
-    <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.Support.iOS.pdb" />
-    <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.Support.iOS.xml" />
+    <file target="lib\net7.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net7.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.dll" />
+    <file target="lib\net7.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net7.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.pdb" />
+    <file target="lib\net7.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net7.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.xml" />
+    <file target="lib\net7.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net7.0-ios14.2\Couchbase.Lite.Support.iOS.dll" />
+    <file target="lib\net7.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net7.0-ios14.2\Couchbase.Lite.Support.iOS.pdb" />
+    <file target="lib\net7.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net7.0-ios14.2\Couchbase.Lite.Support.iOS.xml" />
     <file target="runtimes/ios/native/LiteCore.xcframework.zip" src="vendor\prebuilt_core\ios\couchbase-lite-core-ios.zip" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\xamarin.ios10\Couchbase.Lite.Support.iOS.dll" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\xamarin.ios10\Couchbase.Lite.Support.iOS.pdb" />

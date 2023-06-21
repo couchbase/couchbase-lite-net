@@ -108,7 +108,7 @@ namespace Test
 
 
         #endregion
-        #if !NET6_0_APPLE && !NET6_0_ANDROID
+        #if !NET_APPLE && !NET_ANDROID
         #region Public Methods
         
 
@@ -302,7 +302,7 @@ namespace Test
             wrongPwSecureString.Dispose();
         }
 
-        #if !NET6_0_ANDROID
+        #if !NET_ANDROID
         [Fact]
         public void TestClientCertAuthWithCallback()
         {
@@ -405,13 +405,13 @@ namespace Test
             _listener.Stop();
         }
 
-        #if !NET6_0_ANDROID
+        #if !NET_ANDROID
         [Fact]
         public void TestClientCertAuthenticatorRootCerts()
         {
             byte[] caData = GetFileByteArray("client-ca.der", typeof(URLEndpointListenerTest));
 
-            #if NET6_0_ANDROID
+            #if NET_ANDROID
             byte[] clientData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
             #else
             byte[] clientData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
@@ -446,7 +446,7 @@ namespace Test
         [Fact]
         public void TestListenerWithImportIdentity()
         {
-			#if NET6_0_ANDROID
+			#if NET_ANDROID
             byte[] serverData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
 			#else 
             byte[] serverData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
@@ -639,7 +639,7 @@ namespace Test
         }
 #endif
 
-#if !NET6_0_ANDROID
+#if !NET_ANDROID
         [Fact]
         public void TestMultipleListenersOnSameDatabase()
         {
@@ -775,7 +775,7 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
 
-#if !NET6_0_ANDROID
+#if !NET_ANDROID
         [Fact]
         public void TestReplicatorServerCertWithTLS() => CheckReplicatorServerCert(true, true);
 

@@ -137,7 +137,7 @@ namespace Test
         {
             byte[] bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
             C4BlobKey key;
-            #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            #if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
             using (var stream = FileSystem.OpenAppPackageFileAsync("iTunesMusicLibrary.json").Result) {
             #else
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly
