@@ -506,7 +506,7 @@ namespace Test
         internal static byte[] GetFileByteArray(string filename, Type type = null)
         {
             byte[] bytes = null;
-            #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            #if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
             using (var stream = FileSystem.Current.OpenAppPackageFileAsync(filename).Result)
             using (var memoryStream = new MemoryStream()) {
                 stream.CopyTo(memoryStream);
@@ -677,12 +677,12 @@ namespace Test
 
                 var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
                 foreach(var line in lines) {
-            #elif NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            #elif NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
             using(var stream = FileSystem.Current.OpenAppPackageFileAsync(path.Replace("C/tests/data/", "")).Result)
             using (var tr = new StreamReader(stream)) { 
                 string line;
 				while ((line = tr.ReadLine()) != null) {
-            #elif __ANDROID__ && !NET6_0_ANDROID
+            #elif __ANDROID__ && !NET_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
@@ -719,12 +719,12 @@ namespace Test
                     .GetResult();
 
                 return file.OpenStreamForReadAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            #elif NET6_0_WINDOWS10 || NET6_0_APPLE || NET6_0_ANDROID
+            #elif NET6_0_WINDOWS10 || NET_APPLE || NET_ANDROID
             return FileSystem.Current.OpenAppPackageFileAsync(path).Result;
-            #elif __ANDROID__ && !NET6_0_ANDROID
+            #elif __ANDROID__ && !NET_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
-            #elif __IOS__ && !NET6_0_APPLE
+            #elif __IOS__ && !NET_APPLE
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
             #elif WINUI
