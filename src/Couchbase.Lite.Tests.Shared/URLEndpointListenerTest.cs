@@ -1160,8 +1160,13 @@ namespace Test
 
             var wait1 = new ManualResetEventSlim();
             var wait2 = new ManualResetEventSlim();
+
+            // Grab these now to avoid a race condition between Set() and WaitHandle side effect
+            var waitHandles = new[] { wait1.WaitHandle, wait2.WaitHandle };
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
             {
+                var name = (sender == repl1) ? "repl1" : "repl2";
+                WriteLine($"{name} -> {args.Status.Activity}");
                 maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
                 maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
 
@@ -1175,8 +1180,10 @@ namespace Test
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
+                        WriteLine("Setting wait1...");
                         wait1.Set();
                     } else {
+                        WriteLine("Setting wait2...");
                         wait2.Set();
                     }
                 }
@@ -1198,7 +1205,7 @@ namespace Test
             maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
             maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
 
-            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(30))
+            WaitHandle.WaitAll(waitHandles, TimeSpan.FromSeconds(30))
                 .Should().BeTrue();
 
             maxConnectionCount.Should().Be(2);
