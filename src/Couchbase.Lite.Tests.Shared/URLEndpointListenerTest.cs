@@ -682,7 +682,7 @@ namespace Test
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
+            using var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
                 urlepTestDb.Save(doc2);
             }
@@ -1078,7 +1078,7 @@ namespace Test
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
+            using var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
                 urlepTestDb.Save(doc2);
             }
@@ -1160,7 +1160,7 @@ namespace Test
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
+            using var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
                 urlepTestDb.Save(doc2);
             }
