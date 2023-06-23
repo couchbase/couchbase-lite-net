@@ -83,7 +83,7 @@ pipeline {
                         }
                         stage("Maui iOS") {
                             steps {
-                                sh 'jenkins/run_net6_ios_tests.sh'
+                                sh 'jenkins/run_net_ios_tests.sh'
                             }
                         }
                     }
