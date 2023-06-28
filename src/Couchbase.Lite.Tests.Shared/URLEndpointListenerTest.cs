@@ -977,7 +977,7 @@ namespace Test
 
         private int GetEADDRINUSECode()
         {
-#if NET6_0_OR_GREATER || __MOBILE__
+#if NET6_0_OR_GREATER && !__MOBILE__
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return 100;
@@ -990,7 +990,11 @@ namespace Test
             {
                 return 98; // Linux
             }
-#else   
+#elif __IOS__
+            return 48;
+#elif __ANDROID__
+            return 98;
+#else
             return 100;
 #endif
         }
