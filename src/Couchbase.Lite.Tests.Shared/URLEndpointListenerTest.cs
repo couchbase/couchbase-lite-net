@@ -1170,21 +1170,29 @@ namespace Test
                 WriteLine($"{name} -> {args.Status.Activity}");
                 maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
                 maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
-
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                    if (sender == repl1 && !wait1.IsSet) {
+                        WriteLine("Setting wait1 (busy)...");
+                        wait1.Set();
+                    } else if(!wait2.IsSet) {
+                        WriteLine("Setting wait2 (busy)...");
+                        wait2.Set();
+                    }
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
 
                     if ((replicatorType == ReplicatorType.PushAndPull && OtherDefaultCollection.Count == 3
                     && DefaultCollection.Count == 3 && urlepTestDb.GetDefaultCollection().Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDefaultCollection.Count == 1
                     && DefaultCollection.Count == 2 && urlepTestDb.GetDefaultCollection().Count == 2)) {
+                        WriteLine($"Stopping {sender}...");
                         ((Replicator) sender).Stop();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
-                        WriteLine("Setting wait1...");
+                        WriteLine("Setting wait1 (stopped)...");
                         wait1.Set();
                     } else {
-                        WriteLine("Setting wait2...");
+                        WriteLine("Setting wait2 (stopped)...");
                         wait2.Set();
                     }
                 }
@@ -1196,10 +1204,11 @@ namespace Test
             repl1.Start();
             repl2.Start();
 
-            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
-                repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
-                Thread.Sleep(100);
-            }
+            WaitHandle.WaitAll(waitHandles, TimeSpan.FromSeconds(5))
+                .Should().BeTrue("because otherwise one of the replicators never became busy");
+
+            wait1.Reset();
+            wait2.Reset();
 
             // For some reason running on mac throws off the timing enough so that the active connection count
             // of 1 is never seen.  So record the value right after it becomes busy.
