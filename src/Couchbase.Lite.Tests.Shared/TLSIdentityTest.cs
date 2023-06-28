@@ -79,7 +79,7 @@ namespace Test
         }
 
         #region TLSIdentity tests
-        #if !NET_APPLE && !NET_ANDROID
+
         [Fact]
         public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(true);
 
@@ -191,7 +191,7 @@ namespace Test
             // Delete 
             TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
         }
-        #endif
+
         #endregion
 
         #region TLSIdentity tests helpers
