@@ -793,7 +793,7 @@ namespace Test
                 OtherDefaultCollection.Save(doc);
             }
 
-            ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
+            ValidateMultipleReplications(ReplicatorType.PushAndPull, 3, 3);
         }
 
 #if NET6_0_OR_GREATER
@@ -811,7 +811,7 @@ namespace Test
                     OtherDefaultCollection.Save(doc);
                 }
 
-                ValidateMultipleReplicationsTo(ReplicatorType.Pull);
+                ValidateMultipleReplications(ReplicatorType.Pull, 1, 2);
 			}
         }
 #endif
@@ -1135,7 +1135,7 @@ namespace Test
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
-        private void ValidateMultipleReplicationsTo(ReplicatorType replicatorType)
+        private void ValidateMultipleReplications(ReplicatorType replicatorType, ulong expectedListenerCount, ulong expectedLocalCount)
         {
             ulong maxConnectionCount = 0UL;
             ulong maxActiveCount = 0UL;
@@ -1163,41 +1163,49 @@ namespace Test
                 serverCert: serverCert, sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
-            var wait1 = new ManualResetEventSlim();
-            var wait2 = new ManualResetEventSlim();
+            using var busy1 = new ManualResetEventSlim();
+            using var busy2 = new ManualResetEventSlim();
+            using var stopped1 = new ManualResetEventSlim();
+            using var stopped2 = new ManualResetEventSlim();
 
             // Grab these now to avoid a race condition between Set() and WaitHandle side effect
-            var waitHandles = new[] { wait1.WaitHandle, wait2.WaitHandle };
+            var busyHandles = new[] { busy1.WaitHandle, busy2.WaitHandle };
+            var stoppedHandles = new[] { stopped1.WaitHandle, stopped2.WaitHandle };
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
             {
-                var name = (sender == repl1) ? "repl1" : "repl2";
+                var senderIsRepl1 = sender == repl1;
+                var name = (senderIsRepl1) ? "repl1" : "repl2";
                 WriteLine($"{name} -> {args.Status.Activity}");
                 maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
                 maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
                 if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
-                    if (sender == repl1 && !wait1.IsSet) {
+                    if (senderIsRepl1) {
                         WriteLine("Setting wait1 (busy)...");
-                        wait1.Set();
-                    } else if(!wait2.IsSet) {
+                        busy1.Set();
+                    } else {
                         WriteLine("Setting wait2 (busy)...");
-                        wait2.Set();
+                        busy2.Set();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
+                    bool foundAllLocalDocs = false;
+                    if(senderIsRepl1) {
+                        foundAllLocalDocs = DefaultCollection.Count == expectedLocalCount;
+                    } else {
+                        foundAllLocalDocs = urlepTestDb.GetDefaultCollection().Count == expectedLocalCount;
+                    }
 
-                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDefaultCollection.Count == 3
-                    && DefaultCollection.Count == 3 && urlepTestDb.GetDefaultCollection().Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDefaultCollection.Count == 1
-                    && DefaultCollection.Count == 2 && urlepTestDb.GetDefaultCollection().Count == 2)) {
+                    if (OtherDefaultCollection.Count == expectedListenerCount && foundAllLocalDocs) {
                         WriteLine($"Stopping {sender}...");
                         ((Replicator) sender).Stop();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
                         WriteLine("Setting wait1 (stopped)...");
-                        wait1.Set();
+                        stopped1.Set();
                     } else {
                         WriteLine("Setting wait2 (stopped)...");
-                        wait2.Set();
+                        stopped2.Set();
                     }
                 }
             };
@@ -1208,22 +1216,22 @@ namespace Test
             repl1.Start();
             repl2.Start();
 
-            WaitHandle.WaitAll(waitHandles, TimeSpan.FromSeconds(5))
+            WaitHandle.WaitAll(busyHandles, TimeSpan.FromSeconds(5))
                 .Should().BeTrue("because otherwise one of the replicators never became busy");
-
-            wait1.Reset();
-            wait2.Reset();
 
             // For some reason running on mac throws off the timing enough so that the active connection count
             // of 1 is never seen.  So record the value right after it becomes busy.
             maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
             maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
 
-            WaitHandle.WaitAll(waitHandles, TimeSpan.FromSeconds(30))
-                .Should().BeTrue();
+            WaitHandle.WaitAll(stoppedHandles, TimeSpan.FromSeconds(30))
+                .Should().BeTrue("because otherwise one of the replicators never stopped");
 
-            maxConnectionCount.Should().Be(2);
-            maxActiveCount.Should().Be(2);
+            // Depending on the whim of the divine entity, there are a number of ways in which the connections
+            // can happen.  Commonly they run concurrently which results in a max connection count and max active
+            // count of 2.  However they can also run sequentially which means only a count of 1.
+            maxConnectionCount.Should().BeGreaterThan(0);
+            maxActiveCount.Should().BeGreaterThan(0);
 
             // all data are transferred to/from
             if (replicatorType == ReplicatorType.PushAndPull) {
@@ -1241,8 +1249,6 @@ namespace Test
 
             repl1.Dispose();
             repl2.Dispose();
-            wait1.Dispose();
-            wait2.Dispose();
             urlepTestDb.Close();
 
             Thread.Sleep(500);
