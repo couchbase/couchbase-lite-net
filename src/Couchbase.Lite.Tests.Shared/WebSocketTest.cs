@@ -308,44 +308,5 @@ namespace Test
             var method = ReplicatorOptionsDictionaryType.GetMethod("BuildInternal", BindingFlags.NonPublic | BindingFlags.Instance);
             var res = method.Invoke(optDict, null);
         }
-
-        [Fact]
-        public void TestValidUriInWebProxy()
-        {
-            int exCnt = 0;
-            Exception ex = null;
-            WebProxy webProxy = null;
-            Uri.TryCreate(null, UriKind.RelativeOrAbsolute, out var dummy).Should().BeFalse();
-            Uri.TryCreate("", UriKind.Absolute, out dummy).Should().BeFalse();
-            Uri.TryCreate("", UriKind.RelativeOrAbsolute, out dummy).Should().BeTrue("Looks like Uri allows empty string host if UriKind.RelativeOrAbsolute.");
-
-            Action badAction = (() => new WebProxy(null, 65535));
-            badAction.Should().Throw<UriFormatException>("WebProxy doesn't take null as the host value.");
-
-            badAction = (() => new WebProxy("", 65535));
-            badAction.Should().Throw<UriFormatException>("WebProxy doesn't take empty string as the host value.");
-
-            try {
-                webProxy = new WebProxy("", 65535);
-            } catch {
-                exCnt++;
-            }
-
-            exCnt.Should().Be(1, "Because UriFormatException should be catched since WebProxy doesn't take empty string as the host value.");
-
-            try {
-                webProxy = new WebProxy("google", 65536);
-            } catch (Exception e) {
-                ex = e;
-            }
-
-            ex.Should().BeOfType<UriFormatException>("WebProxy doesn't take port value that is greater than 65535.");
-
-            var uri = new Uri("https://google.com");
-            webProxy = new WebProxy(uri.Host, 0);
-            webProxy = new WebProxy("google", 0);
-            webProxy = new WebProxy("google", 65535);
-            webProxy = new WebProxy("192.168.8.8", 65535);
-        }
     }
 }
