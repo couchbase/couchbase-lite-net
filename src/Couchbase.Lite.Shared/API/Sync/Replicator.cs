@@ -170,6 +170,10 @@ namespace Couchbase.Lite.Sync
         public ListenerToken AddChangeListener(TaskScheduler? scheduler,
             EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
+            if (_disposalState != DisposalState.None) {
+                throw new ObjectDisposedException(nameof(Replicator));
+            }
+
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
             var cbHandler = new CouchbaseEventHandler<ReplicatorStatusChangedEventArgs>(handler, scheduler);
@@ -207,6 +211,10 @@ namespace Couchbase.Lite.Sync
         public ListenerToken AddDocumentReplicationListener(TaskScheduler? scheduler,
             EventHandler<DocumentReplicationEventArgs> handler)
         {
+            if (_disposalState != DisposalState.None) {
+                throw new ObjectDisposedException(nameof(Replicator));
+            }
+
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
             if (_documentEndedUpdate.Add(cbHandler) == 0) {
@@ -224,6 +232,10 @@ namespace Couchbase.Lite.Sync
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
+            if (_disposalState != DisposalState.None) {
+                throw new ObjectDisposedException(nameof(Replicator));
+            }
+
             if (token.Type == ListenerTokenType.Replicator) {
                 _statusChanged.Remove(token);
             } else if (_documentEndedUpdate.Remove(token) == 0) {
@@ -251,7 +263,7 @@ namespace Couchbase.Lite.Sync
             DispatchQueue.DispatchSync(() =>
             {
                 if (_disposalState != DisposalState.None) {
-                    throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
+                    throw new ObjectDisposedException(nameof(Replicator), CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
                 var err = SetupC4Replicator();
@@ -294,6 +306,12 @@ namespace Couchbase.Lite.Sync
         {
             DispatchQueue.DispatchSync(() =>
             {
+                if (_disposalState == DisposalState.Disposed) {
+                    // This is called by Dispose, in which the state is Disposing, so only consider
+                    // the Disposed state when throwing this
+                    throw new ObjectDisposedException(nameof(Replicator));
+                }
+
                 StopReachabilityObserver();
                 if (_repl != null) {
                     if (_rawStatus.level == C4ReplicatorActivityLevel.Stopped
@@ -354,6 +372,10 @@ namespace Couchbase.Lite.Sync
             bool isDocPending = false;
 
             DispatchQueue.DispatchSync(() => {
+                if(_disposalState != DisposalState.None) {
+                    throw new ObjectDisposedException(nameof(Replicator));
+                }
+
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
                     CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString()!, true);
@@ -402,6 +424,10 @@ namespace Couchbase.Lite.Sync
             byte[]? pendingDocIds = null;
 
             DispatchQueue.DispatchSync(() => {
+                if (_disposalState != DisposalState.None) {
+                    throw new ObjectDisposedException(nameof(Replicator));
+                }
+
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
                     CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString()!, true);
@@ -998,6 +1024,12 @@ namespace Couchbase.Lite.Sync
         /// <inheritdoc />
         public override string ToString()
         {
+            if (_disposalState == DisposalState.Disposed) {
+                // This is called after Dispose, in which the state is Disposing, so only consider
+                // the Disposed state when throwing this
+                throw new ObjectDisposedException(nameof(Replicator));
+            }
+
             if (_desc != null) {
                 return _desc;
             }

@@ -659,6 +659,7 @@ namespace Test
             {
                 r.AddDocumentReplicationListener((sender, args) =>
                 {
+                    Console.WriteLine($"{args.IsPush} {JsonConvert.SerializeObject(args.Documents.Select(x => $"{x.Flags} {x.CollectionName} {x.Id}"))}");
                     pushWait.RunConditionalAssert(() =>
                         args.IsPush 
                         && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted) && x.CollectionName == "colA" && x.Id == "doc")
