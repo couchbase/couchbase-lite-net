@@ -242,8 +242,12 @@ namespace Test
 
                 foreach (var file in Directory.EnumerateFiles(logDirectory, "*.cbllog")) {
                     var lines = ReadAllLines(file);
-                    lines[0].Should().Contain("CouchbaseLite/").And.Subject.Should().Contain("Build/")
+                    foreach (var key in new[] { "serialNo", "logDirectory", "fileLogLevel", "fileMaxSize", "fileMaxCount" }) {
+                        lines[0].Should().Contain($"{key}=", "because otherwise a metadata entry is missing on the first line");
+                    }
+                    lines[1].Should().Contain("CouchbaseLite/").And.Subject.Should().Contain("Build/")
                         .And.Subject.Should().Contain("Commit/");
+                    
                 }
             });
         }
@@ -399,16 +403,16 @@ namespace Test
                 foreach (var file in Directory.EnumerateFiles(logDirectory)) {
                     if (file.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(2, "because there should be 1 log line and 1 meta line");
+                            .HaveCount(3, "because there should be 1 log line and 2 meta lines");
                     } else if (file.Contains(LogLevel.Info.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(3, "because there should be 2 log lines and 1 meta line");
+                            .HaveCount(4, "because there should be 2 log lines and 2 meta lines");
                     } else if (file.Contains(LogLevel.Warning.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(4, "because there should be 3 log lines and 1 meta line");
+                            .HaveCount(5, "because there should be 3 log lines and 2 meta lines");
                     } else if (file.Contains(LogLevel.Error.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(5, "because there should be 4 log lines and 1 meta line");
+                            .HaveCount(6, "because there should be 4 log lines and 2 meta lines");
                     }
                 }
             });

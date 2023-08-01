@@ -34,12 +34,13 @@ namespace LiteCore.Interop
     [Flags]
     internal enum C4DatabaseFlags : uint
     {
-        Create         = 0x01,
-        ReadOnly       = 0x02,
-        AutoCompact    = 0x04,
-        VersionVectors = 0x08,
-        NoUpgrade      = 0x20,
-        NonObservable  = 0x40,
+        Create          = 0x01,
+        ReadOnly        = 0x02,
+        AutoCompact     = 0x04,
+        VersionVectors  = 0x08,
+        NoUpgrade       = 0x20,
+        NonObservable   = 0x40,
+        FakeVectorClock = 0x80,
     }
 
     internal enum C4EncryptionAlgorithm : uint

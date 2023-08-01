@@ -55,15 +55,13 @@ namespace Couchbase.Lite.Internal.Query
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);
             }
 
-            var options = C4QueryOptions.Default;
             var e = (C4QueryEnumerator*)ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
                     return null;
                 }
 
-                var localOpts = options;
-                return NativeRaw.c4query_run(_c4Query, &localOpts, FLSlice.Null, err);
+                return NativeRaw.c4query_run(_c4Query, FLSlice.Null, err);
             });
 
             if (e == null) {
