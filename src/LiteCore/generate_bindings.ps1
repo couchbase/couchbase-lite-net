@@ -1,16 +1,21 @@
+$headersdir = [IO.Path]::Combine([string]$PSScriptRoot, '..', '..', 'vendor', 'prebuilt_core', 'include')
+$fleecedir = [IO.Path]::Combine($headersdir, 'fleece')
 
-$startdir = [IO.Path]::Combine([string]$PSScriptRoot, '..', '..', 'vendor', 'couchbase-lite-core', 'vendor', 'fleece', 'API', 'fleece')
-pushd $startdir
+if(-Not (Test-Path $headersdir)) {
+    Write-Warning "Unable to find headers to parse, please copy them to couchbase-lite-net/vendor/prebuilt_core/include first"
+    exit 1
+}
+Push-Location $fleecedir
 
 Copy-Item $PSScriptRoot\parse\parse_API.py .
 Copy-Item $PSScriptRoot\parse\parse_structs.py .
 Copy-Item $PSScriptRoot\parse\parse_enums.py .
 Copy-Item $PSScriptRoot\parse\config_fleece.py .
-Get-ChildItem -Path $PSScriptRoot\src\LiteCore.Shared\Interop\* -Filter "*_defs.cs" | foreach($_) {
+Get-ChildItem -Path $PSScriptRoot\src\LiteCore.Shared\Interop\* -Filter "*_defs.cs" | ForEach-Object($_) {
     Remove-Item $_.FullName
 }
 
-Get-ChildItem -Path $PSScriptRoot\src\LiteCore.Shared\Interop\* -Filter "*_native.cs" -Exclude "Misc_native.cs" | foreach($_) {
+Get-ChildItem -Path $PSScriptRoot\src\LiteCore.Shared\Interop\* -Filter "*_native.cs" -Exclude "Misc_native.cs" | ForEach-Object($_) {
     Remove-Item $_.FullName
 }
 
@@ -22,9 +27,9 @@ Move-Item -Force *.cs $PSScriptRoot\src\LiteCore.Shared\Interop
 Remove-Item *.py
 Remove-Item *.pyc
 Remove-Item -Force -Recurse templates
-popd
+Pop-Location
 
-pushd $PSScriptRoot\..\..\vendor\couchbase-lite-core\C\include
+Push-Location $headersdir
 Copy-Item $PSScriptRoot\parse\parse_API.py .
 Copy-Item $PSScriptRoot\parse\parse_structs.py .
 Copy-Item $PSScriptRoot\parse\parse_enums.py .
@@ -37,10 +42,10 @@ Move-Item -Force *.cs $PSScriptRoot\src\LiteCore.Shared\Interop
 Remove-Item *.py
 Remove-Item *.pyc
 Remove-Item -Force -Recurse templates
-pushd $PSScriptRoot\src\LiteCore.Shared\Interop
+Push-Location $PSScriptRoot\src\LiteCore.Shared\Interop
 python gen_bindings.py
 Remove-Item *.template
 Move-Item -Force *_native.cs $PSScriptRoot\src\LiteCore.Shared\Interop\
-popd
-popd
-popd
+Pop-Location
+Pop-Location
+Pop-Location

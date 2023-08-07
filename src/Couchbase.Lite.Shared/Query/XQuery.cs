@@ -111,7 +111,6 @@ namespace Couchbase.Lite.Internal.Query
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryMissingSelectOrFrom);
             }
 
-            var options = C4QueryOptions.Default;
             var paramJson = Parameters.FLEncode();
 
             var e = (C4QueryEnumerator*)fromImpl.ThreadSafety.DoLockedBridge(err =>
@@ -124,8 +123,7 @@ namespace Couchbase.Lite.Internal.Query
                     Check();
                 }
 
-                var localOpts = options;
-                return NativeRaw.c4query_run(_c4Query, &localOpts, (FLSlice)paramJson, err);
+                return NativeRaw.c4query_run(_c4Query, (FLSlice)paramJson, err);
             });
 
             paramJson.Dispose();

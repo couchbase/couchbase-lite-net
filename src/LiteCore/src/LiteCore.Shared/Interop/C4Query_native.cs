@@ -54,10 +54,10 @@ namespace LiteCore.Interop
             }
         }
 
-        public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string? encodedParameters, C4Error* outError)
+        public static C4QueryEnumerator* c4query_run(C4Query* query, string? encodedParameters, C4Error* outError)
         {
             using(var encodedParameters_ = new C4String(encodedParameters)) {
-                return NativeRaw.c4query_run(query, options, encodedParameters_.AsFLSlice(), outError);
+                return NativeRaw.c4query_run(query, encodedParameters_.AsFLSlice(), outError);
             }
         }
 
@@ -87,7 +87,7 @@ namespace LiteCore.Interop
         public static extern void c4query_setParameters(C4Query* query, FLSlice encodedParameters);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, FLSlice encodedParameters, C4Error* outError);
+        public static extern C4QueryEnumerator* c4query_run(C4Query* query, FLSlice encodedParameters, C4Error* outError);
 
 
     }
