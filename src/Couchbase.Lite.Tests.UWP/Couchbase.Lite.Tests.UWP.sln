@@ -6,8 +6,6 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.UWP", "Couchbase.Lite.Tests.UWP.csproj", "{907F602B-EFF8-459F-AF24-D6F8E4CBE45C}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Tests.Shared", "..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.shproj", "{6EC40F09-4C86-4F51-9F0E-C4397601A567}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Coverage|Any CPU = Debug_Coverage|Any CPU
@@ -133,8 +131,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
-		..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{907f602b-eff8-459f-af24-d6f8e4cbe45c}*SharedItemsImports = 4
-		..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{907f602b-eff8-459f-af24-d6f8e4cbe45c}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal
