@@ -19,6 +19,7 @@
 using Couchbase.Lite.Support;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Couchbase.Lite.Sync
 {
@@ -89,6 +90,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
         /// The default value is null, meaning that all accessible channels will be pulled.
+        /// Zero length lists are not allowed, and will be replaced with null
         /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
         /// </summary>
         /// <remarks>
@@ -97,17 +99,17 @@ namespace Couchbase.Lite.Sync
         public IList<string>? Channels
         {
             get => Options.Channels;
-            set => _freezer.PerformAction(() => Options.Channels = value);
+            set => _freezer.PerformAction(() => Options.Channels = value?.Any() == true ? value : null);
         }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
-        /// and/or pulled
+        /// and/or pulled.  Zero length lists are not allowed, and will be replaced with null
         /// </summary>
         public IList<string>? DocumentIDs
         {
             get => Options.DocIDs;
-            set => _freezer.PerformAction(() => Options.DocIDs = value);
+            set => _freezer.PerformAction(() => Options.DocIDs = value?.Any() == true ? value : null);
         }
 
         /// <summary>
