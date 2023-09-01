@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite.Support;
 
 using System.Diagnostics.CodeAnalysis;
+using Dispatch;
 
 namespace Couchbase.Lite.Util
 {
