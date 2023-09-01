@@ -6,7 +6,7 @@ param(
 
 Push-Location $PSScriptRoot\..\..\vendor\couchbase-lite-core\build_cmake
 
-$isDebug = ""
+$isDebug = $null
 if($DebugLib) {
     $isDebug = "-d"
 }
