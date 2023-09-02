@@ -48,6 +48,7 @@ using Newtonsoft.Json.Linq;
 using Extensions = Couchbase.Lite.Util.Extensions;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Fleece;
+using Dispatch;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -544,16 +545,16 @@ Transfer-Encoding: chunked";
             var queue = new SerialQueue();
             var now = DateTime.Now;
             var then = now;
-            var ignore = queue.DispatchAfter(() => then = DateTime.Now, TimeSpan.FromSeconds(1));
+            using var ignore = queue.DispatchAfter(TimeSpan.FromSeconds(1), () => then = DateTime.Now);
             await Task.Delay(250);
             then.Should().Be(now);
             await Task.Delay(800);
             then.Should().NotBe(now);
 
             var testBool = false;
-            queue.DispatchSync(() => Volatile.Read(ref testBool)).Should().BeFalse();
+            queue.DispatchSync<bool>(() => Volatile.Read(ref testBool)).Should().BeFalse();
 
-            var t = queue.DispatchAfter(() => Volatile.Read(ref testBool), TimeSpan.FromMilliseconds(500));
+            var t = queue.DispatchAfter<bool>(TimeSpan.FromMilliseconds(500), () => Volatile.Read(ref testBool));
             Volatile.Write(ref testBool, true);
             (await t).Should().BeTrue();
         }

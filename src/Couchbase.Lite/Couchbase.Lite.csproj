@@ -58,6 +58,7 @@
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="SimpleInjector" Version="5.4.0" />
+    <PackageReference Include="SerialQueue" Version="2.1.0" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <PackageReference Condition=" $(TargetFramework.StartsWith('Xamarin')) or $(TargetFramework.StartsWith('MonoAndroid')) or '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netstandard')) " Include="System.Collections.Immutable" Version="6.0.0" />
   </ItemGroup>

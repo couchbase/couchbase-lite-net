@@ -37,7 +37,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-
+using Dispatch;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync

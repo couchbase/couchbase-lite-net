@@ -39,6 +39,8 @@ using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
+using Dispatch;
+
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
