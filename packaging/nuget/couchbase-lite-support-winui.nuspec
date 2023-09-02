@@ -22,6 +22,7 @@
     </dependencies>
   </metadata>
   <files>
+    <file target="" src="packaging\nuget\README.md" />
     <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="logo.png" src="packaging\nuget\logo.png" />
     <file target="build\Couchbase.Lite.Support.WinUI.targets" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\win.targets" />
