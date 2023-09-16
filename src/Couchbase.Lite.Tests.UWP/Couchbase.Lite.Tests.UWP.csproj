@@ -11,13 +11,15 @@
     <AssemblyName>Couchbase.Lite.Tests.UWP</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
-    <TargetPlatformVersion>10.0.16299.0</TargetPlatformVersion>
+    <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.16299.0</TargetPlatformMinVersion>
     <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <UnitTestPlatformVersion Condition="'$(UnitTestPlatformVersion)' == ''">$(VisualStudioVersion)</UnitTestPlatformVersion>
-    <PackageCertificateThumbprint>7F4D4ACD5A47468C940B6D069ABAF1628459B4B2</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>A8F3D6BB1513C706E97DB5D846E0CA2A02D8C9B9</PackageCertificateThumbprint>
+    <PackageCertificateKeyFile>Couchbase.Lite.Tests.UWP_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
