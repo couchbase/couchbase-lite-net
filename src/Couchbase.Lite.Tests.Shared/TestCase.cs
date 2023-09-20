@@ -105,10 +105,14 @@ namespace Test
         {
             Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
             _output = output;
-        #else
+            var type = output.GetType();
+            var testMember = type.GetField("test", BindingFlags.Instance | BindingFlags.NonPublic);
+            var test = (ITest)testMember.GetValue(output);
+            _output.WriteLine($"== TEST STARTING {test.DisplayName} ==");
+#else
         public TestCase()
         { 
-        #endif
+#endif
             var nextCounter = Interlocked.Increment(ref _counter);
             Database.Delete($"{DatabaseName}{nextCounter}", Directory);
             OpenDB(nextCounter);

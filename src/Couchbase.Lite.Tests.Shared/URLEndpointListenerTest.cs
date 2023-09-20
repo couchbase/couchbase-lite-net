@@ -786,7 +786,7 @@ namespace Test
                 OtherDb.Save(doc);
             }
 
-            ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
+            ValidateMultipleReplications(ReplicatorType.PushAndPull, 3, 3);
         }
 
 #if NET6_0_OR_GREATER
@@ -804,7 +804,7 @@ namespace Test
                     OtherDb.Save(doc);
                 }
 
-                ValidateMultipleReplicationsTo(ReplicatorType.Pull);
+                ValidateMultipleReplications(ReplicatorType.Pull, 1, 2);
 			}
         }
 #endif
@@ -1141,54 +1141,77 @@ namespace Test
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
-        private void ValidateMultipleReplicationsTo(ReplicatorType replicatorType)
+        private void ValidateMultipleReplications(ReplicatorType replicatorType, ulong expectedListenerCount, ulong expectedLocalCount)
         {
             ulong maxConnectionCount = 0UL;
             ulong maxActiveCount = 0UL;
 
-            var existingDocsInListener = _listener.Config.Database.Count;
+            var existingDocsInListener = _listener.Config.Collections[0].Count;
             existingDocsInListener.Should().Be(1);
 
             using (var doc1 = new MutableDocument()) {
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             var target = _listener.LocalEndpoint();
             var serverCert = _listener.TlsIdentity.Certs[0];
-            var config1 = CreateConfig(target, replicatorType, true, 
+            var config1 = CreateConfig(target, replicatorType, true,
                 serverCert: serverCert, sourceDb: Db);
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
             using var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
+                urlepTestDb.GetDefaultCollection().Save(doc2);
             }
 
             var config2 = CreateConfig(target, replicatorType, true,
                 serverCert: serverCert, sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
-            var wait1 = new ManualResetEventSlim();
-            var wait2 = new ManualResetEventSlim();
+            using var busy1 = new ManualResetEventSlim();
+            using var busy2 = new ManualResetEventSlim();
+            using var stopped1 = new ManualResetEventSlim();
+            using var stopped2 = new ManualResetEventSlim();
+
+            // Grab these now to avoid a race condition between Set() and WaitHandle side effect
+            var busyHandles = new[] { busy1.WaitHandle, busy2.WaitHandle };
+            var stoppedHandles = new[] { stopped1.WaitHandle, stopped2.WaitHandle };
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
             {
+                var senderIsRepl1 = sender == repl1;
+                var name = (senderIsRepl1) ? "repl1" : "repl2";
+                WriteLine($"{name} -> {args.Status.Activity}");
                 maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
                 maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
-
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                    if (senderIsRepl1) {
+                        WriteLine("Setting wait1 (busy)...");
+                        busy1.Set();
+                    } else {
+                        WriteLine("Setting wait2 (busy)...");
+                        busy2.Set();
+                    }
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
+                    bool foundAllLocalDocs = false;
+                    if (senderIsRepl1) {
+                        foundAllLocalDocs = Db.Count == expectedLocalCount;
+                    } else {
+                        foundAllLocalDocs = urlepTestDb.Count == expectedLocalCount;
+                    }
 
-                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
-                    && Db.Count == 3 && urlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
-                    && Db.Count == 2 && urlepTestDb.Count == 2)) {
-                        ((Replicator) sender).Stop();
+                    if (OtherDb.Count == expectedListenerCount && foundAllLocalDocs) {
+                        WriteLine($"Stopping {sender}...");
+                        ((Replicator)sender).Stop();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
-                        wait1.Set();
+                        WriteLine("Setting wait1 (stopped)...");
+                        stopped1.Set();
                     } else {
-                        wait2.Set();
+                        WriteLine("Setting wait2 (stopped)...");
+                        stopped2.Set();
                     }
                 }
             };
@@ -1199,31 +1222,32 @@ namespace Test
             repl1.Start();
             repl2.Start();
 
-            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
-                repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
-                Thread.Sleep(100);
-            }
+            WaitHandle.WaitAll(busyHandles, TimeSpan.FromSeconds(5))
+                .Should().BeTrue("because otherwise one of the replicators never became busy");
 
             // For some reason running on mac throws off the timing enough so that the active connection count
             // of 1 is never seen.  So record the value right after it becomes busy.
             maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
             maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
 
-            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(30))
-                .Should().BeTrue();
+            WaitHandle.WaitAll(stoppedHandles, TimeSpan.FromSeconds(30))
+                .Should().BeTrue("because otherwise one of the replicators never stopped");
 
-            maxConnectionCount.Should().Be(2);
-            maxActiveCount.Should().Be(2);
+            // Depending on the whim of the divine entity, there are a number of ways in which the connections
+            // can happen.  Commonly they run concurrently which results in a max connection count and max active
+            // count of 2.  However they can also run sequentially which means only a count of 1.
+            maxConnectionCount.Should().BeGreaterThan(0);
+            maxActiveCount.Should().BeGreaterThan(0);
 
             // all data are transferred to/from
             if (replicatorType == ReplicatorType.PushAndPull) {
-                _listener.Config.Database.Count.Should().Be(existingDocsInListener + 2UL);
-                Db.Count.Should().Be(existingDocsInListener + 2UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 2UL);
-            } else if(replicatorType == ReplicatorType.Pull) {
-                _listener.Config.Database.Count.Should().Be(1);
-                Db.Count.Should().Be(existingDocsInListener + 1UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
+                _listener.Config.Collections[0].Count.Should().Be(existingDocsInListener + 2UL);
+                DefaultCollection.Count.Should().Be(existingDocsInListener + 2UL);
+                urlepTestDb.GetDefaultCollection().Count.Should().Be(existingDocsInListener + 2UL);
+            } else if (replicatorType == ReplicatorType.Pull) {
+                _listener.Config.Collections[0].Count.Should().Be(1);
+                DefaultCollection.Count.Should().Be(existingDocsInListener + 1UL);
+                urlepTestDb.GetDefaultCollection().Count.Should().Be(existingDocsInListener + 1UL);
             }
 
             token1.Remove();
@@ -1231,8 +1255,6 @@ namespace Test
 
             repl1.Dispose();
             repl2.Dispose();
-            wait1.Dispose();
-            wait2.Dispose();
             urlepTestDb.Close();
 
             Thread.Sleep(500);
