@@ -101,7 +101,7 @@ namespace LiteCore.Tests
         protected void RunTestVariants(Action a, [CallerMemberName]string caller = null)
         {
             var exceptions = new ConcurrentDictionary<int, List<Exception>>();
-            WriteLine($"Begin {caller}");
+            WriteLine($"== TEST STARTING {caller} ==");
             for(int i = 0; i < NumberOfOptions; i++) {
                 CurrentException = null;
                 SetupVariant(i);
