@@ -167,10 +167,11 @@ namespace Couchbase.Lite
         public ulong Count => DefaultCollection == null ? 0 : DefaultCollection.Count;
 
         /// <summary>
-        /// Gets a <see cref="DocumentFragment"/> with the given document ID
+        /// [DEPRECATED] Gets a <see cref="DocumentFragment"/> with the given document ID
         /// </summary>
         /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
         /// <returns>The <see cref="DocumentFragment"/> object</returns>
+        [Obsolete("Document subscript in the Database class is deprecated, please use Document Script of the default collection.")]
         [@NotNull]
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
