@@ -304,10 +304,8 @@ namespace Couchbase.Lite
                         scope = scopeName_.AsFLSlice()
                     };
 
-                    co = (C4Collection*)LiteCoreBridge.Check(err =>
-                    {
-                        return Native.c4db_getCollection(c4Db, collectionSpec, err);
-                    });
+                    co = (C4Collection*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                        err => Native.c4db_getCollection(c4Db, collectionSpec, err));
                 }
             });
 
