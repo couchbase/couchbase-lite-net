@@ -962,6 +962,28 @@ namespace Test
             defaultCollection.Count.Should().Be(0);
         }
 
+        #region Document Subscript
+
+        [Fact]
+        public void TestDocumentSubscript()
+        {
+            var defaultCollection = Db.GetDefaultCollection();
+            var doc1 = defaultCollection["doc1"];
+            doc1.Exists.Should().BeFalse("because the document id'doc1' doesn't exist in the collection");
+
+            using (var doc = new MutableDocument("doc1")) {
+                doc.SetString("str", "string");
+                defaultCollection.Save(doc);    
+            }
+            doc1 = defaultCollection["doc1"];
+            doc1.Exists.Should().BeTrue("because the document id 'doc1' exists in the collection");
+            doc1["foo"].Exists.Should().BeFalse("because this portion of the data doesn't exist");
+            doc1["str"].Exists.Should().BeTrue("because this portion of the data exists");
+            doc1["str"].String.Should().Be("string", "because that is the stored value");
+        }
+        
+        #endregion
+
         #region Private Methods
 
         private void TestGetScopesOrCollections(Action dbDispose)

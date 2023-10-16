@@ -134,6 +134,14 @@ namespace Couchbase.Lite
         /// </summary>
         public ulong Count => ThreadSafety.DoLocked(() => Native.c4coll_getDocumentCount(c4coll));
 
+        /// <summary>
+        /// Gets a <see cref="DocumentFragment"/> with the given document ID
+        /// </summary>
+        /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
+        /// <returns>The <see cref="DocumentFragment"/> object</returns>
+        [NotNull]
+        public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
+
         #endregion
 
         #region Constructors
