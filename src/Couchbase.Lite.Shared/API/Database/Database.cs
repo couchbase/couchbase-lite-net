@@ -106,7 +106,7 @@ namespace Couchbase.Lite
         #region Constants
 
         private static readonly C4DatabaseConfig2 DBConfig = new C4DatabaseConfig2 {
-            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
+            flags = C4DatabaseFlags.Create | C4DatabaseFlags.VersionVectors | C4DatabaseFlags.AutoCompact,
         };
 
         private const string DBExtension = "cblite2";
