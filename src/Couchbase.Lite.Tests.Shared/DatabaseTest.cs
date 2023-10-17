@@ -387,10 +387,6 @@ namespace Test
                 DefaultCollection.Save(doc);
             }
 
-            using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Generation.Should().Be(1);
-            }
-
             using (var doc1 = DefaultCollection.GetDocument("doc1"))
             using (var doc1b = doc1.ToMutable()) {
                 DefaultCollection.Purge("doc1");

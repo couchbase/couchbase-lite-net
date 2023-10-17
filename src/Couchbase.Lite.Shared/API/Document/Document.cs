@@ -115,6 +115,8 @@ namespace Couchbase.Lite
 
         internal virtual uint Generation => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getGeneration(c4Doc.RawDoc->selectedRev.revID) : 0U);
 
+        internal virtual ulong Timestamp => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getTimestamp(c4Doc.RawDoc->selectedRev.revID) : 0U);
+
         /// <summary>
         /// Gets this document's unique ID
         /// </summary>

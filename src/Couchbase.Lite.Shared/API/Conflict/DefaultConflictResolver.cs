@@ -34,9 +34,9 @@ namespace Couchbase.Lite
         {
             if (conflict.RemoteDocument == null || conflict.LocalDocument == null)
                 return null;
-            else if (conflict.LocalDocument.Generation > conflict.RemoteDocument.Generation)
+            else if (conflict.LocalDocument.Timestamp > conflict.RemoteDocument.Timestamp)
                 return conflict.LocalDocument;
-            else if (conflict.LocalDocument.Generation < conflict.RemoteDocument.Generation)
+            else if (conflict.LocalDocument.Timestamp < conflict.RemoteDocument.Timestamp)
                 return conflict.RemoteDocument;
             else return String.CompareOrdinal(conflict.LocalDocument.RevisionID, conflict.RemoteDocument.RevisionID) > 0
                     ? conflict.LocalDocument : conflict.RemoteDocument;
