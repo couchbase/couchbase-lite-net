@@ -47,6 +47,13 @@ namespace LiteCore.Interop
             }
         }
 
+        public static ulong c4rev_getTimestamp(string? revID)
+        {
+            using(var revID_ = new C4String(revID)) {
+                return NativeRaw.c4rev_getTimestamp(revID_.AsFLSlice());
+            }
+        }
+
         public static bool c4doc_resolveConflict(C4Document* doc, string? winningRevID, string? losingRevID, byte[]? mergedBody, C4RevisionFlags mergedFlags, C4Error* error)
         {
             using(var winningRevID_ = new C4String(winningRevID))
@@ -73,6 +80,9 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4rev_getGeneration(FLSlice revID);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern ulong c4rev_getTimestamp(FLSlice revID);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

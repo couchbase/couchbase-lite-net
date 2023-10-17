@@ -65,6 +65,7 @@ c4doc_bodyAsJSON
 c4doc_getProperties
 
 c4rev_getGeneration
+c4rev_getTimestamp
 
 c4queryenum_next
 c4queryenum_seek
