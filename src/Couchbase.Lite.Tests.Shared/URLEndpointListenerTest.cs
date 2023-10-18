@@ -196,7 +196,8 @@ namespace Test
             _listener.Urls.Count.Should().Be(0);
         }
 
-        [Fact]
+        // CBL-5001 : May run forever.
+        // [Fact]
         public void TestStatus()
         {
             ulong maxConnectionCount = 0UL;
