@@ -231,13 +231,11 @@ namespace Test
 
             using (var doc1 = new MutableDocument("doc1")) {
                 DefaultCollection.Save(doc1);
-                var gene = doc1.Generation;
                 var encode1 = doc1.Encode();
                 Type mutableDocumentType = typeof(MutableDocument);
                 var prop = mutableDocumentType.GetProperty("Changed", BindingFlags.NonPublic | BindingFlags.Instance);
                 var isChanged = prop;
                 var encode = doc1.Encode();
-                var gen = doc1.Generation;
                 var isSelecteConflicRev = doc1.SelectConflictingRevision();
             }
         }
