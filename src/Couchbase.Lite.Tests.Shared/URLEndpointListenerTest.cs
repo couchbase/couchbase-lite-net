@@ -784,7 +784,8 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
-        [Fact] //hang maui android
+        // CBL-5003 : Flaky
+        // [Fact] //hang maui android
         public void TestMultipleReplicatorsToListener()
         {
             _listener = Listen(CreateListenerConfig()); // writable listener
@@ -798,7 +799,9 @@ namespace Test
         }
 
 #if NET6_0_OR_GREATER
-        [Fact] // Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
+
+        // CBL-5002 : Flaky
+        // [Fact] // Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) //Mac OS 8-23-21 hang with LiteCore Commit: 5d9539fae43e9282787c2b68772bb85ecbc00b5c [5d9539f]
