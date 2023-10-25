@@ -216,7 +216,7 @@ namespace Couchbase.Lite.Internal.Logging
             ["Sync"] = LogDomain.Replicator,
             ["SyncBusy"] = LogDomain.Replicator,
             ["Actor"] = LogDomain.Replicator,
-            ["Changes"] = LogDomain.Replicator,
+            ["Changes"] = LogDomain.Database,
             ["Query"] = LogDomain.Query,
             ["Enum"] = LogDomain.Query,
             ["WS"] = LogDomain.Network,
