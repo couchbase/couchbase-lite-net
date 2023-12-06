@@ -21,11 +21,7 @@ namespace LiteCore
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal static class Constants
     {
-        #if __IOS__
-        internal const string DllName = "@rpath/LiteCore.framework/LiteCore";
-        #else
         internal const string DllName = "LiteCore";
-        #endif
         
         internal static readonly string ObjectTypeProperty = "@type";
         

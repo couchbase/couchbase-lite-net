@@ -1,7 +1,7 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-	<TargetFrameworks>netstandard2.0;net6.0;net7.0-android33;net7.0-ios14.2;net7.0-maccatalyst14.2;MonoAndroid10.0;Xamarin.iOS10</TargetFrameworks>
+	<TargetFrameworks>netstandard2.0;net6.0;net7.0-android;net7.0-ios;net7.0-maccatalyst;MonoAndroid10.0;Xamarin.iOS10</TargetFrameworks>
 	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net462;uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -12,20 +12,12 @@
     <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</TargetPlatformMinVersion>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <DebugType>portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
-      <Nullable>enable</Nullable>
-      <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>
@@ -57,36 +49,31 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="SimpleInjector" Version="5.4.0" />
+    <PackageReference Include="SimpleInjector" Version="[5.2.1,6.0.0)" />
     <PackageReference Include="SerialQueue" Version="2.1.0" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <PackageReference Condition=" $(TargetFramework.StartsWith('Xamarin')) or $(TargetFramework.StartsWith('MonoAndroid')) or '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netstandard')) " Include="System.Collections.Immutable" Version="6.0.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' or $(TargetFramework.StartsWith('net6.0-windows')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
   <ItemGroup Condition=" ($(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.StartsWith('net7.0-android'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
   </ItemGroup>
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid'))" >
+<ItemGroup Condition=" ($(TargetFramework.StartsWith('Xamarin.iOS')) or $(TargetFramework.StartsWith('net7.0-ios')) or $(TargetFramework.StartsWith('net7.0-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj"/>
+</ItemGroup>
+    <ItemGroup Condition=" $(TargetFramework.StartsWith('uap')) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+        <ProjectReference Include="..\..\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" />
+    </ItemGroup>
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid'))">
     <PackageReference Include="Xamarin.Essentials" Version="1.7.4" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Properties\DynamicAssemblyInfo.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Properties\DynamicAssemblyInfo.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
+
+  <Import Project="..\AssemblyInfo.props" />
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
   <Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets')" />
 </Project>

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <TargetFrameworks>net7.0-ios14.2;net7.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
+    <TargetFrameworks>net7.0-ios;net7.0-maccatalyst;Xamarin.iOS10</TargetFrameworks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net7')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">13.1</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
@@ -12,16 +12,6 @@
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <CopyNuGetImplementations>True</CopyNuGetImplementations>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -58,30 +48,22 @@
     <DefineConstants>$(DefineConstants);NET_APPLE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
-      <Link>Properties\DynamicAssemblyInfo.tt</Link>
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="..\Activate.cs">
       <Link>Activate.cs</Link>
     </Compile>
-    <Compile Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
-      <Link>Properties\DynamicAssemblyInfo.cs</Link>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\Couchbase.Lite\Properties\version">
-      <Link>Properties\version</Link>
+    <None Include="ios.props" Pack="true" PackagePath="build\Couchbase.Lite.Support.iOS.props" />
+    <None Include="ios.props" Pack="true" PackagePath="buildTransitive\Couchbase.Lite.Support.iOS.props" />
+    <None Include="..\..\..\vendor\prebuilt_core\ios\LiteCore.xcframework\**">
+      <Pack>true</Pack>
+      <PackagePath>runtimes\ios\native\LiteCore.xcframework\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      <Link>LiteCore.xcframework</Link>
     </None>
-    <None Include="ios.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Include="..\..\..\vendor\prebuilt_core\ios\couchbase-lite-core-ios.zip">
+      <Pack>true</Pack>
+      <PackagePath>runtimes\maccatalyst\native\LiteCore.xcframework.zip</PackagePath>
+      <Link>LiteCore.xcframework.zip</Link>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -90,4 +72,5 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+    <Import Project="..\..\AssemblyInfo.props"/>
 </Project>

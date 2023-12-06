@@ -1,9 +1,14 @@
 ﻿[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bOR [Net.SecurityProtocolType]::Tls12
-Push-Location $PSScriptRoot
+Push-Location $PSScriptRoot\..\..\src\packages
 Remove-Item *.nupkg
-if(-Not (Test-Path ..\..\nuget.exe)) {
-    Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe
+Remove-Item *.snupkg
+$VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
+if(-Not $VSInstall) {
+    Pop-Location
+    throw "Unable to locate VS installation"
 }
+
+$MSBuild = "$VSInstall\MSBuild\Current\Bin\MSBuild.exe"
 
 if(-Not $env:NUGET_VERSION) {
     Pop-Location
@@ -24,26 +29,28 @@ if($env:WORKSPACE) {
     Copy-Item "$env:WORKSPACE\product-texts\mobile\couchbase-lite\license\LICENSE_community.txt" "$PSScriptRoot\LICENSE.txt"
 }
 
-# Only do snupkg for the main package, since the support ones can contain 
-# native pdb which will be rejected by nuget.org
-..\..\nuget.exe pack couchbase-lite.nuspec -Properties version=$env:NUGET_VERSION -BasePath ..\..\ -Symbols -SymbolPackageFormat snupkg
+Write-Host
+Write-Host *** RESTORING DEP PACKAGES ***
+Write-Host
 
-Get-ChildItem "." -Filter *support*.nuspec |
-ForEach-Object {
-    ..\..\nuget.exe pack $_.Name -Properties version=$env:NUGET_VERSION -BasePath ..\..\
-    if($LASTEXITCODE) {
-        Pop-Location
-        throw "Failed to package $_"
-    }
-}
+Push-Location ..
+& $MSBuild /t:Restore Couchbase.Lite.sln
+
+Write-Host *** PACKING ***
+Write-Host
+
+& $MSBuild Couchbase.Lite.sln /t:Pack /p:Configuration=Packaging /p:Version=$env:NUGET_VERSION
 
 Get-ChildItem "." -Filter *.nupkg |
 ForEach-Object {
-    ..\..\nuget.exe push -DisableBuffering $_.Name $env:API_KEY -Source $env:NUGET_REPO
+    dotnet nuget push $_.Name --disable-buffering  --api-key $env:API_KEY --source $env:NUGET_REPO
     if($LASTEXITCODE) {
         Pop-Location
-        throw "Failed to push -DisableBuffering $_"
+        throw "Failed to push $_"
     }
 }
+
+Pop-Location
+Pop-Location
 
 Pop-Location
