@@ -53,16 +53,18 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ios.props" Pack="true" PackagePath="build\Couchbase.Lite.Support.iOS.props" />
-    <None Include="ios.props" Pack="true" PackagePath="buildTransitive\Couchbase.Lite.Support.iOS.props" />
+    <None Include="ios.props" Pack="true" PackagePath="build\xamarinios\Couchbase.Lite.Support.iOS.props" />
+    <None Include="ios.props" Pack="true" PackagePath="buildTransitive\xamarinios\Couchbase.Lite.Support.iOS.props" />
+      <None Include="Couchbase.Lite.dll.config" Pack="true" PackagePath="build\xamarinios\" />
+      <None Include="Couchbase.Lite.dll.config" Pack="true" PackagePath="buildTransitive\xamarinios\" />
     <None Include="..\..\..\vendor\prebuilt_core\ios\LiteCore.xcframework\**">
       <Pack>true</Pack>
-      <PackagePath>runtimes\ios\native\LiteCore.xcframework\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      <Link>LiteCore.xcframework</Link>
+      <PackagePath>buildTransitive\xamarinios\LiteCore.xcframework</PackagePath>
+      <Link>LiteCore.xcframework\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
     <None Include="..\..\..\vendor\prebuilt_core\ios\couchbase-lite-core-ios.zip">
       <Pack>true</Pack>
-      <PackagePath>runtimes\maccatalyst\native\LiteCore.xcframework.zip</PackagePath>
+      <PackagePath>runtimes\ios\native\LiteCore.xcframework.zip</PackagePath>
       <Link>LiteCore.xcframework.zip</Link>
     </None>
   </ItemGroup>
