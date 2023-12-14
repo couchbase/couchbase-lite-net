@@ -2,6 +2,8 @@
   <PropertyGroup>
     <IsMac>false</IsMac>
     <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
+    <CblEnterprisePackage Condition="'$(CblEnterprisePackage)' == ''">false</CblEnterprisePackage>
+    <PackageId Condition="'$(CblEnterprisePackage)' == 'true'">Couchbase.Lite.Enterprise.Support.NetDesktop</PackageId>
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
