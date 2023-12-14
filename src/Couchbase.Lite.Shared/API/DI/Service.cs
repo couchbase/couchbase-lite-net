@@ -83,14 +83,6 @@ namespace Couchbase.Lite.DI
             Service.Register<IProxy>(new XamarinAndroidProxy());
             #endif
             #elif __IOS__
-            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), (libraryName, assembly, searchPath) =>
-            {
-                if(libraryName == LiteCore.Constants.DllName) {
-                    libraryName = "@rpath/LiteCore.framework/LiteCore";
-                }
-
-                return NativeLibrary.Load(libraryName);
-            });
             Service.AutoRegister(typeof(Database).Assembly);
             Service.Register<IProxy>(new IOSProxy());
             #elif NETSTANDARD2_0
