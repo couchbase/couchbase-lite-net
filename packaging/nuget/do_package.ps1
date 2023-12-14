@@ -41,6 +41,21 @@ Write-Host
 
 & $MSBuild Couchbase.Lite.sln /t:Pack /p:Configuration=Packaging /p:Version=$env:NUGET_VERSION
 
+# Workaround the inability to pin a version of a ProjectReference in csproj
+Push-Location $PSScriptRoot\..\..\src\packages
+Remove-Item -Force -Recurse tmp -ErrorAction Ignore
+New-Item -ItemType Directory tmp
+[System.IO.Compression.ZipFile]::ExtractToDirectory("$pwd\Couchbase.Lite.$env:NUGET_VERSION.nupkg", "$pwd\tmp")
+Push-Location tmp
+$nuspecContent = $(Get-Content -Path "Couchbase.Lite.nuspec").Replace("version=`"$env:NUGET_VERSION`"", "version=`"[${env:NUGET_VERSION}]`"")
+Set-Content -Path "Couchbase.Lite.nuspec" $nuspecContent
+Pop-Location
+Remove-Item -Path "Couchbase.Lite.$env:NUGET_VERSION.nupkg" -ErrorAction Ignore -Force
+& 7z a -tzip "Couchbase.Lite.$env:NUGET_VERSION.nupkg" ".\tmp\*"
+Remove-Item -Force -Recurse tmp
+Pop-Location
+# End Workaround
+
 Get-ChildItem "." -Filter *.nupkg |
 ForEach-Object {
     dotnet nuget push $_.Name --disable-buffering  --api-key $env:API_KEY --source $env:NUGET_REPO
