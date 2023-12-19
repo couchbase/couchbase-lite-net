@@ -4,6 +4,7 @@
     <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
     <CblEnterprisePackage Condition="'$(CblEnterprisePackage)' == ''">false</CblEnterprisePackage>
     <PackageId Condition="'$(CblEnterprisePackage)' == 'true'">Couchbase.Lite.Enterprise.Support.NetDesktop</PackageId>
+    <PackageId Condition="'$(PackageId)' == ''">Couchbase.Lite.Support.NetDesktop</PackageId>
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
@@ -40,8 +41,8 @@
       <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="desktop.props" Pack="true" PackagePath="build/net462/Couchbase.Lite.Support.NetDesktop.props" />
-    <None Include="desktop.props" Pack="true" PackagePath="buildTransitive/net462/Couchbase.Lite.Support.NetDesktop.props" />
+    <None Include="desktop.props" Pack="true" PackagePath="build/net462/$(PackageId).props" />
+    <None Include="desktop.props" Pack="true" PackagePath="buildTransitive/net462/$(PackageId).props" />
   </ItemGroup>
   <ItemGroup Condition=" ('$(OS)' == 'Windows_NT' OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == '' ">
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64\bin\LiteCore.dll">

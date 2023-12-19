@@ -16,6 +16,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CblEnterprisePackage Condition="'$(CblEnterprisePackage)' == ''">false</CblEnterprisePackage>
     <PackageId Condition="'$(CblEnterprisePackage)' == 'true'">Couchbase.Lite.Enterprise.Support.iOS</PackageId>
+    <PackageId Condition="'$(PackageId)' == ''">Couchbase.Lite.Support.iOS</PackageId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -55,8 +56,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ios.props" Pack="true" PackagePath="build\xamarinios\Couchbase.Lite.Support.iOS.props" />
-    <None Include="ios.props" Pack="true" PackagePath="buildTransitive\xamarinios\Couchbase.Lite.Support.iOS.props" />
+    <None Include="ios.props" Pack="true" PackagePath="build\xamarinios\$(PackageId).props" />
+    <None Include="ios.props" Pack="true" PackagePath="buildTransitive\xamarinios\$(PackageId).props" />
       <None Include="Couchbase.Lite.dll.config" Pack="true" PackagePath="build\xamarinios\" />
       <None Include="Couchbase.Lite.dll.config" Pack="true" PackagePath="buildTransitive\xamarinios\" />
     <None Include="..\..\..\vendor\prebuilt_core\ios\LiteCore.xcframework\**">
