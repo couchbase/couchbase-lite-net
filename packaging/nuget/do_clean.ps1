@@ -3,7 +3,7 @@ param(
     
 $ErrorActionPreference = "Stop"
 
-$url="http://mobile.nuget.couchbase.com/nuget/CI/Packages()?`$format=json"
+$url="https://proget.sc.couchbase.com/nuget/CI/Packages()?`$format=json"
 $content=$(Invoke-WebRequest $url).Content
 $results = $(ConvertFrom-Json $content).d.results
 foreach($result in $results) {
@@ -16,7 +16,7 @@ foreach($result in $results) {
         Write-Host "Deleting $($result.Id)-$($result.Version)"
         
         # Nuget won't fail when deleting a non-existent package, and Internal is a strict subset of CI
-        dotnet nuget delete --api-key $apikey --source http://mobile.nuget.couchbase.com/nuget/CI --non-interactive $result.Id $result.Version
-        dotnet nuget delete --api-key $apikey --source http://mobile.nuget.couchbase.com/nuget/Internal --non-interactive $result.Id $result.Version
+        dotnet nuget delete --api-key $apikey --source https://proget.sc.couchbase.com/nuget/CI --non-interactive $result.Id $result.Version
+        dotnet nuget delete --api-key $apikey --source https://proget.sc.couchbase.com/nuget/Internal --non-interactive $result.Id $result.Version
     }
 }

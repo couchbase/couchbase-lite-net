@@ -1,0 +1,15 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <_NugetRuntimesPath Condition="'$(_NugetRuntimesPath)' == ''">$(MSBuildThisFileDirectory)..\..\runtimes\</_NugetRuntimesPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(_NugetRuntimesPath)win10-x64\native\LiteCore.dll">
+            <Link>x64\LiteCore.dll</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+		<Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(_NugetRuntimesPath)win10-arm64\native\LiteCore.dll">
+            <Link>arm64\LiteCore.dll</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+</Project>

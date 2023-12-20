@@ -1,22 +1,24 @@
 ﻿[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bOR [Net.SecurityProtocolType]::Tls12
-Push-Location $PSScriptRoot
-Remove-Item *.nupkg
-if(-Not (Test-Path ..\..\nuget.exe)) {
-    Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe
+
+Remove-Item $PSScriptRoot\..\..\src\packages\*.nupkg -ErrorAction Ignore
+Remove-Item $PSScriptRoot\..\..\src\packages\*.snupkg -ErrorAction Ignore
+
+$VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
+if(-Not $VSInstall) {
+    throw "Unable to locate VS installation"
 }
 
+$MSBuild = "$VSInstall\MSBuild\Current\Bin\MSBuild.exe"
+
 if(-Not $env:NUGET_VERSION) {
-    Pop-Location
     throw "NUGET_VERSION not defined, aborting..."
 }
 
 if(-Not $env:API_KEY) {
-    Pop-Location
     throw "API_KEY not defined, aborting..."
 }
 
 if(-Not $env:NUGET_REPO) {
-    Pop-Location
     throw "NUGET_REPO not defined, aborting..."
 }
 
@@ -24,26 +26,36 @@ if($env:WORKSPACE) {
     Copy-Item "$env:WORKSPACE\product-texts\mobile\couchbase-lite\license\LICENSE_community.txt" "$PSScriptRoot\LICENSE.txt"
 }
 
-# Only do snupkg for the main package, since the support ones can contain 
-# native pdb which will be rejected by nuget.org
-..\..\nuget.exe pack couchbase-lite.nuspec -Properties version=$env:NUGET_VERSION -BasePath ..\..\ -Symbols -SymbolPackageFormat snupkg
+Write-Host
+Write-Host *** RESTORING DEP PACKAGES ***
+Write-Host
 
-Get-ChildItem "." -Filter *support*.nuspec |
+& $MSBuild /t:Restore $PSScriptRoot\..\..\src\Couchbase.Lite.sln
+
+Write-Host
+Write-Host *** PACKING ***
+Write-Host
+
+& $MSBuild $PSScriptRoot\..\..\src\Couchbase.Lite.sln /t:Pack /p:Configuration=Packaging /p:Version=$env:NUGET_VERSION
+
+# Workaround the inability to pin a version of a ProjectReference in csproj
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+Remove-Item -Force -Recurse $PSScriptRoot\..\..\src\packages\tmp -ErrorAction Ignore
+New-Item -ItemType Directory $PSScriptRoot\..\..\src\packages\tmp
+[System.IO.Compression.ZipFile]::ExtractToDirectory("$PSScriptRoot\..\..\src\packages\Couchbase.Lite.$env:NUGET_VERSION.nupkg", `
+    "$PSScriptRoot\..\..\src\packages\tmp")
+$nuspecContent = $(Get-Content -Path "$PSScriptRoot\..\..\src\packages\tmp\Couchbase.Lite.nuspec"). `
+    Replace("version=`"$env:NUGET_VERSION`"", "version=`"[${env:NUGET_VERSION}]`"")
+Set-Content -Path "$PSScriptRoot\..\..\src\packages\tmp\Couchbase.Lite.nuspec" $nuspecContent
+Remove-Item -Path "$PSScriptRoot\..\..\src\packages\Couchbase.Lite.$env:NUGET_VERSION.nupkg" -ErrorAction Ignore -Force
+& 7z a -tzip "$PSScriptRoot\..\..\src\packages\Couchbase.Lite.$env:NUGET_VERSION.nupkg" "$PSScriptRoot\..\..\src\packages\tmp\*"
+Remove-Item -Force -Recurse $PSScriptRoot\..\..\src\packages\tmp
+# End Workaround
+
+Get-ChildItem "$PSScriptRoot\..\..\src\packages" -Filter *.nupkg |
 ForEach-Object {
-    ..\..\nuget.exe pack $_.Name -Properties version=$env:NUGET_VERSION -BasePath ..\..\
+    dotnet nuget push $_.FullName --disable-buffering  --api-key $env:API_KEY --source $env:NUGET_REPO
     if($LASTEXITCODE) {
-        Pop-Location
-        throw "Failed to package $_"
+        throw "Failed to push $_"
     }
 }
-
-Get-ChildItem "." -Filter *.nupkg |
-ForEach-Object {
-    ..\..\nuget.exe push -DisableBuffering $_.Name $env:API_KEY -Source $env:NUGET_REPO
-    if($LASTEXITCODE) {
-        Pop-Location
-        throw "Failed to push -DisableBuffering $_"
-    }
-}
-
-Pop-Location

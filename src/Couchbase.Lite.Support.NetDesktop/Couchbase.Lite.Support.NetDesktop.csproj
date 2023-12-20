@@ -2,21 +2,14 @@
   <PropertyGroup>
     <IsMac>false</IsMac>
     <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
+    <CblEnterprisePackage Condition="'$(CblEnterprisePackage)' == ''">false</CblEnterprisePackage>
+    <PackageId Condition="'$(CblEnterprisePackage)' == 'true'">Couchbase.Lite.Enterprise.Support.NetDesktop</PackageId>
+    <PackageId Condition="'$(PackageId)' == ''">Couchbase.Lite.Support.NetDesktop</PackageId>
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
     <TargetFrameworks Condition=" '$(OS)' != 'Windows_NT' ">net6.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net462;net6.0</TargetFrameworks>
-	<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
 	<SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -48,74 +41,69 @@
       <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="desktop.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
-      <Link>Properties\DynamicAssemblyInfo.tt</Link>
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
-    </None>
+    <None Include="desktop.props" Pack="true" PackagePath="build/net462/$(PackageId).props" />
+    <None Include="desktop.props" Pack="true" PackagePath="buildTransitive/net462/$(PackageId).props" />
   </ItemGroup>
   <ItemGroup Condition=" ('$(OS)' == 'Windows_NT' OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == '' ">
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64\bin\LiteCore.dll">
       <Link>x64\LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/win10-x64/native/LiteCore.dll</PackagePath>
     </Content>
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64\bin\LiteCore.pdb">
       <Link>x64\LiteCore.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/win10-x64/native/LiteCore.pdb</PackagePath>
     </Content>
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64\bin\LiteCore.dll">
       <Link>arm64\LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/win10-arm64/native/LiteCore.dll</PackagePath>
     </Content>
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64\bin\LiteCore.pdb">
       <Link>arm64\LiteCore.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/win10-arm64/native/LiteCore.pdb</PackagePath>
     </Content>
   </ItemGroup>
   <ItemGroup Condition=" ($(IsMac) OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == ''  ">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\macos\lib\libLiteCore.dylib">
-      <Link>libLiteCore.dylib</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libliteCore.dylib</Link>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/osx/native/libLiteCore.dylib</PackagePath>
     </None>
   </ItemGroup>
   <ItemGroup Condition=" ((!$(IsMac) AND '$(OS)' == 'Unix') OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == '' ">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libLiteCore.so">
       <Link>libLiteCore.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/libLiteCore.so</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libstdc++.so">
-      <Link>libstdc++.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libLiteCore.so</Link>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/libstdc++.so</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libstdc++.so.6">
-      <Link>libstdc++.so.6</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libLiteCore.so.6</Link>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/libstdc++.so.6</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicudata.so.71">
       <Link>libicudata.so.71</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/libicudata.so.71</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicui18n.so.71">
       <Link>libicui18n.so.71</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/libicui18n.so.71</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicuuc.so.71">
       <Link>libicuuc.so.71</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/libicuuc.so.71</PackagePath>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
-      <Link>Properties\DynamicAssemblyInfo.cs</Link>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Support\" />
-  </ItemGroup>
+  <Import Project="..\AssemblyInfo.props" />
 </Project>
