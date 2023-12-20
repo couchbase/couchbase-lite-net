@@ -42,6 +42,7 @@ Write-Host
 & $MSBuild Couchbase.Lite.sln /t:Pack /p:Configuration=Packaging /p:Version=$env:NUGET_VERSION
 
 # Workaround the inability to pin a version of a ProjectReference in csproj
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 Push-Location $PSScriptRoot\..\..\src\packages
 Remove-Item -Force -Recurse tmp -ErrorAction Ignore
 New-Item -ItemType Directory tmp
