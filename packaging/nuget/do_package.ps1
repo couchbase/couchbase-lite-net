@@ -1,10 +1,7 @@
 ﻿[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bOR [Net.SecurityProtocolType]::Tls12
-if(Test-Path $PSScriptRoot\..\..\src\packages) {
-    Push-Location $PSScriptRoot\..\..\src\packages
-    Remove-Item *.nupkg
-    Remove-Item *.snupkg
-    Pop-Location
-}
+
+Remove-Item $PSScriptRoot\..\..\src\packages\*.nupkg -ErrorAction Ignore
+Remove-Item $PSScriptRoot\..\..\src\packages\*.snupkg -ErrorAction Ignore
 
 $VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
 if(-Not $VSInstall) {
@@ -33,40 +30,32 @@ Write-Host
 Write-Host *** RESTORING DEP PACKAGES ***
 Write-Host
 
-Push-Location $PSScriptRoot\..\..\src
-& $MSBuild /t:Restore Couchbase.Lite.sln
+& $MSBuild /t:Restore $PSScriptRoot\..\..\src\Couchbase.Lite.sln
 
+Write-Host
 Write-Host *** PACKING ***
 Write-Host
 
-& $MSBuild Couchbase.Lite.sln /t:Pack /p:Configuration=Packaging /p:Version=$env:NUGET_VERSION
+& $MSBuild $PSScriptRoot\..\..\src\Couchbase.Lite.sln /t:Pack /p:Configuration=Packaging /p:Version=$env:NUGET_VERSION
 
 # Workaround the inability to pin a version of a ProjectReference in csproj
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
-Push-Location $PSScriptRoot\..\..\src\packages
-Remove-Item -Force -Recurse tmp -ErrorAction Ignore
-New-Item -ItemType Directory tmp
-[System.IO.Compression.ZipFile]::ExtractToDirectory("$pwd\Couchbase.Lite.$env:NUGET_VERSION.nupkg", "$pwd\tmp")
-Push-Location tmp
-$nuspecContent = $(Get-Content -Path "Couchbase.Lite.nuspec").Replace("version=`"$env:NUGET_VERSION`"", "version=`"[${env:NUGET_VERSION}]`"")
-Set-Content -Path "Couchbase.Lite.nuspec" $nuspecContent
-Pop-Location
-Remove-Item -Path "Couchbase.Lite.$env:NUGET_VERSION.nupkg" -ErrorAction Ignore -Force
-& 7z a -tzip "Couchbase.Lite.$env:NUGET_VERSION.nupkg" ".\tmp\*"
-Remove-Item -Force -Recurse tmp
-Pop-Location
+Remove-Item -Force -Recurse $PSScriptRoot\..\..\src\packages\tmp -ErrorAction Ignore
+New-Item -ItemType Directory $PSScriptRoot\..\..\src\packages\tmp
+[System.IO.Compression.ZipFile]::ExtractToDirectory("$PSScriptRoot\..\..\src\packages\Couchbase.Lite.$env:NUGET_VERSION.nupkg", `
+    "$PSScriptRoot\..\..\src\packages\tmp")
+$nuspecContent = $(Get-Content -Path "$PSScriptRoot\..\..\src\packages\tmp\Couchbase.Lite.nuspec"). `
+    Replace("version=`"$env:NUGET_VERSION`"", "version=`"[${env:NUGET_VERSION}]`"")
+Set-Content -Path "$PSScriptRoot\..\..\src\packages\tmp\Couchbase.Lite.nuspec" $nuspecContent
+Remove-Item -Path "$PSScriptRoot\..\..\src\packages\Couchbase.Lite.$env:NUGET_VERSION.nupkg" -ErrorAction Ignore -Force
+& 7z a -tzip "$PSScriptRoot\..\..\src\packages\Couchbase.Lite.$env:NUGET_VERSION.nupkg" "$PSScriptRoot\..\..\src\packages\tmp\*"
+Remove-Item -Force -Recurse $PSScriptRoot\..\..\src\packages\tmp
 # End Workaround
 
-Get-ChildItem "." -Filter *.nupkg |
+Get-ChildItem "$PSScriptRoot\..\..\src\packages" -Filter *.nupkg |
 ForEach-Object {
-    dotnet nuget push $_.Name --disable-buffering  --api-key $env:API_KEY --source $env:NUGET_REPO
+    dotnet nuget push $_.FullName --disable-buffering  --api-key $env:API_KEY --source $env:NUGET_REPO
     if($LASTEXITCODE) {
-        Pop-Location
         throw "Failed to push $_"
     }
 }
-
-Pop-Location
-Pop-Location
-
-Pop-Location
