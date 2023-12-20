@@ -1,27 +1,27 @@
 ﻿[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bOR [Net.SecurityProtocolType]::Tls12
-Push-Location $PSScriptRoot\..\..\src\packages
-Remove-Item *.nupkg
-Remove-Item *.snupkg
+if(Test-Path $PSScriptRoot\..\..\src\packages) {
+    Push-Location $PSScriptRoot\..\..\src\packages
+    Remove-Item *.nupkg
+    Remove-Item *.snupkg
+    Pop-Location
+}
+
 $VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
 if(-Not $VSInstall) {
-    Pop-Location
     throw "Unable to locate VS installation"
 }
 
 $MSBuild = "$VSInstall\MSBuild\Current\Bin\MSBuild.exe"
 
 if(-Not $env:NUGET_VERSION) {
-    Pop-Location
     throw "NUGET_VERSION not defined, aborting..."
 }
 
 if(-Not $env:API_KEY) {
-    Pop-Location
     throw "API_KEY not defined, aborting..."
 }
 
 if(-Not $env:NUGET_REPO) {
-    Pop-Location
     throw "NUGET_REPO not defined, aborting..."
 }
 
@@ -33,7 +33,7 @@ Write-Host
 Write-Host *** RESTORING DEP PACKAGES ***
 Write-Host
 
-Push-Location ..
+Push-Location $PSScriptRoot\..\..\src
 & $MSBuild /t:Restore Couchbase.Lite.sln
 
 Write-Host *** PACKING ***
