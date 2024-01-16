@@ -128,6 +128,19 @@ namespace Couchbase.Lite
         public string Name { get; } = DefaultCollectionName;
 
         /// <summary>
+        /// Gets the Collection Full Name
+        /// <remark>
+        /// The format of the collection's full name is {scope-name}.{collection-name}.
+        /// </remark>
+        /// </summary>
+        public string FullName
+        {
+            get {
+                return Scope.Name + "." + Name;
+            }
+        }
+
+        /// <summary>
         /// Gets the Scope of the Collection belongs to
         /// </summary>
         public Scope Scope { get; }
