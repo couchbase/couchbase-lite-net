@@ -797,6 +797,49 @@ namespace Test
 
         #endregion
 
+        #region Scope's and Collection's Database
+
+        // Spec: https://docs.google.com/document/d/1nUgaCgXIB3lLViudf6Pw6H9nPa_OeYU6uM_9xAd08M0
+
+        public void TestCollectionDatabase()
+        {
+            // 3.1 TestGetDatabaseFromNewCollection
+            using (var col = Db.CreateCollection("colA", "scopeA"))
+            {
+                col.Should().NotBeNull("Created colA should not be null");
+                col.Database.Should().Be(Db);
+            }
+
+            // 3.2 TestGetDatabaseFromExistingCollection
+            using (var col = Db.GetCollection("colA", "scopeA"))
+            {
+                col.Should().NotBeNull("Created colA should not be null");
+                col.Database.Should().Be(Db);
+            }
+        }
+
+        [Fact]
+        public void TestScopeDatabase()
+        {
+            // 3.3 TestGetDatabaseFromScopeObtainedFromCollection
+            using (var col = Db.CreateCollection("colA", "scopeA"))
+            {
+                col.Should().NotBeNull("Created colA should not be null");
+                var scope = col.Scope;
+                scope.Should().NotBeNull("scopeA should not be null");
+                scope.Database.Should().Be(Db);
+            }
+
+            // 3.4 TestGetDatabaseFromScopeObtainedFromDatabase
+            using (var scope = Db.GetScope("scopeA"))
+            {
+                scope.Should().NotBeNull("scopeA should not be null");
+                scope.Database.Should().Be(Db);
+            }
+        }
+
+        #endregion
+
         #region Create Index from Query / Index Builder Using Collection
 
         [Fact]

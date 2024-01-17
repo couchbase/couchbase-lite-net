@@ -43,6 +43,11 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <summary>
+        /// Gets the database that this scope belongs to
+        /// </summary>
+        public Database Database { get; internal set; }
+
+        /// <summary>
         /// Gets the Scope Name
         /// </summary>
         /// <remarks>
@@ -63,11 +68,6 @@ namespace Couchbase.Lite
                 return Database.c4db;
             }
         }
-
-        /// <summary>
-        /// Gets the database that this document belongs to, if any
-        /// </summary>
-        internal Database Database { get; set; }
 
         internal ThreadSafety ThreadSafety { get; }
 
