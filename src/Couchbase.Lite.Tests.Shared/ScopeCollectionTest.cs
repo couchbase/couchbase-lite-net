@@ -752,6 +752,51 @@ namespace Test
 
         #endregion
 
+        #region Collection FullName
+
+        // Spec: https://docs.google.com/document/d/1nUgaCgXIB3lLViudf6Pw6H9nPa_OeYU6uM_9xAd08M0
+
+        [Fact]
+        public void TestCollectionFullName()
+        {
+            // 3.1 TestGetFullNameFromDefaultCollection
+            using (var col = Db.GetDefaultCollection())
+            {
+                col.Should().NotBeNull("Default collection should not be null");
+                col.FullName.Should().Be("_default._default");
+            }
+
+            // 3.2 TestGetFullNameFromNewCollectionInDefaultScope
+            using (var col = Db.CreateCollection("colA"))
+            {
+                col.Should().NotBeNull("Created colA should not be null");
+                col.FullName.Should().Be("_default.colA");
+            }
+
+            // 3.3 TestGetFullNameFromNewCollectionInCustomScope
+            using (var col = Db.CreateCollection("colA", "scopeA"))
+            {
+                col.Should().NotBeNull("Created colA should not be null");
+                col.FullName.Should().Be("scopeA.colA");
+            }
+
+            // 3.4 TestGetFullNameExistingCollectionInDefaultScope
+            using (var col = Db.GetCollection("colA"))
+            {
+                col.Should().NotBeNull("Existing colA should not be null");
+                col.FullName.Should().Be("_default.colA");
+            }
+
+            // 3.5 TestGetFullNameFromExistingCollectionInCustomScope
+            using (var col = Db.GetCollection("colA", "scopeA"))
+            {
+                col.Should().NotBeNull("Existing colA should not be null");
+                col.FullName.Should().Be("scopeA.colA");
+            }
+        }
+
+        #endregion
+
         #region Create Index from Query / Index Builder Using Collection
 
         [Fact]
