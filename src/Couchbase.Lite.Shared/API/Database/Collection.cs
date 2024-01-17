@@ -108,12 +108,12 @@ namespace Couchbase.Lite
             }
         }
 
+        internal ThreadSafety ThreadSafety { get; }
+
         /// <summary>
         /// Gets the database that this collection belongs to
         /// </summary>
-        internal Database Database { get; set; }
-
-        internal ThreadSafety ThreadSafety { get; }
+        public Database Database { get; internal set; }
 
         /// <summary>
         /// Gets the Collection Name
