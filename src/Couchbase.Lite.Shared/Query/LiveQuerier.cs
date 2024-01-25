@@ -164,16 +164,8 @@ namespace Couchbase.Lite.Internal.Query
             return null;
         }
 
-        private ThreadSafety DatabaseThreadSafety()
-        {
-            switch(_queryBase.Database?.ThreadSafety) {
-                case null:
-                    WriteLog.To.Query.W(Tag, "Database thread safety unavailable, using instance thread safety...");
-                    return _queryBase.ThreadSafety;
-                default:
-                    return _queryBase.Database.ThreadSafety;
-            }
-        }
+        private ThreadSafety DatabaseThreadSafety() => _queryBase?.Database?.ThreadSafety ??
+            throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Database ThreadSafety was lost");
 
         #endregion
 
