@@ -18,6 +18,7 @@
 
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using System;
@@ -66,6 +67,10 @@ namespace Couchbase.Lite.Internal.Query
         {
             _queryBase.ThreadSafety.DoLocked(() =>
             {
+                if(_queryObserver != null) {
+                    return;
+                }
+
                 var handle = GCHandle.Alloc(this);
                 _queryObserver = Native.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
             });
@@ -77,7 +82,10 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (Interlocked.Increment(ref _startedObserving) == 1) {
                 _changed.Add(cbEventHandler);
-                Native.c4queryobs_setEnabled(_queryObserver, true);
+
+                // CBL-5272: This call needs to be guarded with the db exclusive lock to avoid bad
+                // interaction with multiple concurrent LiveQueries being created with different objects
+                DatabaseThreadSafety().DoLocked(() => Native.c4queryobs_setEnabled(_queryObserver, true));
             }
 
             return _changed;
@@ -154,6 +162,17 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             return null;
+        }
+
+        private ThreadSafety DatabaseThreadSafety()
+        {
+            switch(_queryBase.Database?.ThreadSafety) {
+                case null:
+                    WriteLog.To.Query.W(Tag, "Database thread safety unavailable, using instance thread safety...");
+                    return _queryBase.ThreadSafety;
+                default:
+                    return _queryBase.Database.ThreadSafety;
+            }
         }
 
         #endregion
