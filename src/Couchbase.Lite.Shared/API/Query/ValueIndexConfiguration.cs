@@ -38,9 +38,10 @@ namespace Couchbase.Lite.Query
         /// <param name="expressions">The expressions to use to create the index</param>
         /// <returns>The beginning of a value based index</returns>
         public ValueIndexConfiguration(params string[] expressions)
-            : base(C4IndexType.FullTextIndex, expressions)
+            : base(C4IndexType.ValueIndex, expressions)
         {
         }
+
         #endregion
     }
 }
