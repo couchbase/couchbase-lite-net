@@ -73,22 +73,22 @@
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64-store\bin\LiteCore.dll">
       <Link>x64\LiteCore.dll</Link>
       <Pack>true</Pack>
-      <PackagePath>runtimes/win10-x64/nativeassets/uap10.0/LiteCore.dll</PackagePath>
+      <PackagePath>runtimes/win-x64/nativeassets/uap10.0/LiteCore.dll</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64-store\bin\LiteCore.pdb">
       <Link>x64\LiteCore.pdb</Link>
       <Pack>true</Pack>
-      <PackagePath>runtimes/win10-x64/nativeassets/uap10.0/LiteCore.pdb</PackagePath>
+      <PackagePath>runtimes/win-x64/nativeassets/uap10.0/LiteCore.pdb</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64-store\bin\LiteCore.dll">
       <Link>arm64\LiteCore.dll</Link>
       <Pack>true</Pack>
-      <PackagePath>runtimes/win10-arm64/nativeassets/uap10.0/LiteCore.dll</PackagePath>
+      <PackagePath>runtimes/win-arm64/nativeassets/uap10.0/LiteCore.dll</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64-store\bin\LiteCore.pdb">
       <Link>arm64\LiteCore.pdb</Link>
       <Pack>true</Pack>
-      <PackagePath>runtimes/win10-arm64/nativeassets/uap10.0/LiteCore.pdb</PackagePath>
+      <PackagePath>runtimes/win-arm64/nativeassets/uap10.0/LiteCore.pdb</PackagePath>
     </None>
   </ItemGroup>
   <ItemGroup Condition="!$(Configuration.Contains('Packaging'))">
