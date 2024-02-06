@@ -1316,7 +1316,7 @@ namespace Test
         {
             Db.GetIndexes().Should().BeEmpty();
 
-            var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
+            var index1 = new ValueIndexConfiguration("firstName", "lastName");
             Db.CreateIndex("index1", index1);
 
             var index2 = new FullTextIndexConfiguration("detail");
@@ -1330,6 +1330,10 @@ namespace Test
             Db.CreateIndex("index3", index3);
 
             Db.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
+
+            using var q = Db.CreateQuery("SELECT firstName FROM _ WHERE firstName = 'Jim'");
+            var str = q.Explain();
+            str.Should().Contain("USING INDEX index1", "because the above value index should be used in the query");
         }
 
         [Fact]
