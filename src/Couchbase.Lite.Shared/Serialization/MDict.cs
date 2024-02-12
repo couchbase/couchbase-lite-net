@@ -216,13 +216,13 @@ namespace Couchbase.Lite.Internal.Serialization
             // I hate this dance...but it's necessary to convince the commpiler to let
             // me use unsafe methods inside of a generator method
             var i = BeginIteration();
-            
-            do {
-                var got = Get(i);
-                if (got.Key != null) {
-                    yield return got;
-                }
-            } while (Advance(ref i));
+
+            var got = Get(i);
+            while (got.Key != null) {
+                yield return got;
+                Advance(ref i);
+                got = Get(i);
+            }
         }
 
         private void SetInMap(string key, MValue val)
