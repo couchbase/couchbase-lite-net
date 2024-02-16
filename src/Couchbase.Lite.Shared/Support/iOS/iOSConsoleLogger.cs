@@ -17,6 +17,7 @@
 // 
 #if __IOS__
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 using Couchbase.Lite.DI;
@@ -27,6 +28,18 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency]
     internal sealed class iOSConsoleLogger : IConsoleLogger
     {
+        private CoreFoundation.OSLog _logger = new CoreFoundation.OSLog("CouchbaseLite", "dotnet");
+
+        private static readonly IReadOnlyDictionary<LogLevel, CoreFoundation.OSLogLevel> LevelMap
+            = new Dictionary<LogLevel, CoreFoundation.OSLogLevel>
+            {
+                [LogLevel.Debug] = CoreFoundation.OSLogLevel.Debug,
+                [LogLevel.Verbose] = CoreFoundation.OSLogLevel.Info, // No verbose level in Apple
+                [LogLevel.Info] = CoreFoundation.OSLogLevel.Info,
+                [LogLevel.Warning] = CoreFoundation.OSLogLevel.Error, // No warning level in Apple
+                [LogLevel.Error] = CoreFoundation.OSLogLevel.Error,
+            };
+
 #region Properties
 
         public LogDomain Domains { get; set; } = LogDomain.All;
@@ -54,7 +67,8 @@ namespace Couchbase.Lite.Support
             }
 
             var finalStr = MakeMessage(message, level, domain);
-            Console.WriteLine(finalStr); // Console.WriteLine == NSLog
+            var appleLevel = LevelMap[level];
+            _logger.Log(appleLevel, finalStr);
         }
 
 #endregion
