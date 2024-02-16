@@ -252,7 +252,7 @@ namespace Test
             });
         }
 
-        #if !__ANDROID__
+        #if !__ANDROID__ && !__IOS__
         [Fact]
         public void TestConsoleLoggingLevels()
         {
