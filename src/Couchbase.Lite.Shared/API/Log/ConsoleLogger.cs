@@ -20,7 +20,7 @@ namespace Couchbase.Lite.Logging
     /// <summary>
     /// An interface for an object that will log messages to the
     /// relevant debug console.  For desktop this is the terminal,
-    /// UWP uses the visual studio debug output pane, iOS uses NSLog
+    /// WinUI uses the visual studio debug output pane, iOS uses os_log
     /// and Android uses logcat.
     /// </summary>
     public interface IConsoleLogger : ILogger

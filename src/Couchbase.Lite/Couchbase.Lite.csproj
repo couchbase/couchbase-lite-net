@@ -1,8 +1,8 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-	<TargetFrameworks>netstandard2.0;net6.0;net7.0-android;net7.0-ios;net7.0-maccatalyst;MonoAndroid10.0;Xamarin.iOS10</TargetFrameworks>
-	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net462;uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
+	<TargetFrameworks>netstandard2.0;net6.0;net8.0-android;net8.0-ios;net8.0-maccatalyst;MonoAndroid10.0;Xamarin.iOS10</TargetFrameworks>
+	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net462;net8.0-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">12.0</SupportedOSPlatformVersion>
@@ -33,8 +33,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap')) or $(TargetFramework.StartsWith('net6.0-windows')) ">
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('net8.0-windows')) ">
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <DefineConstants>$(DefineConstants);CBL_PLATFORM_WINUI</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Coverage|AnyCPU'">
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
@@ -54,18 +55,15 @@
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <PackageReference Condition=" $(TargetFramework.StartsWith('Xamarin')) or $(TargetFramework.StartsWith('MonoAndroid')) or '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netstandard')) " Include="System.Collections.Immutable" Version="6.0.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' or $(TargetFramework.StartsWith('net6.0-windows')) ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' or $(TargetFramework.StartsWith('net8.0-windows')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
-  <ItemGroup Condition=" ($(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.StartsWith('net7.0-android'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+  <ItemGroup Condition=" ($(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.StartsWith('net8.0-android'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
   </ItemGroup>
-<ItemGroup Condition=" ($(TargetFramework.StartsWith('Xamarin.iOS')) or $(TargetFramework.StartsWith('net7.0-ios')) or $(TargetFramework.StartsWith('net7.0-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj"/>
+<ItemGroup Condition=" ($(TargetFramework.StartsWith('Xamarin.iOS')) or $(TargetFramework.StartsWith('net8.0-ios')) or $(TargetFramework.StartsWith('net8.0-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj" />
 </ItemGroup>
-    <ItemGroup Condition=" $(TargetFramework.StartsWith('uap')) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
-        <ProjectReference Include="..\..\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" />
-    </ItemGroup>
   <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid'))">
     <PackageReference Include="Xamarin.Essentials" Version="1.7.4" />
   </ItemGroup>
