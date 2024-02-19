@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <TargetFrameworks>net7.0-android;monoandroid10.0</TargetFrameworks>
+    <TargetFrameworks>net8.0-android;monoandroid10.0</TargetFrameworks>
     <SupportedOSPlatformVersion>22.0</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
@@ -43,7 +43,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.Android.xml</DocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition="$(TargetFramework.StartsWith('net7.0-android'))">
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net8.0-android'))">
     <DefineConstants>$(DefineConstants);NET_ANDROID</DefineConstants>
   </PropertyGroup>
   <ItemGroup>

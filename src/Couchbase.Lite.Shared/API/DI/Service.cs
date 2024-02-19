@@ -57,7 +57,7 @@ namespace Couchbase.Lite.DI
             _Collection.Options.AllowOverridingRegistrations = true;
 
             // Windows 2012 doesn't define NETFRAMEWORK for some reason
-            #if (NET6_0_OR_GREATER || NETFRAMEWORK || NET462) && !NET6_0_WINDOWS10_0_19041_0 && !__MOBILE__
+            #if (NET6_0_OR_GREATER || NETFRAMEWORK || NET462) && !CBL_PLATFORM_WINUI && !__MOBILE__
             AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -67,9 +67,8 @@ namespace Couchbase.Lite.DI
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 Service.Register<IProxy>(new LinuxProxy());
             }
-            #elif UAP10_0_16299 || WINDOWS_UWP || NET6_0_WINDOWS10_0_19041_0
+            #elif CBL_PLATFORM_WINUI
             Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
-            Service.Register<IProxy>(new UWPProxy());
             #elif __ANDROID__
             #if !TEST_COVERAGE
             if (Droid.Context == null) {
@@ -80,11 +79,9 @@ namespace Couchbase.Lite.DI
             Service.AutoRegister(typeof(Database).Assembly);
             Service.Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(Droid.Context));
             Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(Droid.Context));
-            Service.Register<IProxy>(new XamarinAndroidProxy());
             #endif
             #elif __IOS__
             Service.AutoRegister(typeof(Database).Assembly);
-            Service.Register<IProxy>(new IOSProxy());
             #elif NETSTANDARD2_0
             throw new RuntimeException(
                 "Pure .NET Standard variant executed.  This means that Couchbase Lite is running on an unsupported platform");

@@ -16,15 +16,12 @@
 //  limitations under the License.
 // 
 #define DEBUG
-using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 
 namespace Couchbase.Lite.Support
 {
     /// <summary>
-    /// The UWP support class
+    /// The WinUI support class
     /// </summary>
     public static class WinUI
     {

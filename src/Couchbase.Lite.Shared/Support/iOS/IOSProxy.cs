@@ -27,6 +27,7 @@ using Couchbase.Lite.DI;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
     internal sealed class IOSProxy  : IProxy
     {
         private const string libSystemLibrary = "/usr/lib/libSystem.dylib";

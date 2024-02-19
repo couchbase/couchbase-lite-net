@@ -27,6 +27,7 @@ using Java.Net;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
     internal sealed class XamarinAndroidProxy : IProxy
     {
         #region IProxy
