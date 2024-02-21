@@ -3,7 +3,7 @@
 Remove-Item $PSScriptRoot\..\..\src\packages\*.nupkg -ErrorAction Ignore
 Remove-Item $PSScriptRoot\..\..\src\packages\*.snupkg -ErrorAction Ignore
 
-$VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
+$VSInstall = (& 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe' -latest -requires Microsoft.NetCore.Component.SDK -requires Microsoft.NetCore.Component.Runtime.8.0 -property resolvedInstallationPath)
 if(-Not $VSInstall) {
     throw "Unable to locate VS installation"
 }
