@@ -4,7 +4,7 @@ if(-Not $env:NUGET_VERSION) {
     throw "NUGET_VERSION not defined, aborting..."
 }
 
-$VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
+$VSInstall = (& 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe' -latest -requires Microsoft.NetCore.Component.SDK -requires Microsoft.NetCore.Component.Runtime.8.0 -property resolvedInstallationPath)
 if(-Not $VSInstall) {
     Pop-Location
     throw "Unable to locate VS installation"
