@@ -1,6 +1,7 @@
 Push-Location $PSScriptRoot\..\Couchbase.Lite
 
-$VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
+
+$VSInstall = (& 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe' -latest -requires Microsoft.NetCore.Component.SDK -requires Microsoft.NetCore.Component.Runtime.6.0 -property resolvedInstallationPath)
 if(-Not $VSInstall) {
     throw "Unable to locate VS installation"
 }
