@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-#if __ANDROID__
+#if CBL_PLATFORM_ANDROID
 using System;
 using System.Linq;
 using System.Net;

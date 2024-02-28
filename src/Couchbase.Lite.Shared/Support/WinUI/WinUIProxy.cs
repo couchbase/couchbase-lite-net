@@ -36,24 +36,12 @@ namespace Couchbase.Lite.Support
 
         private const string Tag = nameof(WinUIProxy);
 
-        #if WINDOWS_PHONE
-        private static bool _Logged;
-        #endif
-
         #endregion
 
         #region IProxy
 
-        public async Task<WebProxy> CreateProxyAsync(Uri destination)
+        public async Task<WebProxy?> CreateProxyAsync(Uri destination)
         {
-            #if WINDOWS_PHONE 
-            if (!_Logged) {
-                _Logged = true;
-                WriteLog.To.Sync.W(Tag, "Proxy is not supported on Windows phone");
-            }
-
-            return null;
-            #else
             var config = await NetworkInformation.GetProxyConfigurationAsync(destination);
             if (config.CanConnectDirectly) {
                 WriteLog.To.Sync.V(Tag, "Able to connect directly, bypassing proxy");
@@ -68,7 +56,6 @@ namespace Couchbase.Lite.Support
             var uri = config.ProxyUris.FirstOrDefault();
             WriteLog.To.Sync.I(Tag, "Using {0} as proxy server for {1}", uri, destination);
             return new WebProxy(uri);
-            #endif
         }
 
         #endregion

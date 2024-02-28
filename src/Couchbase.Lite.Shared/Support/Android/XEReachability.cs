@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __ANDROID__ && !NET6_0_OR_GREATER
+#if CBL_PLATFORM_XAMARIN_ANDROID
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
 using System;

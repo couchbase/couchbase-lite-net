@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#if __IOS__
+#if CBL_PLATFORM_IOS
 using System.IO;
 using Couchbase.Lite.DI;
 using Foundation;

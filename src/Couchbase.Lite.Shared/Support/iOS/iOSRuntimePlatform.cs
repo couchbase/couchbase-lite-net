@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __IOS__
+#if CBL_PLATFORM_IOS
 using Couchbase.Lite.DI;
 using Foundation;
 using UIKit;
@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency]
 	internal sealed class iOSRuntimePlatform : IRuntimePlatform
 	{
-#if MACCATALYST
+#if CBL_PLATFORM_NET_MAC_CATALYST
         public string OSDescription => $"macOS (Catalyst) {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
 
         public string HardwareName => null;

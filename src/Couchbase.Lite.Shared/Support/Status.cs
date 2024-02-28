@@ -136,7 +136,7 @@ namespace Couchbase.Lite
                             c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
                         }
 
-#if __IOS__
+#if CBL_PLATFORM_IOS
                         if (ie.Message == "Connection closed.") {
                         //AppleTlsContext.cs
                         //case SslStatus.ClosedAbort:

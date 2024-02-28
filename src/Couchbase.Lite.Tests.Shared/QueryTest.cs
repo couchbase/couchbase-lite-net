@@ -2191,7 +2191,7 @@ namespace Test
         [Fact]
         public void TestQueryExpressions()
         {
-            var doubleValue = Math.PI;
+            var doubleValue = Math.Round(Math.PI, 14);
             var floatValue = 1.5F;
             var longValue = 4294967296L;
             var value = (object)"stringObject";

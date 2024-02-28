@@ -16,8 +16,7 @@
 //  limitations under the License.
 // 
 
-// Windows 2012 doesn't define the more generic variants
-#if NETFRAMEWORK || NET462 || NET6_0_OR_GREATER
+#if CBL_PLATFORM_NET_CONSOLE || CBL_PLATFORM_NET_FRAMEWORK
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
