@@ -112,11 +112,23 @@ namespace Couchbase.Lite.Info {
 
 #if COUCHBASE_ENTERPRISE
 
-		/// <summary>
-		/// Default value for <see cref="URLEndpointListenerConfiguration.Port" /> (0)
-		/// No port specified, the OS will assign one
-		/// </summary>
-		public static readonly ushort DefaultListenerPort = 0;
+        /// <summary>
+        /// Default value for <see cref="VectorSearchIndexConfiguration.Encoding" /> (ScalarQuantizerType.SQ8)
+        /// Vectors are encoded as 8-bit, by default
+        /// </summary>
+        public static readonly ScalarQuantizerType DefaultVectorSearchIndexEncoding = ScalarQuantizerType.SQ8;
+
+        /// <summary>
+        /// Default value for <see cref="VectorSearchIndexConfiguration.Metric" /> (DistanceMetric.Euclidean)
+        /// By default, vectors are compared using Euclidian metrics
+        /// </summary>
+        public static readonly DistanceMetric DefaultVectorSearchIndexMetric = DistanceMetric.Euclidean;
+
+        /// <summary>
+        /// Default value for <see cref="URLEndpointListenerConfiguration.Port" /> (0)
+        /// No port specified, the OS will assign one
+        /// </summary>
+        public static readonly ushort DefaultListenerPort = 0;
 
 		/// <summary>
 		/// Default value for <see cref="URLEndpointListenerConfiguration.DisableTLS" /> (false)

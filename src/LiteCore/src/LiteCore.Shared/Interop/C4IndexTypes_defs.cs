@@ -1,7 +1,7 @@
 //
 // C4IndexTypes_defs.cs
 //
-// Copyright (c) 2023 Couchbase, Inc All rights reserved.
+// Copyright (c) 2024 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,6 +37,54 @@ namespace LiteCore.Interop
         FullTextIndex,
         ArrayIndex,
         PredictiveIndex,
+        VectorIndex,
+    }
+
+    internal enum C4VectorMetricType : uint
+    {
+        VectorMetricDefault,
+        VectorMetricEuclidean,
+        VectorMetricCosine,
+    }
+
+    internal enum C4VectorClusteringType : uint
+    {
+        VectorClusteringFlat,
+        VectorClusteringMulti,
+    }
+
+    internal enum C4VectorEncodingType : uint
+    {
+        VectorEncodingDefault,
+        VectorEncodingNone,
+        VectorEncodingPQ,
+        VectorEncodingSQ,
+    }
+
+	internal unsafe struct C4VectorClustering
+    {
+        public C4VectorClusteringType type;
+        public uint flat_centroids;
+        public uint multi_subquantizers;
+        public uint multi_bits;
+    }
+
+	internal unsafe struct C4VectorEncoding
+    {
+        public C4VectorEncodingType type;
+        public uint pq_subquantizers;
+        public uint bits;
+    }
+
+	internal unsafe struct C4VectorIndexOptions
+    {
+        public uint dimensions;
+        public C4VectorMetricType metric;
+        public C4VectorClustering clustering;
+        public C4VectorEncoding encoding;
+        public uint minTrainingSize;
+        public uint maxTrainingSize;
+        public uint numProbes;
     }
 
 	internal unsafe partial struct C4IndexOptions
@@ -45,6 +93,7 @@ namespace LiteCore.Interop
         private byte _ignoreDiacritics;
         private byte _disableStemming;
         private IntPtr _stopWords;
+        public C4VectorIndexOptions vector;
 
         public string? language
         {

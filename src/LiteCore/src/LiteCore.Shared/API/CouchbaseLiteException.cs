@@ -483,7 +483,6 @@ namespace Couchbase.Lite
         private static readonly IReadOnlyList<int> _BugReportErrors = new List<int>
         {
             (int)C4ErrorCode.AssertionFailed,
-            (int)C4ErrorCode.Unimplemented,
             (int)C4ErrorCode.Unsupported,
             (int)C4ErrorCode.UnsupportedEncryption,
             (int)C4ErrorCode.BadRevisionID,

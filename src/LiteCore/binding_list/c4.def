@@ -53,6 +53,7 @@ c4db_beginTransaction
 c4db_endTransaction
 c4db_getSharedFleeceEncoder
 c4db_getFLSharedKeys
+c4_setExtensionPath
 
 c4doc_release
 c4doc_selectNextLeafRevision

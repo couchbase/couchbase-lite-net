@@ -15,6 +15,9 @@
     <SingleProject>true</SingleProject>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CblEnterprisePackage Condition="'$(CblEnterprisePackage)' == ''">false</CblEnterprisePackage>
+    <PackageId Condition="'$(CblEnterprisePackage)' == 'true'">Couchbase.Lite.Enterprise.Support.WinUI</PackageId>
+    <PackageId Condition="'$(PackageId)' == ''">Couchbase.Lite.Support.WinUI</PackageId>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <PlatformTarget>$(Platform)</PlatformTarget>
