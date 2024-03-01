@@ -15,6 +15,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CblEnterprisePackage Condition="'$(CblEnterprisePackage)' == ''">false</CblEnterprisePackage>
     <PackageId Condition="'$(CblEnterprisePackage)' == 'true'">Couchbase.Lite.Enterprise.Support.Android</PackageId>
+    <PackageId Condition="'$(PackageId)' == ''">Couchbase.Lite.Support.Android</PackageId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

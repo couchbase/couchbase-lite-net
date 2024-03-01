@@ -49,7 +49,6 @@ namespace Couchbase.Lite
         internal const string InvalidSchemeURLEndpoint = "Invalid scheme for URLEndpoint url ({0}). It must be either 'ws:' or 'wss:'.";
         internal const string InvalidEmbeddedCredentialsInURL = "Embedded credentials in a URL (username:password@url) are not allowed. Use the BasicAuthenticator class instead.";
         internal const string ReplicatorNotStopped = "Replicator is not stopped. Resetting checkpoint is only allowed when the replicator is in the stopped state.";
-        internal const string QueryParamNotAllowedContainCollections = "Query parameters are not allowed to contain collections.";
         internal const string MissASforJoin = "Missing AS clause for JOIN.";
         internal const string MissONforJoin = "Missing ON statement for JOIN.";
         internal const string ExpressionsMustBeIExpressionOrString = "Expressions must either be {0} or String.";

@@ -193,6 +193,30 @@ namespace Couchbase.Lite.Query
         }
 
         /// <summary>
+        /// Sets an <see cref="ArrayObject"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        public Parameters SetArray(string name, ArrayObject? value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets an <see cref="DictionaryObject"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        public Parameters SetDictionary(string name, DictionaryObject? value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
         /// Sets an untyped value in the parameters
         /// </summary>
         /// <param name="name">The name of the key to set</param>
@@ -201,12 +225,6 @@ namespace Couchbase.Lite.Query
         public Parameters SetValue(string name, object? value)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
-
-            // HACK: Use side effect of data validation
-            var cbVal = DataOps.ToCouchbaseObject(value);
-            if (cbVal is MutableDictionaryObject || cbVal is MutableArrayObject) {
-                throw new ArgumentException(CouchbaseLiteErrorMessage.QueryParamNotAllowedContainCollections);
-            }
 
             _freezer.PerformAction(() => _params[name] = value);
             _query?.SetParameters(this.ToString());
