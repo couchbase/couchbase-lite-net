@@ -30,15 +30,19 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #endregion
 
+        private bool _disposed;
+
+        private readonly FLSlice _data;
+
         #region Properties
 
-        public FLSlice Data { get; }
-
-#if DEBUG
-        internal bool Disposed { get; private set; }
-#endif
-
-        public FLSharedKeys* SharedKeys { get; }
+        public FLSlice Data
+        {
+            get {
+                CheckDisposed();
+                return _data;
+            }
+        }
 
         #endregion
 
@@ -50,7 +54,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public MContext(FLSlice data)
         {
-            Data = data;
+            _data = data;
         }
 
         ~MContext()
@@ -64,12 +68,17 @@ namespace Couchbase.Lite.Internal.Serialization
 
         protected virtual void Dispose(bool disposing)
         {
-            #if DEBUG
-            Disposed = true;
-            #endif
+            _disposed = true;
         }
 
         #endregion
+
+        internal void CheckDisposed()
+        {
+            if(_disposed) {
+                throw new ObjectDisposedException("MContext was disposed (probably QueryResultSet)");
+            }
+        }
 
         #region IDisposable
 

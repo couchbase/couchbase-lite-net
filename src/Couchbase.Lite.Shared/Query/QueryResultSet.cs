@@ -113,7 +113,16 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal void Release()
+        internal void CheckDisposed()
+        {
+            if(_disposed) {
+                throw new ObjectDisposedException("QueryResultSet was disposed");
+            }
+        }
+
+        #endregion
+
+        public void Dispose()
         {
             _threadSafety.DoLocked(() =>
             {
@@ -125,8 +134,6 @@ namespace Couchbase.Lite.Internal.Query
                 _context.Dispose();
             });
         }
-
-        #endregion
 
         #region IEnumerable
 
@@ -140,12 +147,9 @@ namespace Couchbase.Lite.Internal.Query
         {
             _threadSafety.DoLocked(() =>
             {
+                CheckDisposed();
                 if (_enumeratorGenerated) {
                     throw new InvalidOperationException(CouchbaseLiteErrorMessage.ResultSetAlreadyEnumerated);
-                }
-
-                if (_disposed) {
-                    throw new ObjectDisposedException(nameof(QueryResultSet));
                 }
 
                 _enumeratorGenerated = true;
@@ -158,7 +162,11 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IResultSet
 
-        public List<Result> AllResults() => this.ToList();
+        public List<Result> AllResults()
+        {
+            CheckDisposed();
+            return this.ToList();
+        }
 
         #endregion
 

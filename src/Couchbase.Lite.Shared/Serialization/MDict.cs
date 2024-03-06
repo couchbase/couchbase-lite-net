@@ -69,6 +69,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public void Clear()
         {
+            Context.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMDict);
             }
@@ -88,11 +89,13 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public bool Contains(string key)
         {
+            Context.CheckDisposed();
             return _map.ContainsKey(key) || Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null;
         }
 
         public MValue Get(string key)
         {
+            Context.CheckDisposed();
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
 
             if (_map.ContainsKey(key)) {
@@ -121,6 +124,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public void Set(string key, MValue val)
         {
+            Context.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
             }
@@ -154,6 +158,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         internal IEnumerable<KeyValuePair<string, MValue>> AllItems()
         {
+            Context.CheckDisposed();
             foreach (var item in _map) {
                 if (!item.Value.IsEmpty) {
                     yield return item;
@@ -210,13 +215,13 @@ namespace Couchbase.Lite.Internal.Serialization
             // I hate this dance...but it's necessary to convince the commpiler to let
             // me use unsafe methods inside of a generator method
             var i = BeginIteration();
-            
-            do {
-                var got = Get(i);
-                if (got.Key != null) {
-                    yield return got;
-                }
-            } while (Advance(ref i));
+
+            var got = Get(i);
+            while (got.Key != null) {
+                yield return got;
+                Advance(ref i);
+                got = Get(i);
+            }
         }
 
         private void SetInMap(string key, MValue val)
@@ -231,6 +236,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public override void FLEncode(FLEncoder* enc)
         {
+            Context.CheckDisposed();
             if (!IsMutated) {
                 if (_dict == null) {
                     Native.FLEncoder_BeginDict(enc,0U);

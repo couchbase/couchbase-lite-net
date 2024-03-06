@@ -130,6 +130,7 @@ namespace Couchbase.Lite
 
         private static MValue Get(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null)
         {
+            array.Context.CheckDisposed();
             return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
             {
                 var val = array.Get(index);

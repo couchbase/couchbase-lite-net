@@ -42,7 +42,6 @@ namespace Couchbase.Lite.Internal.Query
 
         protected readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
         protected unsafe C4Query* _c4Query;
-        protected List<QueryResultSet> _history = new List<QueryResultSet>();
         protected Parameters _queryParameters;
         protected Dictionary<ListenerToken, LiveQuerier?> _listenerTokens = new Dictionary<ListenerToken, LiveQuerier?>();
         protected int _observingCount;
@@ -129,11 +128,6 @@ namespace Couchbase.Lite.Internal.Query
                 Stop();
                 ThreadSafety.DoLocked(() =>
                 {
-                    foreach (var e in _history) {
-                        e.Release();
-                    }
-
-                    _history.Clear();
                     Native.c4query_release(_c4Query);
                     _c4Query = null;
                     _disposalWatchdog.Dispose();

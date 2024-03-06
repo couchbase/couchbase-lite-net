@@ -2774,6 +2774,42 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestResultSetAfterDispose()
+        {
+            // Want to make sure any access to a result after its parent set has been 
+            // disposed is guarded by an exception to avoid using released native data
+            using var doc = new MutableDocument("test");
+            var arr = new MutableArrayObject();
+            arr.AddInt(1).AddInt(2);
+            var dict = new MutableDictionaryObject();
+            dict.SetString("foo", "bar");
+            var blob = new Blob("application/octet-stream", new byte[] { 1, 2, 3, 4, 5 });
+            doc.SetArray("arr", arr);
+            doc.SetDictionary("dict", dict);
+            doc.SetBlob("blob", blob);
+            doc.SetInt("int", 42);
+            DefaultCollection.Save(doc);
+
+            using var query = Db.CreateQuery("SELECT arr, dict, blob, int FROM _");
+            var rs = query.Execute();
+            var r = rs.First();
+            var arr1 = r.GetArray("arr");
+            var dict1 = r.GetDictionary("dict");
+
+            rs.Dispose();
+
+            FluentActions.Invoking(() => r.GetArray("arr")).Should().Throw<ObjectDisposedException>();
+            FluentActions.Invoking(() => r.GetDictionary("dict")).Should().Throw<ObjectDisposedException>();
+            FluentActions.Invoking(() => r.GetBlob("blob")).Should().Throw<ObjectDisposedException>();
+            r.GetInt("int").Should().Be(42);
+
+            FluentActions.Invoking(() => arr1.GetValue(0)).Should().Throw<ObjectDisposedException>();
+            FluentActions.Invoking(() => dict1.GetValue("foo")).Should().Throw<ObjectDisposedException>();
+            arr.GetInt(0).Should().Be(1);
+            dict.GetString("foo").Should().Be("bar");
+        }
+
         private void CreateDateDocs()
         {
             using (var doc = new MutableDocument()) {
