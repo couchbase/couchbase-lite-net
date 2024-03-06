@@ -37,8 +37,6 @@ using LiteCore.Util;
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Reflection;
-using Couchbase.Lite.Extensions;
 
 namespace Couchbase.Lite
 {
@@ -279,27 +277,6 @@ namespace Couchbase.Lite
         static Database()
         {
             Native.c4log_enableFatalExceptionBacktrace();
-
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName.Contains("Couchbase"))) {
-                Console.WriteLine($"Searching for extensions in {assembly.FullName}");
-                var extensionType = assembly.GetTypes()
-                    .FirstOrDefault(t => !t.IsInterface && t.GetInterface(typeof(ICouchbaseLiteExtension).FullName) != null);
-                if(extensionType != null) {
-                    try {
-                        var impl = Activator.CreateInstance(extensionType) as ICouchbaseLiteExtension;
-                        if (impl == null) {
-                            Console.WriteLine("Unable to create found extension (Activator.CreateInstance returned null...)");
-                            continue;
-                        }
-
-                        Console.WriteLine($"Extension {impl.Name} in {impl.Path} registered!");
-                        Native.c4_setExtensionPath(impl.Path);
-                        return; // For now, only accept the first one since that's all we can handle
-                    } catch(Exception e) {
-                        WriteLog.To.Database.E(Tag, $"Extension constructor failed", e);
-                    }
-                }
-            }
         }
 
         /// <summary>
