@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Support
 
         #region IProxy
 
-        public async Task<WebProxy> CreateProxyAsync(Uri destination)
+        public async Task<WebProxy?> CreateProxyAsync(Uri destination)
         {
             #if WINDOWS_PHONE 
             if (!_Logged) {

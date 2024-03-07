@@ -17,7 +17,7 @@
 //
 
 // Windows 2012 doesn't define the more generic variants
-#if (NETFRAMEWORK || NET462 || NET6_0_OR_GREATER) && !__MOBILE__ && !NET6_0_WINDOWS10_0_19041_0
+#if (NETFRAMEWORK || NET462 || NET6_0_OR_GREATER) && !__MOBILE__ && !CBL_PLATFORM_WINUI
 using System;
 using System.IO;
 using Couchbase.Lite.DI;
