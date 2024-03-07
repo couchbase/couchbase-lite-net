@@ -30,18 +30,14 @@ namespace Couchbase.Lite.Util
     internal static class CBDebug
     {
             public static void AssertAndLog(DomainLogger logger,
-#if NET6_0_OR_GREATER
                 [DoesNotReturnIf(false)]
-#endif
                 bool assertion, string tag, string message)
         {
             Debug.Assert(assertion, message);
             logger.W(tag, message);
         }
 
-        #if NET6_0_OR_GREATER
         [DoesNotReturn]
-        #endif
         public static void LogAndThrow(DomainLogger logger, Exception e, string tag, string? message, bool fatal)
         {
             if (fatal) {
@@ -78,7 +74,7 @@ namespace Couchbase.Lite.Util
                 }
             }
 
-            return argumentValues;
+            return argumentValues!;
         }
 
         public static unsafe void* MustNotBeNullPointer(DomainLogger logger, string tag, string argumentName, void* argumentValue)
@@ -91,9 +87,7 @@ namespace Couchbase.Lite.Util
             return argumentValue;
         }
 
-        #if NET6_0_OR_GREATER
         [DoesNotReturn]
-        #endif
         private static void ThrowArgumentNullException(DomainLogger logger, string tag, string message)
         {
             var ex = new ArgumentNullException(message);

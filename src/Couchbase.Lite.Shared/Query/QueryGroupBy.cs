@@ -43,7 +43,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryGroupBy(IList<IExpression> expressions)
         {
-            Debug.Assert(expressions != null);
             _expressions = expressions;
             GroupByImpl = this;
         }
@@ -57,8 +56,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryGroupBy(IExpression expression)
         {
-            Debug.Assert(expression != null);
-            _expressions = new IExpression[] {expression};
+            _expressions = [expression];
             GroupByImpl = this;
         }
 

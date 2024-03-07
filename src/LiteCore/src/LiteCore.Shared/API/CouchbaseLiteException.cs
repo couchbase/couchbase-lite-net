@@ -567,7 +567,7 @@ namespace Couchbase.Lite
             }
 
             Debug.Assert(false, "Panic!  No suitable error message found");
-            return null;
+            return "";
         }
 
         private static CouchbaseLiteErrorType MapDomain(C4Error err)

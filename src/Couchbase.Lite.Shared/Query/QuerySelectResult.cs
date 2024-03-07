@@ -38,7 +38,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QuerySelectResult(IExpression expression)
         {
-            Debug.Assert(expression != null);
             Expression = expression;
         }
 

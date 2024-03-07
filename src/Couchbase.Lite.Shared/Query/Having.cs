@@ -41,8 +41,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal Having(XQuery source, IExpression expression)
         {
-            Debug.Assert(source != null);
-
             Copy(source);
 
             _expression = expression;

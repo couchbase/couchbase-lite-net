@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Internal.Query
             ColumnNames = columnNames;
             _threadSafety = threadSafety;
             Debug.Assert(query.Database != null);
-            _context = new QueryResultContext(query.Database, e);
+            _context = new QueryResultContext(query.Database!, e);
         }
 
         #endregion

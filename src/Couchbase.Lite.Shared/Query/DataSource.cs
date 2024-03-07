@@ -39,8 +39,6 @@ namespace Couchbase.Lite.Internal.Query
 
         protected QueryDataSource(object source, ThreadSafety threadSafety)
         {
-            Debug.Assert(threadSafety != null);
-
             Source = source;
             ThreadSafety = threadSafety;
         }

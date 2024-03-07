@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 namespace Dispatch
 {
     /// <summary>Useful extension methods for queues</summary>
-    public static class IDispatchQueueExtensions
+    internal static class IDispatchQueueExtensions
     {
         public static Task<T> DispatchAfter<T>(this IDispatchQueue queue, TimeSpan dueTime, Func<T> func)
         {

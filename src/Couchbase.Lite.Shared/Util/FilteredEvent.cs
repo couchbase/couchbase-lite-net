@@ -93,8 +93,6 @@ namespace Couchbase.Lite.Util
 
         public CouchbaseEventHandler(EventHandler<TEventType> handler, TaskScheduler? scheduler)
         {
-            Debug.Assert(handler != null);
-
             _taskFactory = new TaskFactory(scheduler ?? new QueueTaskScheduler());
             _handler = handler;
         }

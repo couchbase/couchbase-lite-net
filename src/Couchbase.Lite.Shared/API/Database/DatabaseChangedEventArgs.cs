@@ -47,9 +47,6 @@ namespace Couchbase.Lite
 
         internal DatabaseChangedEventArgs(Database database, IReadOnlyList<string> documentIDs)
         {
-            Debug.Assert(database != null);
-            Debug.Assert(documentIDs != null);
-            Debug.Assert(documentIDs.All(x => x != null));
             Database = database;
             DocumentIDs = documentIDs;
         }

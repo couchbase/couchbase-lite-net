@@ -69,7 +69,8 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public void Clear()
         {
-            Context.CheckDisposed();
+            Debug.Assert(Context != null);
+            Context!.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMDict);
             }
@@ -89,13 +90,15 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public bool Contains(string key)
         {
-            Context.CheckDisposed();
+            Debug.Assert(Context != null);
+            Context!.CheckDisposed();
             return _map.ContainsKey(key) || Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null;
         }
 
         public MValue Get(string key)
         {
-            Context.CheckDisposed();
+            Debug.Assert(Context != null);
+            Context!.CheckDisposed();
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
 
             if (_map.ContainsKey(key)) {
@@ -124,7 +127,8 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public void Set(string key, MValue val)
         {
-            Context.CheckDisposed();
+            Debug.Assert(Context != null);
+            Context!.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
             }
@@ -158,7 +162,8 @@ namespace Couchbase.Lite.Internal.Serialization
 
         internal IEnumerable<KeyValuePair<string, MValue>> AllItems()
         {
-            Context.CheckDisposed();
+            Debug.Assert(Context != null);
+            Context!.CheckDisposed();
             foreach (var item in _map) {
                 if (!item.Value.IsEmpty) {
                     yield return item;
@@ -236,7 +241,8 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public override void FLEncode(FLEncoder* enc)
         {
-            Context.CheckDisposed();
+            Debug.Assert(Context != null);
+            Context!.CheckDisposed();
             if (!IsMutated) {
                 if (_dict == null) {
                     Native.FLEncoder_BeginDict(enc,0U);
@@ -279,7 +285,7 @@ namespace Couchbase.Lite.Internal.Serialization
             base.InitAsCopyOf(original, isMutable);
             var d = original as MDict;
             Debug.Assert(d != null);
-            _dict = d._dict;
+            _dict = d!._dict;
             _map = d._map;
             Count = d.Count;
         }

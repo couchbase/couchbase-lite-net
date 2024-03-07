@@ -75,7 +75,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal SortOrder(IExpression expression) : base(null)
         {
-            Debug.Assert(expression != null);
             IsAscending = true;
             Expression = expression;
         }

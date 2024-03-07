@@ -150,10 +150,8 @@ namespace LiteCore.Interop
 
         public unsafe bool Execute(C4TryLogicDelegate1 block)
         {
-            Debug.Assert(block != null);
-
             C4Error err;
-            if(block(&err) || err.code == 0) {
+            if(block!(&err) || err.code == 0) {
                 Exception = null;
                 return true;
             }
@@ -165,8 +163,6 @@ namespace LiteCore.Interop
 
         public unsafe void* Execute(C4TryLogicDelegate2 block)
         { 
-            Debug.Assert(block != null);
-
             C4Error err;
             var retVal = block(&err);
             if(retVal != null || err.code == 0) {
@@ -181,8 +177,6 @@ namespace LiteCore.Interop
 
         public unsafe int Execute(C4TryLogicDelegate3 block)
         {
-            Debug.Assert(block != null);
-
             C4Error err;
             var retVal = block(&err);
             if(retVal >= 0 || err.code == 0) {
@@ -197,8 +191,6 @@ namespace LiteCore.Interop
 
         public unsafe byte[]? Execute(C4TryLogicDelegate4 block)
         {
-            Debug.Assert(block != null);
-
             C4Error err;
             var retVal = block(&err);
             if(retVal != null || err.code == 0) {
@@ -213,8 +205,6 @@ namespace LiteCore.Interop
 
         public unsafe string? Execute(C4TryLogicDelegate5 block)
         {
-            Debug.Assert(block != null);
-
             C4Error err;
             var retVal = block(&err);
             if (retVal != null || err.code == 0) {

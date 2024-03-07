@@ -35,9 +35,6 @@ namespace Couchbase.Lite.Util
 
         public static void Once(string identifier, Action a)
         {
-            Debug.Assert(identifier != null);
-            Debug.Assert(a != null);
-
             if (Instances.TryAdd(identifier, 0)) {
                 a();
             }

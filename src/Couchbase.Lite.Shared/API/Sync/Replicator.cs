@@ -465,7 +465,7 @@ namespace Couchbase.Lite.Sync
                             var flv = Native.FLArray_Get(flarr, (uint)i);
                             var nextId = Native.FLValue_AsString(flv);
                             Debug.Assert(nextId != null);
-                            result.Add(nextId);
+                            result.Add(nextId!);
                         }
 
                         Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
@@ -783,8 +783,6 @@ namespace Couchbase.Lite.Sync
 
         private void ReachabilityChanged(object? sender, NetworkReachabilityChangeEventArgs e)
         {
-            Debug.Assert(e != null);
-
             DispatchQueue.DispatchAsync(() =>
             {
                 if (_repl != null /* just to be safe */) {
@@ -882,7 +880,7 @@ namespace Couchbase.Lite.Sync
                     //get cookies from url and add to replicator options
                     var cookiestring = Config.DatabaseInternal.GetCookies(remoteUrl);
                     if (!String.IsNullOrEmpty(cookiestring)) {
-                        var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
+                        var split = cookiestring!.Split(';') ?? Enumerable.Empty<string>();
                         foreach (var entry in split) {
                             var pieces = entry?.Split('=');
                             if (pieces?.Length != 2) {

@@ -85,8 +85,6 @@ namespace Couchbase.Lite.Sync
 
         internal override void Authenticate(ReplicatorOptionsDictionary options)
         {
-            Debug.Assert(options != null);
-
             var authDict = new AuthOptionsDictionary
             {
                 Username = Username,

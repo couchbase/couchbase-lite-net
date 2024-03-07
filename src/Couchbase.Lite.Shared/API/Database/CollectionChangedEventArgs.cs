@@ -43,7 +43,6 @@ namespace Couchbase.Lite
             Database database)
             :base(database, documentIDs)
         {
-            Debug.Assert(collection != null);
             Collection = collection;
         }
 

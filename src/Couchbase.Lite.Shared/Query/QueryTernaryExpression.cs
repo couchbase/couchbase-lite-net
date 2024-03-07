@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Internal.Query
             Debug.Assert(_in != null);
             Debug.Assert(_predicate != null);
 
-            var inObj = Misc.TryCast<IExpression, QueryExpression>(_in);
+            var inObj = Misc.TryCast<IExpression, QueryExpression>(_in!);
             var variableName = Misc.TryCast<IVariableExpression, QueryTypeExpression>(_variableName);
 
             return new[] {

@@ -205,7 +205,7 @@ namespace Couchbase.Lite
             Debug.Assert(Database != null);
 
             var body = new FLSliceResult();
-            Database.ThreadSafety.DoLocked(() =>
+            Database!.ThreadSafety.DoLocked(() =>
             {
                 FLEncoder* encoder = null;
                 try {
