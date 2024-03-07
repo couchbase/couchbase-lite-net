@@ -34,7 +34,13 @@ namespace Couchbase.Lite.Query
 {
     /// <summary>
     /// A class representing information about a "row" in the result of an
-    /// <see cref="IQuery"/>
+    /// <see cref="IQuery"/><br /><br />
+    /// 
+    /// > [!WARNING]
+    /// > The data inside this class is tied to the lifetime of its parent 
+    /// > <see cref="IResultSet"/> and will become invalid if the parent is 
+    /// > disposed or garbage collected, unless the data is first converted to
+    /// > .NET objects via ToList, ToDictionary, etc.
     /// </summary>
     public sealed unsafe class Result : IArray, IDictionaryObject, IJSON
     {
@@ -67,6 +73,7 @@ namespace Couchbase.Lite.Query
         public IFragment this[int index]
         {
             get {
+                _context.CheckDisposed();
                 if (index >= Count) {
                     return Fragment.Null;
                 }
@@ -76,7 +83,13 @@ namespace Couchbase.Lite.Query
         }
 
         /// <inheritdoc />
-        public IFragment this[string key] => this[IndexForColumnName(key)];
+        public IFragment this[string key]
+        {
+            get {
+                _context.CheckDisposed();
+                return this[IndexForColumnName(key)];
+            }
+        }
 
         /// <inheritdoc />
         public ICollection<string> Keys => _columnNames.Keys;
@@ -144,12 +157,14 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public ArrayObject? GetArray(int index)
         {
+            _context.CheckDisposed();
             return _deserialized[index] as ArrayObject;
         }
 
         /// <inheritdoc />
         public Blob? GetBlob(int index)
         {
+            _context.CheckDisposed();
             return _deserialized[index] as Blob;  
         }
 
@@ -168,6 +183,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public DictionaryObject? GetDictionary(int index)
         {
+            _context.CheckDisposed();
             return _deserialized[index] as DictionaryObject;
         }
 
@@ -198,6 +214,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public object? GetValue(int index)
         {
+            _context.CheckDisposed();
             return _deserialized[index];
         }
 
@@ -299,6 +316,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public object? GetValue(string key)
         {
+            _context.CheckDisposed();
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetValue(index) : null;

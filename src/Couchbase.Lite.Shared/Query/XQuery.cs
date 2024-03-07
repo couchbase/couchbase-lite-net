@@ -132,9 +132,7 @@ namespace Couchbase.Lite.Internal.Query
                 return new NullResultSet();
             }
 
-            var retVal = new QueryResultSet(this, fromImpl.ThreadSafety, e, ColumnNames);
-            _history.Add(retVal);
-            return retVal;
+            return new QueryResultSet(this, fromImpl.ThreadSafety, e, ColumnNames);
         }
 
         public override unsafe string Explain()

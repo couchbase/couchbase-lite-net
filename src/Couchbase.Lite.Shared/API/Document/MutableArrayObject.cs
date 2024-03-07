@@ -307,77 +307,77 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray SetValue(int index, object? value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetString(int index, string? value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetInt(int index, int value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetLong(int index, long value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetFloat(int index, float value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetDouble(int index, double value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetBoolean(int index, bool value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetBlob(int index, Blob? value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetDate(int index, DateTimeOffset value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetArray(int index, ArrayObject? value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetDictionary(int index, DictionaryObject? value)
         {
-            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            SetValueInternal(index, value);
             return this;
         }
 

@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
@@ -29,7 +30,7 @@ namespace Couchbase.Lite.Query
     /// more than once, then use <see cref="AllResults"/> or another LINQ
     /// method to materialize the results.
     /// </warning>
-    public interface IResultSet : IEnumerable<Result>
+    public interface IResultSet : IEnumerable<Result>, IDisposable
     {
         /// <summary>
         /// Cross platform API entry to get all results in a list.  Same

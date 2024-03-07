@@ -69,6 +69,7 @@ namespace Couchbase.Lite.Fleece
 
         public MValue Get(int index)
         {
+            Context.CheckDisposed();
             if (index < 0 || index >= _vec.Count) {
                 return MValue.Empty;
             }
@@ -89,6 +90,7 @@ namespace Couchbase.Lite.Fleece
 
         public void RemoveRange(int start, int count = 1)
         {
+            Context.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotRemoveItemsFromNonMutableMArray);
             }
@@ -120,6 +122,7 @@ namespace Couchbase.Lite.Fleece
 
         public void Set(int index, object? val)
         {
+            Context.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableMArray);
             }
@@ -195,6 +198,7 @@ namespace Couchbase.Lite.Fleece
 
         public void Clear()
         {
+            Context.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMArray);
             }
@@ -237,6 +241,7 @@ namespace Couchbase.Lite.Fleece
 
         public IEnumerator<object?> GetEnumerator()
         {
+            Context.CheckDisposed();
             return new Enumerator(this);
         }
 
@@ -246,6 +251,7 @@ namespace Couchbase.Lite.Fleece
 
         public override void FLEncode(FLEncoder* enc)
         {
+            Context.CheckDisposed();
             if (!IsMutated) {
                 if (BaseArray == null) {
                     Native.FLEncoder_BeginArray(enc, 0UL);
@@ -281,6 +287,7 @@ namespace Couchbase.Lite.Fleece
 
         public void Insert(int index, object? val)
         {
+            Context.CheckDisposed();
             if (!IsMutable) {
                 throw new InvalidOperationException("Cannot insert items in a non-mutable FleeceMutableArray");
             }
