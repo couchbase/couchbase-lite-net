@@ -20,9 +20,7 @@
 // as opposed to C / C++ which defines from that point onward) to be able
 // to use Debug.WriteLine even in a release build
 
-// Windows 2012 doesn't define the more generic variants
-
-#if (NETFRAMEWORK || NET462 || NET6_0_OR_GREATER) && !NET6_0_WINDOWS10_0_19041_0 && !__MOBILE__
+#if CBL_PLATFORM_NET_CONSOLE || CBL_PLATFORM_NET_FRAMEWORK
 #define DEBUG
 using System;
 using System.Diagnostics;

@@ -705,7 +705,7 @@ namespace Couchbase.Lite
 
         #region Private Methods - Observers
 
-        #if __IOS__
+        #if CBL_PLATFORM_IOS
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
         #endif
         private static void DbObserverCallback(C4CollectionObserver* db, void* context)
@@ -717,7 +717,7 @@ namespace Couchbase.Lite
             });
         }
 
-        #if __IOS__
+        #if CBL_PLATFORM_IOS
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
         #endif
         private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)

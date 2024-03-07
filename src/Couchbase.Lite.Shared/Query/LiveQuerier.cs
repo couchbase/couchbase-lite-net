@@ -123,7 +123,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Private Methods
 
-        #if __IOS__
+        #if CBL_PLATFORM_IOS
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4QueryObserverCallback))]
         #endif
         private static void QueryObserverCallback(C4QueryObserver* obs, C4Query* query, void* context)
