@@ -54,8 +54,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryJoin(XQuery source, IList<IJoin> joins)
         {
-            Debug.Assert(source != null);
-
             Copy(source);
             _joins = joins; 
             JoinImpl = this;

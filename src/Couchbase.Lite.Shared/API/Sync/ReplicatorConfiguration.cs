@@ -323,7 +323,7 @@ namespace Couchbase.Lite.Sync
         /// The default is null (5 min interval is applied).
         /// * <c>5</c> min interval is applied when MaxAttemptsWaitTime is set to null.
         /// * null will be returned when default <c>5</c> min interval is applied.
-        /// Default value is <see cref="Constants.DefaultReplicatorMaxAttemptWaitTime" />
+        /// Default value is <see cref="Constants.DefaultReplicatorMaxAttemptsWaitTime" />
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.

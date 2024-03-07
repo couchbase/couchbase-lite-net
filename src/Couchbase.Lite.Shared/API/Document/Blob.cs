@@ -370,8 +370,6 @@ namespace Couchbase.Lite
 
         internal void Install(Database db)
         {
-            Debug.Assert(db != null);
-
             if (Digest != null && _db == null) {
                 _db = db;
             }

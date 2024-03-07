@@ -1178,8 +1178,6 @@ namespace Couchbase.Lite
 
         internal void ResolveConflict(string docID, IConflictResolver? conflictResolver, Collection collection)
         {
-            Debug.Assert(docID != null);
-
             var writeSuccess = false;
             while (!writeSuccess) {
                 var readSuccess = false;
@@ -1284,7 +1282,7 @@ namespace Couchbase.Lite
                     CouchbaseLiteErrorMessage.ResolveDefaultDirectoryFailed);
             }
 
-            return directoryToUse;
+            return directoryToUse!;
         }
 
         private static string DatabasePath(string name, string? directory)

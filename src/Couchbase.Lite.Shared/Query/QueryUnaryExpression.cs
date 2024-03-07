@@ -45,7 +45,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryUnaryExpression(IExpression argument, UnaryOpType type)
         {
-            Debug.Assert(argument != null);
             _argument = argument;
             _type = type;
         }

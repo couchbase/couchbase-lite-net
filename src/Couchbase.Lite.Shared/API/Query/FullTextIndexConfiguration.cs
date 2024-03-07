@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Query
         {
             IgnoreAccents = ignoreAccents;
             if (!string.IsNullOrEmpty(locale)) {
-                Language = locale;
+                Language = locale!;
             }
         }
 

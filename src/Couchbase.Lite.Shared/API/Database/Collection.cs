@@ -817,7 +817,6 @@ namespace Couchbase.Lite
         private bool Save(Document document, Document? baseDocument,
             ConcurrencyControl concurrencyControl, bool deletion)
         {
-            Debug.Assert(document != null);
             if (deletion && document.RevisionID == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound,
                     CouchbaseLiteErrorMessage.DeleteDocFailedNotSaved);

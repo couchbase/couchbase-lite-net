@@ -153,7 +153,7 @@ namespace Couchbase.Lite.Internal.Query
             {
                 if (Database == null) {
                     Debug.Assert(Collection != null);
-                    Database = Collection.Database;
+                    Database = Collection!.Database;
                 }
 
                 C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
@@ -171,25 +171,25 @@ namespace Couchbase.Lite.Internal.Query
         {
             var fromImpl = FromImpl;
             Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
-            ThreadSafety = fromImpl.ThreadSafety;
+            ThreadSafety = fromImpl!.ThreadSafety;
 
             var map = new Dictionary<string, int>();
 
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
                 var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+                Debug.Assert(titleStr != null);
 
                 if (titleStr!.StartsWith("*")) {
                     titleStr = fromImpl.ColumnName;
                 }
 
-                Debug.Assert(titleStr != null);
-                if (map.ContainsKey(titleStr)) {
+                if (map.ContainsKey(titleStr!)) {
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
                         String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
                 }
 
-                map.Add(titleStr, i);
+                map.Add(titleStr!, i);
             }
 
             return map;
@@ -237,7 +237,7 @@ namespace Couchbase.Lite.Internal.Query
 
                 var joinJson = JoinImpl.ToJSON() as IList<object>;
                 Debug.Assert(joinJson != null);
-                joinJson.Insert(0, fromJson);
+                joinJson!.Insert(0, fromJson);
                 parameters["FROM"] = joinJson;
             } else {
                 var fromJson = FromImpl?.ToJSON();
@@ -262,7 +262,7 @@ namespace Couchbase.Lite.Internal.Query
             var from = FromImpl;
             Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
 
-            from.ThreadSafety.DoLockedBridge(err =>
+            from!.ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
                     return true;

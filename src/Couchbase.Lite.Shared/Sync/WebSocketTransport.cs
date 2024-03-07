@@ -115,7 +115,7 @@ namespace Couchbase.Lite.Sync
                 FLSliceExtensions.ToObject(NativeRaw.FLValue_FromData((FLSlice) options, FLTrust.Trusted)) as
                     Dictionary<string, object?>;
             Debug.Assert(opts != null);
-            var replicationOptions = new ReplicatorOptionsDictionary(opts);
+            var replicationOptions = new ReplicatorOptionsDictionary(opts!);
             
             var id = Interlocked.Increment(ref _NextID);
             Native.c4Socket_setNativeHandle(socket, (void*)id);

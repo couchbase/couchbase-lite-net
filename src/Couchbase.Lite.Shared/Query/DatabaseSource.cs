@@ -64,7 +64,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal DatabaseSource(Collection collection, ThreadSafety threadSafety) : base(collection, threadSafety)
         {
-            Debug.Assert(collection != null);
             _collection = collection.Name;
             _scope = collection.Scope.Name;
         }

@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Support
         {
             Debug.Assert(_parentHandle == null);
             Debug.Assert(parentHandle != null);
-            Debug.Assert(!parentHandle.IsInvalid);
+            Debug.Assert(!parentHandle!.IsInvalid);
 
             bool ignore = false;
             parentHandle.DangerousAddRef(ref ignore);

@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Support
 #if MACCATALYST
         public string OSDescription => $"macOS (Catalyst) {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
 
-        public string HardwareName => null;
+        public string HardwareName => "";
 #else
 		public string OSDescription => $"iOS {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
 

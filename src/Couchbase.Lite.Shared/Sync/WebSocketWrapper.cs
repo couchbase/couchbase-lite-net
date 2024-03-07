@@ -403,7 +403,7 @@ namespace Couchbase.Lite.Sync
 
                 //create remote endpoint (proxyServer.Address.Host can be either IPAddress or DNS)
                 Debug.Assert(_client != null);
-                await _client.ConnectAsync(proxyServer.Address!.Host, proxyServer.Address.Port).ConfigureAwait(false);
+                await _client!.ConnectAsync(proxyServer.Address!.Host, proxyServer.Address.Port).ConfigureAwait(false);
 
                 NetworkStream = _client.GetStream();
                 var proxyRequest = _logic.ProxyRequest();
@@ -810,7 +810,7 @@ namespace Couchbase.Lite.Sync
         private void StartInternal()
         {
             // STEP 3: Create the WebSocket Upgrade HTTP request
-            WriteLog.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest?.Host}:{_logic.UrlRequest?.Port}");
+            WriteLog.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
             var rng = RandomNumberGenerator.Create() ?? throw new RuntimeException("Failed to create RandomNumberGenerator");
             var nonceBytes = new byte[16];
             rng.GetBytes(nonceBytes);
@@ -855,7 +855,6 @@ namespace Couchbase.Lite.Sync
 
                 try {
                     // STEP 3A: TLS handshake
-                    Debug.Assert(_logic.UrlRequest != null);
                     stream.AuthenticateAsClientAsync(_logic.UrlRequest.Host, clientCerts, SslProtocols.Tls12, false)
                         .ContinueWith(
                             t =>

@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Internal.Query
                 var queryExp = Misc.TryCast<IExpression, QueryExpression>(subp);
                 var queryExpJson = queryExp.ConvertToJSON();
                 Debug.Assert(queryExpJson != null);
-                obj.Add(queryExpJson);
+                obj.Add(queryExpJson!);
             }
 
             return obj;

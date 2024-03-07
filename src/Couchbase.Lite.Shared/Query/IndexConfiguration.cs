@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Internal.Query
         internal string ToN1QL()
         {
             Debug.Assert(Expressions != null);
-            if (Expressions.Length == 1)
+            if (Expressions!.Length == 1)
                 return Expressions[0];
 
             return String.Join(",", Expressions);

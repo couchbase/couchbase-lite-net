@@ -26,23 +26,47 @@ using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Sync
 {
+    /// <summary>
+    /// An enum describing the state of network connectivity
+    /// </summary>
     public enum NetworkReachabilityStatus
     {
+        /// <summary>
+        /// Unable to determine
+        /// </summary>
         Unknown,
+        
+        /// <summary>
+        /// The network endpoint is reachable
+        /// </summary>
         Reachable,
+
+        /// <summary>
+        /// The network endpoint is not reachable
+        /// </summary>
         Unreachable
     }
 
+    /// <summary>
+    /// Arguments to the <see cref="IReachability.StatusChanged" /> event
+    /// </summary>
     public sealed class NetworkReachabilityChangeEventArgs : EventArgs
     {
         #region Properties
 
+        /// <summary>
+        /// The new reachability status
+        /// </summary>
         public NetworkReachabilityStatus Status { get; }
 
         #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
+        /// <param name="status">The network status to send</param>
         public NetworkReachabilityChangeEventArgs(NetworkReachabilityStatus status)
         {
             Status = status;

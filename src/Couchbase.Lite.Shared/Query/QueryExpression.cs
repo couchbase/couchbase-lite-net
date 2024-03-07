@@ -47,7 +47,6 @@ namespace Couchbase.Lite.Internal.Query
 
         public static object EncodeToJSON(IList expressions)
         {
-            Debug.Assert(expressions != null);
             return EncodeExpressions(expressions);
         }
 
@@ -112,7 +111,6 @@ namespace Couchbase.Lite.Internal.Query
 
         private QueryExpression GetBetweenExpression(IExpression expression)
         {
-            Debug.Assert(expression != null);
             switch (expression) {
                 case QueryTypeExpression e:
                     return e;

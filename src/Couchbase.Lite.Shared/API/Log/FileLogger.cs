@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Logging
 
         private int _maxRotateCount = Constants.DefaultLogFileMaxRotateCount;
         private long _maxSize = Constants.DefaultLogFileMaxSize;
-        private bool _usePlaintext = Constants.DefaultLogFileUsePlainText;
+        private bool _usePlaintext = Constants.DefaultLogFileUsePlaintext;
 
         #endregion
 
@@ -92,7 +92,7 @@ namespace Couchbase.Lite.Logging
         /// Gets or sets whether or not to log in plaintext.  The default is
         /// to log in a binary encoded format that is more CPU and I/O friendly
         /// and enabling plaintext is not recommended in production.
-        /// Default value is <see cref="Constants.DefaultLogFileUsePlainText" />
+        /// Default value is <see cref="Constants.DefaultLogFileUsePlaintext" />
         /// </summary>
         public bool UsePlaintext
         {

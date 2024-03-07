@@ -87,7 +87,6 @@ namespace Couchbase.Lite.Internal.Serialization
 
         protected virtual void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
         {
-            Debug.Assert(slot != null);
             Debug.Assert(Context == MContext.Null);
             _slot = slot;
             Parent = parent;

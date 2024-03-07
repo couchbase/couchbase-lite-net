@@ -57,7 +57,7 @@ namespace Couchbase.Lite.Internal.Query
             var opJson = op?.ConvertToJSON();
             Debug.Assert(opJson != null);
 
-            _json = new List<object> {"COLLATE", _collation, opJson};
+            _json = new List<object> {"COLLATE", _collation, opJson!};
         }
 
         #endregion
@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Internal.Query
         protected override object ToJSON()
         {
             Debug.Assert(_json != null);
-            return _json;
+            return _json!;
         }
 
         #endregion

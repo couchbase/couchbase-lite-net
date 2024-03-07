@@ -62,7 +62,7 @@ namespace Couchbase.Lite
         {
             get {
                 Debug.Assert(Database != null && Database.c4db != null);
-                return Database.c4db;
+                return Database!.c4db;
             }
         }
 
@@ -70,7 +70,7 @@ namespace Couchbase.Lite
         {
             get {
                 Debug.Assert(Collection != null && Collection.c4coll != null);
-                return Collection.c4coll;
+                return Collection!.c4coll;
             }
         }
 
@@ -165,8 +165,6 @@ namespace Couchbase.Lite
 
         internal Document(Collection? collection, string id, C4DocumentWrapper? c4Doc)
         {
-            Debug.Assert(id != null);
-
             Collection = collection;
             Id = id;
             this.c4Doc = c4Doc;
@@ -196,8 +194,6 @@ namespace Couchbase.Lite
         internal Document(Document other)
             : this(other.Collection, other.Id, other.c4Doc?.Retain<C4DocumentWrapper>())
         {
-            Debug.Assert(other != null);
-
             if(other._root != null) {
                 _root = new MRoot(other._root);
             } else {
@@ -292,7 +288,7 @@ namespace Couchbase.Lite
             if (Data != null) {
                 Debug.Assert(Database != null);
                 Misc.SafeSwap(ref _root,
-                    new MRoot(new DocContext(Database, _c4Doc), (FLValue*) Data, IsMutable));
+                    new MRoot(new DocContext(Database!, _c4Doc), (FLValue*) Data, IsMutable));
                 Collection?.ThreadSafety?.DoLocked(() => _dict = (DictionaryObject?) _root!.AsObject());
             } else {
                 Misc.SafeSwap(ref _root, null);

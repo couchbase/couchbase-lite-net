@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Internal.Query
                 Debug.Assert(Database != null);
                 C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
                 {
-                    return Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
+                    return Native.c4query_new2(Database!.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
                 });
 
                 _c4Query = query;
