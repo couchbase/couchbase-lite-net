@@ -873,7 +873,9 @@ namespace Couchbase.Lite.Sync
             using (var remoteUrlStr_ = new C4String(remoteUrl?.AbsoluteUri)) {
                 FLSlice dn = dbNameStr_.AsFLSlice();
                 C4Address localAddr;
-                var addrFromUrl = Native.c4address_fromURL(remoteUrl?.AbsoluteUri, &localAddr, &dn);
+
+                // Note: Don't use Native.c4address_fromURL, remoteUrlStr_ MUST stay alive for a this entire method
+                var addrFromUrl = NativeRaw.c4address_fromURL(remoteUrlStr_.AsFLSlice(), &localAddr, &dn);
                 addr = localAddr;
 
                 if (addrFromUrl) {
