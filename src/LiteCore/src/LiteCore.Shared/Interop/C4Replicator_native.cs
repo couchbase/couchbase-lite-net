@@ -1,7 +1,7 @@
 //
 // C4Replicator_native.cs
 //
-// Copyright (c) 2023 Couchbase, Inc All rights reserved.
+// Copyright (c) 2024 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,13 +35,21 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, FLSlice remoteDatabaseName, C4ReplicatorParameters @params, C4Error* outError);
+        public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, FLSlice remoteDatabaseName, C4ReplicatorParameters @params, FLSlice logPrefix, C4Error* outError);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Replicator* c4repl_newLocal(C4Database* db, C4Database* otherLocalDB, C4ReplicatorParameters @params, C4Error* outError);
+        public static C4Replicator* c4repl_newLocal(C4Database* db, C4Database* otherLocalDB, C4ReplicatorParameters @params, string? logPrefix, C4Error* outError)
+        {
+            using(var logPrefix_ = new C4String(logPrefix)) {
+                return NativeRaw.c4repl_newLocal(db, otherLocalDB, @params, logPrefix_.AsFLSlice(), outError);
+            }
+        }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Replicator* c4repl_newWithSocket(C4Database* db, C4Socket* openSocket, C4ReplicatorParameters @params, C4Error* outError);
+        public static C4Replicator* c4repl_newWithSocket(C4Database* db, C4Socket* openSocket, C4ReplicatorParameters @params, string? logPrefix, C4Error* outError)
+        {
+            using(var logPrefix_ = new C4String(logPrefix)) {
+                return NativeRaw.c4repl_newWithSocket(db, openSocket, @params, logPrefix_.AsFLSlice(), outError);
+            }
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_start(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool reset);
@@ -104,6 +112,12 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4address_fromURL(FLSlice url, C4Address* address, FLSlice* dbName);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Replicator* c4repl_newLocal(C4Database* db, C4Database* otherLocalDB, C4ReplicatorParameters @params, FLSlice logPrefix, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Replicator* c4repl_newWithSocket(C4Database* db, C4Socket* openSocket, C4ReplicatorParameters @params, FLSlice logPrefix, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_setOptions(C4Replicator* repl, FLSlice optionsDictFleece);

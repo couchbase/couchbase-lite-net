@@ -91,15 +91,15 @@ namespace Couchbase.Lite.Sync
 
         private static void DoOpen(C4Socket* socket, C4Address* address, FLSlice options, void* context)
         {
-            var builder = new UriBuilder {
-                Host = address->hostname.CreateString(),
-                Scheme = address->scheme.CreateString(),
-                Port = address->port,
-                Path = address->path.CreateString()
-            };
-
             Uri uri;
             try {
+                var builder = new UriBuilder
+                {
+                    Host = address->hostname.CreateString(),
+                    Scheme = address->scheme.CreateString(),
+                    Port = address->port,
+                    Path = address->path.CreateString()
+                };
                 uri = builder.Uri;
             } catch (Exception) {
                 Native.c4socket_closed(socket, new C4Error(C4ErrorCode.InvalidParameter));

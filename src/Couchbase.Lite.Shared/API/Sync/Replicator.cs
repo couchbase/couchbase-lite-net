@@ -873,6 +873,8 @@ namespace Couchbase.Lite.Sync
             using (var remoteUrlStr_ = new C4String(remoteUrl?.AbsoluteUri)) {
                 FLSlice dn = dbNameStr_.AsFLSlice();
                 C4Address localAddr;
+
+                // Note: Don't use Native.c4address_fromURL, remoteUrlStr_ MUST stay alive for a this entire method
                 var addrFromUrl = NativeRaw.c4address_fromURL(remoteUrlStr_.AsFLSlice(), &localAddr, &dn);
                 addr = localAddr;
 
@@ -919,6 +921,7 @@ namespace Couchbase.Lite.Sync
                 options.Reset = false;
 
                 var collCnt = (long)Config.Collections.Count;
+                var replicatorIdTag = (ulong)socketFactory.context;
                 DispatchQueue.DispatchSync(() =>
                 {
                     var replicationCollections = new ReplicationCollection[collCnt];
@@ -960,10 +963,10 @@ namespace Couchbase.Lite.Sync
 #if COUCHBASE_ENTERPRISE
                         if (otherDB != null)
                             _repl = Native.c4repl_newLocal(Config.DatabaseInternal.c4db, otherDB.c4db, _nativeParams.C4Params,
-                                &localErr);
+                                $"DNRepl@{replicatorIdTag:X2}", &localErr);
                         else
 #endif
-                            _repl = Native.c4repl_new(Config.DatabaseInternal.c4db, addr, dbNameStr_.AsFLSlice(), _nativeParams.C4Params, &localErr);
+                        _repl = Native.c4repl_new(Config.DatabaseInternal.c4db, addr, dbNameStr, _nativeParams.C4Params, $"DNRepl@{replicatorIdTag:X2}", &localErr);
                     }
 
                     if (_documentEndedUpdate.Counter > 0) {

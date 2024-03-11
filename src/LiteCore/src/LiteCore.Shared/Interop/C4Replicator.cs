@@ -359,11 +359,11 @@ namespace LiteCore.Interop
     {
         #region Public Methods
 
-        public static C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, string? remoteDatabaseName, C4ReplicatorParameters @params, C4Error* err)
+        public static C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, string? remoteDatabaseName, C4ReplicatorParameters @params, string? logPrefix, C4Error* err)
         {
-            using (var remoteDatabaseName_ = new C4String(remoteDatabaseName)) {
-                return c4repl_new(db, remoteAddress, remoteDatabaseName_.AsFLSlice(), @params, err);
-            }
+            using var remoteDatabaseName_ = new C4String(remoteDatabaseName);
+            using var logPrefix_ = new C4String(logPrefix);
+            return c4repl_new(db, remoteAddress, remoteDatabaseName_.AsFLSlice(), @params, logPrefix_.AsFLSlice(), err);
         }
 
         #endregion
