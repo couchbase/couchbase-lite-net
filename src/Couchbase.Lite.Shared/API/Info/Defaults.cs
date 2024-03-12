@@ -120,7 +120,6 @@ public static partial class Constants {
 
 #if COUCHBASE_ENTERPRISE
 
-#if false
 	/// <summary>
 	/// Default value for <see cref="VectorIndexConfiguration.Encoding" /> (ScalarQuantizerType.SQ8)
 	/// Vectors are encoded by using 8-bit Scalar Quantizer encoding, by default
@@ -132,7 +131,6 @@ public static partial class Constants {
 	/// By default, vectors are compared using Euclidean metrics
 	/// </summary>
 	public static readonly DistanceMetric DefaultVectorIndexDistanceMetric = DistanceMetric.Euclidean;
-#endif
 
 	/// <summary>
 	/// Default value for <see cref="URLEndpointListenerConfiguration.Port" /> (0)
