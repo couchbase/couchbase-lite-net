@@ -652,6 +652,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckCollectionValid();
+                indexConfig.Validate();
                 LiteCoreBridge.Check(err =>
                 {
                     var internalOpts = indexConfig.Options;

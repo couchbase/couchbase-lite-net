@@ -61,6 +61,11 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
+        internal virtual void Validate()
+        {
+
+        }
+
         internal string ToN1QL()
         {
             Debug.Assert(Expressions != null);
