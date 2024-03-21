@@ -16,8 +16,6 @@
 // limitations under the License.
 // 
 
-#nullable disable
-
 #if COUCHBASE_ENTERPRISE
 
 using System;
@@ -42,12 +40,9 @@ using FluentAssertions;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
 
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
+using System.Diagnostics.CodeAnalysis;
 
 namespace Test
 {
@@ -74,9 +69,6 @@ namespace Test
         #endregion
     }
 
-    #if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-    #endif
     public sealed class URLEndpointListenerTest : ReplicatorTestBase
     {
         #region Constants
@@ -90,18 +82,14 @@ namespace Test
 
         #region Variables
 
-        private URLEndpointListener _listener;
+        private URLEndpointListener? _listener;
         private X509Store _store;
 
         #endregion
 
         #region Constructors
 
-        #if !WINDOWS_UWP
         public URLEndpointListenerTest(ITestOutputHelper output) : base(output)
-        #else
-        public URLEndpointListenerTest()
-        #endif
         {
             _store = new X509Store(StoreName.My);
         }
@@ -191,9 +179,9 @@ namespace Test
         {
             _listener = CreateListener(false);
 
-            _listener.Urls.Count.Should().NotBe(0);
+            _listener.Urls.Should().HaveCountGreaterThan(0);
             _listener.Stop();
-            _listener.Urls.Count.Should().Be(0);
+            _listener.Urls.Should().HaveCount(0);
         }
 
         [Fact]
@@ -280,8 +268,8 @@ namespace Test
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
             var pw = "123";
             var wrongPw = "456";
-            SecureString pwSecureString = null;
-            SecureString wrongPwSecureString = null;
+            SecureString? pwSecureString = null;
+            SecureString? wrongPwSecureString = null;
             unsafe {
                 fixed (char* pw_ = pw)
                 fixed (char* wrongPw_ = wrongPw) {
@@ -332,14 +320,15 @@ namespace Test
                 _store,
                 ClientCertLabel,
                 null);
+            id.Should().NotBeNull();
 
             RunReplication(
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
-                new ClientCertificateAuthenticator(id),
+                new ClientCertificateAuthenticator(id!),
                 false,
-                _listener.TlsIdentity.Certs[0],
+                _listener.TlsIdentity!.Certs[0],
                 0,
                 0
             );
@@ -362,9 +351,9 @@ namespace Test
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
-                new ClientCertificateAuthenticator(id), // send wrong client cert
+                new ClientCertificateAuthenticator(id!), // send wrong client cert
                 false,
-                _listener.TlsIdentity.Certs[0],
+                _listener.TlsIdentity!.Certs[0],
                 (int)CouchbaseLiteError.TLSHandshakeFailed,
                 CouchbaseLiteErrorType.CouchbaseLite
             );
@@ -398,9 +387,9 @@ namespace Test
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
-                new ClientCertificateAuthenticator(id),
+                new ClientCertificateAuthenticator(id!),
                 true,
-                _listener.TlsIdentity.Certs[0],
+                _listener.TlsIdentity!.Certs[0],
                 (int) CouchbaseLiteError.TLSHandshakeFailed, //not TLSClientCertRejected as mac has..
                 CouchbaseLiteErrorType.CouchbaseLite
             );
@@ -426,7 +415,7 @@ namespace Test
             var rootCert = new X509Certificate2(caData);
             var auth = new ListenerCertificateAuthenticator(new X509Certificate2Collection(rootCert));
             _listener = CreateListener(true, true, auth);
-            var serverCert = _listener.TlsIdentity.Certs[0];
+            var serverCert = _listener.TlsIdentity!.Certs[0];
 
             // Cleanup
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
@@ -438,7 +427,7 @@ namespace Test
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
-                new ClientCertificateAuthenticator(id),
+                new ClientCertificateAuthenticator(id!),
                 true,
                 serverCert,
                 0,
@@ -484,7 +473,7 @@ namespace Test
                 false,
                 null, //authenticator
                 false, //accept only self signed server cert
-                _listener.TlsIdentity.Certs[0], //server cert
+                _listener.TlsIdentity!.Certs[0], //server cert
                 0,
                 0
             );
@@ -500,7 +489,7 @@ namespace Test
             _listener = CreateListener();
             _listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity.Certs.Count.Should().Be(1,
+            _listener.TlsIdentity!.Certs.Should().HaveCount(1,
                 "because otherwise bogus certs were used");
 
             // listener = cert1; replicator.pin = cert2; acceptSelfSigned = true => fail
@@ -536,7 +525,7 @@ namespace Test
             _listener = CreateListener();
             _listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity.Certs.Count.Should().Be(1,
+            _listener.TlsIdentity!.Certs.Count.Should().Be(1,
                 "because otherwise bogus certs were used");
 
             DisableDefaultServerCertPinning = true;
@@ -573,7 +562,7 @@ namespace Test
             _listener = CreateListener();
             _listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity.Certs.Count.Should().Be(1,
+            _listener.TlsIdentity!.Certs.Count.Should().Be(1,
                 "because otherwise bogus certs were used");
 
             DisableDefaultServerCertPinning = true;
@@ -667,7 +656,7 @@ namespace Test
                 false,
                 null,
                 false, //accept only self signed server cert
-                _listener.TlsIdentity.Certs[0],
+                _listener.TlsIdentity!.Certs[0],
                 0,
                 0
             );
@@ -702,7 +691,7 @@ namespace Test
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+                serverCert: _listener.TlsIdentity!.Certs[0], sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
             var wait1 = new ManualResetEventSlim();
@@ -712,7 +701,7 @@ namespace Test
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
                     if (OtherDefaultCollection.Count == 3 && DefaultCollection.Count == 3 && urlepTestDb.GetDefaultCollection().Count == 3) {
-                        ((Replicator) sender).Stop();
+                        ((Replicator?) sender)!.Stop();
                     }
 
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
@@ -978,10 +967,10 @@ namespace Test
                 RunReplication(replConfig, 0, 0);
 
                 // Check docs are replicated between collections colADb & colAOtherDb
-                colAOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
-                colAOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
-                colADb.GetDocument("doc2").GetString("str2").Should().Be("string2");
-                colADb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+                colAOtherDb.GetDocument("doc")?.GetString("str").Should().Be("string");
+                colAOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
+                colADb.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
+                colADb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
                 
                 listener.Stop();
             }
@@ -1091,7 +1080,7 @@ namespace Test
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+                serverCert: _listener.TlsIdentity!.Certs[0], sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
@@ -1156,7 +1145,8 @@ namespace Test
             // this show an active count of zero.
             ulong maxConnectionCount = 0UL;
 
-            var existingDocsInListener = _listener.Config.Collections[0].Count;
+            _listener.Should().NotBeNull();
+            var existingDocsInListener = _listener!.Config.Collections[0].Count;
             existingDocsInListener.Should().Be(1);
 
             using (var doc1 = new MutableDocument()) {
@@ -1164,7 +1154,7 @@ namespace Test
             }
 
             var target = _listener.LocalEndpoint();
-            var serverCert = _listener.TlsIdentity.Certs[0];
+            var serverCert = _listener.TlsIdentity!.Certs[0];
             var config1 = CreateConfig(target, replicatorType, true, 
                 serverCert: serverCert, sourceDb: Db);
             var repl1 = new Replicator(config1);
@@ -1212,7 +1202,7 @@ namespace Test
 
                     if (OtherDefaultCollection.Count == expectedListenerCount && foundAllLocalDocs) {
                         WriteLine($"Stopping {sender}...");
-                        ((Replicator) sender).Stop();
+                        ((Replicator?) sender)!.Stop();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
@@ -1263,7 +1253,7 @@ namespace Test
             Thread.Sleep(500);
         }
 
-        private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
+        private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2? serverCert)
         {
             using(var waitIdle = new ManualResetEventSlim())
             using (var waitStopped = new ManualResetEventSlim()) {
@@ -1304,11 +1294,11 @@ namespace Test
         private void CheckReplicatorServerCert(bool listenerTls, bool replicatorTls)
         {
             var listener = CreateListener(listenerTls);
-            var serverCert = listenerTls ? listener.TlsIdentity.Certs[0] : null;
+            var serverCert = listenerTls ? listener.TlsIdentity!.Certs[0] : null;
             var config = CreateConfig(listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull, true, sourceDb: OtherDb,
                 serverCert: replicatorTls ? serverCert : null);
-            X509Certificate2 receivedServerCert = null;
+            X509Certificate2? receivedServerCert = null;
 
             using (var repl = new Replicator(config)) {
                 RunReplicatorServerCert(repl, listenerTls == replicatorTls, serverCert);
@@ -1328,7 +1318,7 @@ namespace Test
         }
 
         private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, bool useDynamicPort = true,
-            IListenerAuthenticator auth = null, TLSIdentity id = null, bool stopListener = true)
+            IListenerAuthenticator? auth = null, TLSIdentity? id = null, bool stopListener = true)
         {
             if(stopListener)
                 _listener?.Stop();
@@ -1347,7 +1337,8 @@ namespace Test
             return config;
         }
 
-        private URLEndpointListener CreateListener(bool tls = true, bool useDynamicPort = true, IListenerAuthenticator auth = null)
+        [MemberNotNull(nameof(_listener))]
+        private URLEndpointListener CreateListener(bool tls = true, bool useDynamicPort = true, IListenerAuthenticator? auth = null)
         {
             _listener?.Stop();
 
@@ -1365,6 +1356,7 @@ namespace Test
             return Listen(config);
         }
 
+        [MemberNotNull(nameof(_listener))]
         private URLEndpointListener Listen(URLEndpointListenerConfiguration config,
             int expectedErrCode = 0, CouchbaseLiteErrorType expectedErrDomain = 0, bool stopListener = true)
         {
@@ -1374,7 +1366,7 @@ namespace Test
             _listener = new URLEndpointListener(config);
 
             _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener has not yet started.");
-            _listener.Urls.Count.Should().Be(0, "Listener's Urls count should be 0 because the listener has not yet started.");
+            _listener.Urls.Should().HaveCount(0, "Listener's Urls count should be 0 because the listener has not yet started.");
             _listener.TlsIdentity.Should().BeNull("Listener's TlsIdentity should be null because the listener has not yet started.");
             _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because the listener has not yet started.");
             _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because the listener has not yet started.");

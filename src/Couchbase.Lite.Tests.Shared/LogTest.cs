@@ -16,39 +16,26 @@
 //  limitations under the License.
 // 
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 using Couchbase.Lite;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Util;
 
 using FluentAssertions;
 
 using Test.Util;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-    #if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-    #endif
     public sealed class LogTest
     {
         #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__ && !WINUI
@@ -58,24 +45,10 @@ namespace Test
         }
         #endif
 
-        #if !WINDOWS_UWP
         public LogTest(ITestOutputHelper output)
         {
             Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
         }
-        #endif
-
-        #if WINDOWS_UWP
-        private TestContext _testContext;
-        public TestContext TestContext
-        {
-            get => _testContext;
-            set {
-                _testContext = value;
-                Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
-            }
-        }
-        #endif
 
         [Fact]
         public void TestDefaultLogFormat()
@@ -86,8 +59,8 @@ namespace Test
                 WriteLog.To.Database.I("TEST", "MESSAGE");
                 var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
                 logFilePath.Should().NotBeNullOrEmpty();
-                var logContent = ReadAllBytes(logFilePath);
-                logContent.Should().StartWith(new byte[] { 0xcf, 0xb2, 0xab, 0x1b },
+                var logContent = ReadAllBytes(logFilePath!);
+                logContent.Should().StartWith([0xcf, 0xb2, 0xab, 0x1b],
                     "because the log should be in binary format");
             });
         }
@@ -111,7 +84,7 @@ namespace Test
                 WriteLog.To.Database.I("TEST", "MESSAGE");
                 var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
                 logFilePath.Should().NotBeNullOrEmpty();
-                var logContent = ReadAllLines(logFilePath);
+                var logContent = ReadAllLines(logFilePath!);
                 logContent.Any(x => x.Contains("MESSAGE") && x.Contains("TEST"))
                     .Should().BeTrue("because the message should show up in plaintext");
             });
@@ -137,7 +110,7 @@ namespace Test
                     WriteLog.To.Database.D("TEST", $"MESSAGE {i}");
                 }
                 
-                var totalCount = (Database.Log.File.Config.MaxRotateCount + 1) * 5;
+                var totalCount = (Database.Log.File.Config!.MaxRotateCount + 1) * 5;
                 #if !DEBUG
                 totalCount -= 1; // Non-debug builds won't log debug files
                 #endif
@@ -335,7 +308,7 @@ namespace Test
 
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
-                var fakePath = Path.Combine(Service.GetInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
+                var fakePath = Path.Combine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
                 Database.Log.File.Config = new LogFileConfiguration(fakePath);
                 Database.Log.File.Config = null;
                 sw.ToString().Contains("file logging is disabled").Should().BeTrue();
@@ -484,7 +457,7 @@ namespace Test
             var lines = new List<string>();
             using(var fin = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var reader = new StreamReader(fin)) {
-                string line;
+                string? line;
                 while ((line = reader.ReadLine()) != null) {
                     lines.Add(line);
                 }

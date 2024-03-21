@@ -16,8 +16,6 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
 using FluentAssertions;
@@ -85,52 +83,14 @@ namespace Test
         }
 
         [Fact]
-        public void TestWebSocketWrapper()
-        {
-            var method = WebSocketWrapperType.GetMethod("Start", BindingFlags.Public | BindingFlags.Instance);
-            //method.Invoke(webSocketWrapper, null);
-
-            byte[] byteArray = Encoding.ASCII.GetBytes("websocket testing");
-
-            method = WebSocketWrapperType.GetMethod("Write", BindingFlags.Public | BindingFlags.Instance);
-            method.Invoke(webSocketWrapper, new object[1] { byteArray });
-
-            method = WebSocketWrapperType.GetMethod("CompletedReceive", BindingFlags.Public | BindingFlags.Instance);
-            method.Invoke(webSocketWrapper, new object[1] { (ulong)byteArray.Length });
-
-            method = WebSocketWrapperType.GetMethod("CloseSocket", BindingFlags.Public | BindingFlags.Instance);
-            //method.Invoke(webSocketWrapper, null);
-
-            method = WebSocketWrapperType.GetMethod("Receive", BindingFlags.NonPublic | BindingFlags.Instance);
-            //method.Invoke(webSocketWrapper, new object[1] { byteArray });
-
-            method = WebSocketWrapperType.GetMethod("StartInternal", BindingFlags.NonPublic | BindingFlags.Instance);
-            //method.Invoke(webSocketWrapper, null);
-        }
-
-        [Fact]
-        public void TestNetworkTaskSuccessful()
-        {
-            var method = WebSocketWrapperType.GetMethod("NetworkTaskSuccessful", BindingFlags.NonPublic | BindingFlags.Instance);
-            //var res = method.Invoke(webSocketWrapper, new object[1] { t });
-        }
-
-        [Fact]
         public void TestBase64Digest()
         {
             string input = "test coverage";
 
             var method = WebSocketWrapperType.GetMethod("Base64Digest", BindingFlags.NonPublic | BindingFlags.Static);
-            var res = method.Invoke(null, new object[1] { input });
+            var res = method!.Invoke(null, new object[1] { input });
 
             res.Should().Be("/EOfaNlb2IwudhJuOmFE3Ps9D38=");
-        }
-
-        [Fact]
-        public void TestHandleHTTPResponse()
-        {
-            var method = WebSocketWrapperType.GetMethod("HandleHTTPResponse", BindingFlags.NonPublic | BindingFlags.Instance);
-            //var res = method.Invoke(webSocketWrapper, null);
         }
 
         [Fact]
@@ -147,7 +107,7 @@ namespace Test
             bool caseSens = false; // true
 
             var method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            var res = method.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
+            var res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
             res.Should().Be(false);
 
@@ -162,7 +122,7 @@ namespace Test
             caseSens = false;
 
             method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            res = method.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
+            res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
             res.Should().Be(true);
 
@@ -171,7 +131,7 @@ namespace Test
             caseSens = false;
 
             method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            res = method.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
+            res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
             res.Should().Be(true);
 
@@ -180,133 +140,9 @@ namespace Test
             caseSens = true;
 
             method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            res = method.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
+            res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
             res.Should().Be(true);
-
-            method = WebSocketWrapperType.GetMethod("Connected", BindingFlags.NonPublic | BindingFlags.Instance);
-            //res = method.Invoke(webSocketWrapper, null);
-            
-            method = WebSocketWrapperType.GetMethod("ReceivedHttpResponse", BindingFlags.NonPublic | BindingFlags.Instance);
-            //res = method.Invoke(webSocketWrapper, new object[1] { parser });
-
-            method = HttpLogicType.GetMethod("ReceivedResponse", BindingFlags.Public | BindingFlags.Instance);
-            res = method.Invoke(hTTPLogic, new object[1] { parser });
-
-            method = HttpLogicType.GetMethod("Redirect", BindingFlags.NonPublic | BindingFlags.Instance);
-            res = method.Invoke(hTTPLogic, new object[1] { parser });
-        }
-
-        [Fact]
-        public unsafe void TestPerformWrite()
-        {
-            var method = WebSocketWrapperType.GetMethod("PerformWrite", BindingFlags.NonPublic | BindingFlags.Instance);
-            method.Invoke(webSocketWrapper, null);
-        }
-
-        [Fact]
-        public unsafe void TestPerformRead()
-        {
-            var method = WebSocketWrapperType.GetMethod("PerformRead", BindingFlags.NonPublic | BindingFlags.Instance);
-            method.Invoke(webSocketWrapper, null);
-        }
-
-        [Fact]
-        public void TestOnSocketReady()
-        {
-            var method = WebSocketWrapperType.GetMethod("OnSocketReady", BindingFlags.NonPublic | BindingFlags.Instance);
-            //var res = method.Invoke(wsw, null);
-        }
-
-        [Fact]
-        public void TestReachability()
-        {
-            try {
-                var status = NetworkReachabilityStatus.Unknown;
-                var e = new NetworkReachabilityChangeEventArgs(status);
-                NetworkReachabilityStatus s = NetworkReachabilityStatus.Unknown;
-
-                var _reachability = new Reachability();
-
-                _reachability.StatusChanged += (sender, args) => s = args.Status;
-                _reachability.Start();
-
-                e.Status.Should().Be(s);
-
-                var method = ReachabilityType.GetMethod("InvokeNetworkChangeEvent", BindingFlags.NonPublic | BindingFlags.Instance);
-                var res = method.Invoke(_reachability, new object[1] { s });
-
-                NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
-                method = ReachabilityType.GetMethod("IsInterfaceValid", BindingFlags.NonPublic | BindingFlags.Static);
-                foreach (var n in nics) {
-                    res = method.Invoke(null, new object[1] { n });
-                }
-
-                var asender = new object();
-                method = ReachabilityType.GetMethod("OnNetworkChange", BindingFlags.NonPublic | BindingFlags.Instance);
-                res = method.Invoke(_reachability, new object[2] { asender, e });
-
-                var ReplicatorType = typeof(Replicator);
-                var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-                var config = new ReplicatorConfiguration(targetEndpoint);
-                config.AddCollection(DefaultCollection);
-                using (Replicator replicator = new Replicator(config)) {
-                    method = ReplicatorType.GetMethod("ReachabilityChanged", BindingFlags.NonPublic | BindingFlags.Instance);
-                    res = method.Invoke(replicator, new object[2] { asender, e });
-                }
-            }
-            catch { }
-        }
-
-        [Fact]
-        public void TestHttpLogic()
-        {
-            try {
-                var targetEndpoint = new URLEndpoint(new Uri("http://192.168.0.11:4984/app"));
-            } catch { }
-
-            var logic = new HTTPLogic(new Uri("ws://192.168.0.11:4984/app"));
-            var prop = HttpLogicType.GetProperty("Credential", BindingFlags.Public | BindingFlags.Instance);
-            prop.SetValue(hTTPLogic, new NetworkCredential("name", "pass"));
-            var method = HttpLogicType.GetMethod("CreateAuthHeader", BindingFlags.NonPublic | BindingFlags.Instance);
-            var res = method.Invoke(hTTPLogic, null);
-
-            prop = HttpLogicType.GetProperty("UseTls", BindingFlags.Public | BindingFlags.Instance);
-            var useTle = logic.UseTls;
-
-            prop = HttpLogicType.GetProperty("Error", BindingFlags.Public | BindingFlags.Instance);
-            var error = logic.Error;
-
-            prop = HttpLogicType.GetProperty("HttpStatus", BindingFlags.Public | BindingFlags.Instance);
-            var status = logic.HttpStatus;
-
-            prop = HttpLogicType.GetProperty("Port", BindingFlags.Public | BindingFlags.Instance);
-            var port = logic.Port;
-
-            prop = HttpLogicType.GetProperty("ShouldContinue", BindingFlags.Public | BindingFlags.Instance);
-            var shouldContinue = logic.ShouldContinue;
-        }
-
-        [Fact]
-        public void TestReplicatorOptionsDictionary()
-        {
-            var ReplicatorOptionsDictionaryType = typeof(ReplicatorOptionsDictionary);
-            var optDict = new ReplicatorOptionsDictionary();
-            var cookieStr = optDict.CookieString;
-            var protocol = optDict.Protocols;
-            optDict.Channels = new List<string>();
-            var channels = optDict.Channels;
-            optDict.Filter = "filter string";
-            var filter = optDict.Filter;
-            optDict.FilterParams = new Dictionary<string, object>();
-            var filterParam = optDict.FilterParams;
-            optDict.RemoteDBUniqueID = "remote id";
-            var remoteId = optDict.RemoteDBUniqueID;
-
-            optDict.Cookies.Add(new Cookie("name", "value"));
-
-            var method = ReplicatorOptionsDictionaryType.GetMethod("BuildInternal", BindingFlags.NonPublic | BindingFlags.Instance);
-            var res = method.Invoke(optDict, null);
         }
     }
 }

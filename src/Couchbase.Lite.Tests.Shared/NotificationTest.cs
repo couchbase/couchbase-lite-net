@@ -15,9 +15,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -26,31 +23,22 @@ using Couchbase.Lite;
 using FluentAssertions;
 
 using Newtonsoft.Json;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public class NotificationTest : TestCase
     {
-        private HashSet<string> _expectedDocumentChanges;
-        private HashSet<string> _unexpectedDocumentChanges;
-        private WaitAssert _wa;
+        private HashSet<string>? _expectedDocumentChanges;
+        private HashSet<string>? _unexpectedDocumentChanges;
+        private WaitAssert? _wa;
         private bool _docCallbackShouldThrow;
 
-#if !WINDOWS_UWP
         public NotificationTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
 
         [Fact]
         public void TestDatabaseChange()
@@ -338,7 +326,8 @@ namespace Test
                     args.Should().NotBeNull();
                     args.DocumentID.Should().Be("doc-6");
                     using (var doc = db2.GetDefaultCollection().GetDocument(args.DocumentID)) {
-                        doc.GetString("type").Should().Be("demo");
+                        doc.Should().NotBeNull("because otherwise the save of '{doc}' failed", args.DocumentID);
+                        doc!.GetString("type").Should().Be("demo");
                         countdownDoc.CurrentCount.Should().Be(1);
                         countdownDoc.Signal();
                     }
@@ -379,7 +368,8 @@ namespace Test
                     args.Should().NotBeNull();
                     args.DocumentID.Should().Be("doc-6");
                     using (var doc = colB.GetDocument(args.DocumentID)) {
-                        doc.GetString("type").Should().Be("demo");
+                        doc.Should().NotBeNull("because otherwise the save of '{doc}' failed", args.DocumentID);
+                        doc!.GetString("type").Should().Be("demo");
                         countdownDoc.CurrentCount.Should().Be(1);
                         countdownDoc.Signal();
                     }
@@ -482,15 +472,15 @@ namespace Test
         }
 #endif
 
-        private void CollectionChanged(object sender, CollectionChangedEventArgs args)
+        private void CollectionChanged(object? sender, CollectionChangedEventArgs args)
         {
             if (_docCallbackShouldThrow) {
-                _wa.RunAssert(() => throw new InvalidOperationException("Unexpected doc change notification"));
+                _wa!.RunAssert(() => throw new InvalidOperationException("Unexpected doc change notification"));
             } else {
                 WriteLine($"Received {args.Collection}");
-                _wa.RunConditionalAssert(() =>
+                _wa!.RunConditionalAssert(() =>
                 {
-                    lock (_expectedDocumentChanges) {
+                    lock (_expectedDocumentChanges!) {
                         foreach (var docId in args.DocumentIDs) {
                             _expectedDocumentChanges.Should()
                                 .Contain(docId, "because otherwise a rogue notification came");
@@ -507,15 +497,15 @@ namespace Test
             }
         }
 
-        private void DocumentChanged(object sender, DocumentChangedEventArgs args)
+        private void DocumentChanged(object? sender, DocumentChangedEventArgs args)
         {
             if (_docCallbackShouldThrow) {
-                _wa.RunAssert(() => throw new InvalidOperationException("Unexpected doc change notification"));
+                _wa!.RunAssert(() => throw new InvalidOperationException("Unexpected doc change notification"));
             } else {
                 WriteLine($"Received {args.DocumentID}");
-                _wa.RunConditionalAssert(() =>
+                _wa!.RunConditionalAssert(() =>
                 {
-                    lock (_expectedDocumentChanges) {
+                    lock (_expectedDocumentChanges!) {
                         _expectedDocumentChanges.Should()
                             .Contain(args.DocumentID, "because otherwise a rogue notification came");
                         _expectedDocumentChanges.Remove(args.DocumentID);
