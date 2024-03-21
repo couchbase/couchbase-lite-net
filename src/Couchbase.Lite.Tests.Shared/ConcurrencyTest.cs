@@ -16,8 +16,6 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 // The tests simply take too much time in debug mode
 #if !DEBUG
 using System;
@@ -29,26 +27,17 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 using FluentAssertions;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class ConcurrencyTest : TestCase
     {
-#if !WINDOWS_UWP
         public ConcurrencyTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
 
         [Fact]
         public void TestConcurrentCreate()
@@ -171,7 +160,7 @@ namespace Test
             var ignore = delete1.RunAssertAsync(() =>
             {
                 foreach (var doc in docs) {
-                    Db.Delete(doc);
+                    DefaultCollection.Delete(doc);
                 }
             });
 
@@ -179,12 +168,12 @@ namespace Test
             ignore = delete2.RunAssertAsync(() =>
             {
                 foreach (var doc in docs) {
-                    Db.Delete(doc);
+                    DefaultCollection.Delete(doc);
                 }
             });
 
             WaitAssert.WaitFor(TimeSpan.FromSeconds(60), delete1, delete2);
-            Db.Count.Should().Be(0, "because all documents were deleted");
+            DefaultCollection.Count.Should().Be(0, "because all documents were deleted");
         }
 
         [Fact]
@@ -222,7 +211,7 @@ namespace Test
             ConcurrentRuns(nConcurrent, index => {
                 foreach (var doc in docs) {
                     try {
-                        Db.Purge(doc);
+                        DefaultCollection.Purge(doc);
                     } catch (CouchbaseLiteException e) {
                         if (e.Error != CouchbaseLiteError.NotFound) {
                             throw;
@@ -231,7 +220,7 @@ namespace Test
                 }
             });
 
-            Db.Count.Should().Be(0, "because all documents were purged");
+            DefaultCollection.Count.Should().Be(0, "because all documents were purged");
         }
 
         [Fact]
@@ -309,7 +298,7 @@ namespace Test
                 CreateDocs(nDocs, "Create").ToList();
             });
 
-            Db.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
+            DefaultCollection.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
             exp1.WaitForResult(TimeSpan.FromSeconds(60));
         }
 
@@ -318,7 +307,7 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            Db.AddChangeListener(null, (sender, args) =>
+            DefaultCollection.AddChangeListener(null, (sender, args) =>
             {
                 exp2.RunAssert(() =>
                 {
@@ -328,7 +317,7 @@ namespace Test
 
             var ignore = exp1.RunAssertAsync(() =>
             {
-                Db.Save(new MutableDocument("doc1"));
+                DefaultCollection.Save(new MutableDocument("doc1"));
             });
 
             exp1.WaitForResult(TimeSpan.FromSeconds(10));
@@ -339,7 +328,7 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            Db.AddDocumentChangeListener("doc1", (sender, args) =>
+            DefaultCollection.AddDocumentChangeListener("doc1", (sender, args) =>
             {
                 WriteLine("Reached document changed callback");
                 exp2.RunAssert(() =>
@@ -353,7 +342,7 @@ namespace Test
             var ignore = exp1.RunAssertAsync(() =>
             {
                 WriteLine("Running async save");
-                Db.Save(new MutableDocument("doc1"));
+                DefaultCollection.Save(new MutableDocument("doc1"));
                 WriteLine("Async save completed");
             });
 
@@ -367,9 +356,9 @@ namespace Test
         {
             for (uint r = 1; r <= rounds; r++) {
                 foreach (var docID in docIDs) {
-                    var doc = Db.GetDocument(docID);
+                    var doc = DefaultCollection.GetDocument(docID);
                     doc.Should().NotBeNull();
-                    doc.Id.Should().Be(docID);
+                    doc!.Id.Should().Be(docID);
                 }
             }
         }
@@ -379,23 +368,24 @@ namespace Test
             uint n = 0;
             for (uint r = 1; r <= rounds; r++) {
                 foreach (var docID in docIDs) {
-                    var doc = Db.GetDocument(docID).ToMutable();
-                    doc.SetString("tag", tag);
+                    var doc = DefaultCollection.GetDocument(docID)?.ToMutable();
+                    doc.Should().NotBeNull("because otherwise document '{id}' does not exist", docID);
+                    doc!.SetString("tag", tag);
 
                     var address = doc.GetDictionary("address");
                     address.Should().NotBeNull();
                     var street = $"{n} street.";
-                    address.SetString("street", street);
+                    address!.SetString("street", street);
 
                     var phones = doc.GetArray("phones");
-                    phones.Should().NotBeNull().And.HaveCount(2);
+                    phones.Should().HaveCount(2);
                     var phone = $"650-000-{n}";
-                    phones.SetString(0, phone);
+                    phones!.SetString(0, phone);
 
                     doc.SetDate("updated", DateTimeOffset.UtcNow);
 
                     WriteLine($"[{tag}] rounds: {r} updating {doc.Id}");
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
         }
@@ -404,8 +394,8 @@ namespace Test
         {
             var TAG = Expression.Property("tag");
             var DOCID = SelectResult.Expression(Meta.ID);
-            using (var q = QueryBuilder.Select(DOCID).From(DataSource.Database(Db)).Where(TAG.EqualTo(Expression.String(name)))) {
-                WriteLine((q as XQuery).Explain());
+            using (var q = QueryBuilder.Select(DOCID).From(DataSource.Collection(DefaultCollection)).Where(TAG.EqualTo(Expression.String(name)))) {
+                WriteLine((q as XQuery)!.Explain());
 
                 var e = q.Execute();
                 ulong n = 0;
@@ -456,7 +446,7 @@ namespace Test
         {
             for (uint i = 1; i <= count; i++) {
                 var doc = CreateDocument(tag);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
                 yield return doc;
             }
         }

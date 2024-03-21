@@ -16,48 +16,30 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Logging;
-using Couchbase.Lite.Sync;
-using Couchbase.Lite.Util;
 
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class BlobTest : TestCase
     {
-        #if !WINDOWS_UWP
-
         public BlobTest(ITestOutputHelper output) : base(output)
         {
 
         }
-
-        #endif
 
         [Fact]
         public void TestGetContent()
@@ -68,9 +50,10 @@ namespace Test
                 mDoc.SetBlob("blob", blob);
                 DefaultCollection.Save(mDoc);
                 using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
-                    var savedBlob = doc.GetBlob("blob");
+                    doc.Should().NotBeNull("because it was just saved a few lines ago");
+                    var savedBlob = doc!.GetBlob("blob");
                     savedBlob.Should().NotBeNull();
-                    savedBlob.ContentType.Should().Be("image/png");
+                    savedBlob!.ContentType.Should().Be("image/png");
                     savedBlob.Content.Should().Equal(bytes);
                 }
             }
@@ -86,9 +69,10 @@ namespace Test
                 mDoc.SetBlob("blob", blob);
                 DefaultCollection.Save(mDoc);
                 using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
-                    var savedBlob = doc.GetBlob("blob");
+                    doc.Should().NotBeNull("because it was just saved a few lines ago");
+                    var savedBlob = doc!.GetBlob("blob");
                     savedBlob.Should().NotBeNull();
-                    savedBlob.ContentType.Should().Be("application/json");
+                    savedBlob!.ContentType.Should().Be("application/json");
                     savedBlob.Content.Should().Equal(bytes);
                 }
             }
@@ -142,9 +126,10 @@ namespace Test
             #else
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly
                 .GetManifestResourceStream("iTunesMusicLibrary.json")) {
-            #endif
+#endif
+                stream.Should().NotBeNull("because otherwise the test data source is missing");
                 using (var writeStream = new BlobWriteStream(Db.BlobStore)) {
-                    stream.CopyTo(writeStream);
+                    stream!.CopyTo(writeStream);
                     writeStream.Flush();
                     key = writeStream.Key;
                 }
@@ -166,8 +151,9 @@ namespace Test
 
             var json = blob.ToJSON();
 
-            var blobFromJStr = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-            blob.JSONEquals(blobFromJStr).Should().BeTrue();
+            var blobFromJStr = JsonConvert.DeserializeObject<Dictionary<string, object?>>(json);
+            blobFromJStr.Should().NotBeNull("because otherwise the blob JSON was invalid");
+            blob.JSONEquals(blobFromJStr!).Should().BeTrue();
         }
 
         [Fact]
@@ -176,7 +162,7 @@ namespace Test
             var blob = ArrayTestBlob();
             Db.SaveBlob(blob);
 
-            var blobDict = new Dictionary<string, object>() {
+            var blobDict = new Dictionary<string, object?>() {
                 { Blob.ContentTypeKey, blob.ContentType },
                 { Blob.DigestKey, blob.Digest},
                 { Blob.LengthKey, blob.Length},
@@ -207,13 +193,13 @@ namespace Test
             }
 
             using(var d = DefaultCollection.GetDocument("doc1")) {
-                var b = d.GetBlob("blob");
-                var json = b.ToJSON();
-                var blobFromJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-                blobFromJson.ContainsKey(Blob.ContentTypeKey).Should().BeTrue();
-                blobFromJson.ContainsKey(Blob.DigestKey).Should().BeTrue();
-                blobFromJson.ContainsKey(Blob.LengthKey).Should().BeTrue();
-                blobFromJson.ContainsKey(Constants.ObjectTypeProperty).Should().BeTrue();
+                d.Should().NotBeNull("because it was just saved a few lines ago");
+                var b = d!.GetBlob("blob");
+                b.Should().NotBeNull("because it was saved into the document");
+                var json = b!.ToJSON();
+                var blobFromJson = JsonConvert.DeserializeObject<Dictionary<string, object?>>(json);
+                blobFromJson.Should().NotBeNull("because otherwise the blob JSON was invalid");
+                blobFromJson.Should().ContainKeys(Blob.ContentTypeKey, Blob.DigestKey, Blob.LengthKey, Constants.ObjectTypeProperty);
             }
         }
 
@@ -224,7 +210,7 @@ namespace Test
             Db.SaveBlob(blob);
             Db.PerformMaintenance(MaintenanceType.Compact);
 
-            var blobDict = new Dictionary<string, object>() {
+            var blobDict = new Dictionary<string, object?>() {
                 { Blob.ContentTypeKey, blob.ContentType },
                 { Blob.DigestKey, blob.Digest},
                 { Blob.LengthKey, blob.Length},
@@ -251,16 +237,17 @@ namespace Test
                 DefaultCollection.Save(cbDoc);
             }
 
-            var doc = DefaultCollection.GetDocument("doc1").GetValue("dict");
-
-            doc.GetType().Should().Be(typeof(Blob));
-            var newJson = ((Blob) doc).ToJSON();
+            var gotBlob = DefaultCollection.GetDocument("doc1")?.GetValue("dict");
+            gotBlob.Should().BeOfType<Blob>();
+            var newJson = ((Blob?)gotBlob)!.ToJSON();
 
             var bjsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(bjson);
+            bjsonD.Should().NotBeNull("because otherwise the presave blob JSON was invalid");
             var newJsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(newJson);
+            newJsonD.Should().NotBeNull("because otherwise the postsave blob JSON was invalid");
 
-            foreach (var kv in bjsonD) {
-                newJsonD[kv.Key].ToString().Should().Be(kv.Value.ToString());
+            foreach (var kv in bjsonD!) {
+                newJsonD![kv.Key].ToString().Should().Be(kv.Value.ToString());
             }
         }
 
@@ -271,7 +258,7 @@ namespace Test
             Db.SaveBlob(blob);
             var blobDict = 
                 new List<object> {
-                new Dictionary<string, object>() {
+                new Dictionary<string, object?>() {
                 { Blob.ContentTypeKey, blob.ContentType },
                 { Blob.DigestKey, blob.Digest},
                 { Blob.LengthKey, blob.Length},
@@ -281,8 +268,9 @@ namespace Test
             var listContainsBlobJson = JsonConvert.SerializeObject(blobDict);
             using (var md = new MutableDocument("doc1")) {
                 var ma = new MutableArrayObject(listContainsBlobJson);
-                var blobInMa = (MutableDictionaryObject)ma.GetValue(0);
-                var blobInMD = new Blob(blobInMa.ToDictionary());
+                var blobInMa = (MutableDictionaryObject?)ma.GetValue(0);
+                blobInMa.Should().NotBeNull("beacuse otherwise the saved value was corrupted");
+                var blobInMD = new Blob(blobInMa!.ToDictionary());
                 blobInMD.Content.Should().BeNull(CouchbaseLiteErrorMessage.BlobDbNull);
             }
         }
@@ -315,23 +303,27 @@ namespace Test
                 DefaultCollection.Save(mdoc);
             }
 
-            var dic = DefaultCollection.GetDocument("doc1").GetDictionary("dict");
+            var dic = DefaultCollection.GetDocument("doc1")?.GetDictionary("dict");
+            dic.Should().NotBeNull("because it was just saved into the database");
 
-            var blob1 = dic.GetBlob("blob");
-            blob1.Content.Should().NotBeNull();
+            var blob1 = dic!.GetBlob("blob");
+            blob1.Should().NotBeNull("because it was saved as part of the document");
+            blob1!.Content.Should().NotBeNull();
             blob1.Should().BeEquivalentTo(KeyValueDictionary["blob"]);
 
-            var blob2 = dic.GetDictionary("blobUnderDict").GetBlob("nestedBlob");
-            blob2.Content.Should().NotBeNull();
-            var d = (Dictionary<string, object>) KeyValueDictionary["blobUnderDict"];
+            var blob2 = dic.GetDictionary("blobUnderDict")?.GetBlob("nestedBlob");
+            blob2.Should().NotBeNull("because it was saved nested in the document");
+            blob2!.Content.Should().NotBeNull();
+            var d = (Dictionary<string, object?>) KeyValueDictionary["blobUnderDict"];
             blob2.Should().BeEquivalentTo(d["nestedBlob"]);
 
             var blobs = dic.GetArray("blobUnderArr");
-            var cnt = blobs.Count;
+            blobs.Should().NotBeNull("because it was saved inside the document array");
+            var cnt = blobs!.Count;
             var blobList = (List<object>)KeyValueDictionary["blobUnderArr"];
             for(int i=0; i < cnt; i++) {
                 var b = blobs.GetBlob(i);
-                b.Content.Should().NotBeNull();
+                b?.Content.Should().NotBeNull();
                 b.Should().BeEquivalentTo(blobList[i]);
             }
         }

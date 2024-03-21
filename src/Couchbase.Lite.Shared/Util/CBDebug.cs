@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Util
             return argumentValue;
         }
 
-        public static IEnumerable<T> ItemsMustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, IEnumerable<T> argumentValues) where T : class
+        public static IEnumerable<T> ItemsMustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, IEnumerable<T?> argumentValues) where T : class
         {
             Debug.Assert(argumentValues != null);
             if (argumentValues == null) {

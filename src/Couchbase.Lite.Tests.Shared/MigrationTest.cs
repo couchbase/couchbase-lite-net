@@ -16,34 +16,22 @@
 //  limitations under the License.
 //
 
-#nullable disable
 #if !CBL_NO_EXTERN_FILES
-using System;
-using System.Collections.Generic;
-using System.IO.Compression;
-using System.Text;
 using Couchbase.Lite;
 using FluentAssertions;
-#if !WINDOWS_UWP
+using System.IO.Compression;
+using System.Text;
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-    #if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-    #endif
     public sealed class MigrationTest : TestCase
     {
-        #if !WINDOWS_UWP
         public MigrationTest(ITestOutputHelper output) : base(output)
         {
 
         }
-        #endif
 
         [Fact]
         public void TestOpenExistingDBv1x()
@@ -59,15 +47,15 @@ namespace Test
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
                     doc.Should().NotBeNull();
-                    doc.GetString("key").Should().Be(i.ToString());
+                    doc!.GetString("key").Should().Be(i.ToString());
 
                     var attachments = doc.GetDictionary("_attachments");
                     attachments.Should().NotBeNull();
                     var key = $"attach{i}";
-                    var blob = attachments.GetBlob(key);
+                    var blob = attachments!.GetBlob(key);
                     blob.Should().NotBeNull();
                     var attach = Encoding.UTF8.GetBytes(key);
-                    blob.Content.Should().Equal(attach);
+                    blob!.Content.Should().Equal(attach);
                 }
             }
 
@@ -88,7 +76,7 @@ namespace Test
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
                     doc.Should().NotBeNull();
-                    doc.GetString("key").Should().Be(i.ToString());
+                    doc!.GetString("key").Should().Be(i.ToString());
                 }
             }
 
@@ -109,13 +97,13 @@ namespace Test
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
                     doc.Should().NotBeNull();
-                    doc.GetString("key").Should().Be(i.ToString());
+                    doc!.GetString("key").Should().Be(i.ToString());
                     
                     var key = $"attach{i}";
                     var blob = doc.GetBlob(key);
                     blob.Should().NotBeNull();
                     var attach = Encoding.UTF8.GetBytes(key);
-                    blob.Content.Should().Equal(attach);
+                    blob!.Content.Should().Equal(attach);
                 }
             }
 

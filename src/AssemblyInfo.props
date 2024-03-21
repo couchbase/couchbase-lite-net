@@ -16,6 +16,7 @@
       <ContinuousIntegrationBuild>True</ContinuousIntegrationBuild>
       <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
       <LangVersion>latest</LangVersion>
+      <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     </PropertyGroup>
     <ItemGroup>
       <None Include="$(MsBuildThisFileDirectory)..\..\packaging\nuget\logo.png" Pack="true" PackagePath=""/>

@@ -148,7 +148,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        public static IExpression String(string value) => new QueryConstantExpression<string>(value);
+        public static IExpression String(string? value) => new QueryConstantExpression<string?>(value);
 
         /// <summary>
         /// Returns an expression to represent a fixed <see cref="Object"/> value.  It must be one
@@ -156,7 +156,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Value(object value) => new QueryConstantExpression<object>(value);
+        public static IExpression Value(object? value) => new QueryConstantExpression<object?>(value);
 
         #endregion
     }
