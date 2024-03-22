@@ -52,6 +52,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="language">The language code in the form of ISO-639 language code</param>
         /// <returns>The index for further processing</returns>
-        IFullTextIndex SetLanguage(string language);
+        IFullTextIndex SetLanguage(string? language);
     }
 }
