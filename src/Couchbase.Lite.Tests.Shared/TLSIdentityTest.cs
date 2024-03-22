@@ -167,7 +167,7 @@ namespace Test
                 ServerCertLabel,
                 null);
 
-            id.Should().BeNull();
+            id.Should().NotBeNull();
             (id!.Expiration - DateTimeOffset.UtcNow).Should().BeGreaterThan(TimeSpan.MinValue);
             (id.Expiration - DateTimeOffset.UtcNow).Should().BeLessOrEqualTo(TimeSpan.FromMinutes(5));
 
