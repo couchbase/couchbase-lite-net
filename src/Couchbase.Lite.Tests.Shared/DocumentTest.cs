@@ -2172,6 +2172,24 @@ namespace Test
             badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
         }
 
+        [Fact]
+        public void TestSaveFromDifferentDBInstance()
+        {
+            using var otherHandle = new Database(Db.Name, Db.Config);
+            using var collection1Db1 = Db.CreateCollection("cats", "mammals");
+            using var bengalCreate = new MutableDocument("bengal");
+            bengalCreate.SetString("type", "bengal");
+            collection1Db1.Save(bengalCreate);
+
+            using var differentDbCollection = otherHandle.GetCollection("cats", "mammals");
+            differentDbCollection.Should().NotBeNull("because it should be accessible from another handle");
+
+            bengalCreate.Should().NotBeNull("because otherwise it vanished from the collection");
+            bengalCreate.SetInt("age", 10);
+            FluentActions.Invoking(() => differentDbCollection.Save(bengalCreate)).Should().
+                    Throw<CouchbaseLiteException>("because the collection is from a different database object");
+        }
+
         private void PopulateData(MutableDocument doc)
         {
             var date = DateTimeOffset.Now;

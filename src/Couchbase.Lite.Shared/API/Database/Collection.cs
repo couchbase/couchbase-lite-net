@@ -802,7 +802,8 @@ namespace Couchbase.Lite
                 document.Collection = this;
             } else if (document.Collection != this) {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
-                    "Cannot operate on a document from another collection.");
+                    "The collection being used for Save does not match the one on the document being saved (" +
+                    "either it is a different collection or a collection from a different database instance).");
             }
         }
 
@@ -1073,14 +1074,14 @@ namespace Couchbase.Lite
             if (obj == null)
                 return false;
 
-            if (!(obj is Collection other)) {
+            if (obj is not Collection other) {
                 return false;
             }
 
             return _c4coll != IntPtr.Zero && ThreadSafety.DoLocked(() => Native.c4coll_isValid((C4Collection*)_c4coll))
                 && String.Equals(Name, other.Name, StringComparison.Ordinal)
                 && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal)
-                && String.Equals(Database?.Path, other?.Database?.Path, StringComparison.OrdinalIgnoreCase);
+                && ReferenceEquals(Database, other.Database);
         }
 
         /// <inheritdoc />
