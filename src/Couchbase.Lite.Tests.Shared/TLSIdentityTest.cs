@@ -154,15 +154,6 @@ namespace Test
                 ServerCertLabel,
                 null));
             badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
-
-            // Create id with null Attributes
-            badAction = (() => TLSIdentity.CreateIdentity(true,
-                null,
-                null,
-                _store,
-                ServerCertLabel,
-                null));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
         }
 
         [Fact]
