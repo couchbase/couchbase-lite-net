@@ -470,7 +470,7 @@ namespace Test
             using (var colA = Db.CreateCollection("colA", "scopeA"))
             using (var otherDB = OpenDB(Db.Name)) {
                 var cols = otherDB.GetCollections(scope: "scopeA");
-                cols.Contains(colA).Should().BeTrue();
+                cols.FirstOrDefault(x => x.Name == colA.Name).Should().NotBeNull();
                 using (var col = otherDB.GetCollection("colA", "scopeA"))
                     col.Should().NotBeNull();
             }
@@ -533,7 +533,7 @@ namespace Test
                     colATheSecondinOtherDb.Should().NotBeNull();
                     colATheSecondinOtherDb.Equals(colAinOtherDb).Should().BeFalse();
                     //Ensure that the collection is included when getting all collections from the database instance B by using database.getCollections(scope: "scopeA").
-                    otherDB.GetCollections("scopeA").Contains(colATheSecond).Should().BeTrue();
+                    otherDB.GetCollections("scopeA").FirstOrDefault(x => x.Name == colATheSecond.Name).Should().NotBeNull();
                 }  
             }
         }

@@ -325,16 +325,28 @@ namespace Couchbase.Lite
             if (!(obj is Document d)) {
                 return false;
             }
+
+            // First check the collection and database match
+            // This needs to be done in a less strict way than
+            // normal comparison because we don't care as much that
+            // the exact instances are the same, just that they refer
+            // to the same on-disk entities
+            if(Database?.Path != d.Database?.Path || Collection?.FullName != d.Collection?.FullName) {
+                return false;
+            }
             
-            if (Id != d.Id || !Equals(Collection, d.Collection)) {
+            // Next check the ID
+            if (Id != d.Id) {
                 return false;
             }
 
+            // Do a quick check that the actual keys are the same
             var commonCount = Keys.Intersect(d.Keys).Count();
             if (commonCount != Keys.Count || commonCount != d.Keys.Count) {
                 return false; // The set of keys is different
             }
 
+            // Final fallback, examine every key and value
             return !(from key in Keys 
                 let left = GetValue(key) 
                 let right = d.GetValue(key) 
