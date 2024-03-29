@@ -72,6 +72,8 @@
       <PackagePath>runtimes\android-x64\native</PackagePath>
       <Link>x86_64\libLiteCore.so</Link>
     </None>
+    <None Include="android.props" Pack="true" PackagePath="build\monoandroid\$(PackageId).props" />
+    <None Include="android.props" Pack="true" PackagePath="buildTransitive\monoandroid\$(PackageId).props" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
