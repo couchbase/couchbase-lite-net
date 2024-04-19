@@ -25,6 +25,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 
 using JetBrains.Annotations;
+using Couchbase.Lite.Internal.Logging;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -43,6 +44,7 @@ namespace Couchbase.Lite.Internal.Query
         [NotNull] private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
         private C4QueryObserver* _queryObserver;
         private bool _disposed;
+        private GCHandle _contextHandle;
         private QueryBase _queryBase;
         private int _startedObserving;
 
@@ -57,6 +59,8 @@ namespace Couchbase.Lite.Internal.Query
 
         ~LiveQuerier()
         {
+            // Very rare for this to happen since CreateLiveQuerier will create a strong
+            // GCHandle that lasts until Dispose is called
             Dispose(true);
         }
 
@@ -68,12 +72,16 @@ namespace Couchbase.Lite.Internal.Query
         {
             _queryBase.ThreadSafety.DoLocked(() =>
             {
+                if(_disposed) {
+                    throw new ObjectDisposedException(nameof(LiveQuerier));
+                }
+
                 if(_queryObserver != null) {
                     return;
                 }
 
-                var handle = GCHandle.Alloc(this);
-                _queryObserver = NativeRaw.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                _contextHandle = GCHandle.Alloc(this);
+                _queryObserver = NativeRaw.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(_contextHandle).ToPointer());
             });
 
             return this;
@@ -113,6 +121,9 @@ namespace Couchbase.Lite.Internal.Query
                     Native.c4queryobs_free(_queryObserver);
                     _queryObserver = null;
                     _disposed = true;
+                    if (_contextHandle.IsAllocated) {
+                        _contextHandle.Free();
+                    }
                 });
             } else {
                 Native.c4queryobs_free(_queryObserver);
@@ -130,6 +141,11 @@ namespace Couchbase.Lite.Internal.Query
         private static void QueryObserverCallback(C4QueryObserver* obs, C4Query* query, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr)context).Target as LiveQuerier;
+            if (obj == null) {
+                WriteLog.To.Query.E(Tag, "Failed to retrieve LiveQuerier from GCHandle");
+                return;
+            }
+
             obj.QueryObserverCalled(obs, query);
         }
 
@@ -137,6 +153,10 @@ namespace Couchbase.Lite.Internal.Query
         {
             _queryBase.DispatchQueue.DispatchSync(() =>
             {
+                if(_disposed) {
+                    return;
+                }
+
                 Exception exp = null;
                 var newEnum = GetResults();
 
