@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Support
                 var dllPath = Path.Combine(codeBase ?? "", architecture, "LiteCore.dll");
                 var dllPathAsp = Path.Combine(codeBase ?? "", "bin", architecture, "LiteCore.dll");
                 var dllPathRuntimes =
-                    Path.Combine(codeBase ?? "", "runtimes", $"win10-{architecture}", "native", "LiteCore.dll");
+                    Path.Combine(codeBase ?? "", "runtimes", $"win-{architecture}", "native", "LiteCore.dll");
                 var foundPath = default(string);
                 foreach (var path in new[] { dllPathRuntimes, dllPath, dllPathAsp}) {
                     foundPath = File.Exists(path) ? path : null;
