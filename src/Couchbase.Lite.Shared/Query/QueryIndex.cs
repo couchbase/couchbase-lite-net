@@ -103,9 +103,9 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        public IFullTextIndex SetLanguage(string language)
+        public IFullTextIndex SetLanguage(string? language)
         {
-            _locale = language;
+            _locale = language ?? CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
             return this;
         }
 
