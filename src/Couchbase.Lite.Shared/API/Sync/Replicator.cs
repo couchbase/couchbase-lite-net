@@ -1042,15 +1042,13 @@ namespace Couchbase.Lite.Sync
                 sb.Append("<");
             }
 
-            if (Config.Continuous) {
-                sb.Append("*");
-            }
+            sb.Append(Config.Continuous ? '*' : 'o');
 
             if (Config.ReplicatorType.HasFlag(ReplicatorType.Push)) {
                 sb.Append(">");
             }
 
-            return $"{GetType().Name}[{sb} {Config.Target}]";
+            return $"{nameof(Replicator)}[{sb} {Config.Target}]";
         }
 
         #endregion
