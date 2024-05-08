@@ -68,7 +68,16 @@ namespace Couchbase.Lite.Internal.Query
 
         internal SerialQueue DispatchQueue { get; } = new SerialQueue();
 
-        internal unsafe Dictionary<string, int> ColumnNames => CreateColumnNames(_c4Query);
+        internal unsafe Dictionary<string, int> ColumnNames
+        {
+            get {
+                if(_c4Query == null) {
+                    throw new ObjectDisposedException(nameof(QueryBase));
+                }
+
+                return CreateColumnNames(_c4Query);
+            }
+        }
 
         #endregion
 
