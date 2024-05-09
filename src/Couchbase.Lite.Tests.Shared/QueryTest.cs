@@ -2808,6 +2808,16 @@ namespace Test
             dict.GetString("foo").Should().Be("bar");
         }
 
+        [Fact]
+        [ForIssue("CBL-5727")]
+        public void TestColumnNamesAfterDispose()
+        {
+            var q = Db.CreateQuery(@"select foo from _") as QueryBase;
+            q.ColumnNames.Should().HaveCount(1, "because there is one column");
+            q.Dispose();
+            FluentActions.Invoking(() => q.ColumnNames).Should().Throw<ObjectDisposedException>("because the object was disposed");
+        }
+
         private void CreateDateDocs()
         {
             using (var doc = new MutableDocument()) {
