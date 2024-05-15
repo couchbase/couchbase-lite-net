@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly IFullTextIndexItem[]? _ftsItems;
         private bool _ignoreAccents = Constants.DefaultFullTextIndexIgnoreAccents;
-        private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+        private string? _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         private readonly IValueIndexItem[]? _valueItems;
 
         #endregion
@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IFullTextIndex SetLanguage(string? language)
         {
-            _locale = language ?? CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+            _locale = language;
             return this;
         }
 
