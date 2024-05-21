@@ -44,6 +44,7 @@ namespace Test
 #endif
     public class DatabaseEncryptionTest : TestCase
     {
+        private static IDictionary<string, EncryptionKey> KeyCache = new Dictionary<string, EncryptionKey>();
 
 #if !WINDOWS_UWP
         public DatabaseEncryptionTest(ITestOutputHelper output) : base(output)
@@ -274,9 +275,13 @@ namespace Test
 
         private Database OpenSeekrit(string password)
         {
+            if(password != null && !KeyCache.ContainsKey(password)) {
+                KeyCache[password] = new EncryptionKey(password);
+            }
+
             var config = new DatabaseConfiguration
             {
-                EncryptionKey = password != null ? new EncryptionKey(password) : null,
+                EncryptionKey = password != null ? KeyCache[password] : null,
                 Directory = Directory
             };
 

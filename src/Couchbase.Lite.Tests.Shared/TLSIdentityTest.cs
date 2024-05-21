@@ -112,18 +112,21 @@ namespace Test
             // Delete
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
-        
-        [Fact]
+
+        [SkippableFact]
         public void TestImportIdentity()
         {
             TLSIdentity id;
-            #if NET_ANDROID
+#if NET_ANDROID
+            Skip.If(Android.OS.Build.VERSION.SdkInt < Android.OS.BuildVersionCodes.M, 
+                "An apparent Android bug appears to affect this test on API < 23");
+
             //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application
             //When export the cert, encryption has to be TripleDES-SHA1, AES256-SHA256 will not work...
             byte[] data = GetFileByteArray("certs.pfx", typeof(TLSIdentityTest));
-            #else 
+#else
             byte[] data = GetFileByteArray("certs.p12", typeof(TLSIdentityTest));
-            #endif
+#endif
 
             // Import
             id = TLSIdentity.ImportIdentity(_store, data, "123", ServerCertLabel, null);
