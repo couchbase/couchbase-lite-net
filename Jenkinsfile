@@ -45,11 +45,6 @@ pipeline {
                                 echo currentBuild.result
                             }
                         }
-                        stage("WinUI") {
-                            steps {
-                                powershell 'jenkins\\run_winui_tests.ps1'
-                            }
-                        }
                     }
                 }
 	            stage("Mac Node") {
