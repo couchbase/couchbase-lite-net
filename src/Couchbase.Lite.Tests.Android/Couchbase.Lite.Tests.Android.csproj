@@ -120,6 +120,7 @@
     <PackageReference Include="Xamarin.AndroidX.MediaRouter" Version="1.2.0" />
     <PackageReference Include="Xamarin.AndroidX.Palette" Version="1.0.0.5" />
     <PackageReference Include="Couchbase.Lite.Enterprise" Version="3.1.0-b0161" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
