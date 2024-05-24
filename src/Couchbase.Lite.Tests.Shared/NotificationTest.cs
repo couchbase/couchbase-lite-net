@@ -140,6 +140,7 @@ namespace Test
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestCollectionDocumentChange()
         {
@@ -203,6 +204,7 @@ namespace Test
                 _expectedDocumentChanges.Clear();
             }
         }
+#endif
 
         [Fact]
         public async Task TestAddSameChangeListeners()
@@ -398,6 +400,7 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public async Task TestCollectionChangeListener()
         {
@@ -477,6 +480,7 @@ namespace Test
                 _unexpectedDocumentChanges.Count.Should().Be(3);
             }
         }
+#endif
 
         private void CollectionChanged(object sender, CollectionChangedEventArgs args)
         {

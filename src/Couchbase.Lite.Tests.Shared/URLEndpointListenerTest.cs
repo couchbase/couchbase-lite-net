@@ -303,7 +303,8 @@ namespace Test
             wrongPwSecureString.Dispose();
         }
 
-        #if !NET_ANDROID
+#if !NET_ANDROID
+#if !SANITY_ONLY
         [Fact]
         public void TestClientCertAuthWithCallback()
         {
@@ -371,8 +372,10 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             
         }
-        #endif
-        
+#endif
+#endif
+
+#if !SANITY_ONLY
         [Fact]
         public void TestClientCertAuthRootCertsError()
         {
@@ -405,18 +408,20 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             _listener.Stop();
         }
+#endif
 
-        #if !NET_ANDROID
+#if !NET_ANDROID
+#if !SANITY_ONLY
         [Fact]
         public void TestClientCertAuthenticatorRootCerts()
         {
             byte[] caData = GetFileByteArray("client-ca.der", typeof(URLEndpointListenerTest));
 
-            #if NET_ANDROID
+#if NET_ANDROID
             byte[] clientData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
-            #else
+#else
             byte[] clientData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
-            #endif
+#endif
 
             var rootCert = new X509Certificate2(caData);
             var auth = new ListenerCertificateAuthenticator(new X509Certificate2Collection(rootCert));
@@ -443,15 +448,16 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             _listener.Stop();
         }
+#endif
 
         [Fact]
         public void TestListenerWithImportIdentity()
         {
-			#if NET_ANDROID
+#if NET_ANDROID
             byte[] serverData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
-			#else 
+#else
             byte[] serverData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
-            #endif
+#endif
 
             // Cleanup
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
@@ -598,8 +604,8 @@ namespace Test
 
             _listener.Stop();
         }
-        #endif
-        
+#endif
+
         [Fact]
         public void TestEmptyNetworkInterface()
         {
@@ -670,6 +676,7 @@ namespace Test
             OtherDefaultCollection.Count.Should().Be(2);
         }
 
+#if !SANITY_ONLY
         // A three way replication with one database acting as both a listener
         // and a replicator
         [Fact]
@@ -741,7 +748,8 @@ namespace Test
             Thread.Sleep(500); // wait for everything to stop
         }
 #endif
-        
+#endif
+
         [Fact]
         public void TestReadOnlyListener()
         {
@@ -783,6 +791,7 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
+#if !SANITY_ONLY
         [Fact] //hang maui android
         public void TestMultipleReplicatorsToListener()
         {
@@ -795,6 +804,7 @@ namespace Test
 
             ValidateMultipleReplications(ReplicatorType.PushAndPull, 3, 3);
         }
+#endif
 
 #if NET6_0_OR_GREATER
         [Fact] // Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
@@ -816,11 +826,14 @@ namespace Test
         }
 #endif
 
+#if !SANITY_ONLY
         [Fact] //hang maui android
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
         [Fact]//hang maui android
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
+#endif
+
 #endif
 
         [Fact]

@@ -62,6 +62,7 @@ namespace Test
 
 #if !CBL_NO_EXTERN_FILES
 
+#if !SANITY_ONLY
         [Fact]
         public void TestQueryObserver()
         {
@@ -75,6 +76,7 @@ namespace Test
             TestQueryObserverWithQuery(query, isLegacy: false);
             query.Dispose();
         }
+#endif
 
         [Fact]
         public void TestMultipleQueryObservers()

@@ -72,6 +72,7 @@ namespace Test
             //Database.Log.Console.Level = LogLevel.Debug;
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestShortP2P()
         {
@@ -167,6 +168,7 @@ namespace Test
 
         [Fact]
         public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
+#endif
 
         [Fact]
         public void TestP2PPermanentFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, false);
@@ -193,6 +195,7 @@ namespace Test
             RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite, true);
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestP2PPassiveClose()
         {
@@ -230,6 +233,7 @@ namespace Test
                     .NotBeNull("because closing the passive side creates an error on the active one");
             }
         }
+#endif
 
         [Fact]
         public void TestP2PPassiveCloseAll()

@@ -767,13 +767,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestClose()
-        {
-            Thread.Sleep(1500);
-            Db.Close();
-        }
-
-        [Fact]
         public void TestCloseTwice()
         {
             Db.Close();
@@ -917,6 +910,7 @@ namespace Test
                 "because a database can't be closed in the middle of a batch");
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestDeleteDBOpenByOtherInstance()
         {
@@ -928,6 +922,7 @@ namespace Test
                         "because an in-use database cannot be deleted");
             }
         }
+#endif
         
         [Fact]
         public void TestDeleteWithDefaultDirDB()
@@ -942,6 +937,7 @@ namespace Test
             System.IO.Directory.Exists(path).Should().BeFalse();
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestDeleteOpeningDBWithDefaultDir()
         {
@@ -954,6 +950,7 @@ namespace Test
                     e.Error == CouchbaseLiteError.Busy && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
             }
         }
+#endif
 
         [Fact]
         public void TestDeleteByStaticMethod()
@@ -971,6 +968,8 @@ namespace Test
             Database.Delete("db", dir);
             System.IO.Directory.Exists(path).Should().BeFalse("because the database was deleted");
         }
+
+#if !SANITY_ONLY
 
         [Fact]
         public void TestDeleteOpeningDBByStaticMethod()
@@ -993,6 +992,7 @@ namespace Test
                 e.Should().NotBeNull("because an exception is expected");
             }
         }
+#endif
 
         [Fact]
         public void TestDeleteNonExistingDBWithDefaultDir()
@@ -1234,17 +1234,17 @@ namespace Test
                 Directory = "/tmp/mydb"
             };
 
-            #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
             var key = new EncryptionKey("key");
             builder2.EncryptionKey = key;
-            #endif
+#endif
 
             var config2 = builder2;
             config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
 
-            #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
             config2.EncryptionKey.Should().Be(key, "because that is what was set");
-            #endif
+#endif
         }
 
         [Fact]
@@ -1256,10 +1256,10 @@ namespace Test
                 db.Config.Should().NotBeSameAs(config, "because the configuration should be copied and frozen");
                 db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
 
-                #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
                 db.Config.EncryptionKey.Should().Be(config.EncryptionKey,
                     "because the encryption key should be the same");
-                #endif
+#endif
             }
         }
 

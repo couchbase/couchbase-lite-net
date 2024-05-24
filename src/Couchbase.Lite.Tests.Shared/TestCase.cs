@@ -591,7 +591,10 @@ namespace Test
                     wait2.Set();
                 });
 
-                WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(2)).Should().BeTrue();
+                foreach (var handle in new[] { wait1, wait2 }) {
+                    handle.Wait(TimeSpan.FromSeconds(2)).Should().BeTrue();
+                }
+
                 qCount.Should().Be(1, "because we should have received a callback");
                 qResultCnt.Should().Be(8);
                 q1Count.Should().Be(1, "because we should have received a callback");

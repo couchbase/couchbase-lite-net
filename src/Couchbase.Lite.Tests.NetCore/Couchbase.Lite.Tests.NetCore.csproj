@@ -12,6 +12,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net462'">
+    <DefineConstants>$(DefineConstants);SANITY_ONLY</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Remove="C\**" />
     <EmbeddedResource Remove="C\**" />

@@ -246,6 +246,7 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestCollectionNameLength()
         {
@@ -268,6 +269,7 @@ namespace Test
             Action badAction = (() => Db.CreateCollection(str));
             badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str}' in scope because the collection name length {str.Length} is over naming length limit.");
         }
+#endif
 
         [Fact] 
         public void TestCollectionNameCaseSensitive()
@@ -348,6 +350,7 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestScopeNameLength()
         {
@@ -370,6 +373,7 @@ namespace Test
             Action badAction = (() => Db.CreateCollection("abc", str));
             badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str}' because the scope name length {str.Length} is over naming length limit.");
         }
+#endif
 
         [Fact]
         public void TestScopeNameCaseSensitive()
@@ -432,7 +436,7 @@ namespace Test
             }
         }
 
-        #endregion
+#endregion
 
         #region 8.3 Collections and Cross Database Instance
 
@@ -540,8 +544,9 @@ namespace Test
 
         #endregion
 
-        #region 8.5 Use Collection APIs on Deleted Collection
+#region 8.5 Use Collection APIs on Deleted Collection
 
+#if !SANITY_ONLY
         [Fact]
         public void TestUseCollectionAPIsOnDeletedCollection()
         {
@@ -676,18 +681,21 @@ namespace Test
                     .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after collection colA is deleted from the other db.");
             }
         }
+#endif
 
-        #endregion
+#endregion
 
-        #region 8.6 Use Collection API on Closed or Deleted Database
+#region 8.6 Use Collection API on Closed or Deleted Database
 
+#if !SANITY_ONLY
         [Fact]
         public void TestUseCollectionAPIsWhenDatabaseIsClosed() => TestUseCollectionAPIs(() => Db.Close());
 
         [Fact]
         public void TestUseCollectionAPIsWhenDatabaseIsDeleted() => TestUseCollectionAPIs(() => Db.Delete());
+#endif
 
-        #endregion
+#endregion
 
         #region 8.7 Use Scope API on Closed or Deleted Database
 
