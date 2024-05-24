@@ -88,6 +88,7 @@ namespace Couchbase.Lite.Sync
 
         private readonly Freezer _freezer = new Freezer();
         private Authenticator? _authenticator;
+        private ProxyAuthenticator? _proxyAuthenticator;
         private bool _continuous = Constants.DefaultReplicatorContinuous;
         private Database? _otherDb;
         private Uri? _remoteUrl;
@@ -118,6 +119,15 @@ namespace Couchbase.Lite.Sync
         {
             get => _authenticator;
             set => _freezer.SetValue(ref _authenticator, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the class which will authenticate with the proxy, if needed.
+        /// </summary>
+        public ProxyAuthenticator? ProxyAuthenticator
+        {
+            get => _proxyAuthenticator;
+            set => _freezer.SetValue(ref _proxyAuthenticator, value);
         }
 
         /// <summary>
@@ -525,6 +535,7 @@ namespace Couchbase.Lite.Sync
             var retVal = new ReplicatorConfiguration(Target)
             {
                 Authenticator = Authenticator,
+                ProxyAuthenticator = ProxyAuthenticator,
 #if COUCHBASE_ENTERPRISE
                 AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
 #endif

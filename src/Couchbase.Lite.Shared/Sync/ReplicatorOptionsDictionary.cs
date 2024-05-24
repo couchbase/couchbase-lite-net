@@ -57,6 +57,7 @@ namespace Couchbase.Lite.Sync
         private const string HeadersKey = "headers";
         private const string CookiesKey = "cookies";
         private const string AuthOption = "auth";
+        private const string ProxyAuthOption = "proxyAuth";
 
         // TLS options:
         private const string PinnedCertKey = "pinnedCert";
@@ -98,6 +99,12 @@ namespace Couchbase.Lite.Sync
         {
             get => this.GetCast<AuthOptionsDictionary>(AuthOption);
             set => this[AuthOption] = value;
+        }
+
+        public AuthOptionsDictionary? ProxyAuth
+        {
+            get => this.GetCast<AuthOptionsDictionary>(ProxyAuthOption);
+            set => this[ProxyAuthOption] = value;
         }
 
         /// <summary>
@@ -315,6 +322,10 @@ namespace Couchbase.Lite.Sync
         {
             if (ContainsKey(AuthOption)) {
                 Auth = new AuthOptionsDictionary((this[AuthOption] as Dictionary<string, object?>)!);
+            }
+
+            if (ContainsKey(ProxyAuthOption)) {
+                ProxyAuth = new AuthOptionsDictionary((this[ProxyAuthOption] as Dictionary<string, object?>)!);
             }
 
             if (ContainsKey(ChannelsKey)) {

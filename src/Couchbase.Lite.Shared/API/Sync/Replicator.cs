@@ -901,6 +901,7 @@ namespace Couchbase.Lite.Sync
                 var options = Config.Options;
 
                 Config.Authenticator?.Authenticate(options);
+                Config.ProxyAuthenticator?.Authenticate(options);
 
                 options.Build();
                 var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);

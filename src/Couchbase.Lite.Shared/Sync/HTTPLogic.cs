@@ -56,6 +56,8 @@ namespace Couchbase.Lite.Sync
 
         public NetworkCredential? Credential { get; set; }
 
+        public NetworkCredential? ProxyCredential { get; set; }
+
         public Exception? Error { get; private set; }
 
         public bool HandleRedirects { get; set; }
@@ -136,15 +138,19 @@ namespace Couchbase.Lite.Sync
             return Encoding.ASCII.GetBytes(stringBuilder.ToString());
         }
 
-        public byte[] ProxyRequest(string user="", string password="")
+        public byte[] ProxyRequest()
         {
-            String send = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nProxy-Connection: keep-alive\r\n\r\n",
+            string toSend;
+            if (ProxyCredential != null) {
+                var base64 = Convert.ToBase64String(Encoding.ASCII.GetBytes(String.Format("{0}:{1}", ProxyCredential.UserName, ProxyCredential.Password)));
+                toSend = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nContent-Length: 0\r\nProxy-Connection: Keep-Alive\r\nProxy-Authorization: Basic {2}\r\nPragma: no-cache\r\n\r\n\r\n",
+                                                _urlRequest.Host, _urlRequest.Port, base64);
+            } else {
+                toSend = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nProxy-Connection: keep-alive\r\n\r\n",
                                             _urlRequest.Host, _urlRequest.Port);
-            if (user != "" && password != "") {
-                string basic = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nContent-Length: 0\r\nProxy-Connection: Keep-Alive\r\nProxy-Authorization: Basic {2}\r\nPragma: no-cache\r\n\r\n\r\n",
-                                                _urlRequest.Host, _urlRequest.Port, Encoding.ASCII.GetBytes(String.Format("{0}:{1}", user, password)));
             }
-            return Encoding.ASCII.GetBytes(send);
+
+            return Encoding.ASCII.GetBytes(toSend);
         }
 
         public void ReceivedResponse(HttpMessageParser parser)

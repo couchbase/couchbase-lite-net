@@ -107,6 +107,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\BasicAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\CollectionConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\IEndpoint.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)api\sync\ProxyAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\ReplicationActivityLevel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Replicator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\ReplicatorConfiguration.cs" />

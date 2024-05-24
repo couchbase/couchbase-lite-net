@@ -246,15 +246,10 @@ namespace Couchbase.Lite.Sync
                 // STEP 2.5: The IProxy interface will detect a system wide proxy that is set
                 // And if it is, it will return an IWebProxy object to use
                 // Sending "CONNECT" request if IWebProxy object is not null
-                IProxy? proxy = Service.GetInstance<IProxy>();
-
-                try {
-                    if (_client != null && !_client.Connected) {
-                        if (proxy != null) {
-                            connectProxyAsync(proxy, "proxyUser", "proxyPassword");
-                        }
-                    }
-                } catch { }
+                var proxy = Service.GetInstance<IProxy>();
+                if (_client != null && !_client.Connected && proxy != null) {
+                    ConnectProxyAsync(proxy);
+                }
 
                 if (proxy == null) {
                     OpenConnectionToRemote();
@@ -389,7 +384,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private async void connectProxyAsync(IProxy proxy, string user, string password)
+        private async void ConnectProxyAsync(IProxy proxy)
         {
             try {
                 Uri destinationUri = new Uri("http://" + _logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
@@ -409,8 +404,9 @@ namespace Couchbase.Lite.Sync
                 var proxyRequest = _logic.ProxyRequest();
                 NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);
                 await WaitForResponse(NetworkStream).ConfigureAwait(false);
-            } catch (Exception E) {
-                Console.WriteLine(E.Message);
+            } catch (Exception e) {
+                WriteLog.To.Sync.W(Tag, "Failed to connect to proxy");
+                DidClose(e);
             }
         }
 
@@ -805,6 +801,11 @@ namespace Couchbase.Lite.Sync
                     }
                 }
             }
+
+            var proxyAuth = _options?.ProxyAuth;
+            if(proxyAuth != null) {
+                _logic.ProxyCredential = new NetworkCredential(proxyAuth.Username, proxyAuth.Password);
+            }
         }
 
         private void StartInternal()
@@ -1018,6 +1019,11 @@ namespace Couchbase.Lite.Sync
                 string resp = System.Text.UTF8Encoding.UTF8.GetString(buffer, 0, responseLength);
                 if (resp.Contains("200")) {
                     OpenConnectionToRemote();
+                } else if(resp.Contains("407")) {
+                    WriteLog.To.Sync.W(Tag, "Proxy returned HTTP 407, credentials needed.  Set ProxyAuthenticator on Replicator.");
+                    throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Invalid proxy credentials");
+                } else {
+                    throw new CouchbaseLiteException(C4ErrorCode.RemoteError, $"Response from server did not indicate success: {resp}");
                 }
             });
         }
