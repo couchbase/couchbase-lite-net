@@ -385,11 +385,13 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestReplicatorMaxAttempts() => ReplicatorMaxAttempts(3);
 
         [Fact]
         public void TestReplicatorOneMaxAttempts() => ReplicatorMaxAttempts(1);
+#endif
 
         [Fact]
         public void TestReadOnlyConfiguration()
@@ -826,6 +828,7 @@ namespace Test
             OtherDefaultCollection.GetDocument("doc1").Should().NotBeNull();
         }
 
+#if !SANITY_ONLY
         [Fact]
         public async Task TestReplicatorStopWhenClosed()
         {
@@ -891,6 +894,7 @@ namespace Test
                 }
             }
         }
+#endif
 
         [Fact]
         public void TestDocumentEndedEvent()
@@ -1585,6 +1589,7 @@ namespace Test
             q.Clear();
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
@@ -1672,6 +1677,7 @@ namespace Test
                 doc.GetBlob("blob")?.Content.Should().Contain(new byte[] { 7, 7, 7 });
             }
         }
+#endif
 
         [Fact]
         public void TestConflictResolverExceptionWhenDocumentIsPurged()
@@ -1705,6 +1711,7 @@ namespace Test
             });
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
         {
@@ -1721,6 +1728,7 @@ namespace Test
                 thirdDb.Delete();
             }
         }
+#endif
 
         [Fact]
         public void TestConflictResolverExceptionThrownInConflictResolver()
@@ -1833,6 +1841,7 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
         {
@@ -1847,6 +1856,7 @@ namespace Test
 
             TestConflictResolverExceptionThrown(blobFromOtherDbResolver, false, true);
         }
+#endif
 
         //CBL-623: Revision flags get cleared while saving resolved document
         [Fact]
@@ -1893,11 +1903,13 @@ namespace Test
         [Fact]
         public void TestDeleteWithActiveReplications() => WithActiveReplications(false);
 
+#if !SANITY_ONLY
         [Fact]
         public void TestCloseWithActiveReplicationAndQuery() => WithActiveReplicationAndQuery(true);
 
         [Fact]
         public void TestDeleteWithActiveReplicationAndQuery() => WithActiveReplicationAndQuery(false);
+#endif
 
         // Pending Doc Ids unit tests
 
@@ -1952,6 +1964,7 @@ namespace Test
         [Fact]
         public void TestPendingDocIDsWithFilter() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.FILTER);
 
+#if !SANITY_ONLY
         [Fact]
         public void TestIsDocumentPendingPullOnlyException()
         {
@@ -1989,6 +2002,7 @@ namespace Test
 
             }
         }
+#endif
 
         [Fact]
         public void TestIsDocumentPendingWithCreate() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.CREATE);

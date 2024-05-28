@@ -111,6 +111,7 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestQueryDocumentExpirationAfterDocsExpired()
         {
@@ -153,6 +154,7 @@ namespace Test
                 }
             }).Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
         }
+#endif
 
         [Fact]
         public void TestQueryDocumentExpiration()
@@ -301,7 +303,7 @@ namespace Test
             parameters.GetValue(utcNow.ToShortDateString()).Should().Be(utcNow);
         }
 
-        #if !CBL_NO_EXTERN_FILES
+#if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestNoWhereQuery()
         {
@@ -322,7 +324,7 @@ namespace Test
                 numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
             }
         }
-        #endif
+#endif
 
         [Fact]
         [Obsolete]
@@ -565,7 +567,7 @@ namespace Test
             RunTestWithNumbers(new[] { 5 }, cases);
         }
 
-        #if !CBL_NO_EXTERN_FILES
+#if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestWhereIn()
         {
@@ -736,7 +738,8 @@ namespace Test
                 }
             }
         }
-        
+
+#if !SANITY_ONLY
         [Fact]
         public void TestQueryObserver()
         {
@@ -749,6 +752,7 @@ namespace Test
             TestQueryObserverWithQuery(query, isLegacy: true);
             query.Dispose();
         }
+#endif
 
         [Fact]
         public void TestMultipleQueryObservers()
@@ -778,7 +782,7 @@ namespace Test
             query.Dispose();
         }
 
-        #endif
+#endif
 
         [Fact]
         public void TestSelectDistinct()
@@ -832,11 +836,13 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public async Task TestLiveQueryNoUpdate() => await TestLiveQueryNoUpdateInternal(false);
 
         [Fact]
         public async Task TestLiveQueryNoUpdateConsumeAll() => await TestLiveQueryNoUpdateInternal(true);
+#endif
 
         [Fact]
         public void TestJoin()
@@ -986,7 +992,7 @@ namespace Test
             }
         }
 
-        #if !CBL_NO_EXTERN_FILES
+#if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestGroupBy()
         {
@@ -1045,7 +1051,7 @@ namespace Test
                 numRows.Should().Be(15);
             }
         }
-        #endif
+#endif
 
         [Fact]
         public void TestParameters()
@@ -1238,7 +1244,7 @@ namespace Test
             }
         }
 
-        #if !CBL_NO_EXTERN_FILES
+#if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestQueryResult()
         {
@@ -1267,7 +1273,7 @@ namespace Test
                 numRows.Should().Be(100);
             }
         }
-        #endif
+#endif
 
         [Fact]
         public void TestQueryProjectingKeys()
@@ -1431,7 +1437,7 @@ namespace Test
             }
         }
 
-        #if !CBL_NO_EXTERN_FILES
+#if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestQuantifiedOperators()
         {
@@ -1466,7 +1472,7 @@ namespace Test
                 received.Count.Should().Be(0, "because nobody likes taxes...");
             }
         }
-        #endif
+#endif
 
         [Fact]
         public void TestQuantifiedOperatorVariableKeyPath()

@@ -539,6 +539,7 @@ Transfer-Encoding: chunked";
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public async Task TestSerialQueue()
         {
@@ -558,6 +559,7 @@ Transfer-Encoding: chunked";
             Volatile.Write(ref testBool, true);
             (await t).Should().BeTrue();
         }
+#endif
 
         [Fact]
         public void TestAutoconvertJson()
@@ -640,7 +642,7 @@ Transfer-Encoding: chunked";
             }
         }
 
-        #if !NETCOREAPP3_1_OR_GREATER
+#if !NETCOREAPP3_1_OR_GREATER && !NET462_OR_GREATER
 
         [Fact]
         public async Task TestMainThreadScheduler()
@@ -657,7 +659,7 @@ Transfer-Encoding: chunked";
 
 #else
 
-        #endif
+#endif
 
         [Fact]
         public void TestCBDebugItemsMustNotBeNull()

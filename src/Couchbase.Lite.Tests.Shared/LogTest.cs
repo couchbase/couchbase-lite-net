@@ -208,6 +208,7 @@ namespace Test
             });
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestLogFilename()
         {
@@ -220,6 +221,7 @@ namespace Test
                 allFiles.Any(x => !regex.IsMatch(x)).Should().BeFalse("because all files should match the pattern");
             });
         }
+#endif
 
         [Fact]
         public void TestLogHeader()
@@ -252,7 +254,7 @@ namespace Test
             });
         }
 
-        #if !__ANDROID__ && !__IOS__
+#if !__ANDROID__ && !__IOS__
         [Fact]
         public void TestConsoleLoggingLevels()
         {
@@ -341,7 +343,7 @@ namespace Test
             
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
         }
-        #endif
+#endif
 
         [Fact]
         public void TestCustomLoggingLevels()

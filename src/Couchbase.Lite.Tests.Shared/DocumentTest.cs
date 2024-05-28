@@ -1901,6 +1901,7 @@ namespace Test
             DefaultCollection.GetDocumentExpiration("doc3").Should().Be(null);
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestSetExpirationOnDoc()
         {
@@ -1939,6 +1940,7 @@ namespace Test
                     .Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
             }
         }
+#endif
 
         [Fact]
         public void TestGetExpirationFromDeletedDoc()
@@ -1988,6 +1990,7 @@ namespace Test
             }
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestSetAndUnsetExpirationOnDoc()
         {
@@ -2042,6 +2045,7 @@ namespace Test
                 DefaultCollection.GetDocument("doc3").Should().BeNull();
             }).Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
         }
+#endif
 
         [Fact]
         public void TestExpireNow()
@@ -2058,6 +2062,7 @@ namespace Test
             DefaultCollection.GetDocument(docId).Should().BeNull("because the purge should happen immediately");
         }
 
+#if !SANITY_ONLY
         [Fact]
         public void TestPurgeEvent()
         {
@@ -2077,6 +2082,7 @@ namespace Test
                 mre.Dispose();
             }
         }
+#endif
 
         [Fact]
         public void TestRevisionIDNewDoc()
