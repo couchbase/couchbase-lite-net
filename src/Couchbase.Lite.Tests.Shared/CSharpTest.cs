@@ -398,7 +398,7 @@ Transfer-Encoding: chunked";
             logic.Credential.Password = "newpassword";
             logic.Credential.UserName.Should().Be("newuser");
             logic.Credential.Password.Should().Be("newpassword");
-            var proxyRequest = logic.ProxyRequest("", "");
+            var proxyRequest = logic.ProxyRequest();
             logic.HasProxy = false;
         }
 
