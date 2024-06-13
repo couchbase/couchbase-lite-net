@@ -46,6 +46,10 @@ namespace LiteCore.Interop
 
         public static void c4keypair_release(C4KeyPair* keyPair) => c4base_release(keyPair);
 
+        public static void c4index_release(C4Index* index) => c4base_release(index);
+
+        public static void c4indexupdater_release(C4IndexUpdater* indexUpdater) => c4base_release(indexUpdater);
+
         public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
     }
 
