@@ -22,6 +22,7 @@
 // </auto-generated>
 // --------------------------------------------------
 
+#nullable enable
 #pragma warning disable IDE0051 // Remove unused private members
 #pragma warning disable IDE0044 // Add readonly modifier
 #pragma warning disable CS0649  // Member never assigned to

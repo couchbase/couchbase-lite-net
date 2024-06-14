@@ -22,6 +22,8 @@
 // </auto-generated>
 // --------------------------------------------------
 
+#nullable enable
+
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
