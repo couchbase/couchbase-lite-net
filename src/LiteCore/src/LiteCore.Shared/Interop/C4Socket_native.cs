@@ -58,8 +58,10 @@ namespace LiteCore.Interop
             }
         }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount);
+        public static void c4socket_completedWrite(C4Socket* socket, ulong byteCount)
+        {
+            NativeRaw.c4socket_completedWrite(socket, (UIntPtr)byteCount);
+        }
 
         public static void c4socket_received(C4Socket* socket, byte[]? data)
         {
@@ -78,6 +80,9 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_received(C4Socket* socket, FLSlice data);

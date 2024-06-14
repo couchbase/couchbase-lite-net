@@ -40,22 +40,28 @@ namespace LiteCore.Interop
             }
         }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4IndexUpdater* c4index_beginUpdate(C4Index* index, UIntPtr limit, C4Error* outError);
+        public static C4IndexUpdater* c4index_beginUpdate(C4Index* index, ulong limit, C4Error* outError)
+        {
+            return NativeRaw.c4index_beginUpdate(index, (UIntPtr)limit, outError);
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern UIntPtr c4indexupdater_count(C4IndexUpdater* updater);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLValue* c4indexupdater_valueAt(C4IndexUpdater* updater, UIntPtr i);
+        public static FLValue* c4indexupdater_valueAt(C4IndexUpdater* updater, ulong i)
+        {
+            return NativeRaw.c4indexupdater_valueAt(updater, (UIntPtr)i);
+        }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4indexupdater_setVectorAt(C4IndexUpdater* updater, UIntPtr i, float* vector, UIntPtr dimension, C4Error* outError);
+        public static bool c4indexupdater_setVectorAt(C4IndexUpdater* updater, ulong i, float* vector, ulong dimension, C4Error* outError)
+        {
+            return NativeRaw.c4indexupdater_setVectorAt(updater, (UIntPtr)i, vector, (UIntPtr)dimension, outError);
+        }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4indexupdater_skipVectorAt(C4IndexUpdater* updater, UIntPtr i);
+        public static bool c4indexupdater_skipVectorAt(C4IndexUpdater* updater, ulong i)
+        {
+            return NativeRaw.c4indexupdater_skipVectorAt(updater, (UIntPtr)i);
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -69,6 +75,20 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4coll_isIndexTrained(C4Collection* collection, FLSlice name, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4IndexUpdater* c4index_beginUpdate(C4Index* index, UIntPtr limit, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLValue* c4indexupdater_valueAt(C4IndexUpdater* updater, UIntPtr i);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4indexupdater_setVectorAt(C4IndexUpdater* updater, UIntPtr i, float* vector, UIntPtr dimension, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4indexupdater_skipVectorAt(C4IndexUpdater* updater, UIntPtr i);
 
 
     }

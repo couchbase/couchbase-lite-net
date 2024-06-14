@@ -70,8 +70,11 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4ReadStream* c4blob_openReadStream(C4BlobStore* store, C4BlobKey key, C4Error* outError);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UIntPtr c4stream_read(C4ReadStream* stream, [Out]byte[] buffer, UIntPtr maxBytesToRead, C4Error* outError);
+        public static ulong c4stream_read(C4ReadStream *stream, byte[] buffer, int count, C4Error *outError)
+        {
+            return NativeRaw.c4stream_read(stream, buffer, (UIntPtr)count, outError).ToUInt64();
+        }
+
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern long c4stream_getLength(C4ReadStream* stream, C4Error* outError);
@@ -83,9 +86,11 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4WriteStream* c4blob_openWriteStream(C4BlobStore* store, C4Error* outError);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return:MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4stream_write(C4WriteStream* stream, byte[] bytes, UIntPtr length, C4Error* outError);
+        public static bool c4stream_write(C4WriteStream* stream, byte[] bytes, ulong length, C4Error* outError)
+        {
+            return NativeRaw.c4stream_write(stream, bytes, (UIntPtr)length, outError);
+        }
+
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4BlobKey c4stream_computeBlobKey(C4WriteStream* stream);
@@ -112,6 +117,13 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4blob_create(C4BlobStore* store, FLSlice contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern UIntPtr c4stream_read(C4ReadStream* stream, [Out]byte[] buffer, UIntPtr maxBytesToRead, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return:MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4stream_write(C4WriteStream* stream, byte[] bytes, UIntPtr length, C4Error* outError);
 
 
     }

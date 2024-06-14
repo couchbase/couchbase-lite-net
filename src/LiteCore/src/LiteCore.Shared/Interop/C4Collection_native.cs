@@ -80,8 +80,10 @@ namespace LiteCore.Interop
             }
         }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4coll_putDoc(C4Collection* collection, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);
+        public static C4Document* c4coll_putDoc(C4Collection* collection, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError)
+        {
+            return NativeRaw.c4coll_putDoc(collection, request, outCommonAncestorIndex, outError);
+        }
 
         public static C4Document* c4coll_createDoc(C4Collection* collection, string? docID, byte[]? body, C4RevisionFlags revisionFlags, C4Error* error)
         {
@@ -155,6 +157,9 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4coll_getDoc(C4Collection* collection, FLSlice docID, [MarshalAs(UnmanagedType.U1)]bool mustExist, C4DocContentLevel content, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Document* c4coll_putDoc(C4Collection* collection, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4coll_createDoc(C4Collection* collection, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error);
