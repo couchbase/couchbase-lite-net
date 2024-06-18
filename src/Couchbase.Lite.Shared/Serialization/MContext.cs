@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Internal.Serialization
         internal void CheckDisposed()
         {
             if(_disposed) {
-                throw new ObjectDisposedException("MContext was disposed (probably QueryResultSet)");
+                throw new ObjectDisposedException("MContext was disposed (probably QueryResultSet or IIndexUpdater)");
             }
         }
 
