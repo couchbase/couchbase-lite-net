@@ -953,6 +953,8 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        internal bool IsIndexTrained(string name) => LiteCoreBridge.Check(err => Native.c4coll_isIndexTrained(c4coll, name, err));
+
         /// <summary>
         /// Returns false if this collection has been deleted, or its database closed.
         /// </summary>
