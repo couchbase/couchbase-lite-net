@@ -37,6 +37,7 @@ c4coll_getDocExpiration
 c4coll_createIndex
 c4coll_deleteIndex
 c4coll_getIndexesInfo
+c4coll_isIndexTrained
 
 c4db_copyNamed
 c4db_deleteNamed
