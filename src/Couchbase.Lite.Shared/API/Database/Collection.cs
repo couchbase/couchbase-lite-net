@@ -372,6 +372,22 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Gets an existing index in a collection by name.
+        /// </summary>
+        /// <param name="name">The name of the index to retrieve.</param>
+        /// <returns>The index object, or <c>null</c> if nonexistent</returns>
+        public IQueryIndex? GetIndex(string name)
+        {
+            var nativeIndex = (C4Index*)ThreadSafety.DoLockedBridge(err =>
+            {
+                CheckCollectionValid();
+                return Native.c4coll_getIndex(c4coll, name, err);
+            });
+
+            return nativeIndex == null ? null : new QueryIndexImpl(nativeIndex, this, name);
+        }
+
+        /// <summary>
         /// Purges the given <see cref="Document"/> from the collection.  This leaves
         /// no trace behind and will not be replicated
         /// </summary>
