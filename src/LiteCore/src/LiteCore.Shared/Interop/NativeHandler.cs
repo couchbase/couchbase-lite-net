@@ -151,9 +151,10 @@ namespace LiteCore.Interop
         public unsafe bool Execute(C4TryLogicDelegate1 block)
         {
             C4Error err;
-            if(block!(&err) || err.code == 0) {
+            var retVal = block(&err);
+            if (retVal || err.code == 0) {
                 Exception = null;
-                return true;
+                return retVal;
             }
 
             Exception = CouchbaseException.Create(err);
