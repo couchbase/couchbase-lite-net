@@ -378,10 +378,13 @@ namespace Couchbase.Lite
         /// <returns>The index object, or <c>null</c> if nonexistent</returns>
         public IQueryIndex? GetIndex(string name)
         {
-            var nativeIndex = (C4Index*)ThreadSafety.DoLockedBridge(err =>
+            C4Index* nativeIndex = null;
+            ThreadSafety.DoLocked(() =>
             {
                 CheckCollectionValid();
-                return Native.c4coll_getIndex(c4coll, name, err);
+                nativeIndex = (C4Index *)NativeHandler.Create()
+                    .AllowError(new C4Error(C4ErrorCode.MissingIndex))
+                    .Execute(err => Native.c4coll_getIndex(c4coll, name, err));
             });
 
             return nativeIndex == null ? null : new QueryIndexImpl(nativeIndex, this, name);
