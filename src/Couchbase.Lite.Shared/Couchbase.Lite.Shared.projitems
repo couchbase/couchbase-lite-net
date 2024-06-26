@@ -88,6 +88,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IPropertyExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IQuery.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IQueryFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\IQueryIndex.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IResultSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ISelect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ISelectResult.cs" />

@@ -121,6 +121,12 @@ public static partial class Constants {
 #if COUCHBASE_ENTERPRISE
 
 	/// <summary>
+	/// Default value for <see cref="VectorIndexConfiguration.IsLazy" /> (false)
+	/// Vectors are not lazily indexed, by default
+	/// </summary>
+	public static readonly bool DefaultVectorIndexIsLazy = false;
+
+	/// <summary>
 	/// Default value for <see cref="VectorIndexConfiguration.Encoding" /> (ScalarQuantizerType.SQ8)
 	/// Vectors are encoded by using 8-bit Scalar Quantizer encoding, by default
 	/// </summary>

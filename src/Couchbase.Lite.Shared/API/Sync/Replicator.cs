@@ -248,6 +248,11 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Starts the replication
         /// </summary>
+        /// <remarks>
+        /// > [!WARNING] 
+        /// > Calling this function inside of <see cref="Database.InBatch(Action)"/> will result
+        /// > in a deadlock.
+        /// </remarks>
         public void Start()
         {
             Start(false);
@@ -259,6 +264,11 @@ namespace Couchbase.Lite.Sync
         /// <param name="reset">Resets the local checkpoint of the replicator, meaning that it will read all changes since the beginning
         /// of time from the remote database.
         /// </param>
+        /// <remarks>
+        /// > [!WARNING] 
+        /// > Calling this function inside of <see cref="Database.InBatch(Action)"/> will result
+        /// > in a deadlock.
+        /// </remarks>
         public void Start(bool reset)
         {
             var status = default(C4ReplicatorStatus);

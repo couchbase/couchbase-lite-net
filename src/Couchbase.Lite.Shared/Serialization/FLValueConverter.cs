@@ -26,6 +26,7 @@ using LiteCore;
 using LiteCore.Interop;
 using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
@@ -45,7 +46,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Public Methods
 
-        public static object? ToCouchbaseObject(FLValue* value, Database? db, bool dotNetTypes, Type? hintType1 = null)
+        public static object? ToCouchbaseObject(FLValue* value, Database? db, bool dotNetTypes, Type? hintType1 = null, MRoot? root = null)
         {
             switch (Native.FLValue_GetType(value)) {
                 case FLValueType.Array: {
@@ -53,14 +54,14 @@ namespace Couchbase.Lite.Internal.Serialization
                             return ToObject(value, db, 0, hintType1);
                         }
 
-                        var array = new ArrayObject(new FleeceMutableArray(new MValue(value), null), false);
+                        var array = new ArrayObject(new FleeceMutableArray(new MValue(value), root), false);
                         return array;
                     }
                 case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
                         var type = TypeForDict(dict);
                         if (!dotNetTypes && type.buf == null && !IsOldAttachment(dict)) {
-                            return new DictionaryObject(new MDict(new MValue(value), null), false);
+                            return new DictionaryObject(new MDict(new MValue(value), root), false);
                         }
 
                         return ToObject(value, db, 0, hintType1);

@@ -35,6 +35,7 @@ c4coll_purgeDoc
 c4coll_setDocExpiration
 c4coll_getDocExpiration
 c4coll_createIndex
+c4coll_getIndex
 c4coll_deleteIndex
 c4coll_getIndexesInfo
 c4coll_isIndexTrained
@@ -79,6 +80,13 @@ c4query_columnCount
 c4query_columnTitle
 c4query_run
 c4query_explain
+
+c4index_beginUpdate
+c4indexupdater_count
+c4indexupdater_valueAt
+c4indexupdater_setVectorAt
+c4indexupdater_skipVectorAt
+c4indexupdater_finish
 
 c4queryobs_create
 c4queryobs_setEnabled
