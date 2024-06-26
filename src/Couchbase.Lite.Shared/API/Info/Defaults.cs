@@ -139,6 +139,24 @@ public static partial class Constants {
 	public static readonly DistanceMetric DefaultVectorIndexDistanceMetric = DistanceMetric.Euclidean;
 
 	/// <summary>
+	/// Default value for <see cref="VectorIndexConfiguration.MinTrainingSize" /> (0)
+	/// By default, the value will be determined based on the number of centroids, encoding types, and the encoding parameters.
+	/// </summary>
+	public static readonly uint DefaultVectorIndexMinTrainingSize = 0;
+
+	/// <summary>
+	/// Default value for <see cref="VectorIndexConfiguration.MaxTrainingSize" /> (0)
+	/// By default, the value will be determined based on the number of centroids, encoding types, and the encoding parameters
+	/// </summary>
+	public static readonly uint DefaultVectorIndexMaxTrainingSize = 0;
+
+	/// <summary>
+	/// Default value for <see cref="VectorIndexConfiguration.NumProbes" /> (0)
+	/// By default, the value will be determined based on the number of centroids.
+	/// </summary>
+	public static readonly uint DefaultVectorIndexNumProbes = 0;
+
+	/// <summary>
 	/// Default value for <see cref="URLEndpointListenerConfiguration.Port" /> (0)
 	/// No port specified, the OS will assign one
 	/// </summary>
