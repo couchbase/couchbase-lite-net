@@ -35,10 +35,32 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static bool c4coll_isIndexTrained(C4Collection* collection, string? name, C4Error* outError)
+        public static bool c4coll_createIndex(C4Collection* collection, string? name, string? indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
+        {
+            using(var name_ = new C4String(name))
+            using(var indexSpec_ = new C4String(indexSpec)) {
+                return NativeRaw.c4coll_createIndex(collection, name_.AsFLSlice(), indexSpec_.AsFLSlice(), queryLanguage, indexType, indexOptions, outError);
+            }
+        }
+
+        public static C4Index* c4coll_getIndex(C4Collection* collection, string? name, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
-                return NativeRaw.c4coll_isIndexTrained(collection, name_.AsFLSlice(), outError);
+                return NativeRaw.c4coll_getIndex(collection, name_.AsFLSlice(), outError);
+            }
+        }
+
+        public static bool c4coll_deleteIndex(C4Collection* collection, string? name, C4Error* outError)
+        {
+            using(var name_ = new C4String(name)) {
+                return NativeRaw.c4coll_deleteIndex(collection, name_.AsFLSlice(), outError);
+            }
+        }
+
+        public static byte[]? c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError)
+        {
+            using(var retVal = NativeRaw.c4coll_getIndexesInfo(collection, outError)) {
+                return ((FLSlice)retVal).ToArrayFast();
             }
         }
 
@@ -69,6 +91,13 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4indexupdater_finish(C4IndexUpdater* updater, C4Error* outError);
 
+        public static bool c4coll_isIndexTrained(C4Collection* collection, string? name, C4Error* outError)
+        {
+            using(var name_ = new C4String(name)) {
+                return NativeRaw.c4coll_isIndexTrained(collection, name_.AsFLSlice(), outError);
+            }
+        }
+
 
     }
 
@@ -76,7 +105,17 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4coll_isIndexTrained(C4Collection* collection, FLSlice name, C4Error* outError);
+        public static extern bool c4coll_createIndex(C4Collection* collection, FLSlice name, FLSlice indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Index* c4coll_getIndex(C4Collection* collection, FLSlice name, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4coll_deleteIndex(C4Collection* collection, FLSlice name, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4IndexUpdater* c4index_beginUpdate(C4Index* index, UIntPtr limit, C4Error* outError);
@@ -91,6 +130,10 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4indexupdater_skipVectorAt(C4IndexUpdater* updater, UIntPtr i);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4coll_isIndexTrained(C4Collection* collection, FLSlice name, C4Error* outError);
 
 
     }

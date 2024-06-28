@@ -35,10 +35,11 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static void c4_setExtensionPath(string? path)
+        public static bool c4_enableExtension(string? name, string? extensionPath, C4Error* outError)
         {
-            using(var path_ = new C4String(path)) {
-                NativeRaw.c4_setExtensionPath(path_.AsFLSlice());
+            using(var name_ = new C4String(name))
+            using(var extensionPath_ = new C4String(extensionPath)) {
+                return NativeRaw.c4_enableExtension(name_.AsFLSlice(), extensionPath_.AsFLSlice(), outError);
             }
         }
 
@@ -106,7 +107,8 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4_setExtensionPath(FLSlice path);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4_enableExtension(FLSlice name, FLSlice extensionPath, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Database* c4db_openNamed(FLSlice name, C4DatabaseConfig2* config, C4Error* outError);

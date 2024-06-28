@@ -133,6 +133,7 @@ if __name__ == "__main__":
             elif re.search("typedef struct.*?{", line):
                 in_typedef_struct = True
             else:
+                line = line.replace("NODISCARD", "")
                 normal_struct = re.search(r'struct (\S*) {', line)
                 if normal_struct:
                     struct_type = normal_struct.group(1)
@@ -140,7 +141,7 @@ if __name__ == "__main__":
                     continue
 
                 opaque = re.search("typedef (?:const )?struct (\\S*)\\s+\\*?(\\S*);", line)
-                if opaque:
+                if opaque and opaque.group(2) not in structs:
                     structs[opaque.group(2)] = []
 
         if len(structs) == 0 and len(enums) == 0:
