@@ -116,35 +116,6 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4coll_createIndex(C4Collection* collection, string? name, string? indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
-        {
-            using(var name_ = new C4String(name))
-            using(var indexSpec_ = new C4String(indexSpec)) {
-                return NativeRaw.c4coll_createIndex(collection, name_.AsFLSlice(), indexSpec_.AsFLSlice(), queryLanguage, indexType, indexOptions, outError);
-            }
-        }
-
-        public static C4Index* c4coll_getIndex(C4Collection* collection, string? name, C4Error* outError)
-        {
-            using(var name_ = new C4String(name)) {
-                return NativeRaw.c4coll_getIndex(collection, name_.AsFLSlice(), outError);
-            }
-        }
-
-        public static bool c4coll_deleteIndex(C4Collection* collection, string? name, C4Error* outError)
-        {
-            using(var name_ = new C4String(name)) {
-                return NativeRaw.c4coll_deleteIndex(collection, name_.AsFLSlice(), outError);
-            }
-        }
-
-        public static byte[]? c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError)
-        {
-            using(var retVal = NativeRaw.c4coll_getIndexesInfo(collection, outError)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
-
 
     }
 
@@ -176,20 +147,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern long c4coll_getDocExpiration(C4Collection* collection, FLSlice docID, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4coll_createIndex(C4Collection* collection, FLSlice name, FLSlice indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Index* c4coll_getIndex(C4Collection* collection, FLSlice name, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4coll_deleteIndex(C4Collection* collection, FLSlice name, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError);
 
 
     }
