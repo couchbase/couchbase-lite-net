@@ -1,9 +1,8 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="MSBuild.Sdk.Extras">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <TargetFrameworks>net8.0-android;monoandroid10.0</TargetFrameworks>
+    <TargetFramework>net8.0-android</TargetFramework>
     <SupportedOSPlatformVersion>22.0</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
@@ -34,6 +33,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>$(DefineConstants);NET_ANDROID</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
     <OutputPath>bin\Packaging\</OutputPath>
@@ -43,9 +43,6 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.Android.xml</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup Condition="$(TargetFramework.StartsWith('net8.0-android'))">
-    <DefineConstants>$(DefineConstants);NET_ANDROID</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Activate.cs" />
@@ -72,8 +69,6 @@
       <PackagePath>runtimes\android-x64\native</PackagePath>
       <Link>x86_64\libLiteCore.so</Link>
     </None>
-    <None Include="android.props" Pack="true" PackagePath="build\monoandroid\$(PackageId).props" />
-    <None Include="android.props" Pack="true" PackagePath="buildTransitive\monoandroid\$(PackageId).props" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
