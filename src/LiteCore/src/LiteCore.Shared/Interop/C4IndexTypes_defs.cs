@@ -50,8 +50,10 @@ namespace LiteCore.Interop
     internal enum C4VectorMetricType : uint
     {
         VectorMetricDefault,
-        VectorMetricEuclidean,
+        VectorMetricEuclidean2,
         VectorMetricCosine,
+        VectorMetricEuclidean1,
+        VectorMetricDot,
     }
 
     internal enum C4VectorClusteringType : uint
