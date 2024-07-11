@@ -978,7 +978,15 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal bool IsIndexTrained(string name) => LiteCoreBridge.Check(err => Native.c4coll_isIndexTrained(c4coll, name, err));
+        internal bool IsIndexTrained(string name)
+        {
+            var index = (C4Index *)LiteCoreBridge.Check(err => Native.c4coll_getIndex(c4coll, name, err));
+            try {
+                return LiteCoreBridge.Check(err => Native.c4index_isTrained(index, err));
+            } finally {
+                Native.c4index_release(index);
+            }
+        }
 
         /// <summary>
         /// Returns false if this collection has been deleted, or its database closed.

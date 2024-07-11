@@ -38,7 +38,6 @@ c4coll_createIndex
 c4coll_getIndex
 c4coll_deleteIndex
 c4coll_getIndexesInfo
-c4coll_isIndexTrained
 
 c4db_copyNamed
 c4db_deleteNamed
@@ -82,6 +81,7 @@ c4query_run
 c4query_explain
 
 c4index_beginUpdate
+c4index_isTrained
 c4indexupdater_count
 c4indexupdater_valueAt
 c4indexupdater_setVectorAt
