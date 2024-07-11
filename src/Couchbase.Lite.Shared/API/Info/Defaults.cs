@@ -133,10 +133,10 @@ public static partial class Constants {
 	public static readonly ScalarQuantizerType DefaultVectorIndexEncoding = ScalarQuantizerType.SQ8;
 
 	/// <summary>
-	/// Default value for <see cref="VectorIndexConfiguration.DistanceMetric" /> (DistanceMetric.Euclidean)
-	/// By default, vectors are compared using Euclidean metrics
+	/// Default value for <see cref="VectorIndexConfiguration.DistanceMetric" /> (DistanceMetric.EuclideanSquared)
+	/// By default, vectors are compared using Squared Euclidean metrics
 	/// </summary>
-	public static readonly DistanceMetric DefaultVectorIndexDistanceMetric = DistanceMetric.Euclidean;
+	public static readonly DistanceMetric DefaultVectorIndexDistanceMetric = DistanceMetric.EuclideanSquared;
 
 	/// <summary>
 	/// Default value for <see cref="VectorIndexConfiguration.MinTrainingSize" /> (0)
