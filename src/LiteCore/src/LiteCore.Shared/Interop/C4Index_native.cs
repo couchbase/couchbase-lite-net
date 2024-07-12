@@ -64,6 +64,10 @@ namespace LiteCore.Interop
             }
         }
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4index_isTrained(C4Index* x, C4Error* outError);
+
         public static C4IndexUpdater* c4index_beginUpdate(C4Index* index, ulong limit, C4Error* outError)
         {
             return NativeRaw.c4index_beginUpdate(index, (UIntPtr)limit, outError);
@@ -90,13 +94,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4indexupdater_finish(C4IndexUpdater* updater, C4Error* outError);
-
-        public static bool c4coll_isIndexTrained(C4Collection* collection, string? name, C4Error* outError)
-        {
-            using(var name_ = new C4String(name)) {
-                return NativeRaw.c4coll_isIndexTrained(collection, name_.AsFLSlice(), outError);
-            }
-        }
 
 
     }
@@ -130,10 +127,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4indexupdater_skipVectorAt(C4IndexUpdater* updater, UIntPtr i);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4coll_isIndexTrained(C4Collection* collection, FLSlice name, C4Error* outError);
 
 
     }
