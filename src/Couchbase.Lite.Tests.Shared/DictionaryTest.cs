@@ -16,8 +16,6 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -26,33 +24,24 @@ using Couchbase.Lite.Internal.Doc;
 
 using FluentAssertions;
 using Newtonsoft.Json;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
 
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class DictionaryTest : TestCase
     {
-#if !WINDOWS_UWP
         public DictionaryTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
 
         [Fact]
         public void TestCreateDictionary()
         {
             var address = new MutableDictionaryObject();
-            address.Count.Should().Be(0, "because the dictionary is empty");
+            address.Should().HaveCount(0, "because the dictionary is empty");
             address.ToDictionary().Should().BeEmpty("because the dictionary is empty");
 
             var doc1 = new MutableDocument("doc1");
@@ -63,13 +52,14 @@ namespace Test
 
             DefaultCollection.Save(doc1);
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            gotDoc.GetDictionary("address").ToDictionary().Should().BeEmpty("because the content should not have changed");
+            gotDoc?.GetDictionary("address").Should().NotBeNull("because the document was just saved");
+            gotDoc!.GetDictionary("address")!.ToDictionary().Should().BeEmpty("because the content should not have changed");
         }
 
         [Fact]
         public void TestCreateDictionaryWithCSharpDictionary()
         {
-            var dict = new Dictionary<string, object> {
+            var dict = new Dictionary<string, object?> {
                 ["street"] = "1 Main street",
                 ["city"] = "Mountain View",
                 ["state"] = "CA"
@@ -86,8 +76,8 @@ namespace Test
 
             DefaultCollection.Save(doc1);
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            gotDoc.Should().NotBeNull();
-            gotDoc.GetDictionary("address")
+            gotDoc?.GetDictionary("address").Should().NotBeNull();
+            gotDoc!.GetDictionary("address")!
                 .ToDictionary()
                 .Should().BeEquivalentTo(dict, "because the content should not have changed");
         }
@@ -113,7 +103,8 @@ namespace Test
 
             DefaultCollection.Save(doc);
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            dict = gotDoc.GetDictionary("dict");
+            gotDoc?.GetDictionary("dict").Should().NotBeNull("because the document was just saved");
+            dict = gotDoc!.GetDictionary("dict")!;
             dict.GetInt("key").Should().Be(0, "because that is the default value");
             dict.GetLong("key").Should().Be(0L, "because that is the default value");
             dict.GetDouble("key").Should().Be(0.0, "because that is the default value");
@@ -162,7 +153,8 @@ namespace Test
 
             DefaultCollection.Save(doc);
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            gotDoc.GetDictionary("level1").Should().NotBeSameAs(level1);
+            gotDoc.Should().NotBeNull("because the document was just saved");
+            gotDoc!.GetDictionary("level1").Should().NotBeSameAs(level1);
             gotDoc.ToDictionary().Should().BeEquivalentTo(dict);
         }
 
@@ -181,9 +173,8 @@ namespace Test
                     doc.Count.Should().Be(1);
                     doc.Contains("dict").Should().BeTrue();
                     var d = doc.GetDictionary("dict");
-                    d.Should().NotBeNull();
-                    d.Count.Should().Be(4);
-                    d.Contains("obj-null").Should().BeTrue();
+                    d.Should().HaveCount(4);
+                    d!.Contains("obj-null").Should().BeTrue(); // If null the previous check will fail
                     d.Contains("string-null").Should().BeTrue();
                     d.Contains("array-null").Should().BeTrue();
                     d.Contains("dict-null").Should().BeTrue();
@@ -230,36 +221,37 @@ namespace Test
                 }
             };
 
-            doc.SetData(new Dictionary<string, object> {
+            doc.SetData(new Dictionary<string, object?> {
                 ["dicts"] = data
             });
 
             var dicts = doc.GetArray("dicts");
-            dicts.Count.Should().Be(4, "because that is the number of entries added");
+            dicts.Should().HaveCount(4, "because that is the number of entries added");
 
-            var d1 = dicts.GetDictionary(0);
+            var d1 = dicts!.GetDictionary(0); // This is not null because otherwise the previous check will fail
             var d2 = dicts.GetDictionary(1);
             var d3 = dicts.GetDictionary(2);
             var d4 = dicts.GetDictionary(3);
 
-            d1.GetString("name").Should().Be("1", "because that is what was stored");
-            d2.GetString("name").Should().Be("2", "because that is what was stored");
-            d3.GetString("name").Should().Be("3", "because that is what was stored");
-            d4.GetString("name").Should().Be("4", "because that is what was stored");
+            d1?.GetString("name").Should().Be("1", "because that is what was stored");
+            d2?.GetString("name").Should().Be("2", "because that is what was stored");
+            d3?.GetString("name").Should().Be("3", "because that is what was stored");
+            d4?.GetString("name").Should().Be("4", "because that is what was stored");
 
             DefaultCollection.Save(doc);
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            var savedDicts = gotDoc.GetArray("dicts");
-            savedDicts.Count.Should().Be(4, "because that is the number of entries");
+            gotDoc.Should().NotBeNull("because the document was just saved");
+            var savedDicts = gotDoc!.GetArray("dicts");
+            savedDicts.Should().HaveCount(4, "because that is the number of entries");
 
-            var savedD1 = savedDicts.GetDictionary(0);
-            var savedD2 = savedDicts.GetDictionary(1);
-            var savedD3 = savedDicts.GetDictionary(2);
-            var savedD4 = savedDicts.GetDictionary(3);
-            savedD1.GetString("name").Should().Be("1", "because that is what was stored");
-            savedD2.GetString("name").Should().Be("2", "because that is what was stored");
-            savedD3.GetString("name").Should().Be("3", "because that is what was stored");
-            savedD4.GetString("name").Should().Be("4", "because that is what was stored");
+            var savedD1 = savedDicts?.GetDictionary(0);
+            var savedD2 = savedDicts?.GetDictionary(1);
+            var savedD3 = savedDicts?.GetDictionary(2);
+            var savedD4 = savedDicts?.GetDictionary(3);
+            savedD1?.GetString("name").Should().Be("1", "because that is what was stored");
+            savedD2?.GetString("name").Should().Be("2", "because that is what was stored");
+            savedD3?.GetString("name").Should().Be("3", "because that is what was stored");
+            savedD4?.GetString("name").Should().Be("4", "because that is what was stored");
         }
 
         [Fact]
@@ -285,12 +277,13 @@ namespace Test
 
             DefaultCollection.Save(doc);
             var gotDoc = DefaultCollection.GetDocument("doc1");
+            gotDoc?.GetDictionary("profile").Should().NotBeNull("because it was saved into doc1");
 
-            gotDoc.GetDictionary("profile")
+            gotDoc!.GetDictionary("profile")
                 .Should()
                 .NotBeSameAs(profile2, "because a new MutableDocument should return a new instance");
             var savedProfile2 = gotDoc.GetDictionary("profile");
-            savedProfile2.GetString("name").Should().Be("Daniel Tiger", "because that is what was saved");
+            savedProfile2?.GetString("name").Should().Be("Daniel Tiger", "because that is what was saved");
         }
 
         [Fact]
@@ -313,7 +306,7 @@ namespace Test
 
             DefaultCollection.Save(doc);
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            gotDoc.GetString("profile").Should().Be("Daniel Tiger", "because that is what was saved");
+            gotDoc?.GetString("profile").Should().Be("Daniel Tiger", "because that is what was saved");
         }
 
         [Fact]
@@ -353,7 +346,7 @@ namespace Test
             }
 
             var content = dict.ToDictionary();
-            var result = new Dictionary<string, object>();
+            var result = new Dictionary<string, object?>();
             foreach (var item in dict) {
                 result[item.Key] = item.Value;
             }
@@ -361,7 +354,7 @@ namespace Test
             result.Should().BeEquivalentTo(content, "because that is the correct content");
             content = dict.Remove("key2").SetInt("key20", 20).SetInt("key21", 21).ToDictionary();
 
-            result = new Dictionary<string, object>();
+            result = new Dictionary<string, object?>();
             foreach (var item in dict) {
                 result[item.Key] = item.Value;
             }
@@ -372,9 +365,10 @@ namespace Test
             doc.SetDictionary("dict", dict);
             SaveDocument(doc, d =>
             {
-                result = new Dictionary<string, object>();
+                result = new Dictionary<string, object?>();
                 var dictObj = d.GetDictionary("dict");
-                foreach (var item in dictObj)
+                dictObj.Should().NotBeNull("because it was just saved into the document");
+                foreach (var item in dictObj!)
                 {
                     result[item.Key] = item.Value;
                 }
@@ -395,8 +389,9 @@ namespace Test
                 doc.SetLong("num2", num2);
                 doc.SetLong("num3", num3);
                 DefaultCollection.Save(doc);
-                using (var newDoc = DefaultCollection.GetDocument(doc.Id).ToMutable()) {
-                    newDoc.GetLong("num1").Should().Be(num1);
+                using (var newDoc = DefaultCollection.GetDocument(doc.Id)?.ToMutable()) {
+                    newDoc.Should().NotBeNull("because the document was just saved");
+                    newDoc!.GetLong("num1").Should().Be(num1);
                     newDoc.GetLong("num2").Should().Be(num2);
                     newDoc.GetLong("num3").Should().Be(num3);
                 }
@@ -413,8 +408,9 @@ namespace Test
                 doc.SetLong("num1", num1);
                 doc.SetLong("num2", num2);
                 DefaultCollection.Save(doc);
-                using (var newDoc = DefaultCollection.GetDocument(doc.Id).ToMutable()) {
-                    newDoc.GetLong("num1").Should().Be(num1);
+                using (var newDoc = DefaultCollection.GetDocument(doc.Id)?.ToMutable()) {
+                    newDoc.Should().NotBeNull("because the document was just saved");
+                    newDoc!.GetLong("num1").Should().Be(num1);
                     newDoc.GetLong("num2").Should().Be(num2);
                 }
             }
@@ -438,13 +434,13 @@ namespace Test
                 mDoc.SetDictionary("dict", mDict);
                 
                 DefaultCollection.Save(mDoc);
-                using (var doc = DefaultCollection.GetDocument(mDoc.Id).ToMutable()) {
-                    var dict = doc.GetDictionary("dict");
+                using (var doc = DefaultCollection.GetDocument(mDoc.Id)?.ToMutable()) {
+                    var dict = doc?.GetDictionary("dict");
                     dict.Should().NotBeNull();
-                    dict.GetDictionary("not-exists").Should().BeNull();
+                    dict!.GetDictionary("not-exists").Should().BeNull();
                     var nestedDict = dict.GetDictionary("nestedDict");
                     nestedDict.Should().NotBeNull();
-                    nestedDict.ToDictionary().Should().BeEquivalentTo(mNestedDict.ToDictionary());
+                    nestedDict!.ToDictionary().Should().BeEquivalentTo(mNestedDict.ToDictionary());
                 }
             }
         }
@@ -467,10 +463,10 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 
                 DefaultCollection.Save(mDoc);
-                using (var doc = DefaultCollection.GetDocument(mDoc.Id).ToMutable()) {
-                    var array = doc.GetArray("array");
+                using (var doc = DefaultCollection.GetDocument(mDoc.Id)?.ToMutable()) {
+                    var array = doc?.GetArray("array");
                     array.Should().NotBeNull();
-                    array.GetArray(0).Should().BeNull();
+                    array!.GetArray(0).Should().BeNull();
                     array.GetArray(1).Should().BeNull();
                     array.GetArray(2).Should().BeNull();
                     array.GetArray(3).Should().NotBeNull();
@@ -517,16 +513,17 @@ namespace Test
         public void TestInMemoryDictionary()
         {
             var dict2 = new InMemoryDictionary();
-            IDictionary<string, object> idic = new Dictionary<string, object>();
-            idic.Add("one", 1);
-            idic.Add("two", 2);
-            idic.Add("three", 3);
-            idic.Add("four", 4);
-            idic.Add("five", 5);
-            idic.Add("six", 6);
+            IDictionary<string, object?> idic = new Dictionary<string, object?>
+            {
+                { "one", 1 },
+                { "two", 2 },
+                { "three", 3 },
+                { "four", 4 },
+                { "five", 5 },
+                { "six", 6 }
+            };
             var inmemorydict1 = new InMemoryDictionary(idic);
             inmemorydict1.Count.Should().Be(6);
-            var inmemorydict = new InMemoryDictionary(dict2);
         }
 
         [Fact]
@@ -544,9 +541,10 @@ namespace Test
             }
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                var dict = doc.GetDictionary("dict");
-                var json = dict.ToJSON();
-                ValidateToJsonValues(json, dic);
+                var dict = doc?.GetDictionary("dict");
+                var json = dict?.ToJSON();
+                json.Should().NotBeNull("because otherwise getting JSON from the object failed");
+                ValidateToJsonValues(json!, dic);
             }
         }
 

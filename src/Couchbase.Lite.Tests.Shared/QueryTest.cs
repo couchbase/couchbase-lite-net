@@ -16,13 +16,10 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -38,28 +35,19 @@ using FluentAssertions.Execution;
 using Newtonsoft.Json;
 
 using Test.Util;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public class QueryTest : TestCase
     {
         Type queryTypeExpressionType = typeof(QueryTypeExpression);
 
-#if !WINDOWS_UWP
         public QueryTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
 
         [Fact]
         public void TestMetaRevisionID()
@@ -76,7 +64,7 @@ namespace Test
                     .Where(Meta.ID.EqualTo(Expression.String(docId)))) {
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Be(doc.RevisionID.ToString());
+                        row.GetString(0).Should().Be(doc.RevisionID!.ToString());
                     });
 
                     // Update doc:
@@ -84,7 +72,7 @@ namespace Test
                     DefaultCollection.Save(doc);
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Be(doc.RevisionID.ToString());
+                        row.GetString(0).Should().Be(doc.RevisionID!.ToString());
                     });
                 }
 
@@ -105,7 +93,7 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Be(doc.RevisionID.ToString());
+                        row.GetString(0).Should().Be(doc.RevisionID!.ToString());
                     });
                 }
             }
@@ -296,7 +284,7 @@ namespace Test
         [Fact]
         public void TestParametersWithDictionaryArgument()
         {
-            var dict = new Dictionary<string, object>();
+            var dict = new Dictionary<string, object?>();
             var utcNow = DateTime.UtcNow;
             dict.Add(utcNow.ToShortDateString(), utcNow);
             var parameters = new Parameters(dict);
@@ -315,8 +303,9 @@ namespace Test
                     row.GetString(0).Should().Be(expectedID, "because otherwise the IDs were out of order");
                     row.GetLong(1).Should().Be(n, "because otherwise the sequences were out of order");
 
-                    var doc = DefaultCollection.GetDocument(row.GetString(0));
-                    doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
+                    var doc = DefaultCollection.GetDocument(row.GetString(0)!);
+                    doc.Should().NotBeNull("because the document should be retrievable");
+                    doc!.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
                     doc.Sequence.Should()
                         .Be((ulong)n, "because the sequence on the row should match the document");
                 });
@@ -330,7 +319,7 @@ namespace Test
         [Obsolete]
         public void TestWhereNullOrMissing()
         {
-            MutableDocument doc1 = null, doc2 = null;
+            MutableDocument? doc1 = null, doc2 = null;
             doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
             DefaultCollection.Save(doc1);
@@ -381,7 +370,7 @@ namespace Test
         [Fact]
         public void TestWhereValued()
         {
-            MutableDocument doc1 = null, doc2 = null;
+            MutableDocument? doc1 = null, doc2 = null;
             doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
             DefaultCollection.Save(doc1);
@@ -445,17 +434,17 @@ namespace Test
             var ne7 = new Func<int, bool>(n => n != 7);
             var cases = new[] {
                 Tuple.Create(n1.LessThan(Expression.Int(3)),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)l3),
+                    TestWhereCompareValidator, (object?)l3),
                 Tuple.Create(n1.LessThanOrEqualTo(Expression.Int(3)),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)le3),
+                    TestWhereCompareValidator, (object?)le3),
                 Tuple.Create(n1.GreaterThan(Expression.Int(6)),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)g6),
+                    TestWhereCompareValidator, (object?)g6),
                 Tuple.Create(n1.GreaterThanOrEqualTo(Expression.Int(6)),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)ge6),
+                    TestWhereCompareValidator, (object?)ge6),
                 Tuple.Create(n1.EqualTo(Expression.Int(7)),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)e7),
+                    TestWhereCompareValidator, (object?)e7),
                 Tuple.Create(n1.NotEqualTo(Expression.Int(7)),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)ne7)
+                    TestWhereCompareValidator, (object?)ne7)
             };
 
             LoadNumbers(10);
@@ -480,25 +469,25 @@ namespace Test
             var sn2g0 = new Func<int, int, bool>((x1, x2) => x1 - x2 > 0);
             var cases = new[] {
                 Tuple.Create(n1.Multiply(Expression.Int(2)).GreaterThan(Expression.Int(8)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)m2g8),
+                    TestWhereMathValidator, (object?)m2g8),
                 Tuple.Create(n1.Divide(Expression.Int(2)).GreaterThan(Expression.Int(3)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)d2g3),
+                    TestWhereMathValidator, (object?)d2g3),
                 Tuple.Create(n1.Modulo(Expression.Int(2)).EqualTo(Expression.Int(0)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)m2e0),
+                    TestWhereMathValidator, (object?)m2e0),
                 Tuple.Create(n1.Add(Expression.Int(5)).GreaterThan(Expression.Int(10)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)a5g10),
+                    TestWhereMathValidator, (object?)a5g10),
                 Tuple.Create(n1.Subtract(Expression.Int(5)).GreaterThan(Expression.Int(0)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)s5g0),
+                    TestWhereMathValidator, (object?)s5g0),
                 Tuple.Create(n1.Multiply(n2).GreaterThan(Expression.Int(10)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)mn2g10),
+                    TestWhereMathValidator, (object?)mn2g10),
                 Tuple.Create(n2.Divide(n1).GreaterThan(Expression.Int(3)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)dn1g3),
+                    TestWhereMathValidator, (object?)dn1g3),
                 Tuple.Create(n1.Modulo(n2).EqualTo(Expression.Int(0)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)mn2e0),
+                    TestWhereMathValidator, (object?)mn2e0),
                 Tuple.Create(n1.Add(n2).EqualTo(Expression.Int(10)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)an2e10),
+                    TestWhereMathValidator, (object?)an2e10),
                 Tuple.Create(n1.Subtract(n2).GreaterThan(Expression.Int(0)),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)sn2g0)
+                    TestWhereMathValidator, (object?)sn2g0)
             };
 
             LoadNumbers(10);
@@ -512,9 +501,9 @@ namespace Test
             var n2 = Expression.Property("number2");
             var cases = new[] {
                 Tuple.Create(n1.GreaterThan(Expression.Int(3)).And(n2.GreaterThan(Expression.Int(3))),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereAndValidator, default(object)),
+                    TestWhereAndValidator, default(object)),
                 Tuple.Create(n1.LessThan(Expression.Int(3)).Or(n2.LessThan(Expression.Int(3))),
-                    (Func<IDictionary<string, object>, object, bool>)TestWhereOrValidator, default(object))
+                    TestWhereOrValidator, default(object))
             };
             LoadNumbers(10);
             RunTestWithNumbers(new[] { 3, 5 }, cases);
@@ -533,8 +522,10 @@ namespace Test
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = DefaultCollection.GetDocument(row.GetString(0));
-                    doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
+                    row.GetString(0).Should().NotBeNull("because otherwise the query didn't get correct results");
+                    var doc = DefaultCollection.GetDocument(row.GetString(0)!);
+                    doc.Should().NotBeNull("because otherwise the save failed");
+                    doc!.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
                     doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
                 numRows.Should().Be(1, "beacuse one row matches the given query");
@@ -546,8 +537,10 @@ namespace Test
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = DefaultCollection.GetDocument(row.GetString(0));
-                    doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
+                    row.GetString(0).Should().NotBeNull("because otherwise the query didn't get correct results");
+                    var doc = DefaultCollection.GetDocument(row.GetString(0)!);
+                    doc.Should().NotBeNull("because otherwise the save failed");
+                    doc!.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
                     doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
                 numRows.Should().Be(1, "because one row matches the 'IS NOT' query");
@@ -561,7 +554,7 @@ namespace Test
             var n1 = Expression.Property("number1");
             var cases = new[] {
                 Tuple.Create(n1.Between(Expression.Int(3), Expression.Int(7)), 
-                (Func<IDictionary<string, object>, object, bool>) TestWhereBetweenValidator, (object)null)
+                TestWhereBetweenValidator, default(object))
             };
 
             RunTestWithNumbers(new[] { 5 }, cases);
@@ -931,11 +924,12 @@ namespace Test
                 {
                     var main = r.GetDictionary(0);
                     var secondary = r.GetDictionary(1);
+                    main.Should().NotBeNull("because otherwise main wasn't present in the results");
 
-                    var number1 = main.GetInt("number1");
+                    var number1 = main!.GetInt("number1");
                     if (number1 == 42) {
                         secondary.Should().NotBeNull("because the JOIN matched");
-                        secondary.GetInt("theone").Should().Be(number1, "because this is the join entry");
+                        secondary!.GetInt("theone").Should().Be(number1, "because this is the join entry");
                     } else {
                         secondary.Should().BeNull("because the JOIN didn't match");
                     }
@@ -1115,7 +1109,8 @@ namespace Test
                 var res = q.Execute();
                 foreach (var r in res) {
                     totalBooksCnt++;
-                    var p = r.GetString("$price").Remove(0, 1);
+                    var p = r.GetString("$price")?.Remove(0, 1);
+                    p.Should().NotBeNull("because otherwise the query didn't return correct results");
                     if (Convert.ToInt32(p) < 100)
                         bookPriceLessThan100Cnt++;
                 }
@@ -1155,8 +1150,9 @@ namespace Test
 
                     docID.Should().Be(expectedDocIDs[n - 1]);
                     seq.Should().Be(expectedSeqs[n - 1]);
-                    using (var d = DefaultCollection.GetDocument(docID)) {
-                        revID1.Should().Be(d.RevisionID);
+                    using (var d = DefaultCollection.GetDocument(docID!)) {
+                        d.Should().NotBeNull("because otherwise the document '{doc}' was missing", docID);
+                        revID1.Should().Be(d!.RevisionID);
                     }
                     number.Should().Be(expectedNumbers[n - 1]);
                 });
@@ -1535,7 +1531,8 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     var all = r.GetDictionary(0);
-                    all.GetInt("number1").Should().Be(n);
+                    all.Should().NotBeNull("because otherwise the query returned incorrect results");
+                    all!.GetInt("number1").Should().Be(n);
                     all.GetInt("number2").Should().Be(100 - n);
                     r.GetInt(1).Should().Be(n);
                 });
@@ -1548,7 +1545,8 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     var all = r.GetDictionary(0);
-                    all.GetInt("number1").Should().Be(n);
+                    all.Should().NotBeNull("because otherwise the query returned incorrect results");
+                    all!.GetInt("number1").Should().Be(n);
                     all.GetInt("number2").Should().Be(100 - n);
                     r.GetInt(1).Should().Be(n);
                 });
@@ -1570,13 +1568,14 @@ namespace Test
 
             var locale = (QueryCollation) Collation.Unicode().Locale("ja");
 
-            bothSensitive.SetOperand(Expression.Property("test") as QueryExpression);
-            accentSensitive.SetOperand(Expression.Property("test") as QueryExpression);
-            caseSensitive.SetOperand(Expression.Property("test") as QueryExpression);
-            noSensitive.SetOperand(Expression.Property("test") as QueryExpression);
-            ascii.SetOperand(Expression.Property("test") as QueryExpression);
-            asciiNoSensitive.SetOperand(Expression.Property("test") as QueryExpression);
-            locale.SetOperand(Expression.Property("test") as QueryExpression);
+            var expr = (Expression.Property("test") as QueryExpression)!;
+            bothSensitive.SetOperand(expr);
+            accentSensitive.SetOperand(expr);
+            caseSensitive.SetOperand(expr);
+            noSensitive.SetOperand(expr);
+            ascii.SetOperand(expr);
+            asciiNoSensitive.SetOperand(expr);
+            locale.SetOperand(expr);
 
             bothSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object> {
                 ["UNICODE"] = true,
@@ -1735,7 +1734,7 @@ namespace Test
                             $"because otherwise the comparison failed for {data.Item1} and {data.Item2} (position {i})");
                     }
 
-                    DefaultCollection.Delete(DefaultCollection.GetDocument(doc.Id));
+                    DefaultCollection.Delete(DefaultCollection.GetDocument(doc.Id)!);
                 }
 
                 i++;
@@ -1909,7 +1908,8 @@ namespace Test
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
                         var dict = row.GetDictionary("_default");
-                        dict.GetBoolean("complete").Should().BeTrue();
+                        dict.Should().NotBeNull("because otherwise the query returned incorrect data");
+                        dict!.GetBoolean("complete").Should().BeTrue();
                         dict.GetString("type").Should().Be("task");
                         dict.GetString("title").Should().StartWith("Task ");
                     });
@@ -1924,7 +1924,8 @@ namespace Test
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
                         var dict = row.GetDictionary("_default");
-                        dict.GetBoolean("complete").Should().BeFalse();
+                        dict.Should().NotBeNull("because otherwise the query returned incorrect data");
+                        dict!.GetBoolean("complete").Should().BeFalse();
                         dict.GetString("type").Should().Be("task");
                         dict.GetString("title").Should().StartWith("Task ");
                     });
@@ -1994,12 +1995,12 @@ namespace Test
                     WriteLine($"secondAll1 -> {JsonConvert.SerializeObject(secondAll1)}");
                     WriteLine($"secondAll2 -> {JsonConvert.SerializeObject(secondAll2)}");
 
-                    mainAll1.GetInt("number1").Should().Be(42);
-                    mainAll2.GetInt("number1").Should().Be(42);
-                    mainAll1.GetInt("number2").Should().Be(58);
-                    mainAll1.GetInt("number2").Should().Be(58);
-                    secondAll1.GetInt("theone").Should().Be(42);
-                    secondAll2.GetInt("theone").Should().Be(42);
+                    mainAll1?.GetInt("number1").Should().Be(42);
+                    mainAll2?.GetInt("number1").Should().Be(42);
+                    mainAll1?.GetInt("number2").Should().Be(58);
+                    mainAll1?.GetInt("number2").Should().Be(58);
+                    secondAll1?.GetInt("theone").Should().Be(42);
+                    secondAll2?.GetInt("theone").Should().Be(42);
                 });
 
                 numRows.Should().Be(1);
@@ -2037,8 +2038,10 @@ namespace Test
                 {
                     n.Should().Be(1);
                     var docID = row.GetString("mainDocID");
-                    using (var doc = DefaultCollection.GetDocument(docID)) {
-                        doc.GetInt("number1").Should().Be(1);
+                    docID.Should().NotBeNull("because otherwise the query returned incorrect results");
+                    using (var doc = DefaultCollection.GetDocument(docID!)) {
+                        doc.Should().NotBeNull("because otherwise the document disappeared from the database");
+                        doc!.GetInt("number1").Should().Be(1);
                         doc.GetInt("number2").Should().Be(99);
 
                         row.GetString("secondaryDocID").Should().Be("joinme");
@@ -2076,8 +2079,8 @@ namespace Test
                     result.GetString(1).Should().BeNull();
                     result.GetValue(1).Should().BeNull();
 
-                    result.ToList<object>().Should().ContainInOrder(new object[] { null });
-                    result.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object>
+                    result?.ToList<object?>().Should().ContainInOrder(new object?[] { null });
+                    result?.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object?>
                     {
                         ["nullval"] = null
                     });
@@ -2133,8 +2136,8 @@ namespace Test
                 {
                     row.GetArray(0).Should().ContainInOrder(1L, 2L, 3L);
                     row.GetArray("array").Should().ContainInOrder(1L, 2L, 3L);
-                    row.GetBlob(1).Content.Should().ContainInOrder(blobContent);
-                    row.GetBlob("blob").Content.Should().ContainInOrder(blobContent);
+                    row.GetBlob(1)?.Content.Should().ContainInOrder(blobContent);
+                    row.GetBlob("blob")?.Content.Should().ContainInOrder(blobContent);
                     row.GetDate(2).Should().Be(now);
                     row.GetDate("created_at").Should().Be(now);
                     row.GetFloat(3).Should().Be(3.14159f);
@@ -2200,10 +2203,10 @@ namespace Test
             var longValue = 4294967296L;
             var value = (object)"stringObject";
 
-            DictionaryObject[] resultsDouble;
-            DictionaryObject[] resultsFloat;
-            DictionaryObject[] resultsLong;
-            DictionaryObject[] resultsValue;
+            DictionaryObject?[] resultsDouble;
+            DictionaryObject?[] resultsFloat;
+            DictionaryObject?[] resultsLong;
+            DictionaryObject?[] resultsValue;
 
             using (var document = new MutableDocument("ExpressionTypes")) {
                 document.SetDouble("doubleValue", doubleValue);
@@ -2219,7 +2222,7 @@ namespace Test
                 DefaultCollection.Save(document);
             }
 
-            var v = DefaultCollection.GetDocument("ExpressionTypes").GetDouble("doubleValue");
+            var v = DefaultCollection.GetDocument("ExpressionTypes")?.GetDouble("doubleValue");
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
@@ -2269,8 +2272,8 @@ namespace Test
             var dto1 = 168;
             var dto2 = 68;
 
-            DictionaryObject[] results1;
-            DictionaryObject[] results2;
+            DictionaryObject?[] results1;
+            DictionaryObject?[] results2;
 
             using (var document = new MutableDocument("TestQueryExpression")) {
                 document.SetInt("onesixeight", dto1);
@@ -2328,9 +2331,6 @@ namespace Test
                 var columnName = resultset.ColumnNames;
             }
             resultset.Refresh();
-            var queryTypeExpression = new QueryTypeExpression("doubleValue", ExpressionType.KeyPath);
-            var method = queryTypeExpressionType.GetMethod("CalculateKeyPath", BindingFlags.NonPublic | BindingFlags.Instance);
-            var res = method.Invoke(queryTypeExpression, null);
         }
 
         [ForIssue("#1052")]
@@ -2341,9 +2341,9 @@ namespace Test
             var dto2 = new DateTimeOffset(15, new TimeSpan(0));
             var dto3 = new DateTimeOffset(15000, new TimeSpan(0));
 
-            DictionaryObject[] results1;
-            DictionaryObject[] results2;
-            DictionaryObject[] results3;
+            DictionaryObject?[] results1;
+            DictionaryObject?[] results2;
+            DictionaryObject?[] results3;
 
             using (var document = new MutableDocument("TestQueryDateTimeOffset.1")) {
                 document.SetDate("timestamp", dto1);
@@ -2419,12 +2419,12 @@ namespace Test
                 {
                     if (n == 41) {
                         WriteLine($"41: {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        row.GetDictionary("main").GetInt("number2").Should().Be(59);
+                        row.GetDictionary("main")?.GetInt("number2").Should().Be(59);
                         row.GetDictionary("secondary").Should().BeNull();
                     } else if (n == 42) {
                         WriteLine($"42: {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        row.GetDictionary("main").GetInt("number2").Should().Be(58);
-                        row.GetDictionary("secondary").GetInt("theone").Should().Be(42);
+                        row.GetDictionary("main")?.GetInt("number2").Should().Be(58);
+                        row.GetDictionary("secondary")?.GetInt("theone").Should().Be(42);
                     }
                 });
 
@@ -2799,7 +2799,9 @@ namespace Test
             var rs = query.Execute();
             var r = rs.First();
             var arr1 = r.GetArray("arr");
+            arr1.Should().NotBeNull("because otherwise the query didn't contain 'arr'");
             var dict1 = r.GetDictionary("dict");
+            dict1.Should().NotBeNull("because otherwise the query didn't contain 'dict'");
 
             rs.Dispose();
 
@@ -2808,8 +2810,8 @@ namespace Test
             FluentActions.Invoking(() => r.GetBlob("blob")).Should().Throw<ObjectDisposedException>();
             r.GetInt("int").Should().Be(42);
 
-            FluentActions.Invoking(() => arr1.GetValue(0)).Should().Throw<ObjectDisposedException>();
-            FluentActions.Invoking(() => dict1.GetValue("foo")).Should().Throw<ObjectDisposedException>();
+            FluentActions.Invoking(() => arr1!.GetValue(0)).Should().Throw<ObjectDisposedException>();
+            FluentActions.Invoking(() => dict1!.GetValue("foo")).Should().Throw<ObjectDisposedException>();
             arr.GetInt(0).Should().Be(1);
             dict.GetString("foo").Should().Be("bar");
         }
@@ -2893,38 +2895,38 @@ namespace Test
             }
         }
 
-        private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
+        private bool TestWhereCompareValidator(IDictionary<string, object?> properties, object? context)
         {
-            var ctx = (Func<int, bool>)context;
+            var ctx = (Func<int, bool>)context!;
             return ctx(Convert.ToInt32(properties["number1"]));
         }
 
-        private bool TestWhereMathValidator(IDictionary<string, object> properties, object context)
+        private bool TestWhereMathValidator(IDictionary<string, object?> properties, object? context)
         {
-            var ctx = (Func<int, int, bool>)context;
+            var ctx = (Func<int, int, bool>)context!;
             return ctx(Convert.ToInt32(properties["number1"]), Convert.ToInt32(properties["number2"]));
         }
 
-        private bool TestWhereBetweenValidator(IDictionary<string, object> properties, object context)
+        private bool TestWhereBetweenValidator(IDictionary<string, object?> properties, object? context)
         {
             return Convert.ToInt32(properties["number1"]) >= 3 &&
                    Convert.ToInt32(properties["number1"]) <= 7;
         }
 
-        private bool TestWhereAndValidator(IDictionary<string, object> properties, object context)
+        private bool TestWhereAndValidator(IDictionary<string, object?> properties, object? context)
         {
             return Convert.ToInt32(properties["number1"]) > 3 &&
                    Convert.ToInt32(properties["number2"]) > 3;
         }
 
-        private bool TestWhereOrValidator(IDictionary<string, object> properties, object context)
+        private bool TestWhereOrValidator(IDictionary<string, object?> properties, object? context)
         {
             return Convert.ToInt32(properties["number1"]) < 3 ||
                    Convert.ToInt32(properties["number2"]) < 3;
         }
 
         private void RunTestWithNumbers(IList<int> expectedResultCount,
-            IList<Tuple<IExpression, Func<IDictionary<string, object>, object, bool>, object>> validator)
+            IList<Tuple<IExpression, Func<IDictionary<string, object?>, object?, bool>, object?>> validator)
         {
             int index = 0;
             foreach (var c in validator) {
@@ -2932,8 +2934,10 @@ namespace Test
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {
-                        var doc = DefaultCollection.GetDocument(row.GetString(0));
-                        var props =doc.ToDictionary();
+                        row.GetString(0).Should().NotBeNull("because otherwise the query returned incorrect information");
+                        var doc = DefaultCollection.GetDocument(row.GetString(0)!);
+                        doc.Should().NotBeNull("because otherwise document '{doc}' didn't exist", row.GetString(0));
+                        var props = doc!.ToDictionary();
                         c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
                         lastN = n;
                     });

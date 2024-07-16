@@ -16,35 +16,24 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using FluentAssertions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class ScopeCollectionTest : TestCase
     {
-#if !WINDOWS_UWP
         public ScopeCollectionTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
+
         #region 8.1 Default Scope and Default Collection
 
         [Fact]
@@ -124,9 +113,10 @@ namespace Test
             Db.CreateCollection("colA", "scopeA");
             var scopeA = Db.GetScope("scopeA");
             scopeA.Should().NotBeNull("Because scope scopeA was created in Database two lines ago.");
-            scopeA.Name.Should().Be("scopeA", "the created collection has the correct scope scopeA");
+            scopeA!.Name.Should().Be("scopeA", "the created collection has the correct scope scopeA");
             var colA = scopeA.GetCollection("colA");
-            colA.Name.Should().Be("colA", "the created collections have the correct name colA");
+            colA.Should().NotBeNull("because it was created with scopeA");
+            colA!.Name.Should().Be("colA", "the created collections have the correct name colA");
             var scopes = Db.GetScopes();
             scopes.Contains(scopeA).Should().BeTrue("the created collection’s scope is in the list when calling Database.GetScopes()");
             var collections = Db.GetCollections("scopeA");
@@ -146,8 +136,8 @@ namespace Test
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
             var scope = Db.GetScope("scopeA");
-            scope.GetCollection("colA").Should().Be(colA, "Because collection colA is in scopeA");
-            scope.GetCollection("colB").Should().Be(colB, "Because collection colB is in scopeA");
+            scope?.GetCollection("colA").Should().Be(colA, "Because collection colA is in scopeA");
+            scope?.GetCollection("colB").Should().Be(colB, "Because collection colB is in scopeA");
             //Get all of the created collections by using scope.getCollections() API. Ensure that the collections are returned correctly.
             var cols = Db.GetCollections("scopeA");
             cols.Count.Should().Be(2, "total 2 collection is added in the Database");
@@ -162,7 +152,8 @@ namespace Test
             using (var colA = Db.CreateCollection("colA", "scopeA"))
             using (var colB = Db.CreateCollection("colB", "scopeA")) {
                 var scopeA = Db.GetScope("scopeA");
-                var collectionsInScopeA = scopeA.GetCollections();
+                scopeA.Should().NotBeNull("because it was just created");
+                var collectionsInScopeA = scopeA!.GetCollections();
                 collectionsInScopeA.Count.Should().Be(2, "Because 2 collections were just added in the Database.");
                 collectionsInScopeA.Contains(colA).Should().BeTrue("Because collecton colA is in scopeA");
                 collectionsInScopeA.Contains(colB).Should().BeTrue("Because collecton colB is in scopeA");
@@ -403,9 +394,9 @@ namespace Test
             }
 
             using (var colASame = Db.CreateCollection("colA", "scopeA")) {
-                colASame.GetDocument("doc").GetString("str").Should().Be("string");
-                colASame.GetDocument("doc1").GetString("str1").Should().Be("string1");
-                colASame.GetDocument("doc2").GetString("str2").Should().Be("string2");
+                colASame.GetDocument("doc")?.GetString("str").Should().Be("string");
+                colASame.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
+                colASame.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
             }
         }
 
@@ -457,10 +448,11 @@ namespace Test
 
                 using (var otherDB = OpenDB(Db.Name)) {
                     var colAInOtherDb = otherDB.GetCollection("colA");
-                    colAInOtherDb.Count.Should().Be(3);
+                    colAInOtherDb.Should().NotBeNull("because it was created previously");
+                    colAInOtherDb!.Count.Should().Be(3);
                     var docOfColAInOtherDb = colAInOtherDb.GetDocument("doc");
-                    colAInOtherDb.Count.Should().Be(3);
-                    docOfColAInOtherDb.GetString("str").Should().Be("string");
+                    docOfColAInOtherDb.Should().NotBeNull("because it was saved previously");
+                    docOfColAInOtherDb!.GetString("str").Should().Be("string");
                     colAInOtherDb.Delete(docOfColAInOtherDb);
                 }
 
@@ -497,7 +489,8 @@ namespace Test
 
                 using (var otherDB = OpenDB(Db.Name)) {
                     var colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
-                    colAinOtherDb.Count.Should().Be(3);
+                    colAinOtherDb.Should().NotBeNull("because it was created previously");
+                    colAinOtherDb!.Count.Should().Be(3);
                     Db.DeleteCollection("colA", "scopeA");
                     colAinOtherDb.Count.Should().Be(0);
                     colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
@@ -525,7 +518,8 @@ namespace Test
 
                 using (var otherDB = OpenDB(Db.Name)) {
                     var colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
-                    colAinOtherDb.Count.Should().Be(3);
+                    colAinOtherDb.Should().NotBeNull("because it was created previously");
+                    colAinOtherDb!.Count.Should().Be(3);
                     Db.DeleteCollection("colA", "scopeA");
                     colAinOtherDb.Count.Should().Be(0);
                     colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
@@ -535,9 +529,9 @@ namespace Test
                     var colATheSecondinOtherDb = otherDB.GetCollection("colA", "scopeA");
                     //Ensure that the collection is not null and is different from the instance gotten before from the instanceB when getting the collection from the database instance B by using database.getCollection(name: "colA", scope: "scopeA").
                     colATheSecondinOtherDb.Should().NotBeNull();
-                    colATheSecondinOtherDb.Equals(colAinOtherDb).Should().BeFalse();
+                    colATheSecondinOtherDb.Should().NotBe(colAinOtherDb, "because this is a recreated collection");
                     //Ensure that the collection is included when getting all collections from the database instance B by using database.getCollections(scope: "scopeA").
-                    otherDB.GetCollections("scopeA").FirstOrDefault(x => x.Name == colATheSecond.Name).Should().NotBeNull();
+                    otherDB.GetCollections("scopeA").Should().Contain(colATheSecond);
                 }  
             }
         }
@@ -556,7 +550,7 @@ namespace Test
                     colA.Save(doc);
                 }
 
-                colA.GetDocument("doc").GetString("str").Should().Be("string");
+                colA.GetDocument("doc")?.GetString("str").Should().Be("string");
 
                 Db.DeleteCollection("colA", "scopeA");
 
@@ -626,7 +620,8 @@ namespace Test
 
             using (var otherDB = OpenDB(Db.Name)) {
                 var colA1 = otherDB.GetCollection("colA", "scopeA");
-                colA1.GetDocument("doc").GetString("str").Should().Be("string");
+                colA1.Should().NotBeNull("because it was created previously");
+                colA1!.GetDocument("doc")?.GetString("str").Should().Be("string");
 
                 otherDB.DeleteCollection("colA", "scopeA");
 
@@ -728,10 +723,11 @@ namespace Test
             //GetCollections() empty result
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
                 var scopeA = Db.GetScope("scopeA");//colA.Scope;
+                scopeA.Should().NotBeNull("because it was just created");
 
                 Db.DeleteCollection("colA", "scopeA");
 
-                scopeA.GetCollection("colA").Should().BeNull("Because GetCollection after all collections are deleted.");
+                scopeA!.GetCollection("colA").Should().BeNull("Because GetCollection after all collections are deleted.");
                 scopeA.GetCollections().Count.Should().Be(0, "Because GetCollections after all collections are deleted.");
             }
         }
@@ -750,7 +746,7 @@ namespace Test
                 using (var otherDB = OpenDB(Db.Name)) {
                     otherDB.DeleteCollection("colA", "scopeA");
 
-                    using (var col = scopeA.GetCollection("colA"))
+                    using (var col = scopeA!.GetCollection("colA"))
                         col.Should().BeNull("Because GetCollection after collection colA is deleted from the other db.");
 
                     scopeA.GetCollections().Count.Should().Be(0, "Because GetCollections after collection colA is deleted from the other db.");
@@ -792,14 +788,14 @@ namespace Test
             using (var col = Db.GetCollection("colA"))
             {
                 col.Should().NotBeNull("Existing colA should not be null");
-                col.FullName.Should().Be("_default.colA");
+                col!.FullName.Should().Be("_default.colA");
             }
 
             // 3.5 TestGetFullNameFromExistingCollectionInCustomScope
             using (var col = Db.GetCollection("colA", "scopeA"))
             {
                 col.Should().NotBeNull("Existing colA should not be null");
-                col.FullName.Should().Be("scopeA.colA");
+                col!.FullName.Should().Be("scopeA.colA");
             }
         }
 
@@ -808,21 +804,21 @@ namespace Test
         #region Scope's and Collection's Database
 
         // Spec: https://docs.google.com/document/d/1nUgaCgXIB3lLViudf6Pw6H9nPa_OeYU6uM_9xAd08M0
-
+        [Fact]
         public void TestCollectionDatabase()
         {
             // 3.1 TestGetDatabaseFromNewCollection
             using (var col = Db.CreateCollection("colA", "scopeA"))
             {
                 col.Should().NotBeNull("Created colA should not be null");
-                col.Database.Should().Be(Db);
+                col!.Database.Should().Be(Db);
             }
 
             // 3.2 TestGetDatabaseFromExistingCollection
             using (var col = Db.GetCollection("colA", "scopeA"))
             {
                 col.Should().NotBeNull("Created colA should not be null");
-                col.Database.Should().Be(Db);
+                col!.Database.Should().Be(Db);
             }
         }
 
@@ -842,7 +838,7 @@ namespace Test
             using (var scope = Db.GetScope("scopeA"))
             {
                 scope.Should().NotBeNull("scopeA should not be null");
-                scope.Database.Should().Be(Db);
+                scope!.Database.Should().Be(Db);
             }
         }
 
@@ -962,7 +958,7 @@ namespace Test
 
             scope = Db.GetDefaultScope();
             collection = scope.GetCollection("foo");
-            collection.IsValid.Should().BeTrue("because it still exists in LiteCore");
+            collection?.IsValid.Should().BeTrue("because it still exists in LiteCore");
             defaultCollection = Db.GetDefaultCollection();
             defaultCollection.Should().NotBeNull("because a new object should be created");
             defaultCollection.IsValid.Should().BeTrue("because the new created object should be valid");

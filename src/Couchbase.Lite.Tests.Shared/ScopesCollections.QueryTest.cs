@@ -16,48 +16,26 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 
 using FluentAssertions;
-using FluentAssertions.Execution;
-
-using Newtonsoft.Json;
-
-using Test.Util;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class ScopesCollectionsQueryTest : TestCase
     {
-#if !WINDOWS_UWP
         public ScopesCollectionsQueryTest(ITestOutputHelper output) : base(output)
         {
             
         }
-#endif
 
 
 #if !CBL_NO_EXTERN_FILES
@@ -180,9 +158,9 @@ namespace Test
                     row.GetString(0).Should().Be(expectedID, "because otherwise the IDs were out of order");
                     row.GetLong(1).Should().Be(n, "because otherwise the sequences were out of order");
 
-                    var doc = CollA.GetDocument(row.GetString(0));
-                    doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
-                    doc.Sequence.Should()
+                    var doc = CollA.GetDocument(row.GetString(0)!);
+                    doc?.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
+                    doc?.Sequence.Should()
                         .Be((ulong)n, "because the sequence on the row should match the document");
                 });
 

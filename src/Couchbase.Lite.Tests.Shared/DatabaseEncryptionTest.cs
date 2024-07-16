@@ -16,41 +16,24 @@
 //  limitations under the License.
 //
 
-#nullable disable
 #if COUCHBASE_ENTERPRISE
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using FluentAssertions;
-using LiteCore;
-using LiteCore.Interop;
-using System.Linq;
 using Couchbase.Lite.Query;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public class DatabaseEncryptionTest : TestCase
     {
         private static IDictionary<string, EncryptionKey> KeyCache = new Dictionary<string, EncryptionKey>();
 
-#if !WINDOWS_UWP
         public DatabaseEncryptionTest(ITestOutputHelper output) : base(output)
-#else
-        public DatabaseEncryptionTest()
-#endif
         {
 
         }
@@ -60,7 +43,7 @@ namespace Test
         {
             Database.Delete("seekrit", Directory);
             using (var seekrit = OpenSeekrit(null)) {
-                using (var doc = new MutableDocument(new Dictionary<string, object>
+                using (var doc = new MutableDocument(new Dictionary<string, object?>
                     { ["answer"] = 42 })) {
                     seekrit.GetDefaultCollection().Save(doc);
                 }
@@ -79,7 +62,7 @@ namespace Test
         {
             Database.Delete("seekrit", Directory);
             using (var seekrit = OpenSeekrit("letmein")) {
-                using (var doc = new MutableDocument(new Dictionary<string, object>
+                using (var doc = new MutableDocument(new Dictionary<string, object?>
                     { ["answer"] = 42 })) {
                     seekrit.GetDefaultCollection().Save(doc);
                 }
@@ -122,7 +105,7 @@ namespace Test
         {
             Database.Delete("seekrit", Directory);
             using (var seekrit = OpenSeekrit("letmein")) {
-                using (var doc = new MutableDocument(new Dictionary<string, object>
+                using (var doc = new MutableDocument(new Dictionary<string, object?>
                     { ["answer"] = 42 })) {
                     seekrit.GetDefaultCollection().Save(doc);
                     doc.SetInt("answer", 84);
@@ -189,7 +172,7 @@ namespace Test
         [Fact]
         public void TestRemoveKey() => Rekey("letmein", null);
 
-        private void Rekey(string oldPass, string newPass)
+        private void Rekey(string? oldPass, string? newPass)
         {
             Database.Delete("seekrit", Directory);
             using (var seekrit = TestEncryptedBlobsInternal(oldPass)) {
@@ -197,7 +180,7 @@ namespace Test
                 seekrit.InBatch(() =>
                 {
                     for (var i = 0; i < 100; i++) {
-                        using (var doc = new MutableDocument(new Dictionary<string, object>
+                        using (var doc = new MutableDocument(new Dictionary<string, object?>
                             { ["seq"] = i })) {
                             seekrit.GetDefaultCollection().Save(doc);
                         }
@@ -211,15 +194,17 @@ namespace Test
 
             using(var seekrit = OpenSeekrit(newPass)) {
                 using (var doc = seekrit.GetDefaultCollection().GetDocument("att")) {
-                    var blob = doc.GetBlob("blob");
-                    blob.Digest.Should().NotBeNull();
-                    var content = Encoding.UTF8.GetString(blob.Content);
+                    doc.Should().NotBeNull("because it was saved at the beginning of the test");
+                    var blob = doc!.GetBlob("blob");
+                    blob.Should().NotBeNull("because the blob was saved to the document");
+                    blob!.Digest.Should().NotBeNull("because the blob should have a digest upon save");
+                    blob.Content.Should().NotBeNull("because the blob should not be empty");
+                    var content = Encoding.UTF8.GetString(blob.Content!);
                     content.Should().Be("This is a blob!");
                 }
 
                 using (var q = QueryBuilder.Select(SelectResult.Property("seq"))
                     .From(DataSource.Collection(seekrit.GetDefaultCollection()))
-                    //.Where(Expression.Property("seq").NotNullOrMissing()) //deprecated
                     .Where(Expression.Property("seq").IsValued())
                     .OrderBy(Ordering.Property("seq"))) {
                     var rs = q.Execute();
@@ -233,7 +218,7 @@ namespace Test
             }
         }
 
-        private Database TestEncryptedBlobsInternal(string password)
+        private Database TestEncryptedBlobsInternal(string? password)
         {
             var seekrit = OpenSeekrit(password);
             var body = Encoding.UTF8.GetBytes("This is a blob!");
@@ -244,19 +229,17 @@ namespace Test
                 seekrit.GetDefaultCollection().Save(doc);
 
                 blob = doc.GetBlob("blob");
-                blob.Digest.Should().NotBeNull();
+                blob?.Digest.Should().NotBeNull();
 
-                var fileName = blob.Digest.Substring(5).Replace("/", "_");
+                var fileName = blob!.Digest!.Substring(5).Replace("/", "_");
                 var path = $"{seekrit.Path}Attachments{Path.DirectorySeparatorChar}{fileName}.blob";
                 var raw = File.ReadAllBytes(path);
 
-                // TODO: Uncomment when downstream bug is fixed:
-                // https://github.com/fluentassertions/fluentassertions/issues/1149
-                //if (password != null) {
-                //    raw.Should().NotBeEquivalentTo(body, "because otherwise the attachment was not encrypted");
-                //} else {
-                //    raw.Should().BeEquivalentTo(body, "because otherwise the attachment was encrypted");
-                //}
+                if (password != null) {
+                    raw.Should().NotBeEquivalentTo(body, "because otherwise the attachment was not encrypted");
+                } else {
+                    raw.Should().BeEquivalentTo(body, "because otherwise the attachment was encrypted");
+                }
 
                 if (password == null) {
                     raw.Should().BeEquivalentTo(body, "because otherwise the attachment was encrypted");
@@ -264,16 +247,18 @@ namespace Test
             }
 
             using (var savedDoc = seekrit.GetDefaultCollection().GetDocument("att")) {
-                blob = savedDoc.GetBlob("blob");
-                blob.Digest.Should().NotBeNull();
-                var content = Encoding.UTF8.GetString(blob.Content);
+                blob = savedDoc?.GetBlob("blob");
+                blob.Should().NotBeNull("because the document and blob were saved earlier in the test");
+                blob!.Digest.Should().NotBeNull();
+                blob.Content.Should().NotBeNull("because the blob should not be empty");
+                var content = Encoding.UTF8.GetString(blob.Content!);
                 content.Should().Be("This is a blob!");
             }
 
             return seekrit;
         }
 
-        private Database OpenSeekrit(string password)
+        private Database OpenSeekrit(string? password)
         {
             if(password != null && !KeyCache.ContainsKey(password)) {
                 KeyCache[password] = new EncryptionKey(password);

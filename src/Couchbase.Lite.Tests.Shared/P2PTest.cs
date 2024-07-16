@@ -16,57 +16,28 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 #if COUCHBASE_ENTERPRISE    
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Lite;
-using Couchbase.Lite.Logging;
 
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Query;
 
 using FluentAssertions;
-using LiteCore;
-using LiteCore.Interop;
-
-using Newtonsoft.Json;
-using System.Collections.Immutable;
-
-using Test.Util;
 using Couchbase.Lite.P2P;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-using System.Reflection;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class P2PTest : ReplicatorTestBase
     {
-#if !WINDOWS_UWP
         public P2PTest(ITestOutputHelper output) : base(output)
-#else
-        public P2PTest()
-#endif
         {
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
@@ -115,14 +86,16 @@ namespace Test
                 DefaultCollection.Count.Should().Be(2UL, "because the pull should add the document from otherDB");
 
                 using (var savedDoc = DefaultCollection.GetDocument("livesinotherdb"))
-                using (var mdoc = savedDoc.ToMutable()) {
-                    mdoc.SetBoolean("modified", true);
+                using (var mdoc = savedDoc?.ToMutable()) {
+                    mdoc.Should().NotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
+                    mdoc!.SetBoolean("modified", true);
                     DefaultCollection.Save(mdoc);
                 }
 
                 using (var savedDoc = OtherDefaultCollection.GetDocument("livesindb"))
-                using (var mdoc = savedDoc.ToMutable()) {
-                    mdoc.SetBoolean("modified", true);
+                using (var mdoc = savedDoc?.ToMutable()) {
+                    mdoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                    mdoc!.SetBoolean("modified", true);
                     OtherDefaultCollection.Save(mdoc);
                 }
 
@@ -135,12 +108,14 @@ namespace Test
                 DefaultCollection.Count.Should().Be(2UL, "because no new documents were added");
 
                 using (var savedDoc = DefaultCollection.GetDocument("livesindb")) {
-                    savedDoc.GetBoolean("modified").Should()
+                    savedDoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                    savedDoc!.GetBoolean("modified").Should()
                         .BeTrue("because the property change should have come from the other DB");
                 }
 
                 using (var savedDoc = OtherDefaultCollection.GetDocument("livesinotherdb")) {
-                    savedDoc.GetBoolean("modified").Should()
+                    savedDoc.Should().NotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
+                    savedDoc!.GetBoolean("modified").Should()
                         .BeTrue("because the property change should come from the original DB");
                 }
 
@@ -406,8 +381,10 @@ namespace Test
                     colAOtherDb.Save(doc1);
                 }
 
-                var collsOtherDb = new List<Collection>();
-                collsOtherDb.Add(colAOtherDb);
+                var collsOtherDb = new List<Collection>
+                {
+                    colAOtherDb
+                };
                 var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
                 var server = new MockServerConnection(listener, ProtocolType.ByteStream);
                 var config = new ReplicatorConfiguration(new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
@@ -421,10 +398,10 @@ namespace Test
                 RunReplication(config, 0, 0);
 
                 // Check docs are replicated between collections colADb & colAOtherDb
-                colAOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
-                colAOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
-                colADb.GetDocument("doc2").GetString("str2").Should().Be("string2");
-                colADb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+                colAOtherDb.GetDocument("doc")?.GetString("str").Should().Be("string");
+                colAOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
+                colADb.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
+                colADb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
             }
         }
 
@@ -483,10 +460,10 @@ namespace Test
                 config.AddCollection(DefaultCollection);
 
                 using (var replicator = new Replicator(config)) {
-                    Collection firstSource = null;
-                    Collection secondSource = null;
-                    Collection firstTarget = null;
-                    Collection secondTarget = null;
+                    Collection? firstSource = null;
+                    Collection? secondSource = null;
+                    Collection? firstTarget = null;
+                    Collection? secondTarget = null;
                     if (type == ReplicatorType.Push) {
                         firstSource = Db1.GetDefaultCollection();
                         secondSource = Db1.GetDefaultCollection();
@@ -531,8 +508,9 @@ namespace Test
                     firstTarget.Count.Should().Be(1);
 
                     using (var savedDoc = secondSource.GetDocument("livesindb"))
-                    using (var mdoc = savedDoc.ToMutable()) {
-                        mdoc.SetInt("version", 2);
+                    using (var mdoc = savedDoc?.ToMutable()) {
+                        mdoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                        mdoc!.SetInt("version", 2);
                         secondSource.Save(mdoc);
                     }
 
@@ -552,7 +530,8 @@ namespace Test
                     }
                     
                     using (var savedDoc = secondTarget.GetDocument("livesindb")) {
-                        savedDoc.GetInt("version").Should().Be(2);
+                        savedDoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                        savedDoc!.GetInt("version").Should().Be(2);
                     }
 
                     replicator.Stop();
@@ -566,16 +545,16 @@ namespace Test
         }
 
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
-            EventHandler<DocumentReplicationEventArgs> documentReplicated = null)
+            EventHandler<DocumentReplicationEventArgs>? documentReplicated = null)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
-            var token = _repl.AddChangeListener((sender, args) => {
+            var token = _repl!.AddChangeListener((sender, args) => {
                 _waitAssert.RunConditionalAssert(() => {
                     VerifyChange(args, expectedErrCode, expectedErrDomain);
                     if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
                                           && args.Status.Progress.Completed == args.Status.Progress.Total) {
-                        ((Replicator)sender).Stop();
+                        ((Replicator?)sender)!.Stop();
                     }
 
                     return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -599,9 +578,9 @@ namespace Test
 
         private class MockConnectionFactory : IMessageEndpointDelegate
         {
-            private readonly IMockConnectionErrorLogic _errorLogic;
+            private readonly IMockConnectionErrorLogic? _errorLogic;
 
-            public MockConnectionFactory(IMockConnectionErrorLogic errorLogic)
+            public MockConnectionFactory(IMockConnectionErrorLogic? errorLogic)
             {
                 _errorLogic = errorLogic;
             }

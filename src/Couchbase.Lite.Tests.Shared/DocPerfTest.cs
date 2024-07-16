@@ -16,34 +16,23 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Couchbase.Lite;
 using FluentAssertions;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class DocPerfTest : PerfTest
     {
-#if !WINDOWS_UWP
         public DocPerfTest(ITestOutputHelper output) : base(output)
         {
             
         }
-#endif
 
 #if PERFORMANCE
 
@@ -69,11 +58,12 @@ namespace Test
 
         private void AddRevisions(uint count)
         {
-            var doc = Db.GetDefaultCollection().GetDocument("doc").ToMutable();
+            var doc = Db.GetDefaultCollection().GetDocument("doc")?.ToMutable();
+            doc.Should().NotBeNull("because otherwise the save of the perf test failed");
             Db.InBatch(() =>
             {
                 for (int i = 0; i < count; i++) {
-                    doc.SetInt("count", i);
+                    doc!.SetInt("count", i);
                     Db.GetDefaultCollection().Save(doc);
                 }
             });

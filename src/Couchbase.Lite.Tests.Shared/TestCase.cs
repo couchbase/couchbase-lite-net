@@ -16,49 +16,50 @@
 // limitations under the License.
 // 
 
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Support;
 
 using FluentAssertions;
 using FluentAssertions.Execution;
 
 using Newtonsoft.Json;
 using Test.Util;
-using LiteCore;
-using LiteCore.Interop;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography;
 using System.Text;
 
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal.Doc;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+
+#if !NET6_0_OR_GREATER && (__ANDROID__ || __IOS__)
+namespace System.Diagnostics.CodeAnalysis {
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
+    public sealed class MemberNotNullAttribute : Attribute
+    {
+        public MemberNotNullAttribute(params string[] members)
+        {
+            Members = members;
+        }
+
+        public string[] Members { get; }
+    }
+} 
 #endif
 
 namespace Test
 {
-    #if WINDOWS_UWP
-    [TestClass]
-    #endif
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";
@@ -69,20 +70,10 @@ namespace Test
         internal static readonly ISelectResult Expiration = SelectResult.Expression(Meta.Expiration);
         internal static readonly ISelectResult RevID = SelectResult.Expression(Meta.RevisionID);
 
+        private readonly bool _initializing = true;
+
         protected static int _counter;
-        #if !WINDOWS_UWP
         protected readonly ITestOutputHelper _output;
-        #else
-        private TestContext _testContext;
-        public TestContext TestContext
-        {
-            get => _testContext;
-            set {
-                _testContext = value;
-                Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
-            }
-        }
-        #endif
 
         protected Database Db { get; private set; }
 
@@ -93,37 +84,27 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-        #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__ && !WINUI
+#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__ && !WINUI
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
-        #endif
+#endif
 
-
-
-        #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
             Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
             _output = output;
-        #else
-        public TestCase()
-        { 
-        #endif
             var nextCounter = Interlocked.Increment(ref _counter);
             Database.Delete($"{DatabaseName}{nextCounter}", Directory);
-            OpenDB(nextCounter);
+            Db = OpenNextDB(nextCounter);
             CollA = Db.CreateCollection("CollA");
+            _initializing = false;
         }
 
         protected void WriteLine(string line)
         {
-            #if !WINDOWS_UWP
             _output.WriteLine(line ?? "<null>");
-            #else
-            TestContext.WriteLine(line ?? "<null>");
-            #endif
         }
 
 
@@ -133,15 +114,16 @@ namespace Test
             eval(document);
             DefaultCollection.Save(document);
             using (var retVal = DefaultCollection.GetDocument(document.Id)) {
+                retVal.Should().NotBeNull("because otherwise the save failed");
                 WriteLine("After Save...");
-                eval(retVal);
+                eval(retVal!);
             }
         }
 
         protected void LoadNumbers(int num)
         {
-            var numbers = new List<IDictionary<string, object>>();
-            Db.InBatch(() =>
+            var numbers = new List<IDictionary<string, object?>>();
+            Db!.InBatch(() =>
             {
                 for (int i = 1; i <= num; i++) {
                     var docID = $"doc{i}";
@@ -165,13 +147,13 @@ namespace Test
             }
         }
 
-        protected void OpenDB(int count)
+        protected Database OpenNextDB(int count)
         {
-            if(Db != null) {
+            if(!_initializing) {
                 throw new InvalidOperationException();
             }
             
-            Db = OpenDB($"{DatabaseName}{count}");
+            return OpenDB($"{DatabaseName}{count}");
         }
 
         protected Database OpenDB(string name)
@@ -184,9 +166,10 @@ namespace Test
             return new Database(name, builder);
         }
 
+        [MemberNotNull("Db")]
         protected void ReopenDB()
         {
-            Db.Dispose();
+            Db!.Dispose();
             Db = OpenDB(Db.Name);
         }
 
@@ -195,14 +178,15 @@ namespace Test
             DefaultCollection.Save(document);
 
             using (var savedDoc = DefaultCollection.GetDocument(document.Id)) {
-                savedDoc.Id.Should().Be(document.Id);
+                savedDoc.Should().NotBeNull("because otherwise the save failed");
+                savedDoc!.Id.Should().Be(document.Id);
                 if (!TestObjectEquality(document.ToDictionary(), savedDoc.ToDictionary())) {
                     throw new AssertionFailedException($"Expected the saved document to match the original");
                 }
             }
         }
 
-        internal void ValidateValuesInMutableDictFromJson(Dictionary<string, object> dic, IMutableDictionary md)
+        internal void ValidateValuesInMutableDictFromJson(Dictionary<string, object?> dic, IMutableDictionary md)
         {
             foreach (var kvPair in dic) {
                 switch (kvPair.Key) {
@@ -222,33 +206,33 @@ namespace Test
                         Convert.ToInt64(md.GetValue(kvPair.Key)).Should().Be(Convert.ToInt64(kvPair.Value));
                         break;
                     case "boolVal":
-                        md.GetBoolean(kvPair.Key).Should().Be((bool) kvPair.Value);
+                        md.GetBoolean(kvPair.Key).Should().Be((bool) kvPair.Value!);
                         break;
                     case "stringVal":
-                        md.GetString(kvPair.Key).Should().Be((string) kvPair.Value);
+                        md.GetString(kvPair.Key).Should().Be((string) kvPair.Value!);
                         break;
                     case "floatVal":
-                        md.GetFloat(kvPair.Key).Should().BeApproximately((float) kvPair.Value, 0.0000000001f);
+                        md.GetFloat(kvPair.Key).Should().BeApproximately((float) kvPair.Value!, 0.0000000001f);
                         break;
                     case "doubleVal":
-                        md.GetDouble(kvPair.Key).Should().BeApproximately((double) kvPair.Value, 0.00001);
+                        md.GetDouble(kvPair.Key).Should().BeApproximately((double) kvPair.Value!, 0.00001);
                         break;
                     case "dateTimeOffset":
-                        md.GetDate(kvPair.Key).Should().Be((DateTimeOffset) kvPair.Value);
+                        md.GetDate(kvPair.Key).Should().Be((DateTimeOffset) kvPair.Value!);
                         break;
                     case "array":
-                        md.GetArray(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value));
-                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value));
+                        md.GetArray(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value!));
+                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value!));
                         break;
                     case "dictionary":
-                        md.GetDictionary(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>) kvPair.Value));
-                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>) kvPair.Value));
+                        md.GetDictionary(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
+                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
                         break;
                     case "blob":
                         md.GetBlob(kvPair.Key).Should().BeNull("Because we are getting a dictionary represents Blob object back.");
-                        var di = ((MutableDictionaryObject) md.GetValue(kvPair.Key)).ToDictionary();
+                        var di = ((MutableDictionaryObject?) md.GetValue(kvPair.Key))!.ToDictionary();
                         Blob.IsBlob(di).Should().BeTrue();
-                        di.Should().BeEquivalentTo(((Blob) dic[kvPair.Key]).JsonRepresentation);
+                        di.Should().BeEquivalentTo(((Blob) dic[kvPair.Key]!).JsonRepresentation);
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");
@@ -257,24 +241,28 @@ namespace Test
         }
 
 
-        internal void ValidateToJsonValues(string json, Dictionary<string, object> dic)
+        internal void ValidateToJsonValues(string json, Dictionary<string, object?> dic)
         {
             var jdic = DataOps.ParseTo<Dictionary<string, object>>(json);
+            jdic.Should().NotBeNull("because otherwise DataOps.ParseTo failed");
             foreach (var i in dic) {
                 if (i.Key == "blob") {
-                    var b1JsonD = ((JObject) jdic[i.Key]).ToObject<IDictionary<string, object>>();
-                    var b2JsonD = ((Blob) dic[i.Key]).JsonRepresentation;
+                    var b1JsonD = ((JObject) jdic![i.Key]).ToObject<IDictionary<string, object?>>();
+                    b1JsonD.Should().NotBeNull("because otherwise ToObject failed");
+                    var b2JsonD = ((Blob?) dic[i.Key])!.JsonRepresentation;
 
                     foreach (var kv in b2JsonD) {
-                        b1JsonD[kv.Key].ToString().Should().Be(kv.Value.ToString());
+                        var hasValue = b1JsonD!.TryGetValue(kv.Key, out var gotValue);
+                        hasValue.Should().BeTrue("because otherwise b1JsonD is missing the key {key}", kv.Key);
+                        gotValue!.ToString().Should().Be(kv.Value?.ToString());
                     }
 
-                    var blob = new Blob(Db, b1JsonD);
-                    blob.Should().BeEquivalentTo((Blob) dic[i.Key]);
+                    var blob = new Blob(Db!, b1JsonD!);
+                    blob.Should().BeEquivalentTo((Blob) dic[i.Key]!);
                 } else if (i.Key == "floatVal") {
-                    (DataOps.ConvertToFloat(jdic[i.Key])).Should().BeApproximately((float) dic[i.Key], 0.0000000001f);
+                    (DataOps.ConvertToFloat(jdic![i.Key])).Should().BeApproximately((float) dic[i.Key]!, 0.0000000001f);
                 } else {
-                    (DataOps.ToCouchbaseObject(jdic[i.Key])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
+                    (DataOps.ToCouchbaseObject(jdic![i.Key])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
                 }
             }
         }
@@ -291,15 +279,15 @@ namespace Test
         /// bool, string, DateTimeOffset, Blob, a one-dimensional array 
         /// or a dictionary whose members are one of the preceding types.
         /// </summary>
-        protected Dictionary<string, object> PopulateDictData()
+        protected Dictionary<string, object?> PopulateDictData()
         {
             var dt = DateTimeOffset.UtcNow;
             var arr = new List<int> { 1, 2, 3 };
             var dict = new Dictionary<string, object> { ["foo"] = "bar" };
             var blob = ArrayTestBlob();
-            Db.SaveBlob(blob);
+            Db!.SaveBlob(blob);
 
-            var KeyValueDictionary = new Dictionary<string, object>()
+            var KeyValueDictionary = new Dictionary<string, object?>()
             {
                 { "nullObj", null },
                 { "byteVal", (byte) 1 },
@@ -329,15 +317,15 @@ namespace Test
         /// bool, string, DateTimeOffset, Blob, a one-dimensional array 
         /// or a dictionary whose members are one of the preceding types.
         /// </summary>
-        internal List<object> PopulateArrayData()
+        internal List<object?> PopulateArrayData()
         {
             var dt = DateTimeOffset.UtcNow;
             var arr = new List<int> { 1, 2, 3 };
-            var dict = new Dictionary<string, object> { ["foo"] = "bar" };
+            var dict = new Dictionary<string, object?> { ["foo"] = "bar" };
             var blob = ArrayTestBlob();
-            Db.SaveBlob(blob);
+            Db!.SaveBlob(blob);
 
-            var array = new List<object> {
+            var array = new List<object?> {
                 null,
                 (byte) 1,
                 (sbyte) 1,
@@ -360,49 +348,49 @@ namespace Test
             return array;
         }
 
-        private bool TestObjectEquality(object o1, object o2)
+        private bool TestObjectEquality(object? o1, object? o2)
         {
             switch (o1) {
-                case IEnumerable<KeyValuePair<string, object>> e:
-                    return TestObjectEquality(e, o2 as IEnumerable<KeyValuePair<string, object>>);
+                case IEnumerable<KeyValuePair<string, object?>> e:
+                    return TestObjectEquality(e, o2 as IEnumerable<KeyValuePair<string, object?>>);
                 case int[] arr:
                     var cnt = arr.Count();
                     var en = o2 as IEnumerable<object>;
                     for (int i = 0; i < cnt; i++) {
-                        if (!arr[i].Equals(en.ElementAt(i))) {
+                        if (!arr[i].Equals(en?.ElementAt(i))) {
                             return false;
                         }
                     }
 
                     return true;
-                case IEnumerable<object> e:
-                    return TestObjectEquality(o1 as IEnumerable<object>, o2 as IEnumerable<object>);
-                case byte b:
-                case ushort us:
-                case uint ui:
-                case ulong ul:
+                case IEnumerable<object?> e:
+                    return TestObjectEquality(e, o2 as IEnumerable<object?>);
+                case byte:
+                case ushort:
+                case uint:
+                case ulong:
                     try {
                         return Equals(Convert.ToUInt64(o1), Convert.ToUInt64(o2));
                     } catch (FormatException) {
                         return false;
                     }
-                case sbyte sb:
-                case short s:
-                case int i:
-                case long l:
+                case sbyte:
+                case short:
+                case int:
+                case long:
                     try {
                         return Equals(Convert.ToInt64(o1), Convert.ToInt64(o2));
                     } catch (FormatException) {
                         return false;
                     }
-                case float f:
-                case double d:
+                case float:
+                case double:
                     try {
                         return Equals(Convert.ToDouble(o1), Convert.ToDouble(o2));
                     } catch (FormatException) {
                         return false;
                     }
-                case DateTimeOffset dt:
+                case DateTimeOffset:
                     try {
                         return Equals(DataOps.ToCouchbaseObject(o1), o2);
                     } catch (FormatException) {
@@ -413,9 +401,9 @@ namespace Test
             }
         }
 
-        private bool TestObjectEquality(IEnumerable<KeyValuePair<string, object>> dic1, IEnumerable<KeyValuePair<string, object>> dic2)
+        private bool TestObjectEquality(IEnumerable<KeyValuePair<string, object?>>? dic1, IEnumerable<KeyValuePair<string, object?>>? dic2)
         {
-            if (dic2 == null) {
+            if (dic1 == null || dic2 == null) {
                 return false;
             }
 
@@ -434,9 +422,9 @@ namespace Test
             return true;
         }
 
-        private bool TestObjectEquality(IEnumerable<object> arr1, IEnumerable<object> arr2)
+        private bool TestObjectEquality(IEnumerable<object?>? arr1, IEnumerable<object?>? arr2)
         {
-            if (arr2 == null) {
+            if (arr1 == null || arr2 == null) {
                 return false;
             }
 
@@ -452,11 +440,10 @@ namespace Test
 
         protected virtual void Dispose(bool disposing)
         {
-            CollA?.Dispose();
-            Exception ex = null;
-            var name = Db?.Name;
-            Db?.Close();
-            Db = null;
+            CollA.Dispose();
+            Exception? ex = null;
+            var name = Db.Name;
+            Db.Close();
 
             Database.Log.Custom = null;
 
@@ -474,11 +461,11 @@ namespace Test
             }).Times(5).Delay(TimeSpan.FromSeconds(1)).WriteProgress(WriteLine).Go();
 
             if (!success) {
-                throw ex;
+                throw ex!;
             }
         }
 
-        private void AddPersonInState(string docID, string state, string firstName = null,
+        private void AddPersonInState(string docID, string state, string? firstName = null,
             bool isLegacy = true)
         {
             using (var doc = new MutableDocument(docID)) {
@@ -503,25 +490,25 @@ namespace Test
             }
         }
 
-        internal static byte[] GetFileByteArray(string filename, Type type = null)
+        internal static byte[] GetFileByteArray(string filename, Type type)
         {
-            byte[] bytes = null;
-            #if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
+            byte[]? bytes = null;
+#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
             using (var stream = FileSystem.Current.OpenAppPackageFileAsync(filename).Result)
             using (var memoryStream = new MemoryStream()) {
                 stream.CopyTo(memoryStream);
                 bytes = memoryStream.ToArray();
             }
-            #else
+#else
             using (var stream = type.GetTypeInfo().Assembly.GetManifestResourceStream(filename))
-            using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
+            using (var sr = new BinaryReader(stream!)) {
+                bytes = sr.ReadBytes((int)stream!.Length);
             }
-            #endif
+#endif
             return bytes;
         }
 
-        #if !CBL_NO_EXTERN_FILES
+#if !CBL_NO_EXTERN_FILES
         protected void TestQueryObserverWithQuery(IQuery query, bool isLegacy = true)
         {
             LoadJSONResource("names_100", coll: isLegacy == true ? null: CollA);
@@ -642,10 +629,10 @@ namespace Test
             count.Should().Be(2, "because we should have received a callback, query result has updated");
         }
 
-        protected void LoadJSONResource(string resourceName, Database db = null, Collection coll = null)
+        protected void LoadJSONResource(string resourceName, Database? db = null, Collection? coll = null)
         {
             if (db == null)
-                db = Db;
+                db = Db!;
 
             db.InBatch(() =>
             {
@@ -656,7 +643,7 @@ namespace Test
                     var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
                     json.Should().NotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
-                    doc.SetData(json);
+                    doc.SetData(json!);
                     if(coll == null)
                         db.GetDefaultCollection().Save(doc);
                     else {
@@ -670,74 +657,53 @@ namespace Test
 
         internal static bool ReadFileByLines(string path, Func<string, bool> callback)
         {
-            #if WINDOWS_UWP
-            var url = $"ms-appx:///Assets/{path}";
-                var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
-                    .AsTask()
-                    .ConfigureAwait(false)
-                    .GetAwaiter()
-                    .GetResult();
-
-                var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
-                foreach(var line in lines) {
-            #elif NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
+#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
             using(var stream = FileSystem.Current.OpenAppPackageFileAsync(path.Replace("C/tests/data/", "")).Result)
             using (var tr = new StreamReader(stream)) { 
                 string line;
 				while ((line = tr.ReadLine()) != null) {
-            #elif __ANDROID__ && !NET_ANDROID
+#elif __ANDROID__ && !NET_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while ((line = tr.ReadLine()) != null) {
-            #elif __IOS__
+#elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read))) {
 				string line;
 				while ((line = tr.ReadLine()) != null) {
-            #else
-            using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly.GetManifestResourceStream(path.Replace("C/tests/data/", "")))) {
-				string line;
+#else
+            using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly!.GetManifestResourceStream(path.Replace("C/tests/data/", ""))!)) {
+				string? line;
 				while ((line = tr.ReadLine()) != null) {
-            #endif
+#endif
                     if (!callback(line)) {
                         return false;
                     }
 				}
-            #if !WINDOWS_UWP
             }
-            #endif
 
             return true;
         }
 
         internal Stream GetTestAsset(string path)
         {
-            #if WINDOWS_UWP
-            var url = $"ms-appx:///Assets/{path}";
-                var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
-                    .AsTask()
-                    .ConfigureAwait(false)
-                    .GetAwaiter()
-                    .GetResult();
-
-                return file.OpenStreamForReadAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            #elif NET6_0_WINDOWS10 || NET_APPLE || NET_ANDROID
+#if NET6_0_WINDOWS10 || NET_APPLE || NET_ANDROID
             return FileSystem.Current.OpenAppPackageFileAsync(path).Result;
-            #elif __ANDROID__ && !NET_ANDROID
+#elif __ANDROID__ && !NET_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
-            #elif __IOS__ && !NET_APPLE
+#elif __IOS__ && !NET_APPLE
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
-            #elif WINUI
+#elif WINUI
             return File.Open(path.Replace("replacedb/", ""), FileMode.Open, FileAccess.Read);
-            #else 
+#else
             return File.Open(path, FileMode.Open, FileAccess.Read);
-            #endif
+#endif
 
         }
-        #endif
+#endif
 
         public void Dispose()
         {

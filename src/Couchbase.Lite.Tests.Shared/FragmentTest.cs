@@ -16,41 +16,27 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Couchbase.Lite;
 using FluentAssertions;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class FragmentTest : TestCase
     {
-#if !WINDOWS_UWP
         public FragmentTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
 
         [Fact]
         public void TestGetDocFragmentWithID()
         {
-            var dict = new Dictionary<string, object> {
-                ["address"] = new Dictionary<string, object> { 
+            var dict = new Dictionary<string, object?> {
+                ["address"] = new Dictionary<string, object?> { 
                     ["street"] = "1 Main street",
                     ["city"] = "Mountain View",
                     ["state"] = "CA"
@@ -59,7 +45,7 @@ namespace Test
 
             DefaultCollection.Save(new MutableDocument("doc1", dict));
 
-            var doc = Db["doc1"];
+            var doc = DefaultCollection["doc1"];
             doc.Should().NotBeNull("because the subscript operator should never return null");
             doc.Exists.Should().BeTrue("because the document was saved");
             doc.Document.Should().NotBeNull("because the document exists");
@@ -71,7 +57,7 @@ namespace Test
         [Fact]
         public void TestGetDocFragmentWithNonExistingID()
         {
-            var doc = Db["doc1"];
+            var doc = DefaultCollection["doc1"];
             doc.Should().NotBeNull("because the subscript operator should never return null");
             doc.Exists.Should().BeFalse("because the document was never created");
             doc.Document.Should().BeNull("because the document does not exist");
@@ -83,8 +69,8 @@ namespace Test
         [Fact]
         public void TestGetFragmentFromDictionaryValue()
         {
-            var dict = new Dictionary<string, object> {
-                ["address"] = new Dictionary<string, object> {
+            var dict = new Dictionary<string, object?> {
+                ["address"] = new Dictionary<string, object?> {
                     ["street"] = "1 Main street",
                     ["city"] = "Mountain View",
                     ["state"] = "CA"
@@ -109,7 +95,7 @@ namespace Test
                 fragment.Value
                     .Should()
                     .BeSameAs(fragment.Dictionary, "because both of these should access the same object");
-                fragment.Dictionary
+                fragment.Dictionary?
                     .ToDictionary()
                     .Should().BeEquivalentTo(dict["address"], "because otherwise the contents are incorrect");
             });
@@ -119,15 +105,15 @@ namespace Test
         public void TestGetFragmentFromArrayValue()
         {
             var references =  new[] {
-                new Dictionary<string, object> {
+                new Dictionary<string, object ?> {
                     ["name"] = "Scott"
                 },
-                new Dictionary<string, object> {
+                new Dictionary<string, object?> {
                     ["name"] = "Sam"
                 }
             };
 
-            var dict = new Dictionary<string, object> {
+            var dict = new Dictionary<string, object?> {
                 ["references"] = references
             };
 
@@ -150,8 +136,8 @@ namespace Test
                     .Should()
                     .BeSameAs(fragment.Array, "because both of these should access the same object");
 
-                references[0].Should().BeEquivalentTo(fragment.Array.GetDictionary(0));
-                references[1].Should().BeEquivalentTo(fragment.Array.GetDictionary(1));
+                references[0].Should().BeEquivalentTo(fragment.Array?.GetDictionary(0));
+                references[1].Should().BeEquivalentTo(fragment.Array?.GetDictionary(1));
             });
         }
 
@@ -313,12 +299,12 @@ namespace Test
         [Fact]
         public void TestGetNestedDictionaryFragment()
         {
-            var phones = new Dictionary<string, object> {
+            var phones = new Dictionary<string, object?> {
                 ["mobile"] = "650-123-4567"
             };
 
-            var dict = new Dictionary<string, object> {
-                ["address"] = new Dictionary<string, object> {
+            var dict = new Dictionary<string, object?> {
+                ["address"] = new Dictionary<string, object?> {
                     ["street"] = "1 Main street",
                     ["phones"] = phones
                 }
@@ -344,19 +330,19 @@ namespace Test
                     .BeSameAs(fragment.Dictionary,
                         "because both of these accessors should return the same object");
                 fragment.Dictionary.Should().BeEquivalentTo(phones, "because that is the stored content");
-                fragment.Dictionary.Count.Should().Be(1, "because there is one entry in the dictionary");
+                fragment.Dictionary.Should().HaveCount(1, "because there is one entry in the dictionary");
             });
         }
 
         [Fact]
         public void TestGetNestedNonExistingDictionaryFragment()
         {
-            var phones = new Dictionary<string, object> {
+            var phones = new Dictionary<string, object?> {
                 ["mobile"] = "650-123-4567"
             };
 
-            var dict = new Dictionary<string, object> {
-                ["address"] = new Dictionary<string, object> {
+            var dict = new Dictionary<string, object?> {
+                ["address"] = new Dictionary<string, object?> {
                     ["street"] = "1 Main street",
                     ["phones"] = phones
                 }
@@ -384,8 +370,8 @@ namespace Test
         public void TestGetNestedArrayFragments()
         {
             var nested = new[] {4L, 5L, 6L};
-            var dict = new Dictionary<string, object> {
-                ["nested-array"] = new object[] {
+            var dict = new Dictionary<string, object?> {
+                ["nested-array"] = new object?[] {
                     new[] {1, 2, 3},
                     nested
                 }
@@ -410,8 +396,8 @@ namespace Test
                     .Should()
                     .ContainInOrder(fragment.Array,
                         "because both of these accessors should return the same value");
-                fragment.Array.Count.Should().Be(3, "because there are three elements inside");
-                var list = fragment.Array.ToList();
+                fragment.Array.Should().HaveCount(3, "because there are three elements inside");
+                var list = fragment.Array!.ToList();
                 for (int i = 0; i < fragment.Array.Count; i++)
                     list[i].Should().Be(nested[i]);
             });
@@ -421,8 +407,8 @@ namespace Test
         public void TestGetNestedNonExistingArrayFragments()
         {
             var nested = new[] { 1, 2, 3 };
-            var dict = new Dictionary<string, object> {
-                ["nested-array"] = new object[] {
+            var dict = new Dictionary<string, object?> {
+                ["nested-array"] = new object?[] {
                     nested,
                     new[] {4, 5, 6}
                 }
@@ -589,7 +575,7 @@ namespace Test
         {
             var date = DateTimeOffset.Now;
             var doc = new MutableDocument("doc1");
-            doc["array"].Value = new object[] {
+            doc["array"].Value = new object?[] {
                 "string",
                 10,
                 10.10,
@@ -658,9 +644,9 @@ namespace Test
         public void TestArrayFragmentSetCSharpDictionary()
         {
             var doc = new MutableDocument("doc1");
-            doc["array"].Value = new List<object>();
+            doc["array"].Value = new List<object?>();
             doc["array"]
-                .Array
+                .Array!
                 .AddValue(new Dictionary<string, object> {
                     ["name"] = "Jason",
                     ["address"] = new Dictionary<string, object> {
@@ -695,11 +681,11 @@ namespace Test
         public void TestArrayFragmentSetArrayObject()
         {
             var doc = new MutableDocument("doc1");
-            doc["array"].Value = new List<object>();
+            doc["array"].Value = new List<object?>();
             var array = new MutableArrayObject();
             array.AddString("Jason").AddDouble(5.5).AddBoolean(true);
 
-            doc["array"].Array.AddArray(array);
+            doc["array"].Array!.AddArray(array);
 
             SaveDocument(doc, d =>
             {
@@ -713,8 +699,8 @@ namespace Test
         public void TestArrayFragmentSetArray()
         {
             var doc = new MutableDocument("doc1");
-            doc["array"].Value = new List<object>();
-            doc["array"].Array.AddValue(new object[] {"Jason", 5.5, true});
+            doc["array"].Value = new List<object?>();
+            doc["array"].Array!.AddValue(new object?[] {"Jason", 5.5, true});
 
             SaveDocument(doc, d =>
             {
@@ -748,8 +734,8 @@ namespace Test
         public void TestOutOfRangeArrayFragmentSetObject()
         {
             var doc = new MutableDocument("doc1");
-            doc["array"].Value = new List<object>();
-            doc["array"].Array.AddValue(new object[] { "Jason", 5.5, true });
+            doc["array"].Value = new List<object?>();
+            doc["array"].Array!.AddValue(new object?[] { "Jason", 5.5, true });
             doc.Invoking(d => d["array"][0][3].Value = 1).Should().Throw<InvalidOperationException>();
 
             SaveDocument(doc, d =>
@@ -762,19 +748,19 @@ namespace Test
         public void TestBasicGetFragmentValues()
         {
             var doc = new MutableDocument("doc1");
-            doc.SetData(new Dictionary<string, object> {
+            doc.SetData(new Dictionary<string, object?> {
                 ["name"] = "Jason",
-                ["address"] = new Dictionary<string, object> {
+                ["address"] = new Dictionary<string, object?> {
                     ["street"] = "1 Main Street",
-                    ["phones"] = new Dictionary<string, object> {
+                    ["phones"] = new Dictionary<string, object?> {
                         ["mobile"] = "650-123-4567"
                     }
                 },
                 ["references"] = new[] {
-                    new Dictionary<string, object> {
+                    new Dictionary<string, object?> {
                         ["name"] = "Scott"
                     },
-                    new Dictionary<string, object> {
+                    new Dictionary<string, object?> {
                         ["name"] = "Sam"
                     }
                 }

@@ -16,7 +16,6 @@
 //  limitations under the License.
 // 
 
-#nullable disable
 #if COUCHBASE_ENTERPRISE
 using System;
 using System.Collections.Generic;
@@ -33,21 +32,13 @@ using LiteCore.Interop;
 
 using Newtonsoft.Json;
 
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class PredictiveQueryTest : TestCase
     {
-#if !WINDOWS_UWP
         public PredictiveQueryTest(ITestOutputHelper output) : base(output)
         {
             Database.Prediction.UnregisterModel(nameof(AggregateModel));
@@ -55,14 +46,6 @@ namespace Test
             Database.Prediction.UnregisterModel(nameof(EchoModel));
 
         }
-        #else
-        public PredictiveQueryTest()
-        {
-            Database.Prediction.UnregisterModel(nameof(AggregateModel));
-            Database.Prediction.UnregisterModel(nameof(TextModel));
-            Database.Prediction.UnregisterModel(nameof(EchoModel));
-        }
-#endif
 
         [Fact]
         public void TestRegisterAndUnregisterModel()
@@ -88,10 +71,10 @@ namespace Test
                     numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
                     var pred = result.GetDictionary(1);
                     pred.Should().NotBeNull();
-                    pred.GetLong("sum").Should().Be(numbers.Cast<long>().Sum());
-                    pred.GetLong("min").Should().Be(numbers.Cast<long>().Min());
-                    pred.GetLong("max").Should().Be(numbers.Cast<long>().Max());
-                    pred.GetDouble("avg").Should().Be(numbers.Cast<long>().Average());
+                    pred!.GetLong("sum").Should().Be(numbers!.Cast<long>().Sum());
+                    pred.GetLong("min").Should().Be(numbers!.Cast<long>().Min());
+                    pred.GetLong("max").Should().Be(numbers!.Cast<long>().Max());
+                    pred.GetDouble("avg").Should().Be(numbers!.Cast<long>().Average());
                 });
 
                 numRows.Should().Be(2);
@@ -117,7 +100,8 @@ namespace Test
                     var rows = VerifyQuery(q, (n, result) =>
                     {
                         var pred = result.GetDictionary(0);
-                        pred.GetInt("sum").Should().Be(15);
+                        pred.Should().NotBeNull("because otherwise the results didn't come through");
+                        pred!.GetInt("sum").Should().Be(15);
                     });
                     rows.Should().Be(1);
 
@@ -127,8 +111,9 @@ namespace Test
                     rows = VerifyQuery(q, (n, result) =>
                     {
                         var pred = result.GetDictionary(0);
-                        pred.GetValue("sum").Should().BeNull("because the model should have been replaced");
-                        pred.GetArray("numbers").SequenceEqual(new List<object> { 1L, 2L, 3L, 4L, 5L })
+                        pred.Should().NotBeNull("because otherwise the results didn't come through");
+                        pred!.GetValue("sum").Should().BeNull("because the model should have been replaced");
+                        pred.GetArray("numbers")?.SequenceEqual(new List<object> { 1L, 2L, 3L, 4L, 5L })
                             .Should().BeTrue("because the document should simply be echoed back");
                     });
                     rows.Should().Be(1);
@@ -155,7 +140,7 @@ namespace Test
 
             var date = DateTimeOffset.Now;
             var power = Function.Power(Expression.Property("number"), Expression.Int(2));
-            var map = new Dictionary<string, object>
+            var map = new Dictionary<string, object?>
             {
                 ["null"] = null,
                 ["number1"] = 10,
@@ -180,12 +165,12 @@ namespace Test
                 ["expr_power"] = power
             };
 
-            var submap = new Dictionary<string, object> { ["foo"] = "bar" };
+            var submap = new Dictionary<string, object?> { ["foo"] = "bar" };
             map["dict"] = submap;
             var subList = new[] { "1", "2", "3" };
             map["array"] = subList;
 
-            var subExprMap = new Dictionary<string, object> { ["ping"] = "pong" };
+            var subExprMap = new Dictionary<string, object?> { ["ping"] = "pong" };
             map["expr_value_dict"] = Expression.Value(subExprMap);
             var subExprList = new[] { "4", "5", "6" };
             map["expr_value_array"] = Expression.Value(subExprList);
@@ -199,9 +184,10 @@ namespace Test
                 var rows = VerifyQuery(q, (n, result) =>
                 {
                     var pred = result.GetDictionary(0);
-                    pred.Count.Should().Be(map.Count,
+                    pred.Should().NotBeNull("because otherwise the results didn't come through");
+                    pred.Should().HaveCount(map.Count,
                         "because all properties should be serialized and recovered correctly");
-                    pred.GetInt("number1").Should().Be(10);
+                    pred!.GetInt("number1").Should().Be(10);
                     pred.GetDouble("number2").Should().Be(10.1);
                     pred.GetInt("int_min").Should().Be(Int32.MinValue);
                     pred.GetInt("int_max").Should().Be(Int32.MaxValue);
@@ -254,7 +240,7 @@ namespace Test
                     numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
                     var sum = result.GetLong(1);
                     sum.Should().Be(result.GetLong("sum"));
-                    sum.Should().Be(numbers.Cast<long>().Sum());
+                    sum.Should().Be(numbers!.Cast<long>().Sum());
                 });
 
                 numRows.Should().Be(2);
@@ -287,6 +273,7 @@ namespace Test
                     var dict = new MutableDictionaryObject();
                     dict.SetArray("numbers", numbers);
                     var expected = aggregateModel.Predict(dict);
+                    expected.Should().NotBeNull("because otherwise the prediction failed");
 
                     var sum = result.GetInt(1);
                     var min = result.GetInt(2);
@@ -298,7 +285,7 @@ namespace Test
                     result.GetInt("max").Should().Be(max);
                     result.GetDouble("avg").Should().Be(avg);
 
-                    sum.Should().Be(expected.GetInt("sum"));
+                    sum.Should().Be(expected!.GetInt("sum"));
                     min.Should().Be(expected.GetInt("min"));
                     max.Should().Be(expected.GetInt("max"));
                     avg.Should().Be(expected.GetDouble("avg"));
@@ -535,7 +522,7 @@ namespace Test
                     .NotBe(-1, "because the query should make use of the index");
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    var numbers = r.GetArray(0).Cast<long>().ToList();
+                    var numbers = r.GetArray(0)!.Cast<long>().ToList();
                     var sum = r.GetLong(1);
                     sum.Should().Be(numbers.Sum());
                 });
@@ -630,7 +617,7 @@ namespace Test
             var input = AggregateModel.CreateInput("numbers");
             var prediction = Function.Prediction(model, input);
 
-            var index = IndexBuilder.PredictiveIndex(model, input, null);
+            var index = IndexBuilder.PredictiveIndex(model, input);
             DefaultCollection.CreateIndex("AggIndex", index);
 
             aggregateModel.AllowCalls = false;
@@ -819,7 +806,7 @@ namespace Test
             var input = AggregateModel.CreateInput("numbers");
             var prediction = Function.Prediction(model, input);
 
-            var aggIndex = IndexBuilder.PredictiveIndex(model, input, null);
+            var aggIndex = IndexBuilder.PredictiveIndex(model, input);
             DefaultCollection.CreateIndex("AggIndex", aggIndex);
 
             var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
@@ -939,9 +926,10 @@ namespace Test
 
         private void TestDistanceFunction(IExpression distance, string testData)
         {
-            var tests = JsonConvert.DeserializeObject<IList<IList<object>>>(testData);
+            var tests = JsonConvert.DeserializeObject<IList<IList<object?>>>(testData);
+            tests.Should().NotBeNull("because otherwise testData was invalid");
 
-            foreach (var t in tests) {
+            foreach (var t in tests!) {
                 using (var doc = new MutableDocument()) {
                     doc.SetValue("v1", t[0]);
                     doc.SetValue("v2", t[1]);
@@ -976,7 +964,7 @@ namespace Test
 
         public bool AllowCalls { get; set; } = true;
 
-        public Exception Error { get; private set; }
+        public Exception? Error { get; private set; }
 
         public string Name => GetType().Name;
 
@@ -1006,13 +994,13 @@ namespace Test
 
         #region Protected Methods
 
-        protected abstract DictionaryObject DoPrediction(DictionaryObject input);
+        protected abstract DictionaryObject? DoPrediction(DictionaryObject input);
 
         #endregion
 
         #region IPredictiveModel
 
-        public DictionaryObject Predict(DictionaryObject input)
+        public DictionaryObject? Predict(DictionaryObject input)
         {
             if (!AllowCalls) {
                 Error = new InvalidOperationException("Not allowed to be called in this state");
@@ -1065,16 +1053,16 @@ namespace Test
 
         #region Overrides
 
-        protected override DictionaryObject DoPrediction(DictionaryObject input)
+        protected override DictionaryObject? DoPrediction(DictionaryObject input)
         {
             var blob = input.GetBlob("text");
             if (blob == null) {
                 return null;
             }
 
-            ContentType = blob.ContentType;
+            ContentType = blob.ContentType ?? "";
 
-            var text = Encoding.UTF8.GetString(blob.Content);
+            var text = Encoding.UTF8.GetString(blob.Content ?? []);
             var wc = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
             var sc = text.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries).Length;
 
@@ -1103,7 +1091,7 @@ namespace Test
 
         #region Overrides
 
-        protected override DictionaryObject DoPrediction(DictionaryObject input)
+        protected override DictionaryObject? DoPrediction(DictionaryObject input)
         {
             var numbers = input.GetArray("numbers");
             if (numbers == null) {

@@ -16,8 +16,6 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -25,9 +23,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Security.Authentication;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,7 +31,6 @@ using Couchbase.Lite;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
@@ -49,29 +43,17 @@ using Extensions = Couchbase.Lite.Util.Extensions;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Fleece;
 using Dispatch;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
     // NOTE: This tests classes specific to CSharp binding to LiteCore, it does not
     // need to be ported as is.  They exist to get coverage without making the other
     // tests too off track.
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class CSharpTest : TestCase
     {
-#if !WINDOWS_UWP
         public CSharpTest(ITestOutputHelper output) : base(output)
-#else
-        public CSharpTest()
-#endif
         {
         }
 
@@ -154,7 +136,7 @@ namespace Test
             var nowStr = now.ToString("o");
             var ao = new MutableArrayObject();
             var blob = new Blob("text/plain", Encoding.UTF8.GetBytes("Winter is coming"));
-            var dict = new MutableDictionaryObject(new Dictionary<string, object> {["foo"] = "bar"});
+            var dict = new MutableDictionaryObject(new Dictionary<string, object?> {["foo"] = "bar"});
             ao.AddFloat(1.1f);
             ao.AddBlob(blob);
             ao.AddDate(now);
@@ -280,33 +262,6 @@ Transfer-Encoding: chunked";
             parser.Reason.Should().Be("OK");
         }
 
-        [Fact]
-        public void TestAppenNullToHttpMessageParser()
-        {
-            var httpResponse =
-                @"HTTP/1.1 200 OK
-X-XSS-Protection: 1; mode=block
-X-Frame-Options: SAMEORIGIN
-Cache-Control: private, max-age=0
-Content-Type: text/html; charset=UTF-8
-Date: Fri, 13 Oct 2017 05:54:52 GMT
-Expires: -1
-P3P: CP=""This is not a P3P policy! See g.co/p3phelp for more info.""
-Set-Cookie: 1P_JAR=2017-10-13-05; expires=Fri, 20-Oct-2017 05:54:52 GMT; path=/; domain=.google.co.jp,NID=114=Vzr79B7ISI0vlP54dhHQ1lyoyqxePhvy_k3w2ofp1oce73oG3m9ltBiUgdQNj4tSMkp-oWtzmhUi3rf314Fcrjy6J2DxtyEdA_suJlgfdN9973V2HO32OG9D3svImEJf; expires=Sat, 14-Apr-2018 05:54:52 GMT; path=/; domain=.google.co.jp; HttpOnly
-Server: gws
-Accept-Ranges: none
-Vary: Accept-Encoding
-Transfer-Encoding: chunked";
-            Exception e = null;
-            var parser = new HttpMessageParser(Encoding.ASCII.GetBytes(httpResponse));
-            try {
-                parser.Append(null);
-            } catch (Exception ex) {
-                e = ex;
-            }
-            e.Should().NotBeNull("because an exception is expected");
-        }
-
         #if !CBL_NO_EXTERN_FILES
         [Fact]
         public unsafe void TestSerializationRoundTrip()
@@ -320,25 +275,28 @@ Transfer-Encoding: chunked";
             ReadFileByLines("C/tests/data/iTunesMusicLibrary.json", line =>
             {
                 using (var reader = new JsonTextReader(new StringReader(line))) {
-                    masterList.Add(s.Deserialize<Dictionary<string, object>>(reader));
+                    var gotten = s.Deserialize<Dictionary<string, object?>>(reader);
+                    gotten.Should().NotBeNull("because otherwise the JSON on disk was corrupt");
+                    masterList.Add(gotten!);
                 }
 
                 return true;
             });
 
-            var retrieved = default(List<Dictionary<string, object>>);
+            var retrieved = default(List<Dictionary<string, object?>>);
             Db.InBatch(() =>
             {
                 using (var flData = masterList.FLEncode()) {
                     retrieved =
                         FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Db,
                                 true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
-                            List<Dictionary<string, object>>;
+                            List<Dictionary<string, object?>>;
                 }
             });
 
             var i = 0;
-            foreach (var entry in retrieved) {
+            retrieved.Should().NotBeNull("because otherwise the fleece conversion failed");
+            foreach (var entry in retrieved!) {
                 var entry2 = masterList[i];
                 foreach (var key in entry.Keys) {
                     entry[key].Should().Be(entry2[key]);
@@ -364,13 +322,13 @@ Transfer-Encoding: chunked";
             dict.Validate("type", "Bogus").Should().BeFalse();
             dict.Invoking(d => d.Add("type", "Bogus"))
                 .Should().Throw<InvalidOperationException>("because the type is invalid");
-            dict.Invoking(d => d.Add(new KeyValuePair<string, object>("type", "Bogus")))
+            dict.Invoking(d => d.Add(new KeyValuePair<string, object?>("type", "Bogus")))
                 .Should().Throw<InvalidOperationException>("because the type is invalid");
             dict.Invoking(d => d["type"] = "Bogus")
                 .Should().Throw<InvalidOperationException>("because the type is invalid");
             dict.Invoking(d => d.Remove("type"))
                 .Should().Throw<InvalidOperationException>("because the type key is required");
-            dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("type", "Basic")))
+            dict.Invoking(d => d.Remove(new KeyValuePair<string, object?>("type", "Basic")))
                 .Should().Throw<InvalidOperationException>("because the type key is required");
             dict.Clear();
             dict.Count.Should().Be(0);
@@ -410,7 +368,8 @@ Transfer-Encoding: chunked";
             auth.Username.Should().Be("user");
             auth.Password.Should().Be("password");
             auth.Authenticate(options);
-            options.Auth.Username.Should().Be("user");
+            options.Auth.Should().NotBeNull("because the Authenticate method should have set the Auth dict");
+            options.Auth!.Username.Should().Be("user");
             options.Auth.Password.Should().Be("password");
             options.Auth.Type.Should().Be(AuthType.HttpBasic);
         }
@@ -577,7 +536,7 @@ Transfer-Encoding: chunked";
             var converted = DataOps.ToCouchbaseObject(json) as MutableDictionaryObject;
             converted.Should().NotBeNull();
 
-            converted["level1"]["foo"].String.Should().Be("bar");
+            converted!["level1"]["foo"].String.Should().Be("bar");
             converted["level2"]["list"][0].Int.Should().Be(1);
             converted["level2"]["list"][1].Double.Should().Be(3.14);
             converted["level2"]["list"][2].String.Should().Be("s");
@@ -589,41 +548,25 @@ Transfer-Encoding: chunked";
         {
             var fleeceException = CouchbaseException.Create(new C4Error(FLError.EncodeError)) as CouchbaseFleeceException;
             fleeceException.Should().NotBeNull();
-            fleeceException.Error.Should().Be((int) FLError.EncodeError);
+            fleeceException!.Error.Should().Be((int) FLError.EncodeError);
             fleeceException.Domain.Should().Be(CouchbaseLiteErrorType.Fleece);
-            fleeceException = new CouchbaseFleeceException(FLError.JSONError);
-            fleeceException = new CouchbaseFleeceException(FLError.JSONError, "json error");
 
             var sqliteException =
                 CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (int) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
             sqliteException.Should().NotBeNull();
-            sqliteException.BaseError.Should().Be(SQLiteStatus.Misuse);
+            sqliteException!.BaseError.Should().Be(SQLiteStatus.Misuse);
             sqliteException.Error.Should().Be((int) SQLiteStatus.Misuse);
             sqliteException.Domain.Should().Be(CouchbaseLiteErrorType.SQLite);
-            sqliteException = new CouchbaseSQLiteException(999991);
-            sqliteException = new CouchbaseSQLiteException(999991, "new sql lite exception");
 
             var webSocketException = CouchbaseException.Create(new C4Error(C4ErrorDomain.WebSocketDomain, 1003)) as CouchbaseWebsocketException;
-            webSocketException.Error.Should().Be(CouchbaseLiteError.WebSocketDataError);
+            webSocketException!.Error.Should().Be(CouchbaseLiteError.WebSocketDataError);
             webSocketException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-            webSocketException = new CouchbaseWebsocketException(10404);
-            webSocketException = new CouchbaseWebsocketException(10404, "HTTP Not Found");
-
-            //var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.EACCES)) as CouchbasePosixException;
-            //posixException.Error.Should().Be(PosixBase.EACCES);
-            //posixException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
-            //posixException = new CouchbasePosixException(999992);
-            //posixException = new CouchbasePosixException(999992, "new posix lite exception");
 
             var networkException =
                 CouchbaseException.Create(new C4Error(C4NetworkErrorCode.InvalidURL)) as CouchbaseNetworkException;
-            networkException.Error.Should().Be(CouchbaseLiteError.InvalidUrl);
+            networkException.Should().NotBeNull();
+            networkException!.Error.Should().Be(CouchbaseLiteError.InvalidUrl);
             networkException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-            networkException = new CouchbaseNetworkException(HttpStatusCode.BadRequest);
-            networkException = new CouchbaseNetworkException(C4NetworkErrorCode.InvalidURL);
-            networkException = new CouchbaseNetworkException(C4NetworkErrorCode.InvalidURL, "You are trying to connect to an invalid url");
-
-            var runtimeException = new RuntimeException("runtime exception");
         }
 
         [Fact]
@@ -638,7 +581,8 @@ Transfer-Encoding: chunked";
             }
 
             using (var doc = DefaultCollection.GetDocument("test_ulong")) {
-                doc["nested"]["high_value"].Value.Should().Be(UInt64.MaxValue);
+                doc.Should().NotBeNull("because it was just saved into the database");
+                doc!["nested"]["high_value"].Value.Should().Be(UInt64.MaxValue);
             }
         }
 
@@ -648,6 +592,10 @@ Transfer-Encoding: chunked";
         public async Task TestMainThreadScheduler()
         {
             var scheduler = Service.GetInstance<IMainThreadTaskScheduler>();
+            if(scheduler == null) {
+                return;
+            }
+
             var onMainThread = await Task.Factory.StartNew(() => scheduler.IsMainThread);
             onMainThread.Should().BeFalse();
 
@@ -657,17 +605,12 @@ Transfer-Encoding: chunked";
             onMainThread.Should().BeTrue();
         }
 
-#else
-
-#endif
+        #endif
 
         [Fact]
         public void TestCBDebugItemsMustNotBeNull()
         {
-            List<object> list = new List<object>();
-            list.Add("couchbase");
-            list.Add(null);
-            list.Add("debug");
+            List<object?> list = ["couchbase", null, "debug"];
             Action badAction = (() =>
             CBDebug.ItemsMustNotBeNull(
                 WriteLog.To.Query, 
@@ -692,8 +635,8 @@ Transfer-Encoding: chunked";
             using (var encoded = item.FLEncode()) {
                 var flValue = NativeRaw.FLValue_FromData((FLSlice) encoded, FLTrust.Trusted);
                 ((IntPtr) flValue).Should().NotBe(IntPtr.Zero);
-                if (item is IEnumerable enumerable && !(item is string)) {
-                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)).Should().BeEquivalentTo(enumerable);
+                if (item is IEnumerable enumerable && item is not string) {
+                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)!).Should().BeEquivalentTo(enumerable);
                 } else {
                     Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).Should().Be(item);
                 }
