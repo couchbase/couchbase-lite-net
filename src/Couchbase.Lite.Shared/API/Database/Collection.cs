@@ -790,6 +790,32 @@ namespace Couchbase.Lite
             });
         }
 
+        private void SaveFinal(Document doc, C4Document* baseDoc, C4Document** outDoc, FLSliceResult body, C4RevisionFlags revFlags)
+        {
+            var rawDoc = baseDoc != null ? baseDoc :
+                doc.c4Doc?.HasValue == true ? doc.c4Doc.RawDoc : null;
+            if (rawDoc != null) {
+                doc.ThreadSafety.DoLocked(() =>
+                {
+                    ThreadSafety.DoLocked(() =>
+                    {
+                        *outDoc = (C4Document*)NativeHandler.Create()
+                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice)body, revFlags, err));
+                    });
+                });
+            } else {
+                ThreadSafety.DoLocked(() =>
+                {
+                    using (var docID_ = new C4String(doc.Id)) {
+                        *outDoc = (C4Document*)NativeHandler.Create()
+                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                err => NativeRaw.c4coll_createDoc(c4coll, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
+                    }
+                });
+            }
+        }
+
         private bool Save([NotNull] Document document, [CanBeNull] Document baseDocument,
             ConcurrencyControl concurrencyControl, bool deletion)
         {
@@ -898,30 +924,11 @@ namespace Couchbase.Lite
                 body = EmptyFLSliceResult();
             }
 
-            var rawDoc = baseDoc != null ? baseDoc :
-                doc.c4Doc?.HasValue == true ? doc.c4Doc.RawDoc : null;
-            if (rawDoc != null) {
-                doc.ThreadSafety.DoLocked(() =>
-                {
-                    ThreadSafety.DoLocked(() =>
-                    {
-                        *outDoc = (C4Document*)NativeHandler.Create()
-                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice)body, revFlags, err));
-                    });
-                });
-            } else {
-                ThreadSafety.DoLocked(() =>
-                {
-                    using (var docID_ = new C4String(doc.Id)) {
-                        *outDoc = (C4Document*)NativeHandler.Create()
-                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4coll_createDoc(c4coll, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
-                    }
-                });
+            try {
+                SaveFinal(doc, baseDoc, outDoc, body, revFlags);
+            } finally {
+                Native.FLSliceResult_Release(body);
             }
-
-            Native.FLSliceResult_Release(body);
         }
 
         #endregion
