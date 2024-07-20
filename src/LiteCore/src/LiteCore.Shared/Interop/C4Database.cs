@@ -34,8 +34,7 @@ namespace LiteCore.Interop
     {
         public static readonly int Size = 16;
 
-        // NOTE: The below produces IL that is not understandable by Mono
-        /*public override int GetHashCode()
+        public override int GetHashCode()
         {
             var hasher = Hasher.Start;
             fixed (byte* b = bytes) {
@@ -47,7 +46,7 @@ namespace LiteCore.Interop
             return hasher.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if(!(obj is C4UUID)) {
                 return false;
@@ -63,7 +62,7 @@ namespace LiteCore.Interop
             }
 
             return true;
-        }*/
+        }
     }
 
     internal sealed class CollectionSpec : IDisposable

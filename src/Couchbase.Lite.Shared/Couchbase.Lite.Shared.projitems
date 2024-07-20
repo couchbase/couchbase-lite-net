@@ -182,9 +182,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\AndroidConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\AndroidRuntimePlatform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\DefaultDirectoryResolver.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\DotnetAndroidProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\MainThreadTaskScheduler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\XamarinAndroidProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\XEReachability.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Freezer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\DefaultDirectoryResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\iOSConsoleLogger.cs" />

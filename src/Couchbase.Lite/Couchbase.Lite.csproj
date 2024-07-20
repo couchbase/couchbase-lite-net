@@ -1,8 +1,11 @@
-﻿<Project Sdk="MSBuild.Sdk.Extras">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <MauiDotNetVersion>net8.0</MauiDotNetVersion>
+    <ConsoleDotNetVersion>net6.0</ConsoleDotNetVersion>
+    <DotNetFrameworkVersion>net462</DotNetFrameworkVersion>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-	<TargetFrameworks>netstandard2.0;net6.0;net8.0-android;net8.0-ios;net8.0-maccatalyst;MonoAndroid10.0;Xamarin.iOS10</TargetFrameworks>
-	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net462;net8.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks>$(ConsoleDotNetVersion);$(MauiDotNetVersion)-android;$(MauiDotNetVersion)-ios;$(MauiDotNetVersion)-maccatalyst</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);$(DotNetFrameworkVersion);$(MauiDotNetVersion)-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">12.0</SupportedOSPlatformVersion>
@@ -33,7 +36,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('net8.0-windows')) ">
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) ">
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <DefineConstants>$(DefineConstants);CBL_PLATFORM_WINUI</DefineConstants>
   </PropertyGroup>
@@ -41,7 +44,7 @@
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
     <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' ">
+  <PropertyGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' ">
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -52,25 +55,22 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="SimpleInjector" Version="[5.2.1,6.0.0)" />
     <PackageReference Include="SerialQueue" Version="2.1.0" />
-    <PackageReference Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard2.0'" Include="Nullable" Version="1.3.1">
+    <PackageReference Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion)'" Include="Nullable" Version="1.3.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
-    <PackageReference Condition=" $(TargetFramework.StartsWith('Xamarin')) or $(TargetFramework.StartsWith('MonoAndroid')) or '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netstandard')) " Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' " Include="System.Collections.Immutable" Version="6.0.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' or $(TargetFramework.StartsWith('net8.0-windows')) ">
+  <ItemGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
-  <ItemGroup Condition=" ($(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.StartsWith('net8.0-android'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-android')) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
   </ItemGroup>
-<ItemGroup Condition=" ($(TargetFramework.StartsWith('Xamarin.iOS')) or $(TargetFramework.StartsWith('net8.0-ios')) or $(TargetFramework.StartsWith('net8.0-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+<ItemGroup Condition=" ($(TargetFramework.StartsWith('$(MauiDotNetVersion)-ios')) or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj" />
 </ItemGroup>
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid'))">
-    <PackageReference Include="Xamarin.Essentials" Version="1.7.4" />
-  </ItemGroup>
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>

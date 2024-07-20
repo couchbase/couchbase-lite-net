@@ -24,7 +24,7 @@ using System.Threading;
 namespace Couchbase.Lite.Support
 {
     /// <summary>
-    /// Support classes for Xamarin iOS
+    /// Support classes for .NET iOS
     /// </summary>
     public static class iOS
     {
