@@ -58,6 +58,13 @@ namespace Test
         {
             var config = new DatabaseConfiguration();
             config.FullSync.Should().BeFalse("because the default should be false");
+
+            Database.Delete("test", null);
+            using var db = new Database("test", config);
+            var c4db = db.c4db;
+            var nativeConfig = Native.c4db_getConfig2(c4db);
+            var hasFlag = (nativeConfig->flags & C4DatabaseFlags.DiskSyncFull) == C4DatabaseFlags.DiskSyncFull;
+            hasFlag.Should().BeFalse("because the flag should be present in LiteCore");
         }
 
         [Fact]
