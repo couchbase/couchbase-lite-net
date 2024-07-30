@@ -1143,9 +1143,13 @@ namespace Test
         // Two replicators, replicates docs to the listener; validates connection status
         private void ValidateMultipleReplications(ReplicatorType replicatorType, ulong expectedListenerCount, ulong expectedLocalCount)
         {
+            // This test used to check the max active count, however that is not reliable because
+            // it is hard to catch the max active count with the information available.  By the time
+            // the status changed callback runs the passive side could very well already be idle and
+            // this show an active count of zero.
             ulong maxConnectionCount = 0UL;
-            ulong maxActiveCount = 0UL;
 
+            _listener.Should().NotBeNull();
             var existingDocsInListener = _listener.Config.Collections[0].Count;
             existingDocsInListener.Should().Be(1);
 
@@ -1183,7 +1187,6 @@ namespace Test
                 var name = (senderIsRepl1) ? "repl1" : "repl2";
                 WriteLine($"{name} -> {args.Status.Activity}");
                 maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
-                maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
                 if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
                     if (senderIsRepl1) {
                         WriteLine("Setting wait1 (busy)...");
@@ -1225,19 +1228,13 @@ namespace Test
             WaitHandle.WaitAll(busyHandles, TimeSpan.FromSeconds(5))
                 .Should().BeTrue("because otherwise one of the replicators never became busy");
 
-            // For some reason running on mac throws off the timing enough so that the active connection count
-            // of 1 is never seen.  So record the value right after it becomes busy.
-            maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
-            maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
-
             WaitHandle.WaitAll(stoppedHandles, TimeSpan.FromSeconds(30))
                 .Should().BeTrue("because otherwise one of the replicators never stopped");
 
             // Depending on the whim of the divine entity, there are a number of ways in which the connections
-            // can happen.  Commonly they run concurrently which results in a max connection count and max active
-            // count of 2.  However they can also run sequentially which means only a count of 1.
+            // can happen.  Commonly they run concurrently which results in a max connection count of 2.
+            // However they can also run sequentially which means only a count of 1.
             maxConnectionCount.Should().BeGreaterThan(0);
-            maxActiveCount.Should().BeGreaterThan(0);
 
             // all data are transferred to/from
             if (replicatorType == ReplicatorType.PushAndPull) {
