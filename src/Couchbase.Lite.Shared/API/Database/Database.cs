@@ -599,6 +599,10 @@ namespace Couchbase.Lite
             {
                 var nativeConfig = DBConfig;
 
+                if(config.FullSync) {
+                    nativeConfig.flags |= C4DatabaseFlags.DiskSyncFull;
+                }
+
                 #if COUCHBASE_ENTERPRISE
                 if (config?.EncryptionKey != null) {
                     var key = config.EncryptionKey;
@@ -1344,6 +1348,10 @@ namespace Couchbase.Lite
 
             var config = DBConfig;
             var encrypted = "";
+
+            if(Config.FullSync) {
+                config.flags |= C4DatabaseFlags.DiskSyncFull;
+            }
 
             #if COUCHBASE_ENTERPRISE
             if (Config.EncryptionKey != null) {
