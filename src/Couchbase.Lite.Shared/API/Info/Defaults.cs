@@ -41,6 +41,12 @@ namespace Couchbase.Lite.Info;
 public static partial class Constants {
 
 	/// <summary>
+	/// Default value for <see cref="DatabaseConfiguration.FullSync" /> (false)
+	/// Full sync is off by default because the performance hit is seldom worth the benefit
+	/// </summary>
+	public static readonly bool DefaultDatabaseFullSync = false;
+
+	/// <summary>
 	/// Default value for <see cref="LogFileConfiguration.UsePlaintext" /> (false)
 	/// Plaintext is not used, and instead binary encoding is used in log files
 	/// </summary>
