@@ -610,6 +610,10 @@ namespace Couchbase.Lite
                 }
                 #endif
                 using (var parentDirectory = new C4String(config?.Directory)) {
+                    // NOTE: config.FullSync is ignored since it is not useful for this process.
+                    // A temporary db is used during the copy so any errors or power outages
+                    // will simply result in the db not being copied, rather than any sort of
+                    // data loss or corruption.
                     nativeConfig.parentDirectory = parentDirectory.AsFLSlice();
                     return Native.c4db_copyNamed(path, name, &nativeConfig, err);
                 }
@@ -1344,6 +1348,10 @@ namespace Couchbase.Lite
 
             var config = DBConfig;
             var encrypted = "";
+
+            if(Config.FullSync) {
+                config.flags |= C4DatabaseFlags.DiskSyncFull;
+            }
 
             #if COUCHBASE_ENTERPRISE
             if (Config.EncryptionKey != null) {

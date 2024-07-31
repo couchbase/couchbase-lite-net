@@ -22,6 +22,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
+using System;
 
 namespace Couchbase.Lite
 {
@@ -42,6 +43,7 @@ namespace Couchbase.Lite
 
         [NotNull] private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
+        private bool _fullSync;
 
         #if COUCHBASE_ENTERPRISE
         private EncryptionKey _encryptionKey;
@@ -59,6 +61,23 @@ namespace Couchbase.Lite
         {
             get => _directory;
             set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
+        }
+
+        /// <summary>
+        /// As Couchbase Lite normally configures its databases, There is a very
+        /// small (though non-zero) chance that a power failure at just the wrong
+        /// time could cause the most recently committed transaction's changes to
+        /// be lost. This would cause the database to appear as it did immediately 
+        /// before that transaction.
+        /// Setting this mode true ensures that an operating system crash or
+        /// power failure will not cause the loss of any data.  FULL
+        /// synchronous is very safe but it is also <b>dramatically</b> slower.
+        /// </summary>
+        /// <returns>A boolean representing whether or not full sync is enabled</returns>
+        public bool FullSync
+        {
+            get => _fullSync;
+            set => _freezer.SetValue(ref _fullSync, value);
         }
 
         /// <summary>
@@ -113,6 +132,7 @@ namespace Couchbase.Lite
             var retVal = new DatabaseConfiguration
             {
                 Directory = Directory,
+                FullSync = FullSync
             };
 
             #if COUCHBASE_ENTERPRISE
