@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             var options = C4QueryOptions.Default;
-            var e = (C4QueryEnumerator*)ThreadSafety.DoLockedBridge(err =>
+            var e = (C4QueryEnumerator*)Database!.ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
                     return null;
@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Internal.Query
                 return new NullResultSet();
             }
 
-            var retVal = new QueryResultSet(this, ThreadSafety, e, ColumnNames);
+            var retVal = new QueryResultSet(this, Database!.ThreadSafety, e, ColumnNames);
             _history.Add(retVal);
             return retVal;
         }
@@ -76,13 +76,13 @@ namespace Couchbase.Lite.Internal.Query
         public override unsafe string Explain()
         {
             _disposalWatchdog.CheckDisposed();
-            return ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
+            return Database!.ThreadSafety.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
         protected override unsafe void CreateQuery()
         {
             if (_c4Query == null) {
-                C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
+                C4Query* query = (C4Query*)Database!.ThreadSafety.DoLockedBridge(err =>
                 {
                     return Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
                 });
