@@ -359,7 +359,44 @@ namespace Test
             exp1.WaitForResult(TimeSpan.FromSeconds(10));
         }
 
-         
+        [Fact]
+        [ForIssue("CBL-6128")]
+        public void TestConcurrentCreateAndQuery()
+        {
+            void SaveDocument()
+            {
+                using var doc = new MutableDocument();
+                DefaultCollection.Save(doc);
+            }
+
+            void ListDocuments()
+            {
+                var queryExpression = "select * from _";
+                using var query = DefaultCollection.CreateQuery(queryExpression);
+                var results = query.Execute().AllResults();
+            }
+
+            void DoWork()
+            {
+                for (int i = 0; i < 3; i++) {
+                    SaveDocument();
+                    ListDocuments();
+                }
+            }
+
+            var tasks = new List<Task>();
+            // Do some work in parallel
+            for (int i = 0; i < 10; i++) {
+                // Every other thread will be in a transaction
+                if (i % 2 == 0) {
+                    tasks.Add(Task.Run(() => Db.InBatch(DoWork)));
+                } else {
+                    tasks.Add(Task.Run(DoWork));
+                }
+            }
+
+            Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the test timed out");
+        }
 
         private void ReadDocs(IEnumerable<string> docIDs, uint rounds)
         {
