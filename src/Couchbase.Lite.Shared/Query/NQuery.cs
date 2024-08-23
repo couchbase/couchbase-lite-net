@@ -126,12 +126,9 @@ namespace Couchbase.Lite.Internal.Query
 
         private unsafe C4QueryWrapper Compile()
         {
-            return ThreadSafety.DoLocked(() =>
-            {
-                _disposalWatchdog.CheckDisposed();
-
-                return CreateQuery();
-            });
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            _disposalWatchdog.CheckDisposed();
+            return CreateQuery();
         }
 
         #endregion

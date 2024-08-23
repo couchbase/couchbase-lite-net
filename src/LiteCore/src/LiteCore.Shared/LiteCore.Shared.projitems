@@ -63,6 +63,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Socket.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4SocketTypes_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Socket_native.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)interop\C4Socket_native_safe.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\FLBase_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\FLCollections_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\FLCollections_native.cs" />

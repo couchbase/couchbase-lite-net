@@ -258,15 +258,12 @@ namespace Couchbase.Lite.Internal.Query
             var from = FromImpl;
             Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
 
-            return ThreadSafety.DoLocked(() =>
-            {
-                _disposalWatchdog.CheckDisposed();
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            _disposalWatchdog.CheckDisposed();
+            _queryExpression = EncodeAsJSON();
+            WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
 
-                _queryExpression = EncodeAsJSON();
-                WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
-
-                return CreateQuery();
-            });
+            return CreateQuery();
         }
 
         #endregion

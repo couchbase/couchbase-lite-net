@@ -182,35 +182,25 @@ namespace Couchbase.Lite
         internal FLSliceResult PublicUUID
         {
             get {
-                var retVal = new FLSliceResult(null, 0UL);
-                ThreadSafety.DoLocked(() =>
-                {
-                    CheckOpen();
-                    var publicUUID = new C4UUID();
-                    C4Error err;
-                    var uuidSuccess = NativeSafe.c4db_getUUIDs(c4db, &publicUUID, null, &err);
-                    if (!uuidSuccess) {
-                        throw CouchbaseException.Create(err);
-                    }
+                using var scope = ThreadSafety.BeginLockedScope();
+                CheckOpen();
+                var publicUUID = new C4UUID();
+                C4Error err;
+                var uuidSuccess = NativeSafe.c4db_getUUIDs(c4db, &publicUUID, null, &err);
+                if (!uuidSuccess) {
+                    throw CouchbaseException.Create(err);
+                }
                     
-                    retVal = Native.FLSlice_Copy(new FLSlice(publicUUID.bytes, (ulong) C4UUID.Size));
-                });
-
-                return retVal;
+                return Native.FLSlice_Copy(new FLSlice(publicUUID.bytes, (ulong) C4UUID.Size));
             }
         }
 
         internal C4BlobStore* BlobStore
         {
             get {
-                C4BlobStore* retVal = null;
-                ThreadSafety.DoLocked(() =>
-                {
-                    CheckOpen();
-                    retVal = (C4BlobStore*)LiteCoreBridge.Check(err => NativeSafe.c4db_getBlobStore(c4db, err));
-                });
-
-                return retVal;
+                using var scope = ThreadSafety.BeginLockedScope();
+                CheckOpen();
+                return (C4BlobStore*)LiteCoreBridge.Check(err => NativeSafe.c4db_getBlobStore(c4db, err));
             }
         }
 
@@ -219,14 +209,9 @@ namespace Couchbase.Lite
         internal FLEncoderWrapper SharedEncoder
         {
             get {
-                FLEncoderWrapper encoder = default!;
-                ThreadSafety.DoLocked(() =>
-                {
-                    CheckOpen();
-                    encoder = NativeSafe.c4db_getSharedFleeceEncoder(c4db!);
-                });
-
-                return encoder;
+                using var scope = ThreadSafety.BeginLockedScope();
+                CheckOpen();
+                return NativeSafe.c4db_getSharedFleeceEncoder(c4db);
             }
         }
 
@@ -235,10 +220,8 @@ namespace Couchbase.Lite
         internal bool IsClosedLocked
         {
             get {
-                return ThreadSafety.DoLocked(() =>
-                {
-                    return IsClosed;
-                });
+                using var scope = ThreadSafety.BeginLockedScope();
+                return IsClosed;
             }
         }
 
@@ -258,10 +241,8 @@ namespace Couchbase.Lite
         private bool IsReadyToClose
         {
             get {
-                return ThreadSafety.DoLocked(() =>
-                {
-                    return ActiveStoppables.Count == 0;
-                });
+                using var scope = ThreadSafety.BeginLockedScope();
+                return ActiveStoppables.Count == 0;
             }
         }
 
@@ -347,19 +328,15 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public Scope GetDefaultScope()
         {
-            var retVal = ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                if (_defaultScope == null) {
-                    _defaultScope = new Scope(this);
-                    if (!_scopes.ContainsKey(_defaultScopeName))
-                        _scopes.TryAdd(_defaultScopeName, _defaultScope);
-                }
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            if (_defaultScope == null) {
+                _defaultScope = new Scope(this);
+                if (!_scopes.ContainsKey(_defaultScopeName))
+                    _scopes.TryAdd(_defaultScopeName, _defaultScope);
+            }
 
-                return _defaultScope;
-            });
-
-            return retVal;
+            return _defaultScope;
         }
 
         /// <summary>
@@ -371,20 +348,18 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public Collection GetDefaultCollection()
         {
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                if (_defaultCollection == null || !_defaultCollection.IsValid) {
-                    var c4coll = LiteCoreBridge.CheckTyped(err =>
-                    {
-                        return NativeSafe.c4db_getDefaultCollection(c4db, err);
-                    })!;
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            if (_defaultCollection == null || !_defaultCollection.IsValid) {
+                var c4coll = LiteCoreBridge.CheckTyped(err =>
+                {
+                    return NativeSafe.c4db_getDefaultCollection(c4db, err);
+                })!;
 
-                    _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
-                }
+                _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
+            }
 
-                return _defaultCollection;
-            });
+            return _defaultCollection;
         }
 
         /// <summary>
@@ -419,20 +394,13 @@ namespace Couchbase.Lite
                 name = _defaultScopeName;
             }
 
-            Scope? scope = null;
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                if (NativeSafe.c4db_hasScope(c4db, name)) {
-                    if (!_scopes.ContainsKey(name)) {
-                        scope = new Scope(this, name);
-                    } else {
-                        scope = _scopes[name];
-                    }
-                }
-            });
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            if(!NativeSafe.c4db_hasScope(c4db, name)) {
+                return null;
+            }
 
-            return scope;
+            return _scopes.ContainsKey(name) ? _scopes[name] : new Scope(this, name);
         }
 
         /// <summary>
@@ -445,20 +413,12 @@ namespace Couchbase.Lite
         public IReadOnlyList<Collection> GetCollections(string? scope = _defaultScopeName)
         {
             // TODO: Make scope non-null in 4.0
-            if (scope == null) {
-                scope = _defaultScopeName;
-            }
+            scope ??= _defaultScopeName;
 
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
-                if (s != null) {
-                    return s.GetCollections();
-                }
-
-                return new List<Collection>();
-            });
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
+            return s?.GetCollections() ?? new List<Collection>();
         }
 
         /// <summary>
@@ -476,21 +436,14 @@ namespace Couchbase.Lite
         public Collection? GetCollection(string name, string? scope = _defaultScopeName)
         {
             // TODO: Make scope non-null in 4.0
-            if (scope == null) {
-                scope = _defaultScopeName;
-            }
+            scope ??= _defaultScopeName;
 
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                Collection? coll = null;
-                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
-                if (s != null) {
-                    coll = s.GetCollection(name);
-                }
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
+            var coll = s?.GetCollection(name);
 
-                return coll?.IsValid == true ? coll : null;
-            });
+            return coll?.IsValid == true ? coll : null;
         }
 
         /// <summary>
@@ -510,24 +463,18 @@ namespace Couchbase.Lite
         public Collection CreateCollection(string name, string? scope = _defaultScopeName)
         {
             // TODO: Make scope non-null in 4.0
-            if (scope == null) {
-                scope = _defaultScopeName;
-            }
+            scope ??= _defaultScopeName;
 
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
-                if (s == null) {
-                    s = new Scope(this, scope);
-                }
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
+            s ??= new Scope(this, scope);
 
-                var co = s.CreateCollection(name);
-                if (!_scopes.ContainsKey(scope))
-                    _scopes.TryAdd(scope, s);
+            var collection = s.CreateCollection(name);
+            if (!_scopes.ContainsKey(scope))
+                _scopes.TryAdd(scope, s);
                 
-                return co;
-            });
+            return collection;
         }
 
         /// <summary>
@@ -541,22 +488,18 @@ namespace Couchbase.Lite
         public void DeleteCollection(string name, string? scope = _defaultScopeName)
         {
             // TODO: Make scope non-null in 4.0
-            if (scope == null) {
-                scope = _defaultScopeName;
-            }
+            scope ??= _defaultScopeName;
 
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
-                if (s != null) {
-                    if (s.DeleteCollection(name, scope) && s.Count == 0 && s.Name != _defaultScopeName) {
-                        if (_scopes.TryRemove(scope, out var sc)) {
-                            sc?.Dispose();
-                        }
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
+            if (s != null) {
+                if (s.DeleteCollection(name, scope) && s.Count == 0 && s.Name != _defaultScopeName) {
+                    if (_scopes.TryRemove(scope, out var existingScope)) {
+                        existingScope?.Dispose();
                     }
                 }
-            });
+            }
         }
 
         #endregion
@@ -659,9 +602,10 @@ namespace Couchbase.Lite
         /// <param name="type">Maintenance type</param>
         public void PerformMaintenance(MaintenanceType type)
         {
-            ThreadSafety.DoLockedBridge(err =>
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            LiteCoreBridge.Check(err =>
             {
-                CheckOpen();
                 return NativeSafe.c4db_maintenance(c4db, (C4MaintenanceType)type, err);
             });
         }
@@ -730,10 +674,9 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public void Delete()
         {
-            ThreadSafety.DoLocked(() =>
-            {
+            using (var scope = ThreadSafety.BeginLockedScope()) {
                 CheckOpen();
-            });
+            }
 
             Close();
             Delete(Name, Config.Directory);
@@ -812,25 +755,23 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(action), action);
 
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                PerfTimer.StartEvent("InBatch_BeginTransaction");
-                LiteCoreBridge.Check(err => NativeSafe.c4db_beginTransaction(c4db, err));
-                PerfTimer.StopEvent("InBatch_BeginTransaction");
-                var success = true;
-                try {
-                    action();
-                } catch (Exception e) {
-                    WriteLog.To.Database.W(Tag, "Exception during InBatch, rolling back...", e);
-                    success = false;
-                    throw;
-                } finally {
-                    PerfTimer.StartEvent("InBatch_EndTransaction");
-                    LiteCoreBridge.Check(err => NativeSafe.c4db_endTransaction(c4db, success, err));
-                    PerfTimer.StopEvent("InBatch_EndTransaction");
-                }
-            });
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            PerfTimer.StartEvent("InBatch_BeginTransaction");
+            LiteCoreBridge.Check(err => NativeSafe.c4db_beginTransaction(c4db, err));
+            PerfTimer.StopEvent("InBatch_BeginTransaction");
+            var success = true;
+            try {
+                action();
+            } catch (Exception e) {
+                WriteLog.To.Database.W(Tag, "Exception during InBatch, rolling back...", e);
+                success = false;
+                throw;
+            } finally {
+                PerfTimer.StartEvent("InBatch_EndTransaction");
+                LiteCoreBridge.Check(err => NativeSafe.c4db_endTransaction(c4db, success, err));
+                PerfTimer.StopEvent("InBatch_EndTransaction");
+            }
         }
 
         /// <summary>
@@ -975,27 +916,6 @@ namespace Couchbase.Lite
             return new Blob(this, blobDict);
         }
 
-#if CBL_LINQ
-        public void Save(Couchbase.Lite.Linq.IDocumentModel model)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(model), model);
-
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                MutableDocument md = (model.Document as MutableDocument) ?? model.Document?.ToMutable() ?? new MutableDocument();
-                md.SetFromModel(model);
-
-                try {
-                    var retVal = Save(md, false);
-                    model.Document = retVal;
-                } finally {
-                    md.Dispose();
-                }
-            });
-        }
-#endif
-
         #endregion
 
         #region IChangeObservable
@@ -1092,31 +1012,27 @@ namespace Couchbase.Lite
 
         internal void AddActiveStoppable(IStoppable stoppable)
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpenAndNotClosing();
-                if(ActiveStoppables.TryAdd(stoppable, 0)) {
-                    _closeCondition.Reset();
-                }
-            });
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpenAndNotClosing();
+            if(ActiveStoppables.TryAdd(stoppable, 0)) {
+                _closeCondition.Reset();
+            }
         }
 
         internal void RemoveActiveStoppable(IStoppable stoppable)
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (IsClosed) {
-                    return;
-                }
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            if (IsClosed) {
+                return;
+            }
 
-                if(!ActiveStoppables.TryRemove(stoppable, out var dummy)) {
-                    return;
-                }
+            if(!ActiveStoppables.TryRemove(stoppable, out var dummy)) {
+                return;
+            }
 
-                if (ActiveStoppables.Count == 0) {
-                    _closeCondition.Set();
-                }
-            });
+            if (ActiveStoppables.Count == 0) {
+                _closeCondition.Set();
+            }
         }
 
         internal string? GetCookies(Uri? uri)
@@ -1245,10 +1161,8 @@ namespace Couchbase.Lite
 
         internal void CheckOpenLocked()
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-            });
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
         }
 
         #endregion
@@ -1477,30 +1391,28 @@ namespace Couchbase.Lite
         }
 
         private void GetScopesList()
-        { 
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                C4Error error;
-                var arrScopes = NativeSafe.c4db_scopeNames(c4db, &error);
-                if (error.code == 0) {
-                    var scopesCnt = Native.FLArray_Count((FLArray*)arrScopes);
-                    if (_scopes.Count > scopesCnt) 
-                        _scopes.Clear();
+        {
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            C4Error error;
+            var arrScopes = NativeSafe.c4db_scopeNames(c4db, &error);
+            if (error.code == 0) {
+                var scopesCnt = Native.FLArray_Count((FLArray*)arrScopes);
+                if (_scopes.Count > scopesCnt) 
+                    _scopes.Clear();
 
-                    for (uint i = 0; i < scopesCnt; i++) {
-                        var scopeStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
-                        if (scopeStr != null && !_scopes.ContainsKey(scopeStr)) {
-                            var s = new Scope(this, scopeStr);
-                            var cnt = s.GetCollections().Count;
-                            if(scopeStr == _defaultCollectionName || cnt > 0)
-                                _scopes.TryAdd(scopeStr, s);
-                        }
+                for (uint i = 0; i < scopesCnt; i++) {
+                    var scopeStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
+                    if (scopeStr != null && !_scopes.ContainsKey(scopeStr)) {
+                        var s = new Scope(this, scopeStr);
+                        var cnt = s.GetCollections().Count;
+                        if(scopeStr == _defaultCollectionName || cnt > 0)
+                            _scopes.TryAdd(scopeStr, s);
                     }
                 }
+            }
 
-                Native.FLValue_Release((FLValue*)arrScopes);
-            });
+            Native.FLValue_Release((FLValue*)arrScopes);
         }
 
         #endregion
@@ -1541,18 +1453,12 @@ namespace Couchbase.Lite
             // Do this here because otherwise if a purge job runs there will
             // be a deadlock while the purge job waits for the lock that is held
             // by the disposal which is waiting for timer callbacks to finish
-            var isClosed = ThreadSafety.DoLocked(() =>
-            {
+            using (var threadSafetyScope1 = ThreadSafety.BeginLockedScope()) {
                 if (IsClosed || _isClosing) {
-                    return true;
+                    return;
                 }
 
                 _isClosing = true;
-                return false;
-            });
-
-            if(isClosed) {
-                return;
             }
 
             foreach (var q in ActiveStoppables) {
@@ -1563,14 +1469,12 @@ namespace Couchbase.Lite
                 WriteLog.To.Database.W(Tag, "Taking a while for active items to stop...");
             }
 
-            ThreadSafety.DoLocked(() =>
-            {
-                try {
-                    Dispose(true);
-                } finally {
-                    _isClosing = false;
-                }
-            });
+            using var threadSafetyScope2 = ThreadSafety.BeginLockedScope();
+            try {
+                Dispose(true);
+            } finally {
+                _isClosing = false;
+            }
         }
 
         #endregion

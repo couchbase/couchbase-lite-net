@@ -197,7 +197,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\LinuxProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\MacProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\WindowsProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\NullThreadSafety.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\SerialQueue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Status.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\ThreadSafety.cs" />

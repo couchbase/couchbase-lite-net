@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite
 {
@@ -93,12 +94,10 @@ namespace Couchbase.Lite
 
         private void SetValueInternal(int index, object? value)
         {
-            _threadSafety.DoLocked(() =>
-            {
-                if (DataOps.ValueWouldChange(value, _array.Get(index), _array)) {
-                    _array.Set(index, DataOps.ToCouchbaseObject(value));
-                }
-            });
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            if (DataOps.ValueWouldChange(value, _array.Get(index), _array)) {
+                _array.Set(index, DataOps.ToCouchbaseObject(value));
+            }
         }
 
         #endregion
@@ -117,77 +116,88 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray AddValue(object? value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddString(string? value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddInt(int value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddLong(long value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddFloat(float value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddDouble(double value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddBoolean(bool value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddBlob(Blob? value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddDate(DateTimeOffset value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddArray(ArrayObject? value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddDictionary(DictionaryObject? value)
         {
-            _threadSafety.DoLocked(() => _array.Add(value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Add(value);
             return this;
         }
 
@@ -206,100 +216,109 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray InsertValue(int index, object? value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertString(int index, string? value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertInt(int index, int value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertLong(int index, long value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertFloat(int index, float value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertDouble(int index, double value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertBoolean(int index, bool value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertBlob(int index, Blob? value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertDate(int index, DateTimeOffset value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertArray(int index, ArrayObject? value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertDictionary(int index, DictionaryObject? value)
         {
-            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Insert(index, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray RemoveAt(int index)
         {
-            _threadSafety.DoLocked(() => _array.RemoveAt(index));
-            
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.RemoveAt(index);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetData(IList array)
         {
-            _threadSafety.DoLocked(() =>
-            {
-                _array.Clear();
-                if (array != null) {
-                    foreach (var item in array) {
-                        _array.Add(DataOps.ToCouchbaseObject(item));
-                    }
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _array.Clear();
+            if (array != null) {
+                foreach (var item in array) {
+                    _array.Add(DataOps.ToCouchbaseObject(item));
                 }
-            });
+            }
 
             return this;
         }

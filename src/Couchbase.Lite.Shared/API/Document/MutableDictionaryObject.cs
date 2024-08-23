@@ -91,15 +91,13 @@ namespace Couchbase.Lite
 
         private void SetValueInternal(string key, object? value)
         {
-            _threadSafety.DoLocked(() =>
-            {
-                var oldValue = _dict.Get(key);
-                value = DataOps.ToCouchbaseObject(value);
-                if (DataOps.ValueWouldChange(value, oldValue, _dict)) {
-                    _dict.Set(key, new MValue(value));
-                    KeysChanged();
-                }
-            });
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            var oldValue = _dict.Get(key);
+            value = DataOps.ToCouchbaseObject(value);
+            if (DataOps.ValueWouldChange(value, oldValue, _dict)) {
+                _dict.Set(key, new MValue(value));
+                KeysChanged();
+            }
         }
 
         #endregion
@@ -130,7 +128,8 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableDictionary Remove(string key)
         {
-            _threadSafety.DoLocked(() => _dict.Remove(key));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _dict.Remove(key);
             return this;
         }
 
@@ -144,17 +143,15 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableDictionary SetData(IDictionary<string, object?> dictionary)
         {
-            _threadSafety.DoLocked(() =>
-            {
-                _dict.Clear();
-                if (dictionary != null) {
-                    foreach (var item in dictionary) {
-                        _dict.Set(item.Key, new MValue(item.Value));
-                    }
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _dict.Clear();
+            if (dictionary != null) {
+                foreach (var item in dictionary) {
+                    _dict.Set(item.Key, new MValue(item.Value));
                 }
+            }
 
-                KeysChanged();
-            });
+            KeysChanged();
 
             return this;
         }

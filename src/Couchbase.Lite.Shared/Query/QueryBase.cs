@@ -135,12 +135,10 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (!finalizing) {
                 Stop();
-                ThreadSafety.DoLocked(() =>
-                {
-                    _c4Query?.Dispose();
-                    _c4Query = null;
-                    _disposalWatchdog.Dispose();
-                });
+                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+                _c4Query?.Dispose();
+                _c4Query = null;
+                _disposalWatchdog.Dispose();
             }
         }
 

@@ -115,29 +115,27 @@ namespace Couchbase.Lite
         /// <exception cref = "InvalidOperationException" > Thrown if <see cref="Collection"/> is not valid.</exception>
         public Collection? GetCollection(string name)
         {
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                if (_collections.ContainsKey(name)) {
-                    var c = _collections[name];
-                    if (c.IsValid) {
-                        return c;
-                    } else {
-                        // Remove invalid collection from cache
-                        _collections.TryRemove(name, out var co);
-                        co?.Dispose();
-                    }
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            if (_collections.ContainsKey(name)) {
+                var c = _collections[name];
+                if (c.IsValid) {
+                    return c;
+                } else {
+                    // Remove invalid collection from cache
+                    _collections.TryRemove(name, out var co);
+                    co?.Dispose();
                 }
+            }
 
-                Collection? coll = null;
-                var c4c = GetCollectionFromLiteCore(name);
-                if (c4c != null) {
-                    coll = new Collection(Database, name, this, c4c);
-                    _collections.TryAdd(name, coll);
-                }
+            Collection? coll = null;
+            var c4c = GetCollectionFromLiteCore(name);
+            if (c4c != null) {
+                coll = new Collection(Database, name, this, c4c);
+                _collections.TryAdd(name, coll);
+            }
 
-                return coll == null || !coll.IsValid ? null : coll;
-            });
+            return coll == null || !coll.IsValid ? null : coll;
         }
 
         /// <summary>
@@ -158,98 +156,59 @@ namespace Couchbase.Lite
 
         internal Collection CreateCollection(string collectionName)
         {
-            return ThreadSafety.DoLocked(() =>
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            if (_collections.ContainsKey(collectionName)) {
+                var coll = _collections[collectionName];
+                if (coll.IsValid) {
+                    return coll;
+                } else {
+                    // Remove invalid collection from cache
+                    _collections.TryRemove(collectionName, out var c);
+                    c?.Dispose();
+                }
+            }
+
+            using var collName_ = new C4String(collectionName);
+            using var scopeName_ = new C4String(Name);
+            var collectionSpec = new C4CollectionSpec() 
             {
-                CheckOpen();
-                if (_collections.ContainsKey(collectionName)) {
-                    var coll = _collections[collectionName];
-                    if (coll.IsValid) {
-                        return coll;
-                    } else {
-                        // Remove invalid collection from cache
-                        _collections.TryRemove(collectionName, out var c);
-                        c?.Dispose();
-                    }
-                }
+                name = collName_.AsFLSlice(),
+                scope = scopeName_.AsFLSlice()
+            };
 
-                Collection co;
-                using (var collName_ = new C4String(collectionName))
-                using (var scopeName_ = new C4String(Name)) {
-                    var collectionSpec = new C4CollectionSpec() 
-                    {
-                        name = collName_.AsFLSlice(),
-                        scope = scopeName_.AsFLSlice()
-                    };
+            var c4c = LiteCoreBridge.CheckTyped(err =>
+            {
+                return NativeSafe.c4db_createCollection(c4Db, collectionSpec, err);
+            })!;
 
-                    var c4c = LiteCoreBridge.CheckTyped(err =>
-                    {
-                        return NativeSafe.c4db_createCollection(c4Db, collectionSpec, err);
-                    });
-
-                    // c4c is not null now, otherwise the above throws an exception
-                    co = new Collection(Database, collectionName, this, c4c);
-                    _collections.TryAdd(collectionName, co);
-                }
-                
-                return co;
-            });
+            // c4c is not null now, otherwise the above throws an exception
+            var collection = new Collection(Database, collectionName, this, c4c);
+            _collections.TryAdd(collectionName, collection);
+            return collection;
         }
 
         internal bool DeleteCollection(string name, string scope)
         {
-            bool deleteSuccessful = false;
-            ThreadSafety.DoLocked(() =>
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            using var collName_ = new C4String(name);
+            using var scopeName_ = new C4String(scope);
+            var collectionSpec = new C4CollectionSpec()
             {
-                CheckOpen();
-                using (var collName_ = new C4String(name))
-                using (var scopeName_ = new C4String(scope)) {
-                    var collectionSpec = new C4CollectionSpec()
-                    {
-                        name = collName_.AsFLSlice(),
-                        scope = scopeName_.AsFLSlice()
-                    };
+                name = collName_.AsFLSlice(),
+                scope = scopeName_.AsFLSlice()
+            };
 
-                    deleteSuccessful = LiteCoreBridge.Check(err =>
-                    {
-                        return NativeSafe.c4db_deleteCollection(c4Db, collectionSpec, err);
-                    });
+            var deleteSuccessful = LiteCoreBridge.Check(err =>
+                NativeSafe.c4db_deleteCollection(c4Db, collectionSpec, err));
 
-                    if (deleteSuccessful) {
-                        if (_collections.TryRemove(name, out var co)) {
-                            co?.Dispose();
-                        }
-                    }
-                }
-            });
+            if (deleteSuccessful) {
+                _collections.TryRemove(name, out var co);
+                co?.Dispose();
+            }
 
             return deleteSuccessful;
-        }
-
-        internal IReadOnlyList<Collection> GetCollectionListFromLiteCore()
-        {
-            List<Collection> cos = new List<Collection>();
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                C4Error error;
-                var arrColl = NativeSafe.c4db_collectionNames(c4Db, Name, &error);
-                if (error.code == 0) {
-                    var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
-                    for (uint i = 0; i < collsCnt; i++) {
-                        var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        var c4c = collStr != null ? GetCollectionFromLiteCore(collStr) : null;
-                        if (c4c != null) {
-                            // if c4c is not null, it is because collStr is not null
-                            var coll = new Collection(Database, collStr!, this, c4c);
-                            cos.Add(coll);
-                        }
-                    }
-                }
-
-                Native.FLValue_Release((FLValue*)arrColl);
-            });
-
-            return cos;
         }
 
         #endregion
@@ -268,52 +227,44 @@ namespace Couchbase.Lite
 
         private void GetCollectionList()
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                C4Error error;
-                var arrColl = NativeSafe.c4db_collectionNames(c4Db, Name, &error);
-                if (error.code == 0) {
-                    var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
-                    if (_collections.Count > collsCnt)
-                        _collections.Clear();
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            C4Error error;
+            var arrColl = NativeSafe.c4db_collectionNames(c4Db, Name, &error);
+            if (error.code == 0) {
+                var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
+                if (_collections.Count > collsCnt)
+                    _collections.Clear();
 
-                    for (uint i = 0; i < collsCnt; i++) {
-                        var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        if (collStr != null && !_collections.ContainsKey(collStr)) {
-                            var c4c = GetCollectionFromLiteCore(collStr);
-                            if (c4c != null) {
-                                var coll = new Collection(Database, collStr, this, c4c);
-                                _collections.TryAdd(collStr, coll);
-                            }
+                for (uint i = 0; i < collsCnt; i++) {
+                    var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                    if (collStr != null && !_collections.ContainsKey(collStr)) {
+                        var c4c = GetCollectionFromLiteCore(collStr);
+                        if (c4c != null) {
+                            var coll = new Collection(Database, collStr, this, c4c);
+                            _collections.TryAdd(collStr, coll);
                         }
                     }
                 }
+            }
 
-                Native.FLValue_Release((FLValue*)arrColl);
-            });
+            Native.FLValue_Release((FLValue*)arrColl);
         }
 
         private C4CollectionWrapper? GetCollectionFromLiteCore(string collectionName)
         {
-            C4CollectionWrapper? co = null;
-            ThreadSafety.DoLocked(() =>
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            using var collName_ = new C4String(collectionName);
+            using var scopeName_ = new C4String(Name);
+            var collectionSpec = new C4CollectionSpec() 
             {
-                CheckOpen();
-                using (var collName_ = new C4String(collectionName))
-                using (var scopeName_ = new C4String(Name)) {
-                    var collectionSpec = new C4CollectionSpec() 
-                    {
-                        name = collName_.AsFLSlice(),
-                        scope = scopeName_.AsFLSlice()
-                    };
+                name = collName_.AsFLSlice(),
+                scope = scopeName_.AsFLSlice()
+            };
 
-                    co = NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                        err => NativeSafe.c4db_getCollection(c4Db, collectionSpec, err));
-                }
-            });
-
-            return co;
+            return NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                err => NativeSafe.c4db_getCollection(c4Db, collectionSpec, err));
         }
 
         #endregion
@@ -346,17 +297,15 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public void Dispose()
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (_collections == null)
-                    return;
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            if (_collections == null)
+                return;
 
-                foreach (var c in _collections) {
-                    c.Value.Dispose();
-                }
+            foreach (var c in _collections) {
+                c.Value.Dispose();
+            }
 
-                _collections.Clear();
-            });
+            _collections.Clear();
         }
 
         #endregion

@@ -207,18 +207,16 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
 
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckCollectionValid();
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
 
-                var cbHandler = new CouchbaseEventHandler<CollectionChangedEventArgs>(handler, scheduler);
-                if (_databaseChanged.Add(cbHandler) == 0) {
-                    _obsContext = GCHandle.Alloc(this);
-                    _obs = (C4CollectionObserver*)LiteCoreBridge.Check(err => NativeSafe.c4dbobs_createOnCollection(c4coll, _databaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer(), err));
-                }
+            var cbHandler = new CouchbaseEventHandler<CollectionChangedEventArgs>(handler, scheduler);
+            if (_databaseChanged.Add(cbHandler) == 0) {
+                _obsContext = GCHandle.Alloc(this);
+                _obs = (C4CollectionObserver*)LiteCoreBridge.Check(err => NativeSafe.c4dbobs_createOnCollection(c4coll, _databaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer(), err));
+            }
 
-                return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
-            });
+            return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
         }
 
         /// <summary>
@@ -254,21 +252,19 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
 
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckCollectionValid();
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
 
-                var cbHandler =
-                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
-                var count = _documentChanged.Add(cbHandler);
-                if (count == 0) {
-                    var handle = GCHandle.Alloc(this);
-                    var docObs = (C4DocumentObserver*)LiteCoreBridge.Check(err => NativeSafe.c4docobs_createWithCollection(c4coll, id, _documentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer(), err));
-                    _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
-                }
+            var cbHandler =
+                new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
+            var count = _documentChanged.Add(cbHandler);
+            if (count == 0) {
+                var handle = GCHandle.Alloc(this);
+                var docObs = (C4DocumentObserver*)LiteCoreBridge.Check(err => NativeSafe.c4docobs_createWithCollection(c4coll, id, _documentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer(), err));
+                _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
+            }
 
-                return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
-            });
+            return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
         }
 
         /// <summary>
@@ -296,29 +292,27 @@ namespace Couchbase.Lite
         /// is called after the collection is closed</exception>
         public void RemoveChangeListener(ListenerToken token)
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckCollectionValid();
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
 
-                if (token.Type == ListenerTokenType.Database) {
-                    if (_databaseChanged.Remove(token) == 0) {
-                        Native.c4dbobs_free(_obs);
-                        _obs = null;
-                        if (_obsContext.IsAllocated) {
-                            _obsContext.Free();
-                        }
-                    }
-                } else {
-                    if (_documentChanged.Remove(token, out var docID) == 0) {
-                        // docID is guaranteed non-null if return of Remove is 0 or higher
-                        if (_docObs.TryGetValue(docID!, out var observer)) {
-                            _docObs.Remove(docID!);
-                            Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
-                            observer.Item2.Free();
-                        }
+            if (token.Type == ListenerTokenType.Database) {
+                if (_databaseChanged.Remove(token) == 0) {
+                    Native.c4dbobs_free(_obs);
+                    _obs = null;
+                    if (_obsContext.IsAllocated) {
+                        _obsContext.Free();
                     }
                 }
-            });
+            } else {
+                if (_documentChanged.Remove(token, out var docID) == 0) {
+                    // docID is guaranteed non-null if return of Remove is 0 or higher
+                    if (_docObs.TryGetValue(docID!, out var observer)) {
+                        _docObs.Remove(docID!);
+                        Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
+                        observer.Item2.Free();
+                    }
+                }
+            }
         }
 
         #endregion
@@ -371,7 +365,8 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
 
-            return ThreadSafety.DoLocked(() => GetDocumentInternal(id));
+            using var scope = ThreadSafety.BeginLockedScope();
+            return GetDocumentInternal(id);
         }
 
         /// <summary>
@@ -381,13 +376,11 @@ namespace Couchbase.Lite
         /// <returns>The index object, or <c>null</c> if nonexistent</returns>
         public IQueryIndex? GetIndex(string name)
         {
-            var index = ThreadSafety.DoLocked(() =>
-            {
-                CheckCollectionValid();
-                return NativeHandler.Create()
-                    .AllowError(new C4Error(C4ErrorCode.MissingIndex))
-                    .Execute(err => NativeSafe.c4coll_getIndex(_c4coll, name, err));
-            });
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            var index = NativeHandler.Create()
+                .AllowError(new C4Error(C4ErrorCode.MissingIndex))
+                .Execute(err => NativeSafe.c4coll_getIndex(_c4coll, name, err));
 
             return index == null ? null : new QueryIndexImpl(index, this, name);
         }
@@ -404,16 +397,14 @@ namespace Couchbase.Lite
         public void Purge(Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            ThreadSafety.DoLocked(() =>
-            {
-                VerifyCollection(document);
+            using var scope = ThreadSafety.BeginLockedScope();
+            VerifyCollection(document);
 
-                if (!document.Exists) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                }
+            if (!document.Exists) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+            }
 
-                Database.InBatch(() => PurgeDocById(document.Id));
-            });
+            Database.InBatch(() => PurgeDocById(document.Id));
         }
 
         /// <summary>
@@ -542,9 +533,10 @@ namespace Couchbase.Lite
         /// if this method is called after the collection is closed</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
-            return ThreadSafety.DoLockedBridge(err =>
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            return LiteCoreBridge.Check(err =>
             {
-                CheckCollectionValid();
                 if (expiration == null) {
                     return NativeSafe.c4coll_setDocExpiration(c4coll, docId, 0, err);
                 }
@@ -579,23 +571,21 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(index), index);
 
-            ThreadSafety.DoLocked(() =>
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
+            var jsonObj = concreteIndex.ToJSON();
+            var json = JsonConvert.SerializeObject(jsonObj);
+            LiteCoreBridge.Check(err =>
             {
-                CheckCollectionValid();
-                var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
-                var jsonObj = concreteIndex.ToJSON();
-                var json = JsonConvert.SerializeObject(jsonObj);
-                LiteCoreBridge.Check(err =>
-                {
-                    var internalOpts = concreteIndex.Options;
+                var internalOpts = concreteIndex.Options;
 
-                    // For some reason a "using" statement here causes a compiler error
-                    try {
-                        return NativeSafe.c4coll_createIndex(c4coll, name, json, C4QueryLanguage.JSONQuery, concreteIndex.IndexType, &internalOpts, err);
-                    } finally {
-                        internalOpts.Dispose();
-                    }
-                });
+                // For some reason a "using" statement here causes a compiler error
+                try {
+                    return NativeSafe.c4coll_createIndex(c4coll, name, json, C4QueryLanguage.JSONQuery, concreteIndex.IndexType, &internalOpts, err);
+                } finally {
+                    internalOpts.Dispose();
+                }
             });
         }
 
@@ -612,33 +602,31 @@ namespace Couchbase.Lite
         public IList<string> GetIndexes()
         {
             List<string> retVal = new List<string>();
-            ThreadSafety.DoLocked(() =>
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            var result = new FLSliceResult();
+            LiteCoreBridge.Check(err =>
             {
-                CheckCollectionValid();
-                var result = new FLSliceResult();
-                LiteCoreBridge.Check(err =>
-                {
-                    result = NativeSafe.c4coll_getIndexesInfo(c4coll, err);
-                    return result.buf != null;
-                });
-
-                var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
-                if (val == null) {
-                    Native.FLSliceResult_Release(result);
-                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "FLValue_FromData failed...");
-                }
-
-                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, Database, true) as IList<object> 
-                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "ToCouchbaseObject failed...");
-
-                foreach (var a in indexesInfo) {
-                    var indexInfo = a as Dictionary<string, object>
-                        ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt entry in indexesInfo");
-                    retVal.Add(indexInfo["name"] as string ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt index data..."));
-                }
-
-                Native.FLSliceResult_Release(result);
+                result = NativeSafe.c4coll_getIndexesInfo(c4coll, err);
+                return result.buf != null;
             });
+
+            var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
+            if (val == null) {
+                Native.FLSliceResult_Release(result);
+                throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "FLValue_FromData failed...");
+            }
+
+            var indexesInfo = FLValueConverter.ToCouchbaseObject(val, Database, true) as IList<object> 
+                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "ToCouchbaseObject failed...");
+
+            foreach (var a in indexesInfo) {
+                var indexInfo = a as Dictionary<string, object>
+                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt entry in indexesInfo");
+                retVal.Add(indexInfo["name"] as string ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt index data..."));
+            }
+
+            Native.FLSliceResult_Release(result);
 
             return retVal;
         }
@@ -664,20 +652,18 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(indexConfig), indexConfig);
 
-            ThreadSafety.DoLocked(() =>
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            indexConfig.Validate();
+            LiteCoreBridge.Check(err =>
             {
-                CheckCollectionValid();
-                indexConfig.Validate();
-                LiteCoreBridge.Check(err =>
-                {
-                    var internalOpts = indexConfig.Options;
-                    // For some reason a "using" statement here causes a compiler error
-                    try {
-                        return NativeSafe.c4coll_createIndex(c4coll, name, indexConfig.ToN1QL(), indexConfig.QueryLanguage, indexConfig.IndexType, &internalOpts, err);
-                    } finally {
-                        internalOpts.Dispose();
-                    }
-                });
+                var internalOpts = indexConfig.Options;
+                // For some reason a "using" statement here causes a compiler error
+                try {
+                    return NativeSafe.c4coll_createIndex(c4coll, name, indexConfig.ToN1QL(), indexConfig.QueryLanguage, indexConfig.IndexType, &internalOpts, err);
+                } finally {
+                    internalOpts.Dispose();
+                }
             });
         }
 
@@ -691,11 +677,9 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                CheckCollectionValid();
-                return NativeSafe.c4coll_deleteIndex(c4coll, name, err);
-            });
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            LiteCoreBridge.Check(err => NativeSafe.c4coll_deleteIndex(c4coll, name, err));
         }
 
         #endregion
@@ -751,20 +735,11 @@ namespace Couchbase.Lite
 
         private void PostDocChanged(string documentID)
         {
-            DocumentChangedEventArgs? change = ThreadSafety.DoLocked(() =>
-            {
-                if (IsClosed || !_docObs.ContainsKey(documentID)) {
-                    return null;
-                }
-
-                return new DocumentChangedEventArgs(documentID, this);
-            });
-
-            if(change == null) {
-                return;
+            using var scope = ThreadSafety.BeginLockedScope();
+            if (!IsClosed && !_docObs.ContainsKey(documentID)) {
+                var change = new DocumentChangedEventArgs(documentID, this);
+                _documentChanged.Fire(documentID, this, change);
             }
-
-            _documentChanged.Fire(documentID, this, change);
         }
 
         private void FreeC4DbObserver()
@@ -824,11 +799,9 @@ namespace Couchbase.Lite
 
         private void PurgeDocById(string id)
         {
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                CheckCollectionValid();
-                return NativeSafe.c4coll_purgeDoc(c4coll, id, err);
-            });
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            LiteCoreBridge.Check(err => NativeSafe.c4coll_purgeDoc(c4coll, id, err));
         }
 
         private bool Save(Document document, Document? baseDocument,
@@ -839,73 +812,69 @@ namespace Couchbase.Lite
                     CouchbaseLiteErrorMessage.DeleteDocFailedNotSaved);
             }
 
-            var success = true;
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckCollectionValid();
-                VerifyCollection(document);
-                C4DocumentWrapper? curDoc = null;
-                C4DocumentWrapper? newDoc = null;
-                var committed = false;
-                try {
-                    LiteCoreBridge.Check(err => NativeSafe.c4db_beginTransaction(c4Db, err));
-                    var baseDoc = baseDocument?.c4Doc;
-                    Save(document, ref newDoc, baseDoc, deletion);
-                    if (newDoc == null) {
-                        // Handle conflict:
-                        if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
-                            success = false;
-                            committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
-                            LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, true, e));
-                            return;
-                        }
+            using var scope = ThreadSafety.BeginLockedScope();
+            CheckCollectionValid();
+            VerifyCollection(document);
+            C4DocumentWrapper? curDoc = null;
+            C4DocumentWrapper? newDoc = null;
+            var committed = false;
+            try {
+                LiteCoreBridge.Check(err => NativeSafe.c4db_beginTransaction(c4Db, err));
+                var baseDoc = baseDocument?.c4Doc;
+                Save(document, ref newDoc, baseDoc, deletion);
+                if (newDoc == null) {
+                    // Handle conflict:
+                    if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
+                        committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+                        LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, true, e));
+                        return false;
+                    }
 
-                        C4Error err;
-                        curDoc = NativeSafe.c4coll_getDoc(c4coll, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
+                    C4Error err;
+                    curDoc = NativeSafe.c4coll_getDoc(c4coll, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
 
-                        // If deletion and the current doc has already been deleted
-                        // or doesn't exist:
-                        if (deletion) {
-                            if (curDoc == null) {
-                                if (err.code == (int)C4ErrorCode.NotFound) {
-                                    return;
-                                }
-
-                                throw CouchbaseException.Create(err);
-                            } else if (curDoc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
-                                document.ReplaceC4Doc(curDoc);
-                                curDoc = null;
-                                return;
-
-                            }
-                        }
-
-                        // Save changes on the current branch:
+                    // If deletion and the current doc has already been deleted
+                    // or doesn't exist:
+                    if (deletion) {
                         if (curDoc == null) {
+                            if (err.code == (int)C4ErrorCode.NotFound) {
+                                return true;
+                            }
+
                             throw CouchbaseException.Create(err);
+                        } else if (curDoc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
+                            document.ReplaceC4Doc(curDoc);
+                            curDoc = null;
+                            return true;
+
                         }
-
-                        Save(document, ref newDoc, curDoc, deletion);
                     }
 
-                    Debug.Assert(newDoc != null);
-                    committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
-                    LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, true, e));
-                    document.ReplaceC4Doc(newDoc!);
-                    newDoc = null;
-                } catch (Exception) {
-                    if (!committed) {
-                        LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, false, e));
+                    // Save changes on the current branch:
+                    if (curDoc == null) {
+                        throw CouchbaseException.Create(err);
                     }
 
-                    throw;
-                } finally {
-                    curDoc?.Dispose();
-                    newDoc?.Dispose();
+                    Save(document, ref newDoc, curDoc, deletion);
                 }
-            });
 
-            return success;
+                Debug.Assert(newDoc != null);
+                committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+                LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, true, e));
+                document.ReplaceC4Doc(newDoc!);
+                newDoc = null;
+            } catch (Exception) {
+                if (!committed) {
+                    LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, false, e));
+                }
+
+                throw;
+            } finally {
+                curDoc?.Dispose();
+                newDoc?.Dispose();
+            }
+
+            return true;
         }
 
         private void SaveFinal(Document doc, C4DocumentWrapper? baseDoc, ref C4DocumentWrapper? outDoc, FLSliceResult body, C4RevisionFlags revFlags)
@@ -940,18 +909,16 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                ThreadSafety.DoLocked(() =>
-                {
-                    Debug.Assert(c4Db != null);
-                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
-                    FLTrust.Trusted,
-                    NativeSafe.c4db_getFLSharedKeys(c4Db!), FLSlice.Null);
-                    if (NativeSafe.c4doc_dictContainsBlobs(c4Db!, (FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
-                        revFlags |= C4RevisionFlags.HasAttachments;
-                    }
+                using var scope = ThreadSafety.BeginLockedScope();
+                Debug.Assert(c4Db != null);
+                FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
+                FLTrust.Trusted,
+                NativeSafe.c4db_getFLSharedKeys(c4Db!), FLSlice.Null);
+                if (NativeSafe.c4doc_dictContainsBlobs(c4Db!, (FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
+                    revFlags |= C4RevisionFlags.HasAttachments;
+                }
 
-                    Native.FLDoc_Release(fleeceDoc);
-                });
+                Native.FLDoc_Release(fleeceDoc);
             } else if (doc.IsEmpty) {
                 body = EmptyFLSliceResult();
             }
@@ -987,57 +954,53 @@ namespace Couchbase.Lite
 #endif
         internal void CheckCollectionValid()
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (c4Db == null) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
-                        new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed));
-                }
+            using var scope = ThreadSafety.BeginLockedScope();
+            if (c4Db == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
+                    new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed));
+            }
 
-                if (_c4coll == null || !NativeSafe.c4coll_isValid(_c4coll)) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
-                        new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable, ToString())));
-                }
-            });
+            if (_c4coll == null || !NativeSafe.c4coll_isValid(_c4coll)) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
+                    new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable, ToString())));
+            }
 
         }
 
         internal void PostDatabaseChanged()
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (_obs == null || IsClosed) {
-                    return;
+            using var scope = ThreadSafety.BeginLockedScope();
+            if (_obs == null || IsClosed) {
+                return;
+            }
+
+            const uint maxChanges = 100u;
+            var external = false;
+            uint nChanges;
+            var changes = new C4CollectionChange[maxChanges];
+            var docIDs = new List<string>();
+            do {
+                // Read changes in batches of MaxChanges:
+                bool newExternal;
+                var collectionObservation = NativeSafe.c4dbobs_getChanges(_obs, changes, maxChanges);
+                newExternal = collectionObservation.external;
+                nChanges = collectionObservation.numChanges;
+                if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
+                    if (docIDs.Count > 0) {
+                        // Only notify if there are actually changes to send
+                        var args = new CollectionChangedEventArgs(this, docIDs, Database);
+                        _databaseChanged.Fire(this, args);
+                        docIDs = new List<string>();
+                    }
                 }
 
-                const uint maxChanges = 100u;
-                var external = false;
-                uint nChanges;
-                var changes = new C4CollectionChange[maxChanges];
-                var docIDs = new List<string>();
-                do {
-                    // Read changes in batches of MaxChanges:
-                    bool newExternal;
-                    var collectionObservation = NativeSafe.c4dbobs_getChanges(_obs, changes, maxChanges);
-                    newExternal = collectionObservation.external;
-                    nChanges = collectionObservation.numChanges;
-                    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
-                        if (docIDs.Count > 0) {
-                            // Only notify if there are actually changes to send
-                            var args = new CollectionChangedEventArgs(this, docIDs, Database);
-                            _databaseChanged.Fire(this, args);
-                            docIDs = new List<string>();
-                        }
-                    }
+                external = newExternal;
+                for (var i = 0; i < nChanges; i++) {
+                    docIDs.Add(changes[i].docID.CreateString()!);
+                }
 
-                    external = newExternal;
-                    for (var i = 0; i < nChanges; i++) {
-                        docIDs.Add(changes[i].docID.CreateString()!);
-                    }
-
-                    NativeSafe.c4dbobs_releaseChanges(changes, nChanges);
-                } while (nChanges > 0);
-            });
+                NativeSafe.c4dbobs_releaseChanges(changes, nChanges);
+            } while (nChanges > 0);
         }
 
         #endregion
@@ -1107,23 +1070,13 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            var isClosed = ThreadSafety.DoLocked(() =>
-            {
-                if (IsClosed) {
-                    return true;
-                }
 
-                return false;
-            });
-
-            if (isClosed) {
+            using var scope = ThreadSafety.BeginLockedScope();
+            if(IsClosed) {
                 return;
             }
 
-            ThreadSafety.DoLocked(() =>
-            {
-                Dispose(true);
-            });
+            Dispose(true);
         }
 
         #endregion

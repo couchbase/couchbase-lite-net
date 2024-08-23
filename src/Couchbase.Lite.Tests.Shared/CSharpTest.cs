@@ -672,7 +672,9 @@ Transfer-Encoding: chunked";
                 }
 
                 lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
-                threadSafety.DoLocked(sw.Stop);
+                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                    sw.Stop();
+                }
 
                 if (blocking) {
                     sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
@@ -723,7 +725,9 @@ Transfer-Encoding: chunked";
                 }
 
                 lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
-                threadSafety.DoLocked(sw.Stop);
+                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                    sw.Stop();
+                }
 
                 if (blocking) {
                     sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
@@ -774,7 +778,9 @@ Transfer-Encoding: chunked";
                 }
 
                 lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
-                threadSafety.DoLocked(sw.Stop);
+                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                    sw.Stop();
+                }
 
                 if (blocking) {
                     sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);

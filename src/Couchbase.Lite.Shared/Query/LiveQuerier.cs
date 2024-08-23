@@ -70,19 +70,15 @@ namespace Couchbase.Lite.Internal.Query
 
         internal unsafe LiveQuerier CreateLiveQuerier(C4QueryWrapper c4Query)
         {
-            _queryBase.ThreadSafety.DoLocked(() =>
-            {
-                if(_disposed) {
-                    throw new ObjectDisposedException(nameof(LiveQuerier));
-                }
+            using var threadSafetyScope = _queryBase.ThreadSafety.BeginLockedScope();
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(LiveQuerier));
+            }
 
-                if(_queryObserver != null) {
-                    return;
-                }
-
+            if (_queryObserver == null) {
                 _contextHandle = GCHandle.Alloc(this);
                 _queryObserver = NativeSafe.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(_contextHandle).ToPointer());
-            });
+            }
 
             return this;
         }
