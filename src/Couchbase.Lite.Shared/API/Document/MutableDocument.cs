@@ -204,46 +204,21 @@ namespace Couchbase.Lite
         {
             Debug.Assert(Database != null);
 
-            var body = new FLSliceResult();
-            Database!.ThreadSafety.DoLocked(() =>
-            {
-                FLEncoder* encoder = null;
-                try {
-                    encoder = Database.SharedEncoder;
-                } catch (Exception) {
-                    body = new FLSliceResult(null, 0UL);
+            using var encoder = Database!.SharedEncoder;
+            encoder.SetExtraInfo(this);
+
+            try {
+                if(_dict == null) {
+                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Null dictionary in MutableDocument.Encode");
                 }
 
-                #if CBL_LINQ
-                if (_model != null) {
-                    return (FLSlice)EncodeModel(encoder);
-                }
-                #endif
+                encoder.Encode(_dict);
+            } catch (Exception) {
+                encoder.Reset();
+                throw;
+            }
 
-                var handle = GCHandle.Alloc(this);
-                Native.FLEncoder_SetExtraInfo(encoder, (void *)GCHandle.ToIntPtr(handle));
-
-                try {
-                    if(_dict == null) {
-                        throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Null dictionary in MutableDocument.Encode");
-                    }
-
-                    _dict.FLEncode(encoder);
-                } catch (Exception) {
-                    Native.FLEncoder_Reset(encoder);
-                    throw;
-                } finally {
-                    handle.Free();
-                }
-
-                FLError err;
-                body = NativeRaw.FLEncoder_Finish(encoder, &err);
-                if (body.buf == null) {
-                    throw new CouchbaseFleeceException(err);
-                }
-            });
-
-            return body;
+            return encoder.Finish();
         }
 
         /// <inheritdoc />

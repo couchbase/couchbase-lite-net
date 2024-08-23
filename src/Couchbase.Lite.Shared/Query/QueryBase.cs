@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         protected readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
-        protected unsafe C4Query* _c4Query;
+        protected C4QueryWrapper? _c4Query;
         protected Parameters _queryParameters;
         protected Dictionary<ListenerToken, LiveQuerier?> _listenerTokens = new Dictionary<ListenerToken, LiveQuerier?>();
         protected int _observingCount;
@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             CreateQuery();
             if (_c4Query != null && !String.IsNullOrEmpty(parameters)) {
-                Native.c4query_setParameters(_c4Query, parameters);
+                NativeSafe.c4query_setParameters(_c4Query, parameters);
             }
         }
 
@@ -137,15 +137,10 @@ namespace Couchbase.Lite.Internal.Query
                 Stop();
                 ThreadSafety.DoLocked(() =>
                 {
-                    Native.c4query_release(_c4Query);
+                    _c4Query?.Dispose();
                     _c4Query = null;
                     _disposalWatchdog.Dispose();
                 });
-            } else {
-                // Database is not valid inside finalizer, but thread safety
-                // is guaranteed
-                Native.c4query_release(_c4Query);
-                _c4Query = null;
             }
         }
 
@@ -196,9 +191,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region QueryBase
 
-        protected abstract void CreateQuery();
+        protected abstract C4QueryWrapper CreateQuery();
 
-        protected abstract unsafe Dictionary<string, int> CreateColumnNames(C4Query* query);
+        protected abstract Dictionary<string, int> CreateColumnNames(C4QueryWrapper query);
 
         #endregion
 

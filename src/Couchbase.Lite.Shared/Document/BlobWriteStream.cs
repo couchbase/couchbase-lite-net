@@ -20,7 +20,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
+using Couchbase.Lite.Internal.Logging;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -28,9 +28,11 @@ namespace Couchbase.Lite.Internal.Doc
 {
     internal sealed unsafe class BlobWriteStream : Stream
     {
+        private const string Tag = nameof(BlobWriteStream);
+
         #region Variables
 
-        private C4WriteStream* _writeStream;
+        private C4WriteStreamWrapper? _writeStream;
         private long _totalBytes;
 
         #endregion
@@ -61,7 +63,7 @@ namespace Couchbase.Lite.Internal.Doc
         {
             Debug.Assert(store != null);
 
-            _writeStream = (C4WriteStream*)LiteCoreBridge.Check(err => Native.c4blob_openWriteStream(store, err));
+            _writeStream = LiteCoreBridge.CheckTyped(err => NativeSafe.c4blob_openWriteStream(store, err));
         }
 
         #endregion
@@ -72,14 +74,19 @@ namespace Couchbase.Lite.Internal.Doc
         {
             base.Dispose(disposing);
 
-            Native.c4stream_closeWriter(_writeStream);
+            _writeStream?.Dispose();
             _writeStream = null;
         }
 
         public override void Flush()
         {
-            Key = Native.c4stream_computeBlobKey(_writeStream);
-            LiteCoreBridge.Check(err => Native.c4stream_install(_writeStream, null, err));
+            if(_writeStream == null) {
+                WriteLog.To.Database.W(Tag, "Native write stream is null, skipping flush");
+                return;
+            }
+
+            Key = NativeSafe.c4stream_computeBlobKey(_writeStream);
+            LiteCoreBridge.Check(err => NativeSafe.c4stream_install(_writeStream, null, err));
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -99,9 +106,14 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override void Write(byte[] buffer, int offset, int count)
         {
+            if (_writeStream == null) {
+                WriteLog.To.Database.W(Tag, "Native write stream is null, skipping write");
+                return;
+            }
+
             _totalBytes += count;
             var actualBytes = buffer.Skip(offset).Take(count).ToArray();
-            LiteCoreBridge.Check(err => Native.c4stream_write(_writeStream, actualBytes, err));
+            LiteCoreBridge.Check(err => NativeSafe.c4stream_write(_writeStream, actualBytes, err));
         }
 
         #endregion

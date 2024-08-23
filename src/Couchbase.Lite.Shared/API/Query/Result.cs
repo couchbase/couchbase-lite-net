@@ -98,12 +98,12 @@ namespace Couchbase.Lite.Query
 
         #region Constructors
 
-        internal Result(QueryResultSet rs, C4QueryEnumerator* e, MContext context)
+        internal Result(QueryResultSet rs, C4QueryEnumeratorWrapper e, MContext context)
         {
             _rs = rs;
             _context = context;
-            _columns = e->columns;
-            _missingColumns = new BitArray(BitConverter.GetBytes(e->missingColumns));
+            _columns = e.RawEnumerator->columns;
+            _missingColumns = new BitArray(BitConverter.GetBytes(e.RawEnumerator->missingColumns));
             _columnNames = new Dictionary<string, int>(_rs.ColumnNames);
             foreach (var pair in _rs.ColumnNames) {
                 if (pair.Value < _missingColumns.Length && _missingColumns.Get(pair.Value)) {

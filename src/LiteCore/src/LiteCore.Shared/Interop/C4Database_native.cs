@@ -62,10 +62,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_close(C4Database* database, C4Error* outError);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_delete(C4Database* database, C4Error* outError);
-
         public static bool c4db_deleteNamed(string? dbName, string? inDirectory, C4Error* outError)
         {
             using(var dbName_ = new C4String(dbName))

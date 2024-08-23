@@ -37,6 +37,7 @@ using LiteCore.Util;
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite
 {
@@ -124,8 +125,6 @@ namespace Couchbase.Lite
         private IJsonSerializer _jsonSerializer;
 #endif
 
-        private C4Database* _c4db;
-
         private bool _isClosing;
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
@@ -176,7 +175,7 @@ namespace Couchbase.Lite
         /// Gets the database's path.  If the database is closed or deleted, a <c>null</c>
         /// value will be returned.
         /// </summary>
-        public string? Path => ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
+        public string? Path =>  c4db != null ? NativeSafe.c4db_getPath(c4db) : null;
 
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
@@ -189,7 +188,7 @@ namespace Couchbase.Lite
                     CheckOpen();
                     var publicUUID = new C4UUID();
                     C4Error err;
-                    var uuidSuccess = Native.c4db_getUUIDs(_c4db, &publicUUID, null, &err);
+                    var uuidSuccess = NativeSafe.c4db_getUUIDs(c4db, &publicUUID, null, &err);
                     if (!uuidSuccess) {
                         throw CouchbaseException.Create(err);
                     }
@@ -208,30 +207,23 @@ namespace Couchbase.Lite
                 ThreadSafety.DoLocked(() =>
                 {
                     CheckOpen();
-                    retVal = (C4BlobStore*) LiteCoreBridge.Check(err => Native.c4db_getBlobStore(c4db, err));
+                    retVal = (C4BlobStore*)LiteCoreBridge.Check(err => NativeSafe.c4db_getBlobStore(c4db, err));
                 });
 
                 return retVal;
             }
         }
 
-        internal C4Database* c4db
-        {
-            get {
-                C4Database* retVal = null;
-                ThreadSafety.DoLocked(() => retVal = _c4db);
-                return retVal;
-            }
-        }
+        internal C4DatabaseWrapper? c4db { get; private set; }
 
-        internal FLEncoder* SharedEncoder
+        internal FLEncoderWrapper SharedEncoder
         {
             get {
-                FLEncoder* encoder = null;
+                FLEncoderWrapper encoder = default!;
                 ThreadSafety.DoLocked(() =>
                 {
                     CheckOpen();
-                    encoder = Native.c4db_getSharedFleeceEncoder(_c4db);
+                    encoder = NativeSafe.c4db_getSharedFleeceEncoder(c4db!);
                 });
 
                 return encoder;
@@ -253,10 +245,13 @@ namespace Couchbase.Lite
         private bool IsShell { get; } //this object is borrowing the C4Database from somewhere else, so don't free C4Database at the end if isshell
 
         // Must be called inside self lock
+#if !XAMARINIOS && !MONOANDROID
+        [MemberNotNullWhen(false, nameof(c4db))]
+#endif
         private bool IsClosed
         {
             get {
-                return _c4db == null;
+                return c4db == null;
             }
         }
 
@@ -320,11 +315,11 @@ namespace Couchbase.Lite
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         #endif
         // Used for predictive query callback
-        internal Database(C4Database* c4db)
+        internal Database(C4DatabaseWrapper c4db)
         {
             Name = "tmp";
             Config = new DatabaseConfiguration(true);
-            _c4db = (C4Database*) Native.c4db_retain(c4db);
+            this.c4db = c4db.Retain<C4DatabaseWrapper>();
             IsShell = true;
         }
 
@@ -380,10 +375,10 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 if (_defaultCollection == null || !_defaultCollection.IsValid) {
-                    var c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
+                    var c4coll = LiteCoreBridge.CheckTyped(err =>
                     {
-                        return Native.c4db_getDefaultCollection(c4db, err);
-                    });
+                        return NativeSafe.c4db_getDefaultCollection(c4db, err);
+                    })!;
 
                     _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
                 }
@@ -428,7 +423,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (HasScopeFromLiteCore(name)) {
+                if (NativeSafe.c4db_hasScope(c4db, name)) {
                     if (!_scopes.ContainsKey(name)) {
                         scope = new Scope(this, name);
                     } else {
@@ -613,7 +608,7 @@ namespace Couchbase.Lite
                     // will simply result in the db not being copied, rather than any sort of
                     // data loss or corruption.
                     nativeConfig.parentDirectory = parentDirectory.AsFLSlice();
-                    return Native.c4db_copyNamed(path, name, &nativeConfig, err);
+                    return NativeSafe.c4db_copyNamed(path, name, &nativeConfig, err);
                 }
             });
 
@@ -632,7 +627,7 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             var path = DatabasePath(directory);
-            LiteCoreBridge.Check(err => Native.c4db_deleteNamed(name, path, err) || err->code == 0);
+            LiteCoreBridge.Check(err => NativeSafe.c4db_deleteNamed(name, path, err) || err->code == 0);
         }
 
         /// <summary>
@@ -667,7 +662,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLockedBridge(err =>
             {
                 CheckOpen();
-                return Native.c4db_maintenance(_c4db, (C4MaintenanceType) type, err);
+                return NativeSafe.c4db_maintenance(c4db, (C4MaintenanceType)type, err);
             });
         }
 
@@ -821,7 +816,7 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 PerfTimer.StartEvent("InBatch_BeginTransaction");
-                LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                LiteCoreBridge.Check(err => NativeSafe.c4db_beginTransaction(c4db, err));
                 PerfTimer.StopEvent("InBatch_BeginTransaction");
                 var success = true;
                 try {
@@ -832,7 +827,7 @@ namespace Couchbase.Lite
                     throw;
                 } finally {
                     PerfTimer.StartEvent("InBatch_EndTransaction");
-                    LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
+                    LiteCoreBridge.Check(err => NativeSafe.c4db_endTransaction(c4db, success, err));
                     PerfTimer.StopEvent("InBatch_EndTransaction");
                 }
             });
@@ -967,12 +962,12 @@ namespace Couchbase.Lite
             }
 
             C4BlobKey expectedKey = new C4BlobKey();
-            var keyFromStr = Native.c4blob_keyFromString((string?)blobDict[Blob.DigestKey], &expectedKey);
+            var keyFromStr = NativeSafe.c4blob_keyFromString((string?)blobDict[Blob.DigestKey], &expectedKey);
             if (!keyFromStr) {
                 return null;
             }
 
-            var size = Native.c4blob_getSize(BlobStore, expectedKey);
+            var size = NativeSafe.c4blob_getSize(BlobStore, expectedKey);
             if (size == -1) {
                 return null;
             }
@@ -1127,35 +1122,32 @@ namespace Couchbase.Lite
         internal string? GetCookies(Uri? uri)
         {
             string? cookies = null;
-            ThreadSafety.DoLocked(() =>
-            {
-                if (uri == null) {
-                    WriteLog.To.Sync.V(Tag, "The Uri used to get cookies is null.");
-                } else {
-                    var addr = new C4Address();
-                    var scheme = new C4String();
-                    var host = new C4String();
-                    var path = new C4String();
-                    var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
-                    scheme = new C4String(uri.Scheme);
-                    host = new C4String(uri.Host);
-                    path = new C4String(pathStr);
-                    addr.scheme = scheme.AsFLSlice();
-                    addr.hostname = host.AsFLSlice();
-                    addr.port = (ushort) uri.Port;
-                    addr.path = path.AsFLSlice();
+            if (uri == null) {
+                WriteLog.To.Sync.V(Tag, "The Uri used to get cookies is null.");
+            } else {
+                var addr = new C4Address();
+                var scheme = new C4String();
+                var host = new C4String();
+                var path = new C4String();
+                var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
+                scheme = new C4String(uri.Scheme);
+                host = new C4String(uri.Host);
+                path = new C4String(pathStr);
+                addr.scheme = scheme.AsFLSlice();
+                addr.hostname = host.AsFLSlice();
+                addr.port = (ushort) uri.Port;
+                addr.path = path.AsFLSlice();
 
-                    C4Error err = new C4Error();
-                    cookies = Native.c4db_getCookies(_c4db, addr, &err);
-                    if (err.code > 0) {
-                        WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed getting Cookie from address {addr}.");
-                    }
-
-                    if (String.IsNullOrEmpty(cookies) && err.code == 0) {
-                        WriteLog.To.Sync.V(Tag, "There is no saved HTTP cookies.");
-                    }
+                C4Error err = new C4Error();
+                cookies = NativeSafe.c4db_getCookies(c4db, addr, &err);
+                if (err.code > 0) {
+                    WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed getting Cookie from address {addr}.");
                 }
-            });
+
+                if (String.IsNullOrEmpty(cookies) && err.code == 0) {
+                    WriteLog.To.Sync.V(Tag, "There is no saved HTTP cookies.");
+                }
+            }
 
             return cookies;
         }
@@ -1163,19 +1155,16 @@ namespace Couchbase.Lite
         internal bool SaveCookie(string cookie, Uri uri, bool acceptParentDomain)
         {
             bool cookieSaved = false;
-            ThreadSafety.DoLocked(() =>
-            {
-                if (uri == null) {
-                    WriteLog.To.Sync.V(Tag, "The Uri used to set cookie is null.");
-                } else {
-                    var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
-                    C4Error err = new C4Error();
-                    cookieSaved = Native.c4db_setCookie(_c4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
-                    if(err.code > 0) {
-                        WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
-                    }
+            if (uri == null) {
+                WriteLog.To.Sync.V(Tag, "The Uri used to set cookie is null.");
+            } else {
+                var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
+                C4Error err = new C4Error();
+                cookieSaved = NativeSafe.c4db_setCookie(c4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
+                if(err.code > 0) {
+                    WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
                 }
-            });
+            }
 
             return cookieSaved;
         }
@@ -1262,15 +1251,6 @@ namespace Couchbase.Lite
             });
         }
 
-        internal bool HasScopeFromLiteCore(string scope)
-        {
-            return ThreadSafety.DoLocked(() =>
-            {
-                //Returns true if the named scope exists.  Note that _default will always return true.
-                return Native.c4db_hasScope(_c4db, scope);
-            });
-        }
-
         #endregion
 
         #region Private Methods
@@ -1302,6 +1282,9 @@ namespace Couchbase.Lite
         }
 
         // Must be called inside self lock
+#if !XAMARINIOS && !MONOANDROID
+        [MemberNotNull(nameof(c4db))]
+#endif
         private void CheckOpen()
         {
             if (IsClosed) {
@@ -1315,21 +1298,23 @@ namespace Couchbase.Lite
                 return;
             }
 
-            WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
-            if (!IsShell) {
-                LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
+            if (disposing) {
+                WriteLog.To.Database.I(Tag, $"Closing database at path {NativeSafe.c4db_getPath(c4db)}");
+                if (!IsShell) {
+                    LiteCoreBridge.Check(err => NativeSafe.c4db_close(c4db, err));
+                }
+
+                ClearScopesCollections();
+
+                _closeCondition.Dispose();
+                c4db.Dispose();
+                c4db = null;
             }
-
-            ClearScopesCollections();
-
-            ReleaseC4Db();
-
-            _closeCondition.Dispose();
         }
 
         private void Open()
         {
-            if (_c4db != null) {
+            if (c4db != null) {
                 return;
             }
 
@@ -1362,16 +1347,13 @@ namespace Couchbase.Lite
 
             WriteLog.To.Database.I(Tag, $"Opening {encrypted} database at { DatabasePath(Name, Config.Directory)}");
             var localConfig1 = config;
-            ThreadSafety.DoLocked(() =>
+            c4db = LiteCoreBridge.CheckTyped(err =>
             {
-                _c4db = (C4Database*) LiteCoreBridge.Check(err =>
-                {
-                    var localConfig2 = localConfig1;
-                    using (var parentDirectory = new C4String(Config.Directory)) {
-                        localConfig2.parentDirectory = parentDirectory.AsFLSlice();
-                        return Native.c4db_openNamed(Name, &localConfig2, err);
-                    }
-                });
+                var localConfig2 = localConfig1;
+                using (var parentDirectory = new C4String(Config.Directory)) {
+                    localConfig2.parentDirectory = parentDirectory.AsFLSlice();
+                    return NativeSafe.c4db_openNamed(Name, &localConfig2, err);
+                }
             });
         }
 
@@ -1412,22 +1394,24 @@ namespace Couchbase.Lite
             if (resolvedDoc == null || resolvedDoc.IsDeleted)
                 mergedFlags |= C4RevisionFlags.Deleted;
 
+            Debug.Assert(c4db != null);
             FLDoc* fleeceDoc = Native.FLDoc_FromResultData(mergedBody, FLTrust.Trusted,
-                Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
-            if (Native.c4doc_dictContainsBlobs((FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
+                NativeSafe.c4db_getFLSharedKeys(c4db!), FLSlice.Null);
+            if (NativeSafe.c4doc_dictContainsBlobs(c4db!, (FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
                 mergedFlags |= C4RevisionFlags.HasAttachments;
             }
 
             Native.FLDoc_Release(fleeceDoc);
 
             // Tell LiteCore to do the resolution:
-            C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
+            Debug.Assert(localDoc.c4Doc != null);
+            var docToEdit = localDoc.c4Doc!;
             using (var winningRevID_ = new C4String(winningRevID))
             using (var losingRevID_ = new C4String(losingRevID)) {
                 C4Error err;
-                var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
+                var retVal = NativeSafe.c4doc_resolveConflict(docToEdit, winningRevID_.AsFLSlice(),
                     losingRevID_.AsFLSlice(), (FLSlice) mergedBody, mergedFlags, &err)
-                    && Native.c4doc_save(rawDoc, 0, &err);
+                    && NativeSafe.c4doc_save(docToEdit, 0, &err);
                 Native.FLSliceResult_Release(mergedBody);
 
                 if (!retVal) {
@@ -1442,18 +1426,18 @@ namespace Couchbase.Lite
 
             WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
                 new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
-                rawDoc->revID.CreateString());
+                docToEdit.RawDoc->revID);
 
             return true;
         }
 
         private FLSliceResult EmptyFLSliceResult()
         {
-            FLEncoder* encoder = SharedEncoder;
-            Native.FLEncoder_BeginDict(encoder, 0);
-            Native.FLEncoder_EndDict(encoder);
-            var body = NativeRaw.FLEncoder_Finish(encoder, null);
-            Native.FLEncoder_Reset(encoder);
+            using var encoder = SharedEncoder;
+            encoder.BeginDict(0);
+            encoder.EndDict();
+            var body = encoder.Finish();
+            encoder.Reset();
 
             return body;
         }
@@ -1471,12 +1455,6 @@ namespace Couchbase.Lite
         private void PurgeDocById(string id)
         {
             GetDefaultCollection().Purge(id);
-        }
-
-        private void ReleaseC4Db()
-        {
-            Native.c4db_release(_c4db);
-            _c4db = null;
         }
 
         private void CheckOpenAndNotClosing()
@@ -1504,7 +1482,7 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 C4Error error;
-                var arrScopes = Native.c4db_scopeNames(_c4db, &error);
+                var arrScopes = NativeSafe.c4db_scopeNames(c4db, &error);
                 if (error.code == 0) {
                     var scopesCnt = Native.FLArray_Count((FLArray*)arrScopes);
                     if (_scopes.Count > scopesCnt) 
@@ -1565,14 +1543,11 @@ namespace Couchbase.Lite
             // by the disposal which is waiting for timer callbacks to finish
             var isClosed = ThreadSafety.DoLocked(() =>
             {
-                if (IsClosed) {
+                if (IsClosed || _isClosing) {
                     return true;
                 }
 
-                if (!_isClosing) {
-                    _isClosing = true;
-                }
-
+                _isClosing = true;
                 return false;
             });
 
@@ -1590,7 +1565,11 @@ namespace Couchbase.Lite
 
             ThreadSafety.DoLocked(() =>
             {
-                Dispose(true);
+                try {
+                    Dispose(true);
+                } finally {
+                    _isClosing = false;
+                }
             });
         }
 

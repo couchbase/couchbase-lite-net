@@ -39,33 +39,21 @@ public partial interface IQueryIndex : IDisposable
 
 internal sealed unsafe partial class QueryIndexImpl : IQueryIndex
 {
-    private C4Index* _nativeIndex;
+    private C4IndexWrapper _index;
 
     public Collection Collection { get; }
 
     public string Name { get; }
 
-    public QueryIndexImpl(C4Index* nativeIndex, Collection collection, string name)
+    public QueryIndexImpl(C4IndexWrapper index, Collection collection, string name)
     {
         Collection = collection;
         Name = name;
-        _nativeIndex = nativeIndex;
-    }
-
-    ~QueryIndexImpl()
-    {
-        DoDispose();
-    }
-
-    private void DoDispose()
-    {
-        Native.c4index_release(_nativeIndex);
-        _nativeIndex = null;
+        _index = index;
     }
 
     public void Dispose()
     {
-        DoDispose();
-        GC.SuppressFinalize(this);
+        _index.Dispose();
     }
 }

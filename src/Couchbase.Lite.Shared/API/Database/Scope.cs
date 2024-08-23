@@ -23,6 +23,7 @@ using LiteCore.Util;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite
 {
@@ -59,7 +60,7 @@ namespace Couchbase.Lite
         /// </remarks>
         public string Name { get; internal set; } = Database._defaultScopeName;
 
-        internal C4Database* c4Db
+        internal C4DatabaseWrapper c4Db
         {
             get {
                 if (Database.c4db == null)
@@ -180,9 +181,9 @@ namespace Couchbase.Lite
                         scope = scopeName_.AsFLSlice()
                     };
 
-                    var c4c = (C4Collection*)LiteCoreBridge.Check(err =>
+                    var c4c = LiteCoreBridge.CheckTyped(err =>
                     {
-                        return Native.c4db_createCollection(c4Db, collectionSpec, err);
+                        return NativeSafe.c4db_createCollection(c4Db, collectionSpec, err);
                     });
 
                     // c4c is not null now, otherwise the above throws an exception
@@ -210,7 +211,7 @@ namespace Couchbase.Lite
 
                     deleteSuccessful = LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_deleteCollection(c4Db, collectionSpec, err);
+                        return NativeSafe.c4db_deleteCollection(c4Db, collectionSpec, err);
                     });
 
                     if (deleteSuccessful) {
@@ -231,7 +232,7 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 C4Error error;
-                var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
+                var arrColl = NativeSafe.c4db_collectionNames(c4Db, Name, &error);
                 if (error.code == 0) {
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
                     for (uint i = 0; i < collsCnt; i++) {
@@ -255,6 +256,9 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
+#if !XAMARINIOS && !MONODROID
+        [MemberNotNull(nameof(c4Db))]
+#endif
         private void CheckOpen()
         {
             if (c4Db == null) {
@@ -268,7 +272,7 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 C4Error error;
-                var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
+                var arrColl = NativeSafe.c4db_collectionNames(c4Db, Name, &error);
                 if (error.code == 0) {
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
                     if (_collections.Count > collsCnt)
@@ -290,9 +294,9 @@ namespace Couchbase.Lite
             });
         }
 
-        private C4Collection* GetCollectionFromLiteCore(string collectionName)
+        private C4CollectionWrapper? GetCollectionFromLiteCore(string collectionName)
         {
-            C4Collection* co = null;
+            C4CollectionWrapper? co = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -304,8 +308,8 @@ namespace Couchbase.Lite
                         scope = scopeName_.AsFLSlice()
                     };
 
-                    co = (C4Collection*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                        err => Native.c4db_getCollection(c4Db, collectionSpec, err));
+                    co = NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                        err => NativeSafe.c4db_getCollection(c4Db, collectionSpec, err));
                 }
             });
 

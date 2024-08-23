@@ -70,9 +70,6 @@ namespace LiteCore.Interop
         public static extern bool c4coll_isValid(C4Collection* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Database* c4coll_getDatabase(C4Collection* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4coll_getDocumentCount(C4Collection* x);
 
         public static C4Document* c4coll_getDoc(C4Collection* collection, string? docID, bool mustExist, C4DocContentLevel content, C4Error* outError)
@@ -80,11 +77,6 @@ namespace LiteCore.Interop
             using(var docID_ = new C4String(docID)) {
                 return NativeRaw.c4coll_getDoc(collection, docID_.AsFLSlice(), mustExist, content, outError);
             }
-        }
-
-        public static C4Document* c4coll_putDoc(C4Collection* collection, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError)
-        {
-            return NativeRaw.c4coll_putDoc(collection, request, outCommonAncestorIndex, outError);
         }
 
         public static C4Document* c4coll_createDoc(C4Collection* collection, string? docID, byte[]? body, C4RevisionFlags revisionFlags, C4Error* error)
@@ -130,9 +122,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4coll_getDoc(C4Collection* collection, FLSlice docID, [MarshalAs(UnmanagedType.U1)]bool mustExist, C4DocContentLevel content, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4coll_putDoc(C4Collection* collection, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4coll_createDoc(C4Collection* collection, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error);

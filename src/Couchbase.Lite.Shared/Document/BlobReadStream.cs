@@ -19,7 +19,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -27,11 +28,13 @@ namespace Couchbase.Lite.Internal.Doc
 {
     internal sealed unsafe class BlobReadStream : Stream
     {
+        private const string Tag = nameof(BlobReadStream);
+
         #region Variables
 
         private long _length = -1;
         private long _position;
-        private C4ReadStream* _readStream;
+        private C4ReadStreamWrapper? _readStream;
 
         #endregion
 
@@ -50,8 +53,13 @@ namespace Couchbase.Lite.Internal.Doc
                     return _length;
                 }
 
+                if(_readStream == null) {
+                    WriteLog.To.Database.W(Tag, "Native read stream is null, returning 0 length");
+                    return 0;
+                }
+
                 C4Error err;
-                var retVal = Native.c4stream_getLength(_readStream, &err);
+                var retVal = NativeSafe.c4stream_getLength(_readStream, &err);
                 if(err.code != 0) {
                     throw CouchbaseException.Create(err);
                 }
@@ -78,7 +86,7 @@ namespace Couchbase.Lite.Internal.Doc
         {
             Debug.Assert(store != null);
 
-            _readStream = (C4ReadStream*)LiteCoreBridge.Check(err => Native.c4blob_openReadStream(store, key, err));
+            _readStream = LiteCoreBridge.CheckTyped(err => NativeSafe.c4blob_openReadStream(store, key, err));
         }
 
         #endregion
@@ -89,7 +97,7 @@ namespace Couchbase.Lite.Internal.Doc
         {
             base.Dispose(disposing);
 
-            Native.c4stream_close(_readStream);
+            _readStream?.Dispose();
             _readStream = null;
         }
 
@@ -105,19 +113,23 @@ namespace Couchbase.Lite.Internal.Doc
             }
 
             int retVal = 0;
-            LiteCoreBridge.Check(err => retVal = (int)Native.c4stream_read(_readStream, buffer, err));
+            LiteCoreBridge.Check(err => retVal = (int)NativeSafe.c4stream_read(_readStream, buffer, err));
             _position += retVal;
             return retVal;
         }
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            if(origin == SeekOrigin.Begin) {
+            if (_readStream == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobReadStreamNotOpen);
+            }
+
+            if (origin == SeekOrigin.Begin) {
                 if(offset < 0 || offset > Length) {
                     throw new ArgumentOutOfRangeException(nameof(offset), $"The offset must be between 0 and {Length} for SeekOrigin.Begin");
                 }
 
-                LiteCoreBridge.Check(err => Native.c4stream_seek(_readStream, (ulong)offset, err));
+                LiteCoreBridge.Check(err => NativeSafe.c4stream_seek(_readStream, (ulong)offset, err));
                 _position = offset;
             } else if(origin == SeekOrigin.Current) {
                 var newPos = _position + offset;
@@ -126,7 +138,7 @@ namespace Couchbase.Lite.Internal.Doc
                         $"The offset {offset} would result in an invalid position {newPos} (needs to be between 0 and {Length})");
                 }
 
-                LiteCoreBridge.Check(err => Native.c4stream_seek(_readStream, (ulong)newPos, err));
+                LiteCoreBridge.Check(err => NativeSafe.c4stream_seek(_readStream, (ulong)newPos, err));
                 _position = newPos;
             } else {
                 var newPos = Length + offset;
@@ -135,7 +147,7 @@ namespace Couchbase.Lite.Internal.Doc
                         $"The offset {offset} would result in an invalid position {newPos} (needs to be between 0 and {Length})");
                 }
 
-                LiteCoreBridge.Check(err => Native.c4stream_seek(_readStream, (ulong)newPos, err));
+                LiteCoreBridge.Check(err => NativeSafe.c4stream_seek(_readStream, (ulong)newPos, err));
                 _position = newPos;
             }
 

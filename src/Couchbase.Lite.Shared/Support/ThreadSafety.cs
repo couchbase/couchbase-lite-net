@@ -16,6 +16,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Threading;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -25,7 +26,7 @@ namespace Couchbase.Lite.Support
     {
         #region Variables
 
-        public readonly object Lock = new object();
+        private readonly object _lock = new object();
 
         #endregion
 
@@ -34,7 +35,7 @@ namespace Couchbase.Lite.Support
         public void DoLocked(Action a)
         {
 #if !NO_THREADSAFE
-            lock (Lock) {
+            lock (_lock) {
 #endif
                 a();
 #if !NO_THREADSAFE
@@ -45,7 +46,7 @@ namespace Couchbase.Lite.Support
         public T DoLocked<T>(Func<T> f)
         {
 #if !NO_THREADSAFE
-            lock (Lock) {
+            lock (_lock) {
 #endif
                 return f();
 #if !NO_THREADSAFE
@@ -53,12 +54,12 @@ namespace Couchbase.Lite.Support
 #endif
         }
 
-        public unsafe void DoLockedBridge(C4TryLogicDelegate1 a)
+        public unsafe bool DoLockedBridge(C4TryLogicDelegate1 a)
         {
 #if !NO_THREADSAFE
-            lock (Lock) {
+            lock (_lock) {
 #endif
-                LiteCoreBridge.Check(a);
+                return LiteCoreBridge.Check(a);
 #if !NO_THREADSAFE
             }
 #endif
@@ -67,7 +68,7 @@ namespace Couchbase.Lite.Support
         public unsafe void* DoLockedBridge(C4TryLogicDelegate2 a)
         {
 #if !NO_THREADSAFE
-            lock (Lock) {
+            lock (_lock) {
 #endif
                 return LiteCoreBridge.Check(a);
 #if !NO_THREADSAFE
@@ -75,6 +76,33 @@ namespace Couchbase.Lite.Support
 #endif
         }
 
+        public IDisposable BeginLockedScope()
+        {
+            bool lockTaken = false;
+            Monitor.Enter(_lock, ref lockTaken);
+            return new ScopeExit(_lock, lockTaken);
+        }
+
         #endregion
+
+        private sealed class ScopeExit : IDisposable
+        {
+            private readonly object _lock;
+            private bool _mustUnlock;
+
+            public ScopeExit(object locker, bool mustUnlock)
+            {
+                _lock = locker;
+                _mustUnlock = mustUnlock;
+            }
+
+            public void Dispose()
+            {
+                if (_mustUnlock) {
+                    Monitor.Exit(_lock);
+                    _mustUnlock = false;
+                }
+            }
+        }
     }
 }
