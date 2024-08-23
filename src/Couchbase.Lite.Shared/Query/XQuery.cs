@@ -156,7 +156,7 @@ namespace Couchbase.Lite.Internal.Query
                     Database = Collection!.Database;
                 }
 
-                C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
+                C4Query* query = (C4Query*)Database!.ThreadSafety.DoLockedBridge(err =>
                 {
                     _queryExpression = EncodeAsJSON();
                     WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
@@ -262,7 +262,7 @@ namespace Couchbase.Lite.Internal.Query
             var from = FromImpl;
             Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
 
-            from!.ThreadSafety.DoLockedBridge(err =>
+            ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
                     return true;
