@@ -21,11 +21,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
@@ -354,39 +356,53 @@ namespace Test
         [ForIssue("CBL-6128")]
         public void TestConcurrentCreateAndQuery()
         {
-            void SaveDocument()
-            {
-                using var doc = new MutableDocument();
-                DefaultCollection.Save(doc);
-            }
+            using var enterInBatchLock = new ManualResetEventSlim();
+            using var enterQueryLock = new ManualResetEventSlim();
+            using var testCompleteLock = new CountdownEvent(2);
 
-            void ListDocuments()
-            {
-                var queryExpression = "select * from _";
-                using var query = DefaultCollection.CreateQuery(queryExpression);
-                var results = query.Execute().AllResults();
-            }
+            var stepCount = 0;
+            Exception? ex = null;
 
-            void DoWork()
+            var t1 = new Thread(() =>
             {
-                for (int i = 0; i < 3; i++) {
-                    SaveDocument();
-                    ListDocuments();
+                try {
+                    Db.InBatch(() =>
+                    {
+                        Interlocked.CompareExchange(ref stepCount, 1, 0);
+                        enterInBatchLock.Set();
+                        enterQueryLock.Wait(TimeSpan.FromSeconds(1)).Should().BeFalse("because t2 should be blocked waiting for t1's InBatch");
+                        Interlocked.CompareExchange(ref stepCount, 3, 2);
+                    });
+                } catch(Exception e) {
+                    Interlocked.CompareExchange(ref ex, e, null);
                 }
-            }
+            });
 
-            var tasks = new List<Task>();
-            // Do some work in parallel
-            for (int i = 0; i < 10; i++) {
-                // Every other thread will be in a transaction
-                if (i % 2 == 0) {
-                    tasks.Add(Task.Run(() => Db.InBatch(DoWork)));
-                } else {
-                    tasks.Add(Task.Run(DoWork));
+            var t2 = new Thread(() =>
+            {
+                try {
+                    enterInBatchLock.Wait(TimeSpan.FromSeconds(1)).Should().BeTrue("because otherwise t1 didn't enter InBatch");
+                    Interlocked.CompareExchange(ref stepCount, 2, 1);
+                    using var rs = Db.CreateQuery("select * from _").Execute();
+                    enterQueryLock.Set(); // Should have already timed out but set anyway
+                    Interlocked.CompareExchange(ref stepCount, 4, 3);
+                } catch (Exception e) {
+                    Interlocked.CompareExchange(ref ex, e, null);
                 }
+            });
+            t1.Start();
+            t2.Start();
+
+
+            // Wait for both threads, and any exceptions they may throw
+            t1.Join();
+            t2.Join();
+
+            if(ex != null) {
+                throw ex;
             }
 
-            Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the test timed out");
+            stepCount.Should().Be(4, "because otherwise some of the steps happened out of order");
         }
 
         private void ReadDocs(IEnumerable<string> docIDs, uint rounds)
