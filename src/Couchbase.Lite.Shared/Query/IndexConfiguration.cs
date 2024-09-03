@@ -19,6 +19,7 @@
 using LiteCore.Interop;
 using System;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -28,53 +29,45 @@ namespace Couchbase.Lite.Internal.Query
     /// </summary>
     public abstract class IndexConfiguration
     {
-        #region Properties
-
         /// <summary>
         /// Gets the expressions to use to create the index
         /// </summary>
         public string[]? Expressions { get; }
 
-        internal C4QueryLanguage QueryLanguage { get; }
-
         internal C4IndexType IndexType { get; }
 
         internal abstract C4IndexOptions Options { get; }
 
-        #endregion
-
-        #region Constructor
-
-        internal IndexConfiguration(C4IndexType indexType, params string[] items)
-            : this(indexType, C4QueryLanguage.N1QLQuery)
+        internal IndexConfiguration(C4IndexType indexType, string[]? items)
         {
+            if(items != null) {
+                if (items.Length == 0) {
+                    throw new ArgumentException("Empty list of expressions not allowed");
+                }
+
+                if (items.Any(String.IsNullOrEmpty)) {
+                    throw new ArgumentException("Empty / null strings not allowed in list of expressions");
+                }
+            }
+            
+
+
+            IndexType = indexType;
             Expressions = items;
         }
-
-        internal IndexConfiguration(C4IndexType indexType, C4QueryLanguage queryLanguage)
-        {
-            IndexType = indexType;
-            QueryLanguage = queryLanguage;
-        }
-
-        #endregion
-
-        #region Internal Methods
 
         internal virtual void Validate()
         {
 
         }
 
-        internal string ToN1QL()
+        internal string? ToN1QL()
         {
-            Debug.Assert(Expressions != null);
-            if (Expressions!.Length == 1)
-                return Expressions[0];
+            if(Expressions == null) {
+                return null;
+            }
 
             return String.Join(",", Expressions);
         }
-
-        #endregion
     }
 }

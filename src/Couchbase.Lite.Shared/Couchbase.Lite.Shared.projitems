@@ -53,6 +53,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\Log.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayFunction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)api\query\ArrayIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Collation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\DataSource.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Expression.cs" />

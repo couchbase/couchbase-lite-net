@@ -648,8 +648,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
-        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+        /// Creates an index with the given name, using one of the various specializations of <see cref="IndexConfiguration" />
         /// The name can be used for deleting the index. Creating a new different index with an existing
         /// index name will replace the old index; creating the same index with the same name will be no-ops.
         /// </summary>
@@ -677,7 +676,7 @@ namespace Couchbase.Lite
                     var internalOpts = indexConfig.Options;
                     // For some reason a "using" statement here causes a compiler error
                     try {
-                        return Native.c4coll_createIndex(c4coll, name, indexConfig.ToN1QL(), indexConfig.QueryLanguage, indexConfig.IndexType, &internalOpts, err);
+                        return Native.c4coll_createIndex(c4coll, name, indexConfig.ToN1QL(), C4QueryLanguage.N1QLQuery, indexConfig.IndexType, &internalOpts, err);
                     } finally {
                         internalOpts.Dispose();
                     }
