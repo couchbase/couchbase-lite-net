@@ -62,9 +62,10 @@ public sealed class ArrayIndexConfiguration : IndexConfiguration
     public ArrayIndexConfiguration(string path, IEnumerable<string>? expressions = null)
         : base(C4IndexType.ArrayIndex, expressions?.ToArray())
     {
-        Path = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(path), path);
         if(path.Length == 0) {
             throw new ArgumentException("Path cannot be an empty string");
         }
+
+        Path = path;
     }
 }

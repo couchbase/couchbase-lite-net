@@ -16,6 +16,8 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using System;
 using System.Diagnostics;
@@ -29,6 +31,8 @@ namespace Couchbase.Lite.Internal.Query
     /// </summary>
     public abstract class IndexConfiguration
     {
+        private const string Tag = nameof(IndexConfiguration);
+
         /// <summary>
         /// Gets the expressions to use to create the index
         /// </summary>
@@ -38,22 +42,14 @@ namespace Couchbase.Lite.Internal.Query
 
         internal abstract C4IndexOptions Options { get; }
 
-        internal IndexConfiguration(C4IndexType indexType, string[]? items)
+        internal IndexConfiguration(C4IndexType indexType, string[]? expressions)
         {
-            if(items != null) {
-                if (items.Length == 0) {
-                    throw new ArgumentException("Empty list of expressions not allowed");
-                }
-
-                if (items.Any(String.IsNullOrEmpty)) {
-                    throw new ArgumentException("Empty / null strings not allowed in list of expressions");
-                }
+            if(expressions != null) {
+                Expressions = CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions).ToArray();
             }
-            
-
 
             IndexType = indexType;
-            Expressions = items;
+            Expressions = expressions;
         }
 
         internal virtual void Validate()
