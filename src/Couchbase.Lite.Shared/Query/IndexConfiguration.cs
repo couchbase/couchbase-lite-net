@@ -45,9 +45,18 @@ namespace Couchbase.Lite.Internal.Query
         internal IndexConfiguration(C4IndexType indexType, string[]? expressions)
         {
             if(expressions != null) {
-                Expressions = CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions).ToArray();
+                // Quick sanity check.  If I allow this to proceed, no error will happen but
+                // perhaps unintended behavior will.  The final string to pass will be empty
+                // and LiteCore will index the entire path element.  This is ok in some cases
+                // like ArrayIndexConfiguration, but it should be manifest with a null array
+                // and not an empty array or array of empty or array of null.
+                if(!expressions.Any(x => !String.IsNullOrEmpty(x))) {
+                    throw new ArgumentException("Only strings that are non-null and non-empty are allowed", "expressions");
+                }
             }
 
+            // Expressions may still be invalid here, but the user will be alerted when they
+            // try to create an index when LiteCore rejects it.
             IndexType = indexType;
             Expressions = expressions;
         }
