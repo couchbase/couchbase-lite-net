@@ -141,6 +141,55 @@ namespace LiteCore.Interop
         }
     }
 
+    internal unsafe partial struct FLSliceResult
+    {
+        public void* buf;
+        private UIntPtr _size;
+
+        public ulong size
+        {
+            get {
+                return _size.ToUInt64();
+            }
+            set {
+                _size = (UIntPtr)value;
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            var hasher = Hasher.Start.Add(size);
+            var ptr = (byte*)buf;
+            if (ptr != null) {
+                hasher.Add(ptr[size - 1]);
+            }
+
+            return hasher.GetHashCode();
+        }
+
+        public override bool Equals(object? obj)
+        {
+            var other = FLSlice.Null;
+            switch (obj) {
+                case FLSlice slice:
+                    other = slice;
+                    break;
+                case FLSliceResult sliceResult:
+                    other = (FLSlice)sliceResult;
+                    break;
+                case FLHeapSlice heapSlice:
+                    other = heapSlice;
+                    break;
+                default:
+                    return false;
+            }
+
+            return Native.FLSlice_Compare((FLSlice)this, other) == 0;
+        }
+
+        public override string ToString() => $"FLSliceResult[{CreateString()}]";
+    }
+
     internal unsafe struct FLHeapSlice
     {
         public void* buf;
@@ -207,6 +256,11 @@ namespace LiteCore.Interop
         public static explicit operator FLSlice(FLSliceResult input)
         {
             return new FLSlice(input.buf, input.size);
+        }
+
+        public string? CreateString()
+        {
+            return ((FLSlice)this).CreateString();
         }
 
         public void Dispose()

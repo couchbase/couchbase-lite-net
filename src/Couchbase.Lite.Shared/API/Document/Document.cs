@@ -31,6 +31,7 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -39,6 +40,8 @@ namespace Couchbase.Lite
     /// </summary>
     public unsafe class Document : IDictionaryObject, IJSON, IDisposable
     {
+        private static readonly DateTimeOffset UnixEpoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
         #region Variables
 
         private string? _revId;
@@ -104,6 +107,18 @@ namespace Couchbase.Lite
             }
         }
 
+        internal IReadOnlyList<string> RevisionIDs
+        {
+            get {
+                var returned = ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? Native.c4doc_getRevisionHistory(c4Doc.RawDoc) : null);
+                if (returned == null) {
+                    return new List<string>();
+                }
+
+                return returned.Replace(" ", "").Split(',');
+            }    
+        }
+
         /// <summary>
         /// Gets the Collection that this document belongs to, if any
         /// </summary>
@@ -114,14 +129,6 @@ namespace Couchbase.Lite
             get {
                 using var threadSafetyScope = ThreadSafety.BeginLockedScope();
                 return c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists);
-            }
-        }
-
-        internal virtual uint Generation
-        {
-            get {
-                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
-                return c4Doc?.HasValue == true ? NativeSafe.c4rev_getGeneration(c4Doc.RawDoc->revID) : 0U;
             }
         }
 
@@ -145,13 +152,35 @@ namespace Couchbase.Lite
         /// <summary>
         /// The RevisionID in Document class is a constant, while the RevisionID in <see cref="MutableDocument" /> class is not.
         /// Newly created document will have a null RevisionID. The RevisionID in <see cref="MutableDocument" /> will be updated on save.
-        /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
+        /// The RevisionID format is opaque, which means it's format has no meaning and shouldnï¿½t be parsed to get information.
         /// </summary>
         public string? RevisionID
         {
             get {
                 using var threadSafetyScope = ThreadSafety.BeginLockedScope();
                 return c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : _revId;
+            }
+        }
+
+        /// <summary>
+        /// The hybrid logical timestamp that the revision was created.
+        /// </summary>
+        public DateTimeOffset? Timestamp
+        {
+            get {
+                var rawVal = ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getTimestamp(c4Doc.RawDoc->selectedRev.revID) : 0);
+                if(rawVal == 0) {
+                    return null;
+                }
+
+                // .NET ticks are in 100 nanosecond intervals
+                rawVal /= 100;
+
+                if(rawVal > Int64.MaxValue) {
+                    throw new OverflowException("The returned value from LiteCore is too large to be represented by DateTimeOffset");
+                }
+
+                return UnixEpoch + TimeSpan.FromTicks((long)rawVal);
             }
         }
 

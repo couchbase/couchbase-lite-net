@@ -45,13 +45,16 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4doc_getRevisionHistory(C4Document* doc, uint maxRevs, FLSlice[] backToRevs, uint backToRevsCount);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectNextLeafRevision(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool includeDeleted, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
 
-        public static uint c4rev_getGeneration(string? revID)
+        public static ulong c4rev_getTimestamp(string? revID)
         {
             using(var revID_ = new C4String(revID)) {
-                return NativeRaw.c4rev_getGeneration(revID_.AsFLSlice());
+                return NativeRaw.c4rev_getTimestamp(revID_.AsFLSlice());
             }
         }
 
@@ -80,7 +83,7 @@ namespace LiteCore.Interop
         public static extern FLSlice c4doc_getRevisionBody(C4Document* doc);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4rev_getGeneration(FLSlice revID);
+        public static extern ulong c4rev_getTimestamp(FLSlice revID);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

@@ -532,7 +532,7 @@ namespace Test
                     colATheSecondinOtherDb.Should().NotBe(colAinOtherDb, "because this is a recreated collection");
                     //Ensure that the collection is included when getting all collections from the database instance B by using database.getCollections(scope: "scopeA").
                     otherDB.GetCollections("scopeA").Any(x => x.FullName == colATheSecond.FullName).Should()
-                        .BeTrue("because the other DB should also be able to see the recreated collection");
+                        .BeTrue("because the other database instance should be able to see the recreated collection");
                 }  
             }
         }
