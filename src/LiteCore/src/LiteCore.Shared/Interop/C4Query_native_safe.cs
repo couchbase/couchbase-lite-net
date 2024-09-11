@@ -113,16 +113,6 @@ internal static unsafe partial class NativeSafe
         Native.c4query_setParameters(query.RawQuery, encodedParameters);
     }
 
-    public static bool c4queryenum_next(C4QueryEnumeratorWrapper enumerator, C4Error* outError)
-    {
-        return Native.c4queryenum_next(enumerator.RawEnumerator, outError);
-    }
-
-    public static bool c4queryenum_seek(C4QueryEnumeratorWrapper enumerator, long rowIndex, C4Error* outError)
-    {
-        return Native.c4queryenum_seek(enumerator.RawEnumerator, rowIndex, outError);
-    }
-
     // Database Exclusive Methods
 
     public static C4QueryWrapper? c4query_new2(C4DatabaseWrapper database, C4QueryLanguage language, string? expression, int* outErrorPos, C4Error* outError)
@@ -174,5 +164,15 @@ internal static unsafe partial class NativeSafe
     {
         return query.UseSafe(q => Native.c4query_columnTitle(q, column),
             C4QueryWrapper.ThreadSafetyLevel.Query);
+    }
+
+    public static bool c4queryenum_next(C4QueryEnumeratorWrapper enumerator, C4Error* outError)
+    {
+        return enumerator.UseSafe(e => Native.c4queryenum_next(e, outError));
+    }
+
+    public static bool c4queryenum_seek(C4QueryEnumeratorWrapper enumerator, long rowIndex, C4Error* outError)
+    {
+        return enumerator.UseSafe(e => Native.c4queryenum_seek(e, rowIndex, outError));
     }
 }

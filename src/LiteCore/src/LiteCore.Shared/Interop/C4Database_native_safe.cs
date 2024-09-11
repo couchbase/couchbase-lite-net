@@ -82,11 +82,6 @@ internal static unsafe partial class NativeSafe
         return Native.c4db_deleteNamed(dbName, inDirectory, outError);
     }
 
-    public static bool c4db_rekey(C4DatabaseWrapper database, C4EncryptionKey* newKey, C4Error* outError)
-    {
-        return Native.c4db_rekey(database.RawDatabase, newKey, outError);
-    }
-
     public static string? c4db_getPath(C4DatabaseWrapper database)
     {
         return Native.c4db_getPath(database.RawDatabase);
@@ -117,5 +112,10 @@ internal static unsafe partial class NativeSafe
     public static bool c4db_endTransaction(C4DatabaseWrapper database, bool commit, C4Error* outError)
     {
         return database.UseSafe(db => Native.c4db_endTransaction(db, commit, outError));
+    }
+
+    public static bool c4db_rekey(C4DatabaseWrapper database, C4EncryptionKey* newKey, C4Error* outError)
+    {
+        return database.UseSafe(db => Native.c4db_rekey(db, newKey, outError));
     }
 }
