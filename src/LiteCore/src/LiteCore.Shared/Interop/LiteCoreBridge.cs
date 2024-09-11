@@ -51,5 +51,10 @@ namespace LiteCore
         {
             return NativeHandler.Create().Execute(block);
         }
+
+        public static T? CheckTyped<T>(C4TryLogicDelegate6<T> block) where T : class
+        {
+            return NativeHandler.Create().Execute(block);
+        }
     }
 }

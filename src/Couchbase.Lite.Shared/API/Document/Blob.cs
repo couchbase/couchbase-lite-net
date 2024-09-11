@@ -89,7 +89,7 @@ namespace Couchbase.Lite
 
                     //TODO: If data is large, can get the file path & memory-map it
                     C4Error err;
-                    var content = Native.c4blob_getContents(blobStore, key, &err);
+                    var content = NativeSafe.c4blob_getContents(blobStore, key, &err);
                     if (err.domain == C4ErrorDomain.LiteCoreDomain && err.code == (int)C4ErrorCode.NotFound) {
                         WriteLog.To.Database.W(Tag,
                             "Blob in database has no data (are you calling Blob.Content from a pull filter function?), returning null...");
@@ -388,7 +388,7 @@ namespace Couchbase.Lite
                 LiteCoreBridge.Check(err =>
                 {
                     C4BlobKey tmpKey;
-                    var s = Native.c4blob_create(store, _content, null, &tmpKey, err);
+                    var s = NativeSafe.c4blob_create(store, _content, null, &tmpKey, err);
                     key = tmpKey;
                     return s;
                 });
@@ -410,7 +410,7 @@ namespace Couchbase.Lite
                 _initialContentStream = null;
             }
 
-            Digest = Native.c4blob_keyToString(key);
+            Digest = NativeSafe.c4blob_keyToString(key);
             _db = db;
         }
 

@@ -71,8 +71,6 @@ namespace Couchbase.Lite.Sync
             Disposed
         }
 
-        private readonly ThreadSafety _databaseThreadSafety;
-
         private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
             new Event<DocumentReplicationEventArgs>();
 
@@ -85,7 +83,7 @@ namespace Couchbase.Lite.Sync
         private ReplicatorParameters? _nativeParams;
         private C4ReplicatorStatus _rawStatus;
         private IReachability? _reachability;
-        private C4Replicator* _repl;
+        private C4ReplicatorWrapper? _repl;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string>? _pendingDocIds;
         private ReplicatorConfiguration _config;
@@ -135,7 +133,6 @@ namespace Couchbase.Lite.Sync
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator Configuration must contain at least one collection.");
 
             _config = config.Freeze();
-            _databaseThreadSafety = Config.DatabaseInternal.ThreadSafety;
         }
 
         /// <summary>
@@ -284,16 +281,16 @@ namespace Couchbase.Lite.Sync
                 }
 
                 if (_repl != null) {
-                    status = Native.c4repl_getStatus(_repl);
+                    status = NativeSafe.c4repl_getStatus(_repl);
                     if (status.level == C4ReplicatorActivityLevel.Stopped
                     || status.level == C4ReplicatorActivityLevel.Stopping
                     || status.level == C4ReplicatorActivityLevel.Offline) {
                         ServerCertificate = null;
                         WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                        Native.c4repl_start(_repl, Config.Options.Reset || reset);
+                        NativeSafe.c4repl_start(_repl, Config.Options.Reset || reset);
                         Config.Options.Reset = false;
                         Config.DatabaseInternal.AddActiveStoppable(this);
-                        status = Native.c4repl_getStatus(_repl);
+                        status = NativeSafe.c4repl_getStatus(_repl);
                     }
                 } else {
                     status = new C4ReplicatorStatus {
@@ -331,7 +328,8 @@ namespace Couchbase.Lite.Sync
                         return;
                     }
 
-                    Native.c4repl_stop(_repl);
+
+                    NativeSafe.c4repl_stop(_repl);
                 }
             });
         }
@@ -381,7 +379,6 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
-            bool isDocPending = false;
 
             DispatchQueue.DispatchSync(() => {
                 if(_disposalState != DisposalState.None) {
@@ -408,14 +405,15 @@ namespace Couchbase.Lite.Sync
                     scope = scopeName_.AsFLSlice()
                 };
 
-                LiteCoreBridge.Check(err =>
+                return LiteCoreBridge.Check(err =>
                 {
-                    isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, collectionSpec, err);
-                    return isDocPending;
+                    if(_repl == null) {
+                        return false;
+                    }
+
+                    return NativeSafe.c4repl_isDocumentPending(_repl, documentID, collectionSpec, err);
                 });
             }
-
-            return isDocPending;
         }
 
         /// <summary>
@@ -462,25 +460,26 @@ namespace Couchbase.Lite.Sync
 
                 pendingDocIds = LiteCoreBridge.Check(err =>
                 {
-                    return Native.c4repl_getPendingDocIDs(_repl, collectionSpec, err);
+                    if(_repl == null) {
+                        return null;
+                    }
+
+                    return NativeSafe.c4repl_getPendingDocIDs(_repl, collectionSpec, err);
                 });
 
                 if (pendingDocIds != null) {
-                    _databaseThreadSafety.DoLocked(() =>
-                    {
-                        var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
-                        var flarr = Native.FLValue_AsArray(flval);
-                        var cnt = (int)Native.FLArray_Count(flarr);
-                        for (int i = 0; i < cnt; i++) {
-                            var flv = Native.FLArray_Get(flarr, (uint)i);
-                            var nextId = Native.FLValue_AsString(flv);
-                            Debug.Assert(nextId != null);
-                            result.Add(nextId!);
-                        }
+                    var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
+                    var flarr = Native.FLValue_AsArray(flval);
+                    var cnt = (int)Native.FLArray_Count(flarr);
+                    for (int i = 0; i < cnt; i++) {
+                        var flv = Native.FLArray_Get(flarr, (uint)i);
+                        var nextId = Native.FLValue_AsString(flv);
+                        Debug.Assert(nextId != null);
+                        result.Add(nextId!);
+                    }
 
-                        Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
-                        pendingDocIds = null;
-                    });
+                    Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
+                    pendingDocIds = null;
                 }
             }
 
@@ -796,7 +795,7 @@ namespace Couchbase.Lite.Sync
             DispatchQueue.DispatchAsync(() =>
             {
                 if (_repl != null /* just to be safe */) {
-                    Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
+                    NativeSafe.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
                 }
             });
         }
@@ -853,13 +852,10 @@ namespace Couchbase.Lite.Sync
                         _disposalState = DisposalState.Disposed;
                         _nativeParams?.Dispose();
                         Config.Options.Dispose();
-                        Native.c4repl_free(_repl);
+                        _repl?.Dispose();
                         _repl = null;
                     }
                 });
-            } else {
-                 Native.c4repl_free(_repl);
-                 _repl = null;
             }
         }
 
@@ -868,7 +864,9 @@ namespace Couchbase.Lite.Sync
             Config.DatabaseInternal.CheckOpenLocked();
             C4Error err = new C4Error();
             if (_repl != null) {
-                Native.c4repl_setOptions(_repl, ((FLSlice) Config.Options.FLEncode()).ToArrayFast());
+                var options = Config.Options.FLEncode();
+                NativeSafe.c4repl_setOptions(_repl, (FLSlice)options);
+                Native.FLSliceResult_Release(options);
                 return err;
             }
 
@@ -885,7 +883,7 @@ namespace Couchbase.Lite.Sync
                 C4Address localAddr;
 
                 // Note: Don't use Native.c4address_fromURL, remoteUrlStr_ MUST stay alive for a this entire method
-                var addrFromUrl = NativeRaw.c4address_fromURL(remoteUrlStr_.AsFLSlice(), &localAddr, &dn);
+                var addrFromUrl = NativeSafe.c4address_fromURL(remoteUrlStr_.AsFLSlice(), &localAddr, &dn);
                 addr = localAddr;
 
                 if (addrFromUrl) {
@@ -972,12 +970,15 @@ namespace Couchbase.Lite.Sync
                     _nativeParams.ReplicationCollections = replicationCollections;
                     using (var replParamsPinned = _nativeParams.Pinned()) {
 #if COUCHBASE_ENTERPRISE
-                        if (otherDB != null)
-                            _repl = Native.c4repl_newLocal(Config.DatabaseInternal.c4db, otherDB.c4db, _nativeParams.C4Params,
+                        // Both c4db are assured not null by CheckOpenLocked previously
+                        if (otherDB != null) {
+                            _repl = NativeSafe.c4repl_newLocal(Config.DatabaseInternal.c4db!, otherDB.c4db!.RawDatabase, _nativeParams.C4Params,
                                 $"DNRepl@{replicatorIdTag:X2}", &localErr);
-                        else
+                        } else
 #endif
-                        _repl = Native.c4repl_new(Config.DatabaseInternal.c4db, addr, dbNameStr, _nativeParams.C4Params, $"DNRepl@{replicatorIdTag:X2}", &localErr);
+                        {
+                            _repl = NativeSafe.c4repl_new(Config.DatabaseInternal.c4db!, addr, dbNameStr, _nativeParams.C4Params, $"DNRepl@{replicatorIdTag:X2}", &localErr);
+                        }
                     }
 
                     if (_documentEndedUpdate.Counter > 0) {
@@ -999,7 +1000,8 @@ namespace Couchbase.Lite.Sync
             }
 
             C4Error err = new C4Error();
-            if (!Native.c4repl_setProgressLevel(_repl, progressLevel, &err) || err.code > 0) {
+            var setResult = NativeSafe.c4repl_setProgressLevel(_repl, progressLevel, &err);
+            if (!setResult || err.code > 0) {
                 WriteLog.To.Sync.W(Tag, $"Failed set progress level to {progressLevel}", err);
             }
         }
@@ -1012,7 +1014,7 @@ namespace Couchbase.Lite.Sync
                 _disposalState = DisposalState.Disposed;
                 _nativeParams?.Dispose();
                 Config.Options.Dispose();
-                Native.c4repl_free(_repl);
+                _repl?.Dispose();
                 _repl = null;
             }
         }

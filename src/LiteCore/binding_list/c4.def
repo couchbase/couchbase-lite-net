@@ -25,11 +25,9 @@ c4db_scopeNames
 c4db_hasScope
 c4dbobs_createOnCollection
 c4docobs_createWithCollection
-c4coll_getDatabase
 c4coll_getDocumentCount
 c4coll_getDoc
 c4coll_isValid
-c4coll_putDoc
 c4coll_createDoc
 c4coll_purgeDoc
 c4coll_setDocExpiration
@@ -46,7 +44,6 @@ c4db_maintenance
 c4db_getCookies
 c4db_setCookie
 c4db_close
-c4db_delete
 c4db_rekey
 c4db_getPath
 c4db_getUUIDs

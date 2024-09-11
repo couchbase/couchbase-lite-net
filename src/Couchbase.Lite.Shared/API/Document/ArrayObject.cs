@@ -46,7 +46,13 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <inheritdoc />
-        public int Count => _threadSafety.DoLocked(() => _array.Count);
+        public int Count
+        {
+            get {
+                using var threadSafetyScope = _threadSafety.BeginLockedScope();
+                return _array.Count;
+            }
+        }
 
         /// <inheritdoc />
         public IFragment this[int index] => index >= Count ? Fragment.Null : new Fragment(this, index);
@@ -91,12 +97,10 @@ namespace Couchbase.Lite
         {
             var count = _array.Count;
             var result = new List<object?>(count);
-            _threadSafety.DoLocked(() =>
-            {
-                for (var i = 0; i < count; i++) {
-                    result.Add(DataOps.ToNetObject(GetObject(_array, i)));
-                }
-            });
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            for (var i = 0; i < count; i++) {
+                result.Add(DataOps.ToNetObject(GetObject(_array, i)));
+            }
 
             return result;
         }
@@ -107,7 +111,8 @@ namespace Couchbase.Lite
         /// <returns>A mutable copy of the array</returns>
         public MutableArrayObject ToMutable()
         {
-            return _threadSafety.DoLocked(() => new MutableArrayObject(_array, true));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            return new MutableArrayObject(_array, true);
         }
 
         #endregion
@@ -130,15 +135,13 @@ namespace Couchbase.Lite
 
         private static MValue Get(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null)
         {
-            return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
-            {
-                var val = array.Get(index);
-                if (val.IsEmpty) {
-                    throw new IndexOutOfRangeException();
-                }
+            using var threadSafetyScope = threadSafety?.BeginLockedScope();
+            var val = array.Get(index);
+            if (val.IsEmpty) {
+                throw new IndexOutOfRangeException();
+            }
 
-                return val;
-            });
+            return val;
         }
 
         private static object? GetObject(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) => Get(array, index, threadSafety).AsObject(array);

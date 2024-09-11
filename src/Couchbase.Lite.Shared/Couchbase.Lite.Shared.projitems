@@ -119,7 +119,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\URLEndpoint.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\BlobReadStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\BlobWriteStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Document\C4DocumentWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\DataOps.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\DocContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\Fragment.cs" />
@@ -198,7 +197,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\LinuxProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\MacProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\WindowsProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\NullThreadSafety.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\SerialQueue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Status.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\ThreadSafety.cs" />
@@ -222,7 +220,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Misc.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\OptionsDictionary.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\RefCountedDisposable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RunOnce.cs" />
   </ItemGroup>
 </Project>

@@ -25,7 +25,7 @@ using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
-
+using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
@@ -40,7 +40,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        private readonly C4QueryEnumerator* _c4Enum;
+        private readonly C4QueryEnumeratorWrapper _c4Enum;
         private readonly QueryResultContext _context;
         private readonly QueryBase _query;
         private readonly ThreadSafety _threadSafety;
@@ -58,14 +58,12 @@ namespace Couchbase.Lite.Internal.Query
         internal Result this[int index]
         {
             get {
-                _threadSafety.DoLockedBridge(err =>
-                {
-                    if (_disposed) {
-                        throw new ObjectDisposedException(nameof(QueryResultSet));
-                    }
+                using var threadSafetyScope = _threadSafety.BeginLockedScope();
+                if (_disposed) {
+                    throw new ObjectDisposedException(nameof(QueryResultSet));
+                }
 
-                    return Native.c4queryenum_seek(_c4Enum, index, err);
-                });
+                LiteCoreBridge.Check(err => NativeSafe.c4queryenum_seek(_c4Enum, index, err));
 
                 return new Result(this, _c4Enum, _context);
             }
@@ -75,7 +73,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryResultSet(QueryBase query, ThreadSafety threadSafety, C4QueryEnumerator* e,
+        internal QueryResultSet(QueryBase query, ThreadSafety threadSafety, C4QueryEnumeratorWrapper e,
             IDictionary<string, int> columnNames)
         {
             _query = query;
@@ -97,13 +95,13 @@ namespace Couchbase.Lite.Internal.Query
                 return null;
             }
 
-            var newEnum = (C4QueryEnumerator*)_threadSafety.DoLockedBridge(err =>
+            var newEnum = LiteCoreBridge.CheckTyped(err =>
             {
                 if (_disposed) {
                     return null;
                 }
 
-                return Native.c4queryenum_refresh(_c4Enum, err);
+                return NativeSafe.c4queryenum_refresh(_c4Enum, err);
             });
 
             return newEnum != null ? new QueryResultSet(query, _threadSafety, newEnum, ColumnNames) : null;
@@ -124,15 +122,13 @@ namespace Couchbase.Lite.Internal.Query
 
         public void Dispose()
         {
-            _threadSafety.DoLocked(() =>
-            {
-                if (_disposed) {
-                    return;
-                }
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            if (_disposed) {
+                return;
+            }
 
-                _disposed = true;
-                _context.Dispose();
-            });
+            _disposed = true;
+            _context.Dispose();
         }
 
         #region IEnumerable
@@ -145,15 +141,13 @@ namespace Couchbase.Lite.Internal.Query
 
         public IEnumerator<Result> GetEnumerator()
         {
-            _threadSafety.DoLocked(() =>
-            {
-                CheckDisposed();
-                if (_enumeratorGenerated) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.ResultSetAlreadyEnumerated);
-                }
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            CheckDisposed();
+            if (_enumeratorGenerated) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.ResultSetAlreadyEnumerated);
+            }
 
-                _enumeratorGenerated = true;
-            });
+            _enumeratorGenerated = true;
             
             return new Enumerator(this);
         }
@@ -176,7 +170,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             #region Variables
 
-            private readonly C4QueryEnumerator* _enum;
+            private readonly C4QueryEnumeratorWrapper _enum;
             private readonly QueryResultSet _parent;
 
             #endregion
@@ -204,7 +198,7 @@ namespace Couchbase.Lite.Internal.Query
             {
                 _parent = parent;
                 _enum = _parent._c4Enum;
-                WriteLog.To.Query.I(Tag, $"Beginning query enumeration ({(long) _enum:x})");
+                WriteLog.To.Query.I(Tag, $"Beginning query enumeration ({(long) _enum.RawEnumerator:x})");
             }
 
             #endregion
@@ -222,26 +216,24 @@ namespace Couchbase.Lite.Internal.Query
 
             public bool MoveNext()
             {
-                return _parent._threadSafety.DoLocked(() =>
-                {
-                    if (_parent._disposed) {
-                        return false;
-                    }
-
-                    C4Error err;
-                    var moved = Native.c4queryenum_next(_enum, &err);
-                    if (moved) {
-                        return true;
-                    }
-
-                    if (err.code != 0) {
-                        WriteLog.To.Query.W(Tag, $"{this} error: {err.domain}/{err.code}");
-                    } else {
-                        WriteLog.To.Query.I(Tag, $"End of query enumeration ({(long) _enum:x})");
-                    }
-
+                using var threadSafetyScope = _parent._threadSafety.BeginLockedScope();
+                if (_parent._disposed) {
                     return false;
-                });
+                }
+
+                C4Error err;
+                var moved = NativeSafe.c4queryenum_next(_enum, &err);
+                if (moved) {
+                    return true;
+                }
+
+                if (err.code != 0) {
+                    WriteLog.To.Query.W(Tag, $"{this} error: {err.domain}/{err.code}");
+                } else {
+                    WriteLog.To.Query.I(Tag, $"End of query enumeration ({(long) _enum.RawEnumerator:x})");
+                }
+
+                return false;
             }
 
             public void Reset()

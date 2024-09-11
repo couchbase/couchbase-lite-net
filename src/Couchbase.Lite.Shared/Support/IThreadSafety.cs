@@ -22,12 +22,6 @@ namespace Couchbase.Lite.Support
 {
     internal interface IThreadSafety
     {
-        #region Public Methods
-
-        void DoLocked(Action a);
-
-        T DoLocked<T>(Func<T> f);
-
-        #endregion
+        IDisposable BeginLockedScope();
     }
 }

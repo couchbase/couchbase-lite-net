@@ -16,65 +16,44 @@
 // limitations under the License.
 // 
 using System;
-using LiteCore;
-using LiteCore.Interop;
+using System.Threading;
 
 namespace Couchbase.Lite.Support
 {
     internal sealed class ThreadSafety : IThreadSafety
     {
-        #region Variables
 
-        public readonly object Lock = new object();
+        private readonly object _lock = new object();
 
-        #endregion
-
-        #region Public Methods
-
-        public void DoLocked(Action a)
+        public IDisposable BeginLockedScope()
         {
+            bool lockTaken = false;
 #if !NO_THREADSAFE
-            lock (Lock) {
+            Monitor.Enter(_lock, ref lockTaken);
 #endif
-                a();
-#if !NO_THREADSAFE
-            }
-#endif
+            return new ScopeExit(_lock, lockTaken);
         }
 
-        public T DoLocked<T>(Func<T> f)
+        private sealed class ScopeExit : IDisposable
         {
-#if !NO_THREADSAFE
-            lock (Lock) {
-#endif
-                return f();
-#if !NO_THREADSAFE
-            }
-#endif
-        }
+            private readonly object _lock;
+            private bool _mustUnlock;
 
-        public unsafe void DoLockedBridge(C4TryLogicDelegate1 a)
-        {
-#if !NO_THREADSAFE
-            lock (Lock) {
-#endif
-                LiteCoreBridge.Check(a);
-#if !NO_THREADSAFE
+            public ScopeExit(object locker, bool mustUnlock)
+            {
+                _lock = locker;
+                _mustUnlock = mustUnlock;
             }
-#endif
-        }
 
-        public unsafe void* DoLockedBridge(C4TryLogicDelegate2 a)
-        {
+            public void Dispose()
+            {
 #if !NO_THREADSAFE
-            lock (Lock) {
+                if (_mustUnlock) {
+                    Monitor.Exit(_lock);
+                    _mustUnlock = false;
+                }
 #endif
-                return LiteCoreBridge.Check(a);
-#if !NO_THREADSAFE
             }
-#endif
         }
-
-        #endregion
     }
 }

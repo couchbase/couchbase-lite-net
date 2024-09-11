@@ -58,19 +58,19 @@ namespace Couchbase.Lite
 
         #region Properties
 
-        internal C4Database* c4Db
+        internal C4DatabaseWrapper c4Db
         {
             get {
                 Debug.Assert(Database != null && Database.c4db != null);
-                return Database!.c4db;
+                return Database!.c4db!;
             }
         }
 
-        internal C4Collection* c4Coll
+        internal C4CollectionWrapper c4Coll
         {
             get {
                 Debug.Assert(Collection != null && Collection.c4coll != null);
-                return Collection!.c4coll;
+                return Collection!.c4coll!;
             }
         }
 
@@ -78,19 +78,17 @@ namespace Couchbase.Lite
         {
             get => _c4Doc;
             set {
-                ThreadSafety.DoLocked(() =>
-                {
-                    var newVal = value;
-                    Misc.SafeSwap(ref _c4Doc, newVal);
+                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+                var newVal = value;
+                Misc.SafeSwap(ref _c4Doc, newVal);
 
-                    Data = null;
+                Data = null;
 
-                    if (newVal?.HasValue == true) {
-                        Data = newVal.Body;
-                    }
+                if (newVal?.HasValue == true) {
+                    Data = NativeSafe.c4doc_getProperties(newVal);
+                }
 
-                    UpdateDictionary();
-                });
+                UpdateDictionary();
             }
         }
 
@@ -111,16 +109,34 @@ namespace Couchbase.Lite
         /// </summary>
         public Collection? Collection { get; set; }
 
-        internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
+        internal bool Exists
+        {
+            get {
+                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+                return c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists);
+            }
+        }
 
-        internal virtual uint Generation => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getGeneration(c4Doc.RawDoc->selectedRev.revID) : 0U);
+        internal virtual uint Generation
+        {
+            get {
+                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+                return c4Doc?.HasValue == true ? NativeSafe.c4rev_getGeneration(c4Doc.RawDoc->revID) : 0U;
+            }
+        }
 
         /// <summary>
         /// Gets this document's unique ID
         /// </summary>
         public string Id { get; }
 
-        internal virtual bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->selectedRev.flags.HasFlag(C4RevisionFlags.Deleted));
+        internal virtual bool IsDeleted
+        {
+            get {
+                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+                return c4Doc?.HasValue == true && c4Doc.RawDoc->selectedRev.flags.HasFlag(C4RevisionFlags.Deleted);
+            }
+        }
 
         internal virtual bool IsEmpty => _dict?.Count == 0;
 
@@ -131,13 +147,25 @@ namespace Couchbase.Lite
         /// Newly created document will have a null RevisionID. The RevisionID in <see cref="MutableDocument" /> will be updated on save.
         /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
         /// </summary>
-        public string? RevisionID => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : _revId);
+        public string? RevisionID
+        {
+            get {
+                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+                return c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : _revId;
+            }
+        }
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
         /// identifying its status in a database)
         /// </summary>
-        public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.sequence : 0UL);
+        public ulong Sequence
+        {
+            get {
+                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+                return c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.sequence : 0UL;
+            }
+        }
 
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
@@ -174,13 +202,8 @@ namespace Couchbase.Lite
         internal Document(Collection? collection, string id, C4DocContentLevel contentLevel = C4DocContentLevel.DocGetCurrentRev)
             : this(collection, id, default(C4DocumentWrapper))
         {
-            collection?.ThreadSafety?.DoLocked(() =>
-            {
-                var doc = (C4Document*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                    err => Native.c4coll_getDoc(c4Coll, id, true, contentLevel, err));
-
-                c4Doc = new C4DocumentWrapper(doc);
-            });
+            c4Doc = NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                err => NativeSafe.c4coll_getDoc(c4Coll, id, true, contentLevel, err));
         }
 
         internal Document(Collection? collection, string id, string revId, FLDict* body)
@@ -245,7 +268,8 @@ namespace Couchbase.Lite
         {
             _disposalWatchdog.CheckDisposed();
             if (c4Doc?.HasValue == true) {
-                return Native.FLSlice_Copy(NativeRaw.c4doc_getRevisionBody(c4Doc.RawDoc));
+                var data = NativeSafe.c4doc_getRevisionBody(c4Doc);
+                return Native.FLSlice_Copy(data);
             }
 
             return (FLSliceResult) FLSlice.Null;
@@ -253,7 +277,8 @@ namespace Couchbase.Lite
 
         internal void ReplaceC4Doc(C4DocumentWrapper newDoc)
         {
-            ThreadSafety.DoLocked(() => Misc.SafeSwap(ref _c4Doc, newDoc));
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            Misc.SafeSwap(ref _c4Doc, newDoc);
         }
 
         internal bool SelectConflictingRevision()
@@ -264,7 +289,7 @@ namespace Couchbase.Lite
             
             var foundConflict = false;
             var err = new C4Error();
-            while (!foundConflict && Native.c4doc_selectNextLeafRevision(_c4Doc.RawDoc, true, true, &err)) {
+            while (!foundConflict && NativeSafe.c4doc_selectNextLeafRevision(_c4Doc, true, true, &err)) {
                 foundConflict = _c4Doc.RawDoc->selectedRev.flags.HasFlag(C4RevisionFlags.IsConflict);
             }
 
@@ -289,7 +314,10 @@ namespace Couchbase.Lite
                 Debug.Assert(Database != null);
                 Misc.SafeSwap(ref _root,
                     new MRoot(new DocContext(Database!, _c4Doc), (FLValue*) Data, IsMutable));
-                Collection?.ThreadSafety?.DoLocked(() => _dict = (DictionaryObject?) _root!.AsObject());
+
+                // TODO: Is this needed?
+                using var threadSafetyScope = Collection?.ThreadSafety?.BeginLockedScope();
+                _dict = (DictionaryObject?) _root!.AsObject();
             } else {
                 Misc.SafeSwap(ref _root, null);
                 _dict = IsMutable ? new InMemoryDictionary() : new DictionaryObject();
@@ -406,12 +434,10 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                _disposalWatchdog.Dispose();
-                _root?.Dispose();
-                Misc.SafeSwap(ref _c4Doc, null);
-            });
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            _disposalWatchdog.Dispose();
+            _root?.Dispose();
+            Misc.SafeSwap(ref _c4Doc, null);
         }
 
         #endregion
@@ -446,7 +472,7 @@ namespace Couchbase.Lite
             // This will throw if null, so ! is safe
             return LiteCoreBridge.Check(err =>
             {
-                return Native.c4doc_bodyAsJSON(c4Doc.RawDoc, true, err);
+                return NativeSafe.c4doc_bodyAsJSON(c4Doc, true, err);
             })!;
         }
         #endregion

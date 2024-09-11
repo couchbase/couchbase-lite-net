@@ -25,13 +25,13 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Variables
 
-        private readonly C4QueryEnumerator* _enumerator;
+        private readonly C4QueryEnumeratorWrapper _enumerator;
 
         #endregion
 
         #region Constructors
 
-        public QueryResultContext(Database db, C4QueryEnumerator* enumerator)
+        public QueryResultContext(Database db, C4QueryEnumeratorWrapper enumerator)
             : base(db, null)
         {
             _enumerator = enumerator;
@@ -44,7 +44,9 @@ namespace Couchbase.Lite.Internal.Query
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            Native.c4queryenum_release(_enumerator);
+            if (disposing) {
+                _enumerator.Dispose();
+            }
         }
 
         #endregion

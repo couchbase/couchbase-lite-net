@@ -95,26 +95,31 @@ namespace Couchbase.Lite
         public IFragment this[string key] => new Fragment(this, key);
 
         /// <inheritdoc />
-        public int Count => _threadSafety.DoLocked(() => _dict.Count);
+        public int Count
+        {
+            get {
+                using var threadSafetyScope = _threadSafety.BeginLockedScope();
+                return _dict.Count;
+            }
+        }
 
         /// <inheritdoc />
         public ICollection<string> Keys
         {
             get {
                 if (_keys == null) {
-                    _keys = _threadSafety.DoLocked(() =>
-                    {
-                        // Double check pattern
-                        var retVal = _keys;
-                        if (retVal == null) {
-                            retVal = new List<string>(_dict.Count);
-                            foreach (var item in _dict.AllItems()) {
-                                retVal.Add(item.Key);
-                            }
+                    using var threadSafetyScope = _threadSafety.BeginLockedScope();
+                    
+                    // Check null once more because the first time wasn't thread safe
+                    var retVal = _keys;
+                    if (retVal == null) {
+                        retVal = new List<string>(_dict.Count);
+                        foreach (var item in _dict.AllItems()) {
+                            retVal.Add(item.Key);
                         }
+                    }
 
-                        return retVal;
-                    });
+                    _keys = retVal;
                 }
 
                 return _keys;
@@ -152,7 +157,8 @@ namespace Couchbase.Lite
         /// <returns>A mutable copy of the dictionary</returns>
         public MutableDictionaryObject ToMutable()
         {
-            return _threadSafety.DoLocked(() => new MutableDictionaryObject(_dict, true));
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            return new MutableDictionaryObject(_dict, true);
         }
 
         #endregion
@@ -165,7 +171,8 @@ namespace Couchbase.Lite
         /// </summary>
         protected void KeysChanged()
         {
-            _threadSafety.DoLocked(() => _keys = null);
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            _keys = null;
         }
 
         #endregion
@@ -186,8 +193,11 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static object? GetObject(MDict dict, string key, IThreadSafety? threadSafety = null) 
-            => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
+        private static object? GetObject(MDict dict, string key, IThreadSafety? threadSafety = null)
+        {
+            using var threadSafetyScope = threadSafety?.BeginLockedScope();
+            return dict.Get(key).AsObject(dict);
+        }
 
         private static T? GetObject<T>(MDict dict, string key, IThreadSafety? threadSafety = null) where T : class 
             => GetObject(dict, key, threadSafety) as T;
@@ -207,7 +217,11 @@ namespace Couchbase.Lite
         #region IDictionaryObject
 
         /// <inheritdoc />
-        public bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
+        public bool Contains(string key)
+        {
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            return !_dict.Get(key).IsEmpty;
+        }
 
         /// <inheritdoc />
         public ArrayObject? GetArray(string key) => GetObject<ArrayObject>(_dict, key, _threadSafety);
@@ -246,12 +260,10 @@ namespace Couchbase.Lite
         public Dictionary<string, object?> ToDictionary()
         {
             var result = new Dictionary<string, object?>(_dict.Count);
-            _threadSafety.DoLocked(() =>
-            {
-                foreach (var item in _dict.AllItems()) {
-                    result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
-                }
-            });
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            foreach (var item in _dict.AllItems()) {
+                result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
+            }
 
             return result;
         }

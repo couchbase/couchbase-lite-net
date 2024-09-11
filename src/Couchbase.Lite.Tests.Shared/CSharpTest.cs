@@ -43,6 +43,7 @@ using Extensions = Couchbase.Lite.Util.Extensions;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Fleece;
 using Dispatch;
+using System.Diagnostics;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -101,7 +102,7 @@ namespace Test
                     mRoot.Context.Should().BeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
-                        Native.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
+                        NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
                     var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mArr = new FleeceMutableArray(new MValue(flValue), mRoot);
                     var deserializedArray = new ArrayObject(mArr, false);
@@ -194,7 +195,7 @@ namespace Test
                     mRoot.Context.Should().BeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
-                        Native.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
+                        NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
                     var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mDict = new MDict(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
@@ -629,6 +630,173 @@ Transfer-Encoding: chunked";
             items.Count().Should().Be(2);
             items.ElementAt(1).Should().Be("debug");
         }
+
+#if !SANITY_ONLY
+        [Fact]
+        public unsafe void TestC4QueryWrapper()
+        {
+            int iteration = 1;
+
+            void TestC4QueryWrapperInternal(C4QueryWrapper.ThreadSafetyLevel safetyLevel, bool blocking)
+            {
+                // This is a bit awkward to test, but my assertion is as follows.  If
+                // I block inside of a callback to UseSafe then that keeps the relevant
+                // thread safety locked, so then if I lock on it subsequently the logic
+                // inside the follow up should not run until the former is done blocking.
+                // DatabaseThreadSafety is not meant to be used externally like this, but
+                // it's public so that I can pass it to other objects that need it in the
+                // NativeSafe API.  I just take advantage of the fact that it is public.
+                using var lockEvent = new AutoResetEvent(false);
+                using var queryWrapper = new C4QueryWrapper(null, new ThreadSafety());
+                var sw = Stopwatch.StartNew();
+                Task.Run(() =>
+                {
+                    queryWrapper.UseSafe(q =>
+                    {
+                        lockEvent.Set();
+                        Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                    }, safetyLevel);
+                });
+
+                ThreadSafety threadSafety;
+                if(blocking) {
+                    // Choose the same lock as the wrapper is going to use
+                    threadSafety = safetyLevel == C4QueryWrapper.ThreadSafetyLevel.Query 
+                        ? queryWrapper.InstanceSafety 
+                        : queryWrapper.DatabaseThreadSafety;
+                } else {
+                    // Choose the opposite lock from the wrapper
+                    threadSafety = safetyLevel == C4QueryWrapper.ThreadSafetyLevel.Query
+                        ? queryWrapper.DatabaseThreadSafety
+                        : queryWrapper.InstanceSafety;
+                }
+
+                lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                    sw.Stop();
+                }
+
+                if (blocking) {
+                    sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
+                } else {
+                    sw.Elapsed.TotalMilliseconds.Should().BeLessThan(500, "because otherwise the lock blocked ({0})", iteration);
+                }
+
+                iteration++;
+            }
+
+            TestC4QueryWrapperInternal(C4QueryWrapper.ThreadSafetyLevel.Query, true);
+            TestC4QueryWrapperInternal(C4QueryWrapper.ThreadSafetyLevel.Database, true);
+            TestC4QueryWrapperInternal(C4QueryWrapper.ThreadSafetyLevel.Query, false);
+            TestC4QueryWrapperInternal(C4QueryWrapper.ThreadSafetyLevel.Database, false);
+        }
+
+        [Fact]
+        public unsafe void TestC4DocumentWrapper()
+        {
+            int iteration = 1;
+
+            void TestC4DocumentWrapperInternal(C4DocumentWrapper.ThreadSafetyLevel safetyLevel, bool blocking)
+            {
+                using var lockEvent = new AutoResetEvent(false);
+                using var documentWrapper = new C4DocumentWrapper(null, new ThreadSafety());
+                var sw = Stopwatch.StartNew();
+                Task.Run(() =>
+                {
+                    documentWrapper.UseSafe(q =>
+                    {
+                        lockEvent.Set();
+                        Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                        return true;
+                    }, safetyLevel);
+                });
+
+                ThreadSafety threadSafety;
+                if (blocking) {
+                    // Choose the same lock as the wrapper is going to use
+                    threadSafety = safetyLevel == C4DocumentWrapper.ThreadSafetyLevel.Document
+                        ? documentWrapper.InstanceSafety
+                        : documentWrapper.DatabaseThreadSafety;
+                } else {
+                    // Choose the opposite lock from the wrapper
+                    threadSafety = safetyLevel == C4DocumentWrapper.ThreadSafetyLevel.Document
+                        ? documentWrapper.DatabaseThreadSafety
+                        : documentWrapper.InstanceSafety;
+                }
+
+                lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                    sw.Stop();
+                }
+
+                if (blocking) {
+                    sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
+                } else {
+                    sw.Elapsed.TotalMilliseconds.Should().BeLessThan(500, "because otherwise the lock blocked ({0})", iteration);
+                }
+
+                iteration++;
+            }
+
+            TestC4DocumentWrapperInternal(C4DocumentWrapper.ThreadSafetyLevel.Document, true);
+            TestC4DocumentWrapperInternal(C4DocumentWrapper.ThreadSafetyLevel.Database, true);
+            TestC4DocumentWrapperInternal(C4DocumentWrapper.ThreadSafetyLevel.Document, false);
+            TestC4DocumentWrapperInternal(C4DocumentWrapper.ThreadSafetyLevel.Database, false);
+        }
+
+        [Fact]
+        public unsafe void TestC4IndexWrapper()
+        {
+            int iteration = 1;
+
+            void TestC4IndexUpdaterWrapperInternal(C4IndexUpdaterWrapper.ThreadSafetyLevel safetyLevel, bool blocking)
+            {
+                using var lockEvent = new AutoResetEvent(false);
+                using var documentWrapper = new C4IndexUpdaterWrapper(null, new ThreadSafety());
+                var sw = Stopwatch.StartNew();
+                Task.Run(() =>
+                {
+                    documentWrapper.UseSafe(q =>
+                    {
+                        lockEvent.Set();
+                        Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                        return true;
+                    }, safetyLevel);
+                });
+
+                ThreadSafety threadSafety;
+                if (blocking) {
+                    // Choose the same lock as the wrapper is going to use
+                    threadSafety = safetyLevel == C4IndexUpdaterWrapper.ThreadSafetyLevel.Updater
+                        ? documentWrapper.InstanceSafety
+                        : documentWrapper.DatabaseThreadSafety;
+                } else {
+                    // Choose the opposite lock from the wrapper
+                    threadSafety = safetyLevel == C4IndexUpdaterWrapper.ThreadSafetyLevel.Updater
+                        ? documentWrapper.DatabaseThreadSafety
+                        : documentWrapper.InstanceSafety;
+                }
+
+                lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                    sw.Stop();
+                }
+
+                if (blocking) {
+                    sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
+                } else {
+                    sw.Elapsed.TotalMilliseconds.Should().BeLessThan(500, "because otherwise the lock blocked ({0})", iteration);
+                }
+
+                iteration++;
+            }
+
+            TestC4IndexUpdaterWrapperInternal(C4IndexUpdaterWrapper.ThreadSafetyLevel.Updater, true);
+            TestC4IndexUpdaterWrapperInternal(C4IndexUpdaterWrapper.ThreadSafetyLevel.Database, true);
+            TestC4IndexUpdaterWrapperInternal(C4IndexUpdaterWrapper.ThreadSafetyLevel.Updater, false);
+            TestC4IndexUpdaterWrapperInternal(C4IndexUpdaterWrapper.ThreadSafetyLevel.Database, false);
+        }
+#endif
 
         private unsafe void TestRoundTrip<T>(T item)
         {

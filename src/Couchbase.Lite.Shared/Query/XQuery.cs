@@ -24,7 +24,7 @@ using System.Runtime.CompilerServices;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-
+using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
@@ -113,17 +113,14 @@ namespace Couchbase.Lite.Internal.Query
 
             var paramJson = Parameters.FLEncode();
 
-            var e = (C4QueryEnumerator*)fromImpl.ThreadSafety.DoLockedBridge(err =>
+            var e = LiteCoreBridge.CheckTyped(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
                     return null;
                 }
 
-                if (_c4Query == null) {
-                    Check();
-                }
-
-                return NativeRaw.c4query_run(_c4Query, (FLSlice)paramJson, err);
+                _c4Query = Check();
+                return NativeSafe.c4query_run(_c4Query, (FLSlice)paramJson, err);
             });
 
             paramJson.Dispose();
@@ -137,37 +134,36 @@ namespace Couchbase.Lite.Internal.Query
 
         public override unsafe string Explain()
         {
+            const string defaultVal = "(Unable to explain)";
             _disposalWatchdog.CheckDisposed();
 
             // Used for debugging
-            if (_c4Query == null) {
-                Check();
-            }
+            _c4Query = Check();
 
-            return FromImpl?.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
+            return NativeSafe.c4query_explain(_c4Query!) ?? defaultVal;
         }
 
-        protected override unsafe void CreateQuery()
+        protected override unsafe C4QueryWrapper CreateQuery()
         {
-            if (_c4Query == null)
-            {
-                if (Database == null) {
-                    Debug.Assert(Collection != null);
-                    Database = Collection!.Database;
-                }
-
-                C4Query* query = (C4Query*)Database!.ThreadSafety.DoLockedBridge(err =>
-                {
-                    _queryExpression = EncodeAsJSON();
-                    WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
-                    return Native.c4query_new2(Database.c4db, C4QueryLanguage.JSONQuery, _queryExpression, null, err);
-                });
-
-                _c4Query = query;
+            if(_c4Query != null) {
+                return _c4Query;
             }
+
+            if (Database == null) {
+                Debug.Assert(Collection != null);
+                Database = Collection!.Database;
+            }
+
+            return LiteCoreBridge.CheckTyped(err =>
+            {
+                Debug.Assert(Database?.c4db != null);
+                _queryExpression = EncodeAsJSON();
+                WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
+                return NativeSafe.c4query_new2(Database!.c4db!, C4QueryLanguage.JSONQuery, _queryExpression, null, err);
+            })!;
         }
 
-        protected override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
+        protected override unsafe Dictionary<string, int> CreateColumnNames(C4QueryWrapper query)
         {
             var fromImpl = FromImpl;
             Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
@@ -175,9 +171,9 @@ namespace Couchbase.Lite.Internal.Query
 
             var map = new Dictionary<string, int>();
 
-            var columnCnt = Native.c4query_columnCount(query);
+            var columnCnt = NativeSafe.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
-                var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+                var titleStr = NativeSafe.c4query_columnTitle(query, (uint)i).CreateString();
                 Debug.Assert(titleStr != null);
 
                 if (titleStr!.StartsWith("*")) {
@@ -257,27 +253,17 @@ namespace Couchbase.Lite.Internal.Query
             return JsonConvert.SerializeObject(parameters);
         }
 
-        private unsafe void Check()
+        private unsafe C4QueryWrapper Check()
         {
             var from = FromImpl;
             Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
 
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                if (_disposalWatchdog.IsDisposed) {
-                    return true;
-                }
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            _disposalWatchdog.CheckDisposed();
+            _queryExpression = EncodeAsJSON();
+            WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
 
-                _queryExpression = EncodeAsJSON();
-                WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
-
-                CreateQuery();
-                if (_c4Query == null) {
-                    return false;
-                }
-
-                return true;
-            });
+            return CreateQuery();
         }
 
         #endregion

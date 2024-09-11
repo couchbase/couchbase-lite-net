@@ -20,8 +20,10 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using LiteCore;
 using LiteCore.Interop;
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -40,7 +42,7 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
-        private C4QueryObserver* _queryObserver;
+        private C4QueryObserverWrapper? _queryObserver;
         private bool _disposed;
         private GCHandle _contextHandle;
         private QueryBase _queryBase;
@@ -66,21 +68,17 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal unsafe LiveQuerier CreateLiveQuerier(C4Query* c4Query)
+        internal unsafe LiveQuerier CreateLiveQuerier(C4QueryWrapper c4Query)
         {
-            _queryBase.ThreadSafety.DoLocked(() =>
-            {
-                if(_disposed) {
-                    throw new ObjectDisposedException(nameof(LiveQuerier));
-                }
+            using var threadSafetyScope = _queryBase.ThreadSafety.BeginLockedScope();
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(LiveQuerier));
+            }
 
-                if(_queryObserver != null) {
-                    return;
-                }
-
+            if (_queryObserver == null) {
                 _contextHandle = GCHandle.Alloc(this);
-                _queryObserver = Native.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(_contextHandle).ToPointer());
-            });
+                _queryObserver = NativeSafe.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(_contextHandle).ToPointer());
+            }
 
             return this;
         }
@@ -89,10 +87,14 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (Interlocked.Increment(ref _startedObserving) == 1) {
                 _changed.Add(cbEventHandler);
+                if (_queryObserver == null) {
+                    WriteLog.To.Query.E(Tag, "Observer was null in StartObserver, this observer will never be called...");
+                    return _changed;
+                }
 
                 // CBL-5272: This call needs to be guarded with the db exclusive lock to avoid bad
                 // interaction with multiple concurrent LiveQueries being created with different objects
-                DatabaseThreadSafety().DoLocked(() => Native.c4queryobs_setEnabled(_queryObserver, true));
+                NativeSafe.c4queryobs_setEnabled(_queryObserver, true);
             }
 
             return _changed;
@@ -102,7 +104,12 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (Interlocked.Decrement(ref _startedObserving) == 0) {
                 _changed.Remove(listenerToken);
-                Native.c4queryobs_setEnabled(_queryObserver, false);
+                if(_queryObserver == null) {
+                    WriteLog.To.Query.W(Tag, "Observer was null in StopObserver, returning...");
+                    return;
+                }
+
+                NativeSafe.c4queryobs_setEnabled(_queryObserver, false);
             }
         }
 
@@ -115,17 +122,13 @@ namespace Couchbase.Lite.Internal.Query
                         return;
                     }
 
-                    /* Stops an observer and frees the resources it's using. It is safe to pass NULL to this call. */
-                    Native.c4queryobs_free(_queryObserver);
+                    _queryObserver?.Dispose();
                     _queryObserver = null;
                     _disposed = true;
                     if (_contextHandle.IsAllocated) {
                         _contextHandle.Free();
                     }
                 });
-            } else {
-                Native.c4queryobs_free(_queryObserver);
-                _queryObserver = null;
             }
         }
 
@@ -152,6 +155,7 @@ namespace Couchbase.Lite.Internal.Query
             _queryBase.DispatchQueue.DispatchSync(() =>
             {
                 if(_disposed) {
+                    WriteLog.To.Query.W(Tag, "QueryObserverCalled after dispose, ignoring...");
                     return;
                 }
 
@@ -166,9 +170,14 @@ namespace Couchbase.Lite.Internal.Query
 
         private QueryResultSet? GetResults()
         {
-            var newEnum = (C4QueryEnumerator*)_queryBase.ThreadSafety.DoLockedBridge(err =>
+            if(_queryObserver == null) {
+                WriteLog.To.Query.W(Tag, "Observer null in GetResults, returning no results...");
+                return null;
+            }
+
+            var newEnum = LiteCoreBridge.CheckTyped(err =>
             {
-                return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
+                return NativeSafe.c4queryobs_getEnumerator(_queryObserver, true, err);
             });
 
             if (newEnum != null) {
@@ -177,9 +186,6 @@ namespace Couchbase.Lite.Internal.Query
 
             return null;
         }
-
-        private ThreadSafety DatabaseThreadSafety() => _queryBase?.Database?.ThreadSafety ??
-            throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Database ThreadSafety was lost");
 
         #endregion
 

@@ -19,6 +19,7 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
+using LiteCore;
 using LiteCore.Interop;
 using System;
 using System.Collections.Generic;
@@ -43,7 +44,7 @@ namespace Couchbase.Lite.Internal.Query
             _n1qlQueryExpression = n1qlQueryExpression;
 
             // Catch N1QL compile error sooner
-            Compile();
+            _c4Query = Compile();
         }
         #endregion
 
@@ -55,13 +56,18 @@ namespace Couchbase.Lite.Internal.Query
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);
             }
 
-            var e = (C4QueryEnumerator*)Database!.ThreadSafety.DoLockedBridge(err =>
+            if(_c4Query == null) {
+                WriteLog.To.Query.E(Tag, "Native query object null in Execute(), returning no results...");
+                return new NullResultSet();
+            }
+
+            var e = LiteCoreBridge.CheckTyped(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
                     return null;
                 }
 
-                return NativeRaw.c4query_run(_c4Query, FLSlice.Null, err);
+                return NativeSafe.c4query_run(_c4Query, FLSlice.Null, err);
             });
 
             if (e == null) {
@@ -73,30 +79,32 @@ namespace Couchbase.Lite.Internal.Query
 
         public override unsafe string Explain()
         {
-            _disposalWatchdog.CheckDisposed();
-            return Database!.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
-        }
-
-        protected override unsafe void CreateQuery()
-        {
+            const string defaultString = "(Unable to explain)";
             if (_c4Query == null) {
-                Debug.Assert(Database != null);
-                C4Query* query = (C4Query*)Database!.ThreadSafety.DoLockedBridge(err =>
-                {
-                    return Native.c4query_new2(Database!.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
-                });
-
-                _c4Query = query;
+                WriteLog.To.Query.W(Tag, "Native query object null in Explain(), returning...");
+                return defaultString;
             }
+
+            _disposalWatchdog.CheckDisposed();
+            return NativeSafe.c4query_explain(_c4Query) ?? defaultString;
         }
 
-        protected override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
+        protected override unsafe C4QueryWrapper CreateQuery()
+        {
+            return _c4Query ?? LiteCoreBridge.CheckTyped(err =>
+            {
+                Debug.Assert(Database?.c4db != null);
+                return NativeSafe.c4query_new2(Database!.c4db!, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
+            })!;
+        }
+
+        protected override Dictionary<string, int> CreateColumnNames(C4QueryWrapper query)
         {
             var map = new Dictionary<string, int>();
 
-            var columnCnt = Native.c4query_columnCount(query);
+            var columnCnt = NativeSafe.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
-                var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+                var titleStr = NativeSafe.c4query_columnTitle(query, (uint)i).CreateString();
                 if(titleStr == null) {
                     throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Null column title in query!");
                 }
@@ -116,24 +124,11 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Private Methods
 
-        private unsafe void Compile()
+        private unsafe C4QueryWrapper Compile()
         {
-            if (_c4Query != null)
-                return;
-
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                if (_disposalWatchdog.IsDisposed) {
-                    return true;
-                }
-
-                CreateQuery();
-                if (_c4Query == null) {
-                    return false;
-                }
-
-                return true;
-            });
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            _disposalWatchdog.CheckDisposed();
+            return CreateQuery();
         }
 
         #endregion
