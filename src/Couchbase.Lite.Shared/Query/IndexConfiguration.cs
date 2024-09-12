@@ -50,8 +50,8 @@ namespace Couchbase.Lite.Internal.Query
                 // and LiteCore will index the entire path element.  This is ok in some cases
                 // like ArrayIndexConfiguration, but it should be manifest with a null array
                 // and not an empty array or array of empty or array of null.
-                if(!expressions.Any(x => !String.IsNullOrEmpty(x))) {
-                    throw new ArgumentException("Only strings that are non-null and non-empty are allowed", "expressions");
+                if(expressions.Length == 1 && expressions[0] == "") { 
+                    throw new ArgumentException("Contained only one empty entry, use null instead", "expressions");
                 }
             }
 
