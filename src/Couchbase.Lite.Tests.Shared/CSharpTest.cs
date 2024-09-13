@@ -46,6 +46,7 @@ using Dispatch;
 using System.Diagnostics;
 using Xunit;
 using Xunit.Abstractions;
+using Couchbase.Lite.Support;
 
 namespace Test
 {
