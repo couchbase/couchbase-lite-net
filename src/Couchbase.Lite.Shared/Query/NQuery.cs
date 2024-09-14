@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Internal.Query
             _n1qlQueryExpression = n1qlQueryExpression;
 
             // Catch N1QL compile error sooner
-            _c4Query = Compile();
+            Compile();
         }
         #endregion
 
@@ -89,9 +89,9 @@ namespace Couchbase.Lite.Internal.Query
             return NativeSafe.c4query_explain(_c4Query) ?? defaultString;
         }
 
-        protected override unsafe C4QueryWrapper CreateQuery()
+        protected override unsafe void CreateQuery()
         {
-            return _c4Query ?? LiteCoreBridge.CheckTyped(err =>
+            _c4Query ??= LiteCoreBridge.CheckTyped(err =>
             {
                 Debug.Assert(Database?.c4db != null);
                 return NativeSafe.c4query_new2(Database!.c4db!, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
@@ -124,11 +124,11 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Private Methods
 
-        private unsafe C4QueryWrapper Compile()
+        private unsafe void Compile()
         {
             using var threadSafetyScope = ThreadSafety.BeginLockedScope();
             _disposalWatchdog.CheckDisposed();
-            return CreateQuery();
+            CreateQuery();
         }
 
         #endregion

@@ -28,7 +28,7 @@ namespace LiteCore.Interop;
 internal abstract class NativeWrapper : IDisposable
 {
     protected readonly IntPtr _nativeInstance;
-    private int _refCount;
+    private int _refCount = 1;
     private AtomicBool _disposed = false;
 
     public ThreadSafety InstanceSafety { get; }

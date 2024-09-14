@@ -736,7 +736,7 @@ namespace Couchbase.Lite
         private void PostDocChanged(string documentID)
         {
             using var scope = ThreadSafety.BeginLockedScope();
-            if (!IsClosed && !_docObs.ContainsKey(documentID)) {
+            if (!IsClosed && _docObs.ContainsKey(documentID)) {
                 var change = new DocumentChangedEventArgs(documentID, this);
                 _documentChanged.Fire(documentID, this, change);
             }

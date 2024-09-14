@@ -602,7 +602,7 @@ namespace Test
 
         protected void TestQueryObserverWithChangingQueryParametersWithQuery(IQuery query, bool isLegacy = true)
         {
-            LoadJSONResource("names_100", coll: isLegacy == true ? null : CollA);
+            LoadJSONResource("names_100", coll: isLegacy ? null : CollA);
             var qParameters = new Parameters().SetString("state", "CA");
             query.Parameters = qParameters;
             //query.Parameters.SetString("state", "CA"); //This works as well
