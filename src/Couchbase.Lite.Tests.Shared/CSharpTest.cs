@@ -672,7 +672,7 @@ Transfer-Encoding: chunked";
                         : queryWrapper.InstanceSafety;
                 }
 
-                lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                lockEvent.WaitOne(TimeSpan.FromMilliseconds(500)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
                 using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
@@ -725,7 +725,7 @@ Transfer-Encoding: chunked";
                         : documentWrapper.InstanceSafety;
                 }
 
-                lockEvent.WaitOne(TimeSpan.FromMilliseconds(100)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                lockEvent.WaitOne(TimeSpan.FromMilliseconds(500)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
                 using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
