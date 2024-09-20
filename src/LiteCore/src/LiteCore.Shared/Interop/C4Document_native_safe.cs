@@ -118,14 +118,6 @@ internal sealed unsafe class C4DocumentWrapper : NativeWrapper
 
 internal static unsafe partial class NativeSafe
 {
-    // Thread Safe Methods
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint c4rev_getGeneration(FLSlice revID)
-    {
-        return NativeRaw.c4rev_getGeneration(revID);
-    }
-
     // Document Exclusive Methods
 
     public static FLSlice c4doc_getRevisionBody(C4DocumentWrapper doc)

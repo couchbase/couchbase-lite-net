@@ -110,7 +110,8 @@ namespace Couchbase.Lite
         internal IReadOnlyList<string> RevisionIDs
         {
             get {
-                var returned = ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? Native.c4doc_getRevisionHistory(c4Doc.RawDoc) : null);
+                using var scope = ThreadSafety.BeginLockedScope();
+                var returned = c4Doc?.HasValue == true ? Native.c4doc_getRevisionHistory(c4Doc.RawDoc) : null;
                 if (returned == null) {
                     return new List<string>();
                 }
@@ -168,7 +169,8 @@ namespace Couchbase.Lite
         public DateTimeOffset? Timestamp
         {
             get {
-                var rawVal = ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getTimestamp(c4Doc.RawDoc->selectedRev.revID) : 0);
+                using var scope = ThreadSafety.BeginLockedScope();
+                var rawVal = c4Doc?.HasValue == true ? NativeRaw.c4rev_getTimestamp(c4Doc.RawDoc->selectedRev.revID) : 0;
                 if(rawVal == 0) {
                     return null;
                 }
