@@ -120,6 +120,11 @@ internal static unsafe partial class NativeSafe
 {
     // Document Exclusive Methods
 
+    public static string? c4doc_getRevisionHistory(C4DocumentWrapper doc)
+    {
+        return doc.UseSafe(Native.c4doc_getRevisionHistory, C4DocumentWrapper.ThreadSafetyLevel.Document);
+    }
+
     public static FLSlice c4doc_getRevisionBody(C4DocumentWrapper doc)
     {
         return doc.UseSafe(NativeRaw.c4doc_getRevisionBody,

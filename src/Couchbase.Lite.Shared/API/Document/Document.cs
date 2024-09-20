@@ -31,7 +31,6 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -40,6 +39,8 @@ namespace Couchbase.Lite
     /// </summary>
     public unsafe class Document : IDictionaryObject, IJSON, IDisposable
     {
+        private const string Tag = nameof(Document);
+
         private static readonly DateTimeOffset UnixEpoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         #region Variables
@@ -107,16 +108,15 @@ namespace Couchbase.Lite
             }
         }
 
-        internal IReadOnlyList<string> RevisionIDs
+        internal string? RevisionIDs
         {
             get {
                 using var scope = ThreadSafety.BeginLockedScope();
-                var returned = c4Doc?.HasValue == true ? Native.c4doc_getRevisionHistory(c4Doc.RawDoc) : null;
-                if (returned == null) {
-                    return new List<string>();
+                if(c4Doc == null) {
+                    return null;
                 }
-
-                return returned.Replace(" ", "").Split(',');
+                var fullC4Doc = LiteCoreBridge.CheckTyped(err => NativeSafe.c4coll_getDoc(c4Coll, Id, true, C4DocContentLevel.DocGetAll, err))!;
+                return NativeSafe.c4doc_getRevisionHistory(fullC4Doc);
             }    
         }
 

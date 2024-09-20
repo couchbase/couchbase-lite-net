@@ -16,13 +16,11 @@
 //  limitations under the License.
 // 
 
-using System.Collections.Generic;
-
 namespace Couchbase.Lite.Unsupported;
 
 public static class DocumentExtensions
 {
-    public static IReadOnlyList<string> RevisionIDs(this Document doc)
+    public static string? RevisionIDs(this Document doc)
     {
         return doc.RevisionIDs;
     }
