@@ -69,7 +69,8 @@ internal static unsafe partial class NativeSafe
             return null;
         }
 
-        return new C4SocketWrapper(rawSocket);
+        // Noted in LiteCore headers, this return value must be immediately retained
+        return new C4SocketWrapper(Native.c4socket_retain(rawSocket));
     }
 
     // Socket Exclusive Methods

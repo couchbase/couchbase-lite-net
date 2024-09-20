@@ -73,8 +73,8 @@ namespace Test
     {
         #region Constants
 
-        private const ushort WsPort = 4984;
-        private const ushort WssPort = 4985;
+        private const ushort WsPort = 5984;
+        private const ushort WssPort = 5985;
         private const string ServerCertLabel = "CBL-Server-Cert";
         private const string ClientCertLabel = "CBL-Client-Cert";
 

@@ -40,6 +40,9 @@ internal unsafe sealed class C4CollectionWrapper : NativeWrapper
     public C4CollectionWrapper(C4Collection* c, C4DatabaseWrapper parent)
         : base((IntPtr)c, parent.InstanceSafety)
     {
+        // We don't own the collection objects from Core, so let's retain them
+        // so that we can better predict their lifecycle
+        Native.c4coll_retain(c);
         Parent = parent;
     }
 

@@ -40,8 +40,15 @@ using Xunit.Abstractions;
 
 namespace Test
 {
+
     public class QueryTest : TestCase
     {
+        public enum QueryTestMode
+        {
+            SQL,
+            QueryBuilder
+        }
+
         Type queryTypeExpressionType = typeof(QueryTypeExpression);
 
         public QueryTest(ITestOutputHelper output) : base(output)
@@ -762,17 +769,17 @@ namespace Test
 
         // How to use N1QL Query Parameter
         // https://docs.couchbase.com/couchbase-lite/3.0/csharp/query-n1ql-mobile.html#lbl-query-params
-        [Fact]
-        public void TestQueryObserverWithChangingQueryParameters()
+        [Theory]
+        [InlineData(QueryTestMode.SQL)]
+        [InlineData(QueryTestMode.QueryBuilder)]
+        public void TestQueryObserverWithChangingQueryParameters(QueryTestMode mode)
         {
-            var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM _ WHERE contact.address.state = $state");
-            TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ);
-            n1qlQ.Dispose();
-            var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
-                .From(DataSource.Collection(DefaultCollection))
-                .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
+            using var query = mode == QueryTestMode.SQL
+                ? Db.CreateQuery("SELECT META().id, contact FROM _ WHERE contact.address.state = $state")
+                : QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
+                    .From(DataSource.Collection(DefaultCollection))
+                    .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
             TestQueryObserverWithChangingQueryParametersWithQuery(query);
-            query.Dispose();
         }
 
 #endif

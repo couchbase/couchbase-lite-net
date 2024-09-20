@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Internal.Query
                     return null;
                 }
 
-                _c4Query = Check();
+                Check();
                 return NativeSafe.c4query_run(_c4Query, (FLSlice)paramJson, err);
             });
 
@@ -138,15 +138,15 @@ namespace Couchbase.Lite.Internal.Query
             _disposalWatchdog.CheckDisposed();
 
             // Used for debugging
-            _c4Query = Check();
+            Check();
 
             return NativeSafe.c4query_explain(_c4Query!) ?? defaultVal;
         }
 
-        protected override unsafe C4QueryWrapper CreateQuery()
+        protected override unsafe void CreateQuery()
         {
             if(_c4Query != null) {
-                return _c4Query;
+                return;
             }
 
             if (Database == null) {
@@ -154,7 +154,7 @@ namespace Couchbase.Lite.Internal.Query
                 Database = Collection!.Database;
             }
 
-            return LiteCoreBridge.CheckTyped(err =>
+            _c4Query = LiteCoreBridge.CheckTyped(err =>
             {
                 Debug.Assert(Database?.c4db != null);
                 _queryExpression = EncodeAsJSON();
@@ -253,7 +253,7 @@ namespace Couchbase.Lite.Internal.Query
             return JsonConvert.SerializeObject(parameters);
         }
 
-        private unsafe C4QueryWrapper Check()
+        private unsafe void Check()
         {
             var from = FromImpl;
             Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
@@ -263,7 +263,7 @@ namespace Couchbase.Lite.Internal.Query
             _queryExpression = EncodeAsJSON();
             WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
 
-            return CreateQuery();
+            CreateQuery();
         }
 
         #endregion

@@ -189,7 +189,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region QueryBase
 
-        protected abstract C4QueryWrapper CreateQuery();
+        protected abstract void CreateQuery();
 
         protected abstract Dictionary<string, int> CreateColumnNames(C4QueryWrapper query);
 

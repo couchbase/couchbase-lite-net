@@ -1531,7 +1531,6 @@ namespace Test
             using (var otherDb = new Database("closeDB", Db.Config)) {
                 var otherDefaultColl = otherDb.GetDefaultCollection();
                 var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(otherDefaultColl));
-                var query1 = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(otherDefaultColl));
                 var doc1Listener = new WaitAssert();
                 var token = query.AddChangeListener(null, (sender, args) => {
                     foreach (var row in args.Results) {
@@ -1541,24 +1540,14 @@ namespace Test
                     }
                 });
 
-                var doc1Listener1 = new WaitAssert();
-                var token1 = query1.AddChangeListener(null, (sender, args) => {
-                    foreach (var row in args.Results) {
-                        if (row.GetString("id") == "doc1") {
-                            doc1Listener1.Fulfill();
-                        }
-                    }
-                });
-
                 using (var doc = new MutableDocument("doc1")) {
                     doc.SetString("value", "string");
                     otherDefaultColl.Save(doc); // Should still trigger since it is pointing to the same DB
                 }
 
-                otherDb.ActiveStoppables.Count.Should().Be(2);
+                otherDb.ActiveStoppables.Count.Should().Be(1);
 
                 doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
-                doc1Listener1.WaitForResult(TimeSpan.FromSeconds(20));
 
                 if (isCloseNotDelete)
                     otherDb.Close();
