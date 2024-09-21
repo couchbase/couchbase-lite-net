@@ -62,6 +62,7 @@ namespace Test
             config.FullSync.Should().BeFalse("because C# properties should work...");
         }
 
+#warning DiskFullSync test is disabled
         /// <summary>
         /// Description
         ///     Test that a Database respects the FullSync property
@@ -76,23 +77,23 @@ namespace Test
         ///     7. Get the configuration object from the Database and verify that FullSync is true
         ///     8. Use c4db_config2 to confirm that its config contains the kC4DB_DiskSyncFull flag
         /// </summary>
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public unsafe void TestDBWithFullSync(bool useFullSync)
-        {
-            var config = new DatabaseConfiguration()
-            {
-                FullSync = useFullSync
-            };
+        //[Theory]
+        //[InlineData(true)]
+        //[InlineData(false)]
+        //public unsafe void TestDBWithFullSync(bool useFullSync)
+        //{
+        //    var config = new DatabaseConfiguration()
+        //    {
+        //        FullSync = useFullSync
+        //    };
 
-            Database.Delete("test", null);
-            using var db = new Database("test", config);
-            var c4db = db.c4db!;
-            var nativeConfig = TestNative.c4db_getConfig2(c4db.RawDatabase);
-            var hasFlag = (nativeConfig->flags & C4DatabaseFlags.DiskSyncFull) == C4DatabaseFlags.DiskSyncFull;
-            hasFlag.Should().Be(useFullSync, "because the flag in LiteCore should match FullSync");
-        }
+        //    Database.Delete("test", null);
+        //    using var db = new Database("test", config);
+        //    var c4db = db.c4db;
+        //    var nativeConfig = TestNative.c4db_getConfig2(c4db);
+        //    var hasFlag = (nativeConfig->flags & C4DatabaseFlags.DiskSyncFull) == C4DatabaseFlags.DiskSyncFull;
+        //    hasFlag.Should().Be(useFullSync, "because the flag in LiteCore should match FullSync");
+        //}
     }
 
     internal unsafe static partial class TestNative

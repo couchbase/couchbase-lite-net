@@ -48,8 +48,6 @@ namespace Couchbase.Lite
 
         #region Properties
 
-        internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
-
 #if CBL_LINQ
         internal override bool IsEmpty => _model == null && base.IsEmpty;
         #endif

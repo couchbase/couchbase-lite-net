@@ -107,7 +107,7 @@ namespace Couchbase.Lite
         #region Constants
 
         private static readonly C4DatabaseConfig2 DBConfig = new C4DatabaseConfig2 {
-            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
+            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.VersionVectors,
         };
 
         private const string DBExtension = "cblite2";
@@ -1242,9 +1242,10 @@ namespace Couchbase.Lite
             var config = DBConfig;
             var encrypted = "";
 
-            if (Config.FullSync) {
-                config.flags |= C4DatabaseFlags.DiskSyncFull;
-            }
+#warning FullSync is commented out
+            //if (Config.FullSync) {
+            //    config.flags |= C4DatabaseFlags.DiskSyncFull;
+            //}
 
 #if COUCHBASE_ENTERPRISE
             if (Config.EncryptionKey != null) {

@@ -21,7 +21,7 @@
 #pragma warning disable CS0649  // Member never assigned to
 #pragma warning disable CS0169  // Member never used
 
-
+using System;
 
 namespace LiteCore.Interop
 {
@@ -40,6 +40,17 @@ namespace LiteCore.Interop
         public ulong sequence;
         public C4Revision selectedRev;
         public C4ExtraInfo extraInfo;
+    }
+
+    internal static unsafe partial class Native
+    {
+        // This is only used for internal testing in version vector mode
+        // where the last three arguments are always the same
+        public static string? c4doc_getRevisionHistory(C4Document* doc)
+        {
+            using var result = c4doc_getRevisionHistory(doc, UInt32.MaxValue, [], 0U);
+            return result.CreateString();
+        }
     }
 }
 
