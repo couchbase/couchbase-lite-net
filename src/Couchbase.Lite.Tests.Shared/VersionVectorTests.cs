@@ -74,19 +74,19 @@ public sealed class VersionVectorTest : TestCase
     ///     6. Get document's _revisionIDs and check that the value returned is an array containing a single
     ///         revision id which is the revision id of the documnt.
     /// </summary>
-    [Fact]
-    public void TestDocumentRevisionHistory()
-    {
-        using var doc = new MutableDocument("doc1");
-        doc.RevisionIDs().Should().BeEmpty("because the document has not been saved yet");
-        DefaultCollection.Save(doc);
-#warning This test is incomplete pending RevisionID format change
-        doc.RevisionIDs().Should().HaveCount(1);
-        using var savedDoc = DefaultCollection.GetDocument("doc1");
-        savedDoc.Should().NotBeNull("because the document was just saved");
+    #warning TestDocumentRevisionHistory unimplemented pending spec update
+    //[Fact]
+    //public void TestDocumentRevisionHistory()
+    //{
+    //    using var doc = new MutableDocument("doc1");
+    //    doc.RevisionIDs().Should().BeEmpty("because the document has not been saved yet");
+    //    DefaultCollection.Save(doc);
+    //    doc.RevisionIDs().Should().HaveCount(1);
+    //    using var savedDoc = DefaultCollection.GetDocument("doc1");
+    //    savedDoc.Should().NotBeNull("because the document was just saved");
 
-        savedDoc!.RevisionIDs().Should().HaveCount(1);
-    }
+    //    savedDoc!.RevisionIDs().Should().HaveCount(1);
+    //}
 
     public enum DefaultConflictLWWMode
     {
