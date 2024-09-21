@@ -66,27 +66,24 @@ public sealed class VersionVectorTest : TestCase
     ///     
     /// Steps
     ///     1. Create a new document with id = "doc1"
-    ///     2. Get document's _revisionIDs and check that the value returned is an empty array.
+    ///     2. Get document's _revisionIDs and check that the value returned is null.
     ///     3. Save the document into the default collection.
-    ///     4. Get document's _revisionIDs and check that the value returned is an array containing a single
-    ///         revision id which is the revision id of the documnt.
+    ///     4. Get document's _revisionIDs and check that the value returned is not null
     ///     5. Get the document id = "doc1" from the database.
-    ///     6. Get document's _revisionIDs and check that the value returned is an array containing a single
-    ///         revision id which is the revision id of the documnt.
+    ///     6. Get document's _revisionIDs and check that the value returned is not null
     /// </summary>
-    #warning TestDocumentRevisionHistory unimplemented pending spec update
-    //[Fact]
-    //public void TestDocumentRevisionHistory()
-    //{
-    //    using var doc = new MutableDocument("doc1");
-    //    doc.RevisionIDs().Should().BeEmpty("because the document has not been saved yet");
-    //    DefaultCollection.Save(doc);
-    //    doc.RevisionIDs().Should().HaveCount(1);
-    //    using var savedDoc = DefaultCollection.GetDocument("doc1");
-    //    savedDoc.Should().NotBeNull("because the document was just saved");
+    [Fact]
+    public void TestDocumentRevisionHistory()
+    {
+        using var doc = new MutableDocument("doc1");
+        doc.RevisionIDs().Should().BeNull("because the document has not been saved yet");
+        DefaultCollection.Save(doc);
+        doc.RevisionIDs().Should().NotBeNull("because now the document has been saved");
+        using var savedDoc = DefaultCollection.GetDocument("doc1");
+        savedDoc.Should().NotBeNull("because the document was just saved");
 
-    //    savedDoc!.RevisionIDs().Should().HaveCount(1);
-    //}
+        savedDoc!.RevisionIDs().Should().NotBeNull("because the saved document should contain at least one revision ID");
+    }
 
     public enum DefaultConflictLWWMode
     {
