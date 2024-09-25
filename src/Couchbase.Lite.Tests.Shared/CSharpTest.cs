@@ -632,7 +632,7 @@ Transfer-Encoding: chunked";
             items.ElementAt(1).Should().Be("debug");
         }
 
-#if !SANITY_ONLY
+#if !SANITY_ONLY && DEBUG
         [Fact]
         public unsafe void TestC4QueryWrapper()
         {
@@ -753,11 +753,11 @@ Transfer-Encoding: chunked";
             void TestC4IndexUpdaterWrapperInternal(C4IndexUpdaterWrapper.ThreadSafetyLevel safetyLevel, bool blocking)
             {
                 using var lockEvent = new AutoResetEvent(false);
-                using var documentWrapper = new C4IndexUpdaterWrapper(null, new ThreadSafety());
+                using var indexWrapper = new C4IndexUpdaterWrapper(null, new ThreadSafety());
                 var sw = Stopwatch.StartNew();
                 Task.Run(() =>
                 {
-                    documentWrapper.UseSafe(q =>
+                    indexWrapper.UseSafe(q =>
                     {
                         lockEvent.Set();
                         Thread.Sleep(TimeSpan.FromMilliseconds(500));
@@ -769,13 +769,13 @@ Transfer-Encoding: chunked";
                 if (blocking) {
                     // Choose the same lock as the wrapper is going to use
                     threadSafety = safetyLevel == C4IndexUpdaterWrapper.ThreadSafetyLevel.Updater
-                        ? documentWrapper.InstanceSafety
-                        : documentWrapper.DatabaseThreadSafety;
+                        ? indexWrapper.InstanceSafety
+                        : indexWrapper.DatabaseThreadSafety;
                 } else {
                     // Choose the opposite lock from the wrapper
                     threadSafety = safetyLevel == C4IndexUpdaterWrapper.ThreadSafetyLevel.Updater
-                        ? documentWrapper.DatabaseThreadSafety
-                        : documentWrapper.InstanceSafety;
+                        ? indexWrapper.DatabaseThreadSafety
+                        : indexWrapper.InstanceSafety;
                 }
 
                 lockEvent.WaitOne(TimeSpan.FromMinutes(1)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
