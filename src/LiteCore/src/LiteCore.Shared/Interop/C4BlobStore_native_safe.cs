@@ -45,6 +45,7 @@ internal sealed unsafe class C4ReadStreamWrapper : NativeWrapper
 
     protected override void Dispose(bool disposing)
     {
+        using var scope = BeginLockedScope(true);
         Native.c4stream_close(RawStream);
     }
 }
@@ -69,6 +70,7 @@ internal sealed unsafe class C4WriteStreamWrapper : NativeWrapper
 
     protected override void Dispose(bool disposing)
     {
+        using var scope = BeginLockedScope(true);
         Native.c4stream_closeWriter(RawStream);
     }
 }
