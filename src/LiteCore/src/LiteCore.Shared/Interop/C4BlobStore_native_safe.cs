@@ -45,6 +45,8 @@ internal sealed unsafe class C4ReadStreamWrapper : NativeWrapper
 
     protected override void Dispose(bool disposing)
     {
+        // Can't use super BeginLockedScope method because _disposed is already set to true by now
+        using var scope = InstanceSafety.BeginLockedScope();
         Native.c4stream_close(RawStream);
     }
 }
@@ -69,6 +71,8 @@ internal sealed unsafe class C4WriteStreamWrapper : NativeWrapper
 
     protected override void Dispose(bool disposing)
     {
+        // Can't use super BeginLockedScope method because _disposed is already set to true by now
+        using var scope = InstanceSafety.BeginLockedScope();
         Native.c4stream_closeWriter(RawStream);
     }
 }
