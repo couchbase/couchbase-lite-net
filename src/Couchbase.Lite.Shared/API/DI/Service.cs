@@ -82,9 +82,6 @@ namespace Couchbase.Lite.DI
             #endif
             #elif __IOS__
             Service.AutoRegister(typeof(Database).Assembly);
-            #elif NETSTANDARD2_0
-            throw new RuntimeException(
-                "Pure .NET Standard variant executed.  This means that Couchbase Lite is running on an unsupported platform");
             #else
             #error Unknown Platform
             #endif

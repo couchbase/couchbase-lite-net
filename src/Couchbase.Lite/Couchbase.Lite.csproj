@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <MauiDotNetVersion>net8.0</MauiDotNetVersion>
-    <ConsoleDotNetVersion>net6.0</ConsoleDotNetVersion>
+    <ConsoleDotNetVersion>net8.0</ConsoleDotNetVersion>
     <DotNetFrameworkVersion>net462</DotNetFrameworkVersion>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
     <TargetFrameworks>$(ConsoleDotNetVersion);$(MauiDotNetVersion)-android;$(MauiDotNetVersion)-ios;$(MauiDotNetVersion)-maccatalyst</TargetFrameworks>

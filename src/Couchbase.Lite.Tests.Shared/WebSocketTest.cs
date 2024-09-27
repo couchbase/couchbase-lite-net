@@ -33,12 +33,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Net.NetworkInformation;
 
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
@@ -51,9 +47,6 @@ namespace Test
         void Write(byte[] data);
     }
 
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed unsafe class WebSocketTest : TestCase
     {
         Type WebSocketWrapperType = typeof(WebSocketWrapper);
@@ -62,11 +55,7 @@ namespace Test
         WebSocketWrapper webSocketWrapper;
         HTTPLogic hTTPLogic = new HTTPLogic(new Uri("ws://localhost:4984"));
 
-#if !WINDOWS_UWP
         public WebSocketTest(ITestOutputHelper output) : base(output)
-#else
-        public WebSocketTest()
-#endif
         {
             var dict = new ReplicatorOptionsDictionary();
             var authDict = new AuthOptionsDictionary();

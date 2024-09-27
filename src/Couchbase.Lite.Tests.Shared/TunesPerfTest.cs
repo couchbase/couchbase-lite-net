@@ -31,18 +31,11 @@ using FluentAssertions;
 
 using Newtonsoft.Json;
 using Test.Util;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class TunesPerfTest : PerfTest
     {
         private int _documentCount;
@@ -59,7 +52,6 @@ namespace Test
         private Benchmark _indexFTSBench;
         private Benchmark _queryFTSBench;
 
-#if !WINDOWS_UWP
         public TunesPerfTest(ITestOutputHelper output) : base(output)
         {
             _importBench = new Benchmark(output);
@@ -73,25 +65,6 @@ namespace Test
             _indexFTSBench = new Benchmark(output);
             _queryFTSBench = new Benchmark(output);
         }
-#else
-        public override Microsoft.VisualStudio.TestTools.UnitTesting.TestContext TestContext
-        {
-            get => base.TestContext;
-            set {
-                base.TestContext = value;
-                _importBench = new Benchmark(value);
-                _updatePlayCountBench = new Benchmark(value);
-                _updateArtistsBench = new Benchmark(value);
-                _indexArtistsBench = new Benchmark(value);
-                _queryArtistsBench = new Benchmark(value);
-                _queryIndexedArtistsBench = new Benchmark(value);
-                _queryAlbumsBench = new Benchmark(value);
-                _queryIndexedAlbumsBench = new Benchmark(value);
-                _indexFTSBench = new Benchmark(value);
-                _queryFTSBench = new Benchmark(value);
-            }
-        }
-#endif
 
         [Fact]
         public void TestPerformance()

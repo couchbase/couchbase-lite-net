@@ -17,7 +17,6 @@
 // 
 #nullable disable
 
-#if !WINDOWS_UWP
 using System;
 
 using Couchbase.Lite.Logging;
@@ -67,50 +66,3 @@ namespace Test.Util
         #endregion
     }
 }
-#else
-using System;
-
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-namespace Test.Util
-{
-    internal sealed class MSTestLogger : ILogger
-    {
-        #region Variables
-
-        private readonly TestContext _output;
-
-        #endregion
-
-        #region Properties
-
-        public LogLevel Level { get; set; } = LogLevel.Warning;
-
-        #endregion
-
-        #region Constructors
-
-        public MSTestLogger(TestContext output)
-        {
-            _output = output;
-        }
-
-        #endregion
-
-        #region ILogger
-
-        public void Log(LogLevel level, LogDomain domain, string message)
-        {
-            if (level < Level) {
-                return;
-            }
-
-            _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
-        }
-
-        #endregion
-    }
-}
-#endif

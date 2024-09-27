@@ -27,54 +27,32 @@ using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using FluentAssertions;
 using Test.Util;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-    #if WINDOWS_UWP
-    [TestClass]
-    #endif
     public abstract class PerfTest
     {
-        #if !WINDOWS_UWP
         private ITestOutputHelper _output;
-        #else 
-        private TestContext _output;
-        public virtual TestContext TestContext
-        {
-            get => _output;
-            set {
-                _output = value;
-                Database.Log.Custom = new MSTestLogger(value) { Level = LogLevel.Info };
-            }
-        }
-        #endif
         public static string ResourceDir;
         private DatabaseConfiguration _dbConfiguration;
         private string _dbName;
 
         public Database Db { get; private set; }
 
-        #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !NET_ANDROID && !__IOS__ && !WINUI
+        #if NET6_0_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET_ANDROID && !__IOS__ && !WINUI
         static PerfTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
         #endif
 
-        #if !WINDOWS_UWP
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
             Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
         }
-        #endif
 
         protected void SetOptions(DatabaseConfiguration dbConfiguration)
         {

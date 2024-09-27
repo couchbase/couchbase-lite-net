@@ -253,19 +253,14 @@ namespace Test
         }
     }
 
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class ReplicatorTest : ReplicatorTestBase
     {
         private bool _isFilteredCallback;
         private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
 
-#if !WINDOWS_UWP
         public ReplicatorTest(ITestOutputHelper output) : base(output)
         {
         }
-#endif
 
 #if COUCHBASE_ENTERPRISE
 

@@ -8,8 +8,8 @@
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
-    <TargetFrameworks Condition=" '$(OS)' != 'Windows_NT' ">net6.0</TargetFrameworks>
-    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net462;net6.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' != 'Windows_NT' ">net8.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net462;net8.0</TargetFrameworks>
 	<SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -78,16 +78,6 @@
       <Link>libLiteCore.so</Link>
       <Pack>true</Pack>
       <PackagePath>runtimes/linux-x64/native/libLiteCore.so</PackagePath>
-    </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libstdc++.so">
-      <Link>libLiteCore.so</Link>
-      <Pack>true</Pack>
-      <PackagePath>runtimes/linux-x64/native/libstdc++.so</PackagePath>
-    </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libstdc++.so.6">
-      <Link>libLiteCore.so.6</Link>
-      <Pack>true</Pack>
-      <PackagePath>runtimes/linux-x64/native/libstdc++.so.6</PackagePath>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicudata.so.71">
       <Link>libicudata.so.71</Link>
