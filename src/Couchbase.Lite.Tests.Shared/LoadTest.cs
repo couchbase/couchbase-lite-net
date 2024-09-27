@@ -38,27 +38,17 @@ using Couchbase.Lite.Util;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
-#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-#else
-using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
-#endif
 
 namespace Test
 {
-#if WINDOWS_UWP
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
     public sealed class LoadTest : TestCase
     {
-#if !WINDOWS_UWP
-
         public LoadTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
 
         [Fact]
         public void TestCreate()

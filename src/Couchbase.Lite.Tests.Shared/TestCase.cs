@@ -84,7 +84,7 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__ && !WINUI
+#if NET6_0_OR_GREATER && !CBL_NO_VERSION_CHECK && !__ANDROID__ && !__IOS__ && !WINUI
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();

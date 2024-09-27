@@ -588,7 +588,7 @@ Transfer-Encoding: chunked";
             }
         }
 
-#if !NETCOREAPP3_1_OR_GREATER && !NET462_OR_GREATER
+#if __ANDROID__ || __IOS__ || WINUI
 
         [Fact]
         public async Task TestMainThreadScheduler()
@@ -607,7 +607,7 @@ Transfer-Encoding: chunked";
             onMainThread.Should().BeTrue();
         }
 
-        #endif
+#endif
 
         [Fact]
         public void TestCBDebugItemsMustNotBeNull()
