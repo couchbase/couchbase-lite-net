@@ -16,6 +16,11 @@
 //  limitations under the License.
 //
 
+// Jenkins is so slow that the tests often fail just because they took
+// so long to run.  If running locally on a reasonable system, comment
+// this out to make the tests run faster.
+#define EXTRA_LONG_WRAPPER_TEST
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -55,6 +60,12 @@ namespace Test
     // tests too off track.
     public sealed class CSharpTest : TestCase
     {
+#if EXTRA_LONG_WRAPPER_TEST
+        private static readonly TimeSpan WrapperThreadBlockTime = TimeSpan.FromSeconds(2);
+#else
+        private static readonly TimeSpan WrapperThreadBlockTime = TimeSpan.FromMilliseconds(500);
+#endif
+
         public CSharpTest(ITestOutputHelper output) : base(output)
         {
         }
@@ -655,7 +666,7 @@ Transfer-Encoding: chunked";
                     queryWrapper.UseSafe(q =>
                     {
                         lockEvent.Set();
-                        Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                        Thread.Sleep(WrapperThreadBlockTime);
                     }, safetyLevel);
                 });
 
@@ -678,9 +689,9 @@ Transfer-Encoding: chunked";
                 }
 
                 if (blocking) {
-                    sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
+                    sw.Elapsed.Should().BeGreaterOrEqualTo(WrapperThreadBlockTime, "because otherwise the lock didn't block ({0})", iteration);
                 } else {
-                    sw.Elapsed.TotalMilliseconds.Should().BeLessThan(500, "because otherwise the lock blocked ({0})", iteration);
+                    sw.Elapsed.Should().BeLessThan(WrapperThreadBlockTime, "because otherwise the lock blocked ({0})", iteration);
                 }
 
                 iteration++;
@@ -707,7 +718,7 @@ Transfer-Encoding: chunked";
                     documentWrapper.UseSafe(q =>
                     {
                         lockEvent.Set();
-                        Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                        Thread.Sleep(WrapperThreadBlockTime);
                         return true;
                     }, safetyLevel);
                 });
@@ -731,9 +742,9 @@ Transfer-Encoding: chunked";
                 }
 
                 if (blocking) {
-                    sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
+                    sw.Elapsed.Should().BeGreaterOrEqualTo(WrapperThreadBlockTime, "because otherwise the lock didn't block ({0})", iteration);
                 } else {
-                    sw.Elapsed.TotalMilliseconds.Should().BeLessThan(500, "because otherwise the lock blocked ({0})", iteration);
+                    sw.Elapsed.Should().BeLessThan(WrapperThreadBlockTime, "because otherwise the lock blocked ({0})", iteration);
                 }
 
                 iteration++;
@@ -760,7 +771,7 @@ Transfer-Encoding: chunked";
                     indexWrapper.UseSafe(q =>
                     {
                         lockEvent.Set();
-                        Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                        Thread.Sleep(WrapperThreadBlockTime);
                         return true;
                     }, safetyLevel);
                 });
@@ -784,9 +795,9 @@ Transfer-Encoding: chunked";
                 }
 
                 if (blocking) {
-                    sw.Elapsed.TotalMilliseconds.Should().BeGreaterOrEqualTo(500, "because otherwise the lock didn't block ({0})", iteration);
+                    sw.Elapsed.Should().BeGreaterOrEqualTo(WrapperThreadBlockTime, "because otherwise the lock didn't block ({0})", iteration);
                 } else {
-                    sw.Elapsed.TotalMilliseconds.Should().BeLessThan(500, "because otherwise the lock blocked ({0})", iteration);
+                    sw.Elapsed.Should().BeLessThan(WrapperThreadBlockTime, "because otherwise the lock blocked ({0})", iteration);
                 }
 
                 iteration++;

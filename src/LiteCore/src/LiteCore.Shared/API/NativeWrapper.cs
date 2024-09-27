@@ -47,11 +47,12 @@ internal abstract class NativeWrapper : IDisposable
 
     ~NativeWrapper()
     {
-        // int is safe to access here
-        var refCount = Interlocked.Decrement(ref _refCount);
-        if (refCount == 0) {
-            Dispose(disposing: false);
-        }
+        // Unlike the Dispose method, if we have reached here
+        // that means that something forgot to Dispose and
+        // then the object went out of scope.  That means
+        // it is about to be garbage collected and needs to 
+        // clean up the unmanaged resources.
+        Dispose(disposing: false);
     }
 
     protected IDisposable BeginLockedScope(bool withInstanceLock, params ThreadSafety[] additionalSafeties)
