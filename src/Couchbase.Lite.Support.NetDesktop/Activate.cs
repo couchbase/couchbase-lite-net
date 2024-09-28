@@ -99,12 +99,13 @@ namespace Couchbase.Lite.Support
                 }
 
                 var architecture = arch.ToString().ToLowerInvariant();
-                var dllPath = Path.Combine(codeBase ?? "", architecture, "LiteCore.dll");
-                var dllPathAsp = Path.Combine(codeBase ?? "", "bin", architecture, "LiteCore.dll");
+                var dllPath = Path.Combine(codeBase, "LiteCore.dll");
+                var dllPathArch = Path.Combine(codeBase, architecture, "LiteCore.dll");
+                var dllPathAsp = Path.Combine(codeBase, "bin", architecture, "LiteCore.dll");
                 var dllPathRuntimes =
-                    Path.Combine(codeBase ?? "", "runtimes", $"win-{architecture}", "native", "LiteCore.dll");
+                    Path.Combine(codeBase, "runtimes", $"win-{architecture}", "native", "LiteCore.dll");
                 var foundPath = default(string);
-                foreach (var path in new[] { dllPathRuntimes, dllPath, dllPathAsp}) {
+                foreach (var path in new[] { dllPathRuntimes, dllPathArch, dllPath, dllPathAsp}) {
                     foundPath = File.Exists(path) ? path : null;
                     if (foundPath != null) {
                         break;
@@ -112,11 +113,14 @@ namespace Couchbase.Lite.Support
                 }
 
                 if (foundPath == null) {
-                    throw new DllNotFoundException("Could not find LiteCore.dll!  Nothing is going to work!\r\n" +
-                                                   "Tried searching in:\r\n" +
-                                                   $"{dllPathRuntimes}\r\n" +
-                                                   $"{dllPath}\r\n" +
-                                                   $"{dllPathAsp}\r\n");
+                    throw new DllNotFoundException($"""
+                                                   Could not find LiteCore.dll!  Nothing is going to work!
+                                                   Tried searching in:
+                                                   {dllPathRuntimes}
+                                                   {dllPathArch}
+                                                   {dllPath}
+                                                   {dllPathAsp}
+                                                   """);
                 }
 
                 const uint loadWithAlteredSearchPath = 8;
