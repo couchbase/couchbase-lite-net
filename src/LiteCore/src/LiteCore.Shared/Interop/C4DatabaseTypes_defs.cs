@@ -48,7 +48,7 @@ namespace LiteCore.Interop
         NoUpgrade       = 0x20,
         NonObservable   = 0x40,
         DiskSyncFull    = 0x80,
-        FakeVectorClock = 0x100,
+        FakeVectorClock = 0x0100,
     }
 
     internal enum C4EncryptionAlgorithm : uint

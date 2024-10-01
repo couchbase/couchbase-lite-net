@@ -19,10 +19,7 @@
 using Couchbase.Lite.Internal.Query;
 using LiteCore.Interop;
 using System.Collections.Generic;
-using System;
 using System.Linq;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Internal.Logging;
 
 namespace Couchbase.Lite.Query;
 
@@ -48,7 +45,10 @@ public sealed class ArrayIndexConfiguration(string path, IEnumerable<string>? ex
 {
     private const string Tag = nameof(ArrayIndexConfiguration);
 
-    internal override C4IndexOptions Options => new();
+    internal override C4IndexOptions Options => new C4IndexOptions()
+    {
+        unnestPath = Path
+    };
 
     /// <summary>
     /// Path to the array, which can be nested.

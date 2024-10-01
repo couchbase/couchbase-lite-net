@@ -113,6 +113,7 @@ namespace LiteCore.Interop
         private byte _ignoreDiacritics;
         private byte _disableStemming;
         private IntPtr _stopWords;
+        private IntPtr _unnestPath;
         public C4VectorIndexOptions vector;
 
         public string? language
@@ -153,6 +154,17 @@ namespace LiteCore.Interop
             }
             set {
                 var old = Interlocked.Exchange(ref _stopWords, Marshal.StringToHGlobalAnsi(value));
+                Marshal.FreeHGlobal(old);
+            }
+        }
+
+        public string? unnestPath
+        {
+            get {
+                return Marshal.PtrToStringAnsi(_unnestPath);
+            }
+            set {
+                var old = Interlocked.Exchange(ref _unnestPath, Marshal.StringToHGlobalAnsi(value));
                 Marshal.FreeHGlobal(old);
             }
         }
