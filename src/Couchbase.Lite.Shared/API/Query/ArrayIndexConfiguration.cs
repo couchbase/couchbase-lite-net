@@ -27,23 +27,51 @@ namespace Couchbase.Lite.Query;
 /// Configuration for indexing property values within nested arrays
 /// in documents, intended for use with the UNNEST query keyword.
 /// </summary>
-/// <param name="path">Path to the array, which can be nested to be indexed. 
-/// Use "[]" to represent a property that is an array of each
-/// nested array level.For a single array or the last level 
-/// array, the "[]" is optional.  For instance, use 
-/// "contacts[].phones" to specify an array of phones within each 
-/// contact.
-/// </param>
-/// <param name="expressions">An optional collection of strings, where each string 
-/// represents an expression defining the values within the array
-/// to be indexed.If the array specified by the path contains
-/// scalar values.
-/// </param>
-/// <returns>The beginning of a value based index</returns>
-public sealed class ArrayIndexConfiguration(string path, IEnumerable<string>? expressions = null) 
-    : IndexConfiguration(C4IndexType.ArrayIndex, expressions?.ToArray())
+public sealed class ArrayIndexConfiguration : IndexConfiguration
 {
     private const string Tag = nameof(ArrayIndexConfiguration);
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="path">Path to the array, which can be nested to be indexed. 
+    /// Use "[]" to represent a property that is an array of each
+    /// nested array level.For a single array or the last level 
+    /// array, the "[]" is optional.  For instance, use 
+    /// "contacts[].phones" to specify an array of phones within each 
+    /// contact.
+    /// </param>
+    /// <param name="expressions">An optional collection of strings, where each string 
+    /// represents an expression defining the values within the array
+    /// to be indexed.If the array specified by the path contains
+    /// scalar values.
+    /// </param>
+    public ArrayIndexConfiguration(string path, IEnumerable<string>? expressions = null) 
+        : base(C4IndexType.ArrayIndex, expressions?.ToArray())
+    {
+        Path = path;
+    }
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="path">Path to the array, which can be nested to be indexed. 
+    /// Use "[]" to represent a property that is an array of each
+    /// nested array level.For a single array or the last level 
+    /// array, the "[]" is optional.  For instance, use 
+    /// "contacts[].phones" to specify an array of phones within each 
+    /// contact.
+    /// </param>
+    /// <param name="expressions">An optional collection of strings, where each string 
+    /// represents an expression defining the values within the array
+    /// to be indexed.If the array specified by the path contains
+    /// scalar values.
+    /// </param>
+    public ArrayIndexConfiguration(string path, params string[] expressions)
+        : base(C4IndexType.ArrayIndex, expressions.Any() ? expressions : null)
+    {
+        Path = path;
+    }
 
     internal override C4IndexOptions Options => new C4IndexOptions()
     {
@@ -53,5 +81,5 @@ public sealed class ArrayIndexConfiguration(string path, IEnumerable<string>? ex
     /// <summary>
     /// Path to the array, which can be nested.
     /// </summary>
-    public string Path { get; } = path;
+    public string Path { get; }
 }

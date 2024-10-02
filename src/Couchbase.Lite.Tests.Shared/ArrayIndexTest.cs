@@ -52,19 +52,25 @@ namespace Test
 
         // TestArrayIndexConfigInvalidExpressions N/A
 
-        private void TestCreateArrayIndexWith(string indexName, string path, IList<string>? expressions)
+        private void TestCreateArrayIndexWith(string indexName, string path, params string[] expressions)
         {
+            var indexNameB = $"{indexName}b";
             using var profiles = Db.CreateCollection("profiles");
             LoadJSONResource("profiles_100", coll: profiles);
             var indexConfig = new ArrayIndexConfiguration(path, expressions);
+            var indexConfigb = new ArrayIndexConfiguration(path, expressions.Any() ? new List<string>(expressions) : null);
             profiles.CreateIndex(indexName, indexConfig);
+            profiles.CreateIndex(indexNameB, indexConfigb);
             profiles.GetIndexes().Any(x => x == indexName).Should().BeTrue("because the index was just created");
+            profiles.GetIndexes().Any(x => x == indexNameB).Should().BeTrue("because the index was just created");
             C4Error err;
             IDictionary<string, object>? indexInfo;
+            IDictionary<string, object>? indexInfoB;
             unsafe {
                 var allIndexInfo = TestNative.c4coll_getIndexesInfo(profiles, &err);
                 allIndexInfo.Should().NotBeNull("because an index exists");
                 indexInfo = allIndexInfo!.FirstOrDefault(x => (x["name"] as string) == indexName);
+                indexInfoB = allIndexInfo!.FirstOrDefault(x => (x["name"] as string) == indexNameB);
             }
             indexInfo.Should().NotBeNull("because otherwise the contacts index does not exist");
             ((long)indexInfo!["type"]).Should().Be((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
@@ -87,7 +93,7 @@ namespace Test
         /// </summary>
         [Fact]
         public void TestCreateArrayIndexWithPath()
-            => TestCreateArrayIndexWith("contacts", "contacts", null);
+            => TestCreateArrayIndexWith("contacts", "contacts");
 
         /// <summary>
         /// Test that creating an array index with path and expressions works as expected.
@@ -104,7 +110,7 @@ namespace Test
         /// </summary>
         [Fact]
         public void TestCreateArrayIndexWithPathAndExpressions()
-            => TestCreateArrayIndexWith("contacts", "contacts", ["address.city", "address.state"]);
+            => TestCreateArrayIndexWith("contacts", "contacts", "address.city", "address.state");
     }
 
     internal unsafe static partial class TestNative
