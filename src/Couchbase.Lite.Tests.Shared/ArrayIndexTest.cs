@@ -17,8 +17,6 @@
 //
 
 using System;
-using System.IO;
-using System.Threading.Tasks;
 using Xunit.Abstractions;
 using Xunit;
 using Couchbase.Lite.Query;
@@ -27,21 +25,16 @@ using System.Linq;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
 using LiteCore;
-using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite;
-using Newtonsoft.Json.Linq;
-using static ThisAssembly;
-using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Security.Policy;
 
 namespace Test
 {
-    // https://github.com/couchbaselabs/couchbase-lite-api/blob/238e43c5c319bbdc217c49439efe34adec2ac21d/spec/tests/T0004-Unnest-Array-Index.md 
-    // T0004 Unnest and Array Index Tests v1.0.1 
+    // https://github.com/couchbaselabs/couchbase-lite-api/blob/013c871dbaaa8d023a70ab71848c157de02bb57a/spec/tests/T0004-Unnest-Array-Index.md
+    // T0004 Unnest and Array Index Tests v1.0.2
 
     public sealed class ArrayIndexTest : TestCase
     {
@@ -50,7 +43,11 @@ namespace Test
             
         }
 
-        // TestArrayIndexConfigInvalidExpressions N/A
+        public static IEnumerable<object[]> BadExpressionValues = new List<object[]>()
+        {
+            new object[] { new List<string>() },
+            new object[] { new List<string> { "" } }
+        };
 
         private void TestCreateArrayIndexWith(string indexName, string path, params string[] expressions)
         {
@@ -76,6 +73,30 @@ namespace Test
             ((long)indexInfo!["type"]).Should().Be((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
             (indexInfo["lang"] as string).Should().Be("n1ql", "because otherwise the wrong query language was used");
             (indexInfo["expr"] as string).Should().Be(expressions != null ? String.Join(",", expressions) : "", "because otherwise the wrong expression was used");
+        }
+
+        /// <summary>
+        /// Description
+        /// Test that creating an ArrayIndexConfiguration with invalid expressions which are
+        /// an empty expressions or contain null.
+        /// 
+        /// Steps
+        /// 1. Create a ArrayIndexConfiguration object.
+        ///     - path: "contacts"
+        ///     - expressions: []
+        /// 2. Check that an invalid arument exception is thrown.
+        /// 3. Create a ArrayIndexConfiguration object.
+        ///     - path: "contacts"
+        ///     - expressions: [""]
+        /// 4. Check that an invalid arument exception is thrown.
+        /// </summary>
+        /// <param name="badExpressions"></param>
+        [Theory]
+        [MemberData(nameof(BadExpressionValues))]
+        public void TestArrayIndexConfigInvalidExpressions(List<string> badExpressions)
+        {
+            using var profiles = Db.CreateCollection("profiles");
+            FluentActions.Invoking(() => new ArrayIndexConfiguration("contacts", badExpressions)).Should().Throw<ArgumentException>();
         }
 
         /// <summary>
