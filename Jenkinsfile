@@ -31,54 +31,14 @@ pipeline {
                                 & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init
 
                                 Push-Location jenkins
-                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
+                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 --branch pre-4.0 proj
                                 Pop-Location
                                 '''
                             }
                         }
-                        stage(".NET 6 Windows") {
+                        stage(".NET Windows") {
                             steps {
-                                catchError {
-                                    powershell 'jenkins\\run_net6_tests.ps1'
-                                }
-								
-                                echo currentBuild.result
-                            }
-                        }
-                    }
-                }
-	            stage("Mac Node") {
-		            agent { label 'dotnet-mobile-mac-mini'  }
-			        environment {
-				        KEYCHAIN_PWD = credentials("mobile-mac-mini-keychain")
-                    }
-				    stages {
-				        stage("Checkout") {
-					        steps {
-						        sh '''#!/bin/bash
-                                set -e
-                                shopt -s extglob dotglob
-                                mkdir tmp
-                                mv !(tmp) tmp
-                                git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
-                                    git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
-                                mv couchbase-lite-net-ee/* .
-                                mkdir couchbase-lite-net
-                                mv tmp/* couchbase-lite-net
-                                rmdir tmp couchbase-lite-net-ee
-
-                                # Make sure the latest tools are checked out
-                                git submodule update --init
-
-                                pushd jenkins
-                                git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
-                                popd
-                                '''
-                            }
-                        }
-                        stage("Maui iOS") {
-                            steps {
-                                sh 'jenkins/run_net_ios_tests.sh'
+                                powershell 'jenkins\\run_net6_tests.ps1'
                             }
                         }
                     }
