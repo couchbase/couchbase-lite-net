@@ -33,6 +33,11 @@ namespace LiteCore.Interop
             if(old != IntPtr.Zero) {
                 Marshal.FreeHGlobal(old);
             }
+
+            old = Interlocked.Exchange(ref _stopWords, IntPtr.Zero);
+            if(old != IntPtr.Zero) {
+                Marshal.FreeHGlobal(old);
+            }
         }
     }
 
