@@ -117,13 +117,18 @@ namespace Couchbase.Lite.Sync
         /// <inheritdoc />
         public override string ToString()
         {
-            return $"ReplicatedDocument[ Doc ID: {Id}; " +
-                   $"Flags: { Flags };" +
-                   $"Collection Name: { CollectionName };" +
-                   $"Scope Name: { ScopeName };" +
-                   $"Error domain: { Error.Domain }; " +
-                   $"Error code: { Error.Error }; " +
-                   $"IsTransient: { IsTransient } ]";
+            var retVal = $"ReplicatedDocument[ Doc ID: {Id}; " +
+                   $"Flags: {Flags};" +
+                   $"Collection Name: {CollectionName};" +
+                   $"Scope Name: {ScopeName};";
+
+            if (Error != null) {
+                retVal += $"Error domain: {Error.Domain}; " +
+                $"Error code: {Error.Error}; " +
+                $"IsTransient: {IsTransient} ]";
+            }
+
+            return retVal;
         }
     }
 }
