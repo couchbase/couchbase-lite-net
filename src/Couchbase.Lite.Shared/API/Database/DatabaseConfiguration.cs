@@ -17,9 +17,14 @@
 // 
 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using LiteCore.Interop;
+using System;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace Couchbase.Lite
 {
@@ -41,6 +46,7 @@ namespace Couchbase.Lite
         private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
         private bool _fullSync;
+        private bool _mmapEnabled;
 
         #if COUCHBASE_ENTERPRISE
         private EncryptionKey? _encryptionKey;
@@ -75,19 +81,37 @@ namespace Couchbase.Lite
             set => _freezer.SetValue(ref _fullSync, value);
         }
 
+#if !__IOS__
         /// <summary>
-        /// Experiment API. Enable version vector.
+        /// Enables or disables memory-mapped I/O. By default, memory-mapped 
+        /// I/O is enabled.Disabling it may affect database performance.
+        /// Typically, there is no need to modify this setting.
         /// </summary>
         /// <remarks>
-        /// If the enableVersionVector is set to true, the database will use version vector instead of
-        /// using revision tree.When enabling version vector on an existing database, the database
-        /// will be upgraded to use the revision tree while the database is opened.
-        /// NOTE:
-        /// 1. The database that uses version vector cannot be downgraded back to use revision tree.
-        /// 2. The current version of Sync Gateway doesn't support version vector so the syncronization
-        /// with Sync Gateway will not be working.
+        /// [!NOTE]
+        /// Memory-mapped I/O is always disabled to prevent database
+        /// corruption on macOS. As a result, this configuration is not
+        /// supported on the macOS platform.
         /// </remarks>
-        internal bool EnableVersionVector => false;
+        public bool MmapEnabled
+        {
+            get {
+                return _mmapEnabled;
+            }
+#if NET6_0_OR_GREATER
+            [UnsupportedOSPlatform("osx")]
+#endif
+            set {
+#if NET6_0_OR_GREATER
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                    throw new PlatformNotSupportedException("macOS mmap is not supported");
+                }
+#endif
+
+                _freezer.SetValue(ref _mmapEnabled, value);
+            }
+        }
+#endif
 
         #if COUCHBASE_ENTERPRISE
         /// <summary>
@@ -107,7 +131,13 @@ namespace Couchbase.Lite
         /// </summary>
         public DatabaseConfiguration()
         {
+#if NET6_0_OR_GREATER
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                return;
+            }
+#endif
 
+            _mmapEnabled = Constants.DefaultDatabaseMmapEnabled;
         }
 
 
@@ -125,8 +155,12 @@ namespace Couchbase.Lite
             var retVal = new DatabaseConfiguration
             {
                 Directory = Directory,
-                FullSync = FullSync
+                FullSync = FullSync,
             };
+
+            // Don't use the setter since it is unsupported on macOS
+            // This is a shortcut to save ifdefs and runtimeinformation checking
+            retVal._mmapEnabled = _mmapEnabled;
 
             #if COUCHBASE_ENTERPRISE
             retVal.EncryptionKey = EncryptionKey;
