@@ -81,7 +81,6 @@ namespace Couchbase.Lite
             set => _freezer.SetValue(ref _fullSync, value);
         }
 
-#if !__IOS__
         /// <summary>
         /// Enables or disables memory-mapped I/O. By default, memory-mapped 
         /// I/O is enabled.Disabling it may affect database performance.
@@ -93,25 +92,19 @@ namespace Couchbase.Lite
         /// corruption on macOS. As a result, this configuration is not
         /// supported on the macOS platform.
         /// </remarks>
+#if NET6_0_OR_GREATER
+            [UnsupportedOSPlatform("osx")]
+            [UnsupportedOSPlatform("maccatalyst")]
+#endif
         public bool MmapEnabled
         {
             get {
                 return _mmapEnabled;
             }
-#if NET6_0_OR_GREATER
-            [UnsupportedOSPlatform("osx")]
-#endif
             set {
-#if NET6_0_OR_GREATER
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                    throw new PlatformNotSupportedException("macOS mmap is not supported");
-                }
-#endif
-
                 _freezer.SetValue(ref _mmapEnabled, value);
             }
         }
-#endif
 
         #if COUCHBASE_ENTERPRISE
         /// <summary>
@@ -131,13 +124,11 @@ namespace Couchbase.Lite
         /// </summary>
         public DatabaseConfiguration()
         {
-#if NET6_0_OR_GREATER
-            if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                return;
+#if !MACCATALYST
+            if(!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                _mmapEnabled = Constants.DefaultDatabaseMmapEnabled;
             }
 #endif
-
-            _mmapEnabled = Constants.DefaultDatabaseMmapEnabled;
         }
 
 
@@ -162,9 +153,9 @@ namespace Couchbase.Lite
             // This is a shortcut to save ifdefs and runtimeinformation checking
             retVal._mmapEnabled = _mmapEnabled;
 
-            #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
             retVal.EncryptionKey = EncryptionKey;
-            #endif
+#endif
 
             retVal._freezer.Freeze("Cannot modify a DatabaseConfiguration that is currently in use");
             return retVal;
