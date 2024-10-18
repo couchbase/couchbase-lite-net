@@ -33,9 +33,7 @@ using System.Linq.Expressions;
 
 namespace Test
 {
-    // https://github.com/couchbaselabs/couchbase-lite-api/blob/013c871dbaaa8d023a70ab71848c157de02bb57a/spec/tests/T0004-Unnest-Array-Index.md
-    // T0004 Unnest and Array Index Tests v1.0.2
-
+    [ImplementsTestSpec("T0004-Unnest-Array-Index", "1.0.2")]
     public sealed class ArrayIndexTest : TestCase
     {
         public ArrayIndexTest(ITestOutputHelper output) : base(output)
@@ -73,6 +71,25 @@ namespace Test
             ((long)indexInfo!["type"]).Should().Be((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
             (indexInfo["lang"] as string).Should().Be("n1ql", "because otherwise the wrong query language was used");
             (indexInfo["expr"] as string).Should().Be(expressions != null ? String.Join(",", expressions) : "", "because otherwise the wrong expression was used");
+
+            unsafe {
+                var gotIndex = Native.c4coll_getIndex(profiles.c4coll, indexName, &err);
+                var gotIndexB = Native.c4coll_getIndex(profiles.c4coll, indexNameB, &err);
+
+                try {
+                    ((IntPtr)gotIndex).Should().NotBe(IntPtr.Zero, "because the index should exist via c4coll_getIndex");
+                    ((IntPtr)gotIndexB).Should().NotBe(IntPtr.Zero, "because the index should exist via c4coll_getIndex");
+                    var gotOpts = new C4IndexOptions();
+                    TestNative.c4index_getOptions(gotIndex, &gotOpts).Should().BeTrue("because otherwise c4index_getOptions failed");
+                    gotOpts.unnestPath.Should().Be(path, "because otherwise the unnestPath didn't match");
+                    TestNative.c4index_getOptions(gotIndexB, &gotOpts).Should().BeTrue("because otherwise c4index_getOptions failed");
+                    gotOpts.unnestPath.Should().Be(path, "because otherwise the unnestPath didn't match");
+                } finally {
+                    Native.c4index_release(gotIndex);
+                    Native.c4index_release(gotIndexB);
+                }
+            }
+            
         }
 
         /// <summary>
@@ -147,11 +164,16 @@ namespace Test
             var halfwayConverted = FLValueConverter.ToCouchbaseObject(flValue, null, true) as IList<object>;
             return halfwayConverted?.Cast<IDictionary<string, object>>()?.ToList();
         }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4index_getOptions(C4Index* index, C4IndexOptions* outOpts);
     }
 
     internal unsafe static partial class TestNativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* error);
+        
     }
 }

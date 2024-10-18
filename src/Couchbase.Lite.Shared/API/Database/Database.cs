@@ -1347,6 +1347,10 @@ namespace Couchbase.Lite
                 config.flags |= C4DatabaseFlags.DiskSyncFull;
             }
 
+            if(!Config.MmapEnabled) {
+                config.flags |= C4DatabaseFlags.MmapDisabled;
+            }
+
 #if COUCHBASE_ENTERPRISE
             if (Config.EncryptionKey != null) {
                 var key = Config.EncryptionKey;
