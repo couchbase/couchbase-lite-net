@@ -16,9 +16,6 @@
 //  limitations under the License.
 //
 
-// Implements 2.0.0 of https://github.com/couchbaselabs/couchbase-lite-api/blob/f6eab19e9bd38cd8c6ca66c3c4aad4cb7b50a659/spec/tests/T0003-SQLite-Options.md
-
-
 using Couchbase.Lite;
 using FluentAssertions;
 using LiteCore;
@@ -29,6 +26,8 @@ using Xunit.Abstractions;
 
 namespace Test
 {
+
+    [ImplementsTestSpec("T0003-SQLite-Options", "2.0.0")]
     public class SQLiteOptionsTest : TestCase
     {
         public SQLiteOptionsTest(ITestOutputHelper output) : base(output)

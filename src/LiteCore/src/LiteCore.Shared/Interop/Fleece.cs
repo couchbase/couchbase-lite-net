@@ -198,6 +198,19 @@ namespace LiteCore.Interop
 
     internal unsafe partial struct FLSliceResult : IDisposable
     {
+        public void* buf;
+        private UIntPtr _size;
+
+        public ulong size
+        {
+            get {
+                return _size.ToUInt64();
+            }
+            set {
+                _size = (UIntPtr)value;
+            }
+        }
+
         public FLSliceResult(void* buf, ulong size)
         {
             this.buf = buf;
