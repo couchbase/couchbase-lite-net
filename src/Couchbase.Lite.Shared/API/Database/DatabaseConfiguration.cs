@@ -45,8 +45,8 @@ namespace Couchbase.Lite
 
         private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
-        private bool _fullSync;
-        private bool _mmapEnabled;
+        private bool _fullSync = Constants.DefaultDatabaseFullSync;
+        private bool _mmapEnabled = Constants.DefaultDatabaseMmapEnabled;
 
         #if COUCHBASE_ENTERPRISE
         private EncryptionKey? _encryptionKey;
@@ -82,8 +82,8 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Enables or disables memory-mapped I/O. By default, memory-mapped 
-        /// I/O is enabled.Disabling it may affect database performance.
+        /// Hint for enabling or disabling memory-mapped I/O. 
+        /// Disabling it may affect database performance.
         /// Typically, there is no need to modify this setting.
         /// </summary>
         /// <remarks>
@@ -124,11 +124,6 @@ namespace Couchbase.Lite
         /// </summary>
         public DatabaseConfiguration()
         {
-#if !MACCATALYST
-            if(!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                _mmapEnabled = Constants.DefaultDatabaseMmapEnabled;
-            }
-#endif
         }
 
 
