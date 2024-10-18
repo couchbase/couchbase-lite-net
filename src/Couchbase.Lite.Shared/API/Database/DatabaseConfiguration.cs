@@ -142,11 +142,8 @@ namespace Couchbase.Lite
             {
                 Directory = Directory,
                 FullSync = FullSync,
+                MmapEnabled = MmapEnabled
             };
-
-            // Don't use the setter since it is unsupported on macOS
-            // This is a shortcut to save ifdefs and runtimeinformation checking
-            retVal._mmapEnabled = _mmapEnabled;
 
 #if COUCHBASE_ENTERPRISE
             retVal.EncryptionKey = EncryptionKey;
