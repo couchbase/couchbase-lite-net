@@ -70,18 +70,27 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Protected Methods
 
-        protected void Copy(XQuery source)
+        protected void Move(XQuery source)
         {
+            // These things will be wrapped by this object now, 
+            // so the original object doesn't need to worry about
+            // the disposables anymore
             Database = source.Database;
             Collection = source.Collection;
             SelectImpl = source.SelectImpl;
+            source.SelectImpl = null;
             Distinct = source.Distinct;
             FromImpl = source.FromImpl;
             WhereImpl = source.WhereImpl;
+            source.WhereImpl = null;
             OrderByImpl = source.OrderByImpl;
+            source.OrderByImpl = null;
             JoinImpl = source.JoinImpl;
+            source.JoinImpl = null;
             GroupByImpl = source.GroupByImpl;
+            source.GroupByImpl = null;
             HavingImpl = source.HavingImpl;
+            source.HavingImpl = null;
             LimitValue = source.LimitValue;
             SkipValue = source.SkipValue;
         }
@@ -95,6 +104,31 @@ namespace Couchbase.Lite.Internal.Query
         }
 
         #endregion
+
+        protected override void Dispose(bool finalizing)
+        {
+            base.Dispose(finalizing);
+
+            if (SelectImpl != this) {
+                SelectImpl?.Dispose();
+            }
+
+            if (OrderByImpl != this) {
+                OrderByImpl?.Dispose();
+            }
+
+            if (JoinImpl != this) {
+                JoinImpl?.Dispose();
+            }
+
+            if (GroupByImpl != this) {
+                GroupByImpl?.Dispose();
+            }
+
+            if (HavingImpl != this) {
+                HavingImpl?.Dispose();
+            }
+        }
 
         #region Override Methods
 

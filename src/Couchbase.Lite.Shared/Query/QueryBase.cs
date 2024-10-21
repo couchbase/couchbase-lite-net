@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Internal.Query
             Dispose(false);
         }
 
-        private unsafe void Dispose(bool finalizing)
+        protected unsafe virtual void Dispose(bool finalizing)
         {
             if (!finalizing) {
                 Stop();

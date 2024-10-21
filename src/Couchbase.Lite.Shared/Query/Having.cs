@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal Having(XQuery source, IExpression expression)
         {
-            Copy(source);
+            Move(source);
 
             _expression = expression;
             HavingImpl = this;

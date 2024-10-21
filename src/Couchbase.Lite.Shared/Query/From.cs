@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal From(XQuery query, IDataSource impl)
         {
-            Copy(query);
+            Move(query);
 
             FromImpl = Misc.TryCast<IDataSource, QueryDataSource>(impl);
             Collection = (impl as DatabaseSource)?.Collection;

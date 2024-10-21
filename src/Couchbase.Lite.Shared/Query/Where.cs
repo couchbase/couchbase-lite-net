@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal Where(XQuery query, IExpression expression)
         {
-            Copy(query);
+            Move(query);
             WhereImpl = expression as QueryExpression;
         }
 

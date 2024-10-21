@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Internal.Query
         internal QueryOrderBy(XQuery query, IList<IOrdering> orderBy)
             : this(orderBy)
         {
-            Copy(query);
+            Move(query);
             OrderByImpl = this;
         }
 

@@ -41,22 +41,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryGroupBy(IList<IExpression> expressions)
-        {
-            _expressions = expressions;
-            GroupByImpl = this;
-        }
-
         internal QueryGroupBy(XQuery query, IList<IExpression> expressions)
-            : this(expressions)
         {
-            Copy(query);
-            GroupByImpl = this;
-        }
-
-        internal QueryGroupBy(IExpression expression)
-        {
-            _expressions = [expression];
+            Move(query);
+            _expressions = expressions;
             GroupByImpl = this;
         }
 
