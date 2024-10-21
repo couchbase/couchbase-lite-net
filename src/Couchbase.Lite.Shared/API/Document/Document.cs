@@ -106,6 +106,20 @@ namespace Couchbase.Lite
             }
         }
 
+        internal string? RevisionIDs
+        {
+            get {
+                return ThreadSafety.DoLocked(() =>
+                {
+                    if (c4Doc == null) {
+                        return null;
+                    }
+                    var fullC4Doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDoc(c4Coll, Id, true, C4DocContentLevel.DocGetAll, err))!;
+                    return Native.c4doc_getRevisionHistory(fullC4Doc);
+                });
+            }
+        }
+
         /// <summary>
         /// Gets the Collection that this document belongs to, if any
         /// </summary>

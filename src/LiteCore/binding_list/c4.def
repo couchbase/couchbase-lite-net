@@ -63,6 +63,7 @@ c4doc_resolveConflict
 c4doc_save
 c4doc_dictContainsBlobs
 c4doc_getRevisionBody
+c4doc_getRevisionHistory
 c4doc_bodyAsJSON
 c4doc_getProperties
 
