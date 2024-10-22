@@ -44,7 +44,7 @@ namespace LiteCore.Interop
 
     internal static unsafe partial class Native
     {
-        // This is only used for internal testing in version vector mode
+        // This is only used for internal testing
         // where the last three arguments are always the same
         public static string? c4doc_getRevisionHistory(C4Document* doc)
         {
