@@ -226,6 +226,11 @@ namespace LiteCore.Interop
         {
             Native.FLSliceResult_Release(this);
         }
+
+        public string? CreateString()
+        {
+            return ((FLSlice)this).CreateString();
+        }
     }
 
     internal static unsafe class FLSlotSetExt

@@ -45,6 +45,9 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4doc_getRevisionHistory(C4Document* doc, uint maxRevs, FLSlice[] backToRevs, uint backToRevsCount);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectNextLeafRevision(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool includeDeleted, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
 

@@ -31,6 +31,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\ArrayObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\Blob.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\DictionaryObject.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)api\document\Document+private.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\Document.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\DocumentFragment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IArray.cs" />
