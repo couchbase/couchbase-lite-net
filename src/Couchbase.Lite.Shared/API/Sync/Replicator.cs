@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Sync
     /// (i.e. pusher and puller are no longer separate) between a database and a URL
     /// or a database and another database on the same filesystem.
     /// </summary>
-    public sealed unsafe class Replicator : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>,
+    public sealed unsafe partial class Replicator : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>,
         IDocumentReplicatedObservable
     {
         #region Constants
@@ -71,6 +71,18 @@ namespace Couchbase.Lite.Sync
             Disposed
         }
 
+        private enum ReplicatorState : int
+        {
+
+            Stopped,
+            Stopping,
+            Suspended,
+            Suspending,
+            Offline,
+            Running,
+            Starting
+        }
+
         private readonly ThreadSafety _databaseThreadSafety;
 
         private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
@@ -83,10 +95,12 @@ namespace Couchbase.Lite.Sync
         private DisposalState _disposalState;
 
         private ReplicatorParameters? _nativeParams;
+        private ReplicatorState _state;
         private C4ReplicatorStatus _rawStatus;
         private IReachability? _reachability;
         private C4Replicator* _repl;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
+        private CancellationTokenSource _conflictCancelSource = new();
         private IImmutableSet<string>? _pendingDocIds;
         private ReplicatorConfiguration _config;
 
@@ -278,12 +292,18 @@ namespace Couchbase.Lite.Sync
                     throw new ObjectDisposedException(nameof(Replicator), CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
+                if(_state != ReplicatorState.Stopped && _state != ReplicatorState.Suspended) {
+                    WriteLog.To.Sync.W(Tag, $"Replicator has already been started (state = {_state}, status = {_rawStatus.level}); ignored.");
+                    return;
+                }
+
                 var err = SetupC4Replicator();
                 if (err.code > 0) {
                     WriteLog.To.Sync.E(Tag, $"Setup replicator {this} failed.");
                 }
 
                 if (_repl != null) {
+                    _state = ReplicatorState.Starting;
                     status = Native.c4repl_getStatus(_repl);
                     if (status.level == C4ReplicatorActivityLevel.Stopped
                     || status.level == C4ReplicatorActivityLevel.Stopping
@@ -294,6 +314,15 @@ namespace Couchbase.Lite.Sync
                         Config.Options.Reset = false;
                         Config.DatabaseInternal.AddActiveStoppable(this);
                         status = Native.c4repl_getStatus(_repl);
+#if __IOS__ && !MACCATALYST
+                        if(Config.AllowReplicatingInBackground) {
+                            if (ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.DEVICE) {
+                                StartBackgroundingMonitor();
+                            } else {
+                                WriteLog.To.Sync.W(Tag, "AllowReplicatingInBackground has no effect in iOS simulator");
+                            }
+                        }
+#endif
                     }
                 } else {
                     status = new C4ReplicatorStatus {
@@ -324,13 +353,16 @@ namespace Couchbase.Lite.Sync
                     throw new ObjectDisposedException(nameof(Replicator));
                 }
 
+                if (_state <= ReplicatorState.Stopping) {
+                    WriteLog.To.Sync.W(Tag, $"Replicator has been stopped or is stopping (state = {_state}, status = {_rawStatus.level}); ignore stop.");
+                    return;
+                }
+
+                WriteLog.To.Sync.I(Tag, "Stopping...");
+                _state = ReplicatorState.Stopping;
+
                 StopReachabilityObserver();
                 if (_repl != null) {
-                    if (_rawStatus.level == C4ReplicatorActivityLevel.Stopped
-                        || _rawStatus.level == C4ReplicatorActivityLevel.Stopping) {
-                        return;
-                    }
-
                     Native.c4repl_stop(_repl);
                 }
             });
@@ -635,16 +667,28 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
+#if __IOS__ && !MACCATALYST
+            if(_conflictResolutionSuspended) {
+                return;
+            }
+#endif
+
             for (int i = 0; i < replications.Count; i++) {
                 var replication = replications[i];
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
                 var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.PotentiallyInsecure);
                 WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
+                var cancelToken = _conflictCancelSource.Token;
                 Task t = Task.Run(() =>
                 {
                     try {
                         var coll = Config.Collections.First(x => x.Name == replication.CollectionName && x.Scope.Name == replication.ScopeName);
                         var collectionConfig = Config.GetCollectionConfig(coll);
+                        if (cancelToken.IsCancellationRequested) {
+                            // Try to catch cancellation before it reaches the user
+                            return;
+                        }
+
                         coll.Database.ResolveConflict(replication.Id, collectionConfig!.ConflictResolver, coll);
                         replication = replication.ClearError();
                     } catch (CouchbaseException e) {
@@ -658,7 +702,7 @@ namespace Couchbase.Lite.Sync
                     }
 
                     _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
-                });
+                }, _conflictCancelSource.Token);
                     
                 t.ContinueWith(task =>
                 {
@@ -727,6 +771,7 @@ namespace Couchbase.Lite.Sync
             if ((status.level > C4ReplicatorActivityLevel.Connecting
                 && status.level != C4ReplicatorActivityLevel.Stopping)
                 && status.error.code == 0) {
+                _state = ReplicatorState.Running;
                 StopReachabilityObserver();
             }
 
@@ -734,7 +779,12 @@ namespace Couchbase.Lite.Sync
 
             // offline
             if (status.level == C4ReplicatorActivityLevel.Offline) {
-                StartReachabilityObserver();
+                if (_state == ReplicatorState.Suspending) {
+                    _state = ReplicatorState.Suspended;
+                } else if (_state > ReplicatorState.Stopping) {
+                    _state = ReplicatorState.Offline;
+                    StartReachabilityObserver();
+                }
             }
 
             //  stopped
@@ -1006,6 +1056,7 @@ namespace Couchbase.Lite.Sync
         private void Stopped()
         {
             Debug.Assert(_rawStatus.level == C4ReplicatorActivityLevel.Stopped);
+            _state = ReplicatorState.Stopped;
             Config.DatabaseInternal.RemoveActiveStoppable(this);
             if(_disposalState == DisposalState.Disposing) {
                 _disposalState = DisposalState.Disposed;
@@ -1030,7 +1081,7 @@ namespace Couchbase.Lite.Sync
             WriteLog.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.unitsCompleted}/{state.progress.unitsTotal}");
         }
 
-        #endregion
+#endregion
 
         #region Overrides
 
