@@ -28,12 +28,10 @@ namespace Couchbase.Lite.Sync;
 
 internal sealed class BackgroundMonitor
 {
-    private static readonly EventArgs Empty = new();
-
     private nint _bgTask = UIApplication.BackgroundTaskInvalid;
     private NSObject? _bgObserver;
     private NSObject? _fgObserver;
-    private object _locker = new object();
+    private readonly object _locker = new object();
 
     public event EventHandler? OnAppBackgrounding;
     public event EventHandler? OnAppForegrounding;
@@ -104,7 +102,7 @@ internal sealed class BackgroundMonitor
                 _bgTask = UIApplication.SharedApplication.BeginBackgroundTask(name, () =>
                 {
                     if (_bgTask != UIApplication.BackgroundTaskInvalid) {
-                        OnBackgroundTaskExpired?.Invoke(this, Empty);
+                        OnBackgroundTaskExpired?.Invoke(this, EventArgs.Empty);
                         EndBackgroundTask();
                     }
                 });
@@ -125,12 +123,12 @@ internal sealed class BackgroundMonitor
 
     private void AppBackgrounding(NSNotification? notification)
     {
-        OnAppBackgrounding?.Invoke(this, Empty);
+        OnAppBackgrounding?.Invoke(this, EventArgs.Empty);
     }
 
     private void AppForegrounding(NSNotification? notification)
     {
-        OnAppForegrounding?.Invoke(this, Empty);
+        OnAppForegrounding?.Invoke(this, EventArgs.Empty);
     }
 }
 

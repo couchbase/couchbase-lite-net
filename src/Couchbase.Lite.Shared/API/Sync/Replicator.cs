@@ -128,6 +128,8 @@ namespace Couchbase.Lite.Sync
         /// provide an SSH type of authentication.
         /// </summary>
         public X509Certificate2? ServerCertificate { get; private set; }
+        
+        internal int PendingConflictCount => _conflictTasks.Count;
 
         #endregion
 
@@ -668,7 +670,7 @@ namespace Couchbase.Lite.Sync
             }
 
 #if __IOS__ && !MACCATALYST
-            if(_conflictResolutionSuspended) {
+            if(ConflictResolutionSuspended) {
                 return;
             }
 #endif
@@ -1058,6 +1060,11 @@ namespace Couchbase.Lite.Sync
             Debug.Assert(_rawStatus.level == C4ReplicatorActivityLevel.Stopped);
             _state = ReplicatorState.Stopped;
             Config.DatabaseInternal.RemoveActiveStoppable(this);
+            
+            #if __IOS__
+            EndBackgroundingMonitor();
+            #endif
+            
             if(_disposalState == DisposalState.Disposing) {
                 _disposalState = DisposalState.Disposed;
                 _nativeParams?.Dispose();

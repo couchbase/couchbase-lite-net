@@ -35,7 +35,12 @@ public partial class Replicator
     private bool _filesystemUnavailable;
     private bool _inBackground;
     private bool _suspended;
-    private bool _conflictResolutionSuspended;
+
+    internal bool ConflictResolutionSuspended
+    {
+        get;
+        private set;
+    }
 
     private NSFileProtection FileProtection
     {
@@ -47,7 +52,7 @@ public partial class Replicator
         }
     }
 
-    private unsafe bool Suspended
+    internal unsafe bool Suspended
     {
         get => _suspended;
         set {
@@ -85,9 +90,30 @@ public partial class Replicator
         _bgMonitor.Start();
     }
 
+    private void EndBackgroundingMonitor()
+    {
+        if (_bgMonitor == null)
+        {
+            WriteLog.To.Sync.I(Tag, "Ignoring ending backgrounding monitor as not started");
+            return;
+        }
+        
+        WriteLog.To.Sync.I(Tag, "Ending background monitor...");
+        if (_dataAvailableHandler != null) {
+            NSNotificationCenter.DefaultCenter.RemoveObserver(_dataAvailableHandler);
+        }
+
+        if (_dataUnavailableHandler != null) {
+            NSNotificationCenter.DefaultCenter.RemoveObserver(_dataUnavailableHandler);
+        }
+        
+        _bgMonitor.Stop();
+        _bgMonitor = null;
+    }
+
     private void SetConflictResolutionSuspended(bool suspended)
     {
-        _conflictResolutionSuspended = suspended;
+        ConflictResolutionSuspended = suspended;
         if(suspended) {
             var oldCts = Interlocked.Exchange(ref _conflictCancelSource, new());
             oldCts.Cancel();
@@ -101,14 +127,16 @@ public partial class Replicator
         UpdateSuspended();
     }
 
-    private void AppBackgrounding(object? sender, EventArgs args)
+    // Internal for testing purposes
+    // ReSharper disable MemberCanBePrivate.Global
+    internal void AppBackgrounding(object? sender, EventArgs args)
     {
         WriteLog.To.Sync.I(Tag, "App backgrounding, suspending the replicator");
         _inBackground = true;
         UpdateSuspended();
     }
 
-    private void AppForegrounding(object? sender, EventArgs args)
+    internal void AppForegrounding(object? sender, EventArgs args)
     {
         if (_inBackground) {
             WriteLog.To.Sync.I(Tag, "App foregrounding, resuming the replicator");
@@ -117,6 +145,7 @@ public partial class Replicator
         }
         
     }
+    // ReSharper restore MemberCanBePrivate.Global
 
     private void UpdateSuspended()
     {
