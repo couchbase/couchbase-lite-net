@@ -45,7 +45,6 @@ using System.Reflection;
 using Test.Util;
 #if COUCHBASE_ENTERPRISE
 using Couchbase.Lite.P2P;
-using ObjCRuntime;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 #endif
 
@@ -2079,7 +2078,7 @@ namespace Test
         [SkippableFact]
         public void TestSwitchBackgroundForeground()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == Arch.SIMULATOR, "Functionality not supported on simulator");
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var config = new ReplicatorConfiguration(target)
@@ -2145,12 +2144,13 @@ namespace Test
         [Fact]
         public void TestSwitchToForegroundImmediately()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == Arch.SIMULATOR, "Functionality not supported on simulator");
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var config = new ReplicatorConfiguration(target)
             {
-                Continuous = true
+                Continuous = true,
+                AllowReplicatingInBackground = true
             };
             
             config.AddCollection(DefaultCollection);
@@ -2192,7 +2192,7 @@ namespace Test
         [Fact]
         public void TestBackgroundingWhenStopping()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == Arch.SIMULATOR, "Functionality not supported on simulator");
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var config = new ReplicatorConfiguration(target)
@@ -2249,7 +2249,7 @@ namespace Test
         [Fact]
         public void TestBackgroundDuringDataTransfer()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == Arch.SIMULATOR, "Functionality not supported on simulator");
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var config = new ReplicatorConfiguration(target)
