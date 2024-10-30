@@ -548,6 +548,9 @@ namespace Couchbase.Lite.Sync
 #if COUCHBASE_ENTERPRISE
                 AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
 #endif
+#if __IOS__ && !MACCATALYST
+                AllowReplicatingInBackground = AllowReplicatingInBackground,
+#endif
                 Continuous = Continuous,
                 ReplicatorType = ReplicatorType,
                 Options = Options,
