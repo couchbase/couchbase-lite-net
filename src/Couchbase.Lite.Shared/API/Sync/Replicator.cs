@@ -1061,7 +1061,7 @@ namespace Couchbase.Lite.Sync
             _state = ReplicatorState.Stopped;
             Config.DatabaseInternal.RemoveActiveStoppable(this);
             
-            #if __IOS__
+            #if __IOS__ && !MACCATALYST
             EndBackgroundingMonitor();
             #endif
             
