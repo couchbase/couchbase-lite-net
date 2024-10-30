@@ -68,6 +68,9 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_setHostReachable(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool reachable);
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4repl_setSuspended(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool suspended);
+
         public static void c4repl_setOptions(C4Replicator* repl, byte[]? optionsDictFleece)
         {
             fixed(byte *optionsDictFleece_ = optionsDictFleece) {

@@ -2074,7 +2074,321 @@ namespace Test
             stoppedWait.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("because otherwise the replicator didn't stop");
         }
 
-        //end pending doc id tests
+        #if __IOS__ && !SANITY_ONLY
+        [SkippableFact]
+        public void TestSwitchBackgroundForeground()
+        {
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+
+            var target = new DatabaseEndpoint(OtherDb);
+            var config = new ReplicatorConfiguration(target)
+            {
+                Continuous = true
+            };
+            
+            config.AddCollection(DefaultCollection);
+
+            using var r = new Replicator(config);
+
+            const int NUM_ROUNDS = 10;
+            using var foregroundEvent = new AutoResetEvent(false);
+            using var backgroundEvent = new AutoResetEvent(false);
+            using var stoppedEvent = new ManualResetEventSlim(false);
+
+            var foregroundCount = 0;
+            var backgroundCount = 0;
+
+            // ReSharper disable AccessToDisposedClosure
+            var token = r.AddChangeListener((sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                    foregroundCount++;
+                    foregroundEvent.Set();
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                    backgroundCount++;
+                    backgroundEvent.Set();
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    stoppedEvent.Set();
+                }
+            });
+            // ReSharper restore AccessToDisposedClosure
+            
+            r.Start();
+            foregroundEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never went idle");
+            for (var i = 0; i < NUM_ROUNDS; i++) {
+                r.AppBackgrounding(null, EventArgs.Empty);
+                backgroundEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
+                    .BeTrue("because otherwise the replicator never suspended ({count})", i);
+                r.ConflictResolutionSuspended.Should()
+                    .BeTrue("because otherwise conflict resolution was not suspended ({count})", i);
+                
+                r.AppForegrounding(null, EventArgs.Empty);
+                foregroundEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
+                    .BeTrue("because otherwise the replicator never unsuspended ({count})", i);
+                r.ConflictResolutionSuspended.Should()
+                    .BeFalse("because otherwise conflict resolution was not unsuspended ({count})", i);
+            }
+            
+            r.Stop();
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator didn't stop");
+            foregroundCount.Should().Be(NUM_ROUNDS + 1,
+                "because otherwise an incorrect number of foreground events happened");
+            backgroundCount.Should()
+                .Be(NUM_ROUNDS, "because otherwise an incorrect number of background events occurred");
+
+            token.Remove();
+        }
+
+        [Fact]
+        public void TestSwitchToForegroundImmediately()
+        {
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+
+            var target = new DatabaseEndpoint(OtherDb);
+            var config = new ReplicatorConfiguration(target)
+            {
+                Continuous = true,
+                AllowReplicatingInBackground = true
+            };
+            
+            config.AddCollection(DefaultCollection);
+
+            using var r = new Replicator(config);
+            
+            using var idleEvent = new AutoResetEvent(false);
+            using var stoppedEvent = new ManualResetEventSlim(false);
+
+            // ReSharper disable AccessToDisposedClosure
+            var token = r.AddChangeListener((sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                    idleEvent.Set();
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    stoppedEvent.Set();
+                }
+            });
+            // ReSharper restore AccessToDisposedClosure
+            
+            r.Start();
+            idleEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never went idle");
+
+            // Switch to background and immediately come back
+            r.Suspended = true;
+            r.Suspended = false;
+
+            idleEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator didn't go back to idle");
+            
+            r.Stop();
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never stopped");
+            
+            token.Remove();
+        }
+
+        [Fact]
+        public void TestBackgroundingWhenStopping()
+        {
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+
+            var target = new DatabaseEndpoint(OtherDb);
+            var config = new ReplicatorConfiguration(target)
+            {
+                Continuous = true
+            };
+            
+            config.AddCollection(DefaultCollection);
+
+            using var r = new Replicator(config);
+            
+            using var idleEvent = new ManualResetEventSlim(false);
+            using var stoppedEvent = new ManualResetEventSlim(false);
+            var foregrounding = false;
+            var foregroundingAssert = new WaitAssert();
+            
+            // ReSharper disable AccessToDisposedClosure
+            var token = r.AddChangeListener((sender, args) =>
+            {
+                // ReSharper disable AccessToModifiedClosure
+                foregroundingAssert.RunAssert(() => foregrounding.Should().BeFalse());
+                // ReSharper restore AccessToModifiedClosure
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                    idleEvent.Set();
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    stoppedEvent.Set();
+                }
+            });
+            // ReSharper restore AccessToDisposedClosure
+            
+            r.Start();
+            idleEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never went idle");
+
+            r.Stop();
+            
+            // This shouldn't prevent the replicator stopping
+            r.AppBackgrounding(null, EventArgs.Empty);
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never stopped");
+            
+            // This shouldn't wake up the replicator
+            foregrounding = true;
+            r.AppForegrounding(null, EventArgs.Empty);
+            
+            // Wait a bit to catch any straggling notifications that might contain
+            // foregrounding == true
+            Thread.Sleep(300);
+            foregroundingAssert.WaitForResult(TimeSpan.FromMilliseconds(500));
+            
+            token.Remove();
+        }
+
+        [Fact]
+        public void TestBackgroundDuringDataTransfer()
+        {
+            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+
+            var target = new DatabaseEndpoint(OtherDb);
+            var config = new ReplicatorConfiguration(target)
+            {
+                Continuous = true,
+                ReplicatorType = ReplicatorType.Push
+            };
+
+            config.AddCollection(DefaultCollection);
+
+            using var r = new Replicator(config);
+
+            using var idleEvent = new ManualResetEventSlim(false);
+            using var busyEvent = new ManualResetEventSlim(false);
+            using var offlineEvent = new ManualResetEventSlim(false);
+            using var stoppedEvent = new ManualResetEventSlim(false);
+            // ReSharper disable AccessToDisposedClosure
+            var token = r.AddChangeListener((sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                    if (args.Status.Progress.Total == 0) {
+                        idleEvent.Set();
+                    } else if (args.Status.Progress.Completed == args.Status.Progress.Total) {
+                        ((Replicator)sender)!.Stop();
+                    }
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                    busyEvent.Set();
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                    offlineEvent.Set();
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    stoppedEvent.Set();
+                }
+            });
+            // ReSharper restore AccessToDisposedClosure
+
+            OtherDefaultCollection.Count.Should().Be(0, "because nothing was replicated yet");
+            r.Start();
+            idleEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never went idle");
+
+            using var doc1 = new MutableDocument("doc1");
+            var blob = new Blob("image/jpeg", GetTestAsset("C/tests/data/for#354.jpg"));
+            doc1.SetBlob("blob", blob);
+            DefaultCollection.Save(doc1);
+            busyEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator is stuck in idle");
+
+            r.Suspended = true;
+            offlineEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the suspension didn't work");
+
+            Thread.Sleep(200);
+            r.Suspended = false;
+
+            stoppedEvent.Wait(TimeSpan.FromSeconds(10)).Should()
+                .BeTrue("because otherwise the replicator never finished");
+            token.Remove();
+
+            OtherDefaultCollection.Count.Should().Be(1, "because one document should have replicated");
+            using var doc = OtherDefaultCollection.GetDocument("doc1");
+            var blob2 = doc?.GetBlob("blob");
+            blob2?.Digest.Should().Be(blob.Digest, "because the blobs should match");
+        }
+
+        [Fact]
+        public void TestSuspendConflictResolution()
+        {
+            const int NUM_DOCS = 1000;
+            for (var i = 0; i < NUM_DOCS; i++) {
+                var docID = $"doc-{i}";
+                using var doc1a = new MutableDocument(docID);
+                doc1a.SetString("name", Db.Name);
+                DefaultCollection.Save(doc1a);
+                
+                using var doc1b = new MutableDocument(docID);
+                doc1b.SetString("name", OtherDb.Name);
+                OtherDefaultCollection.Save(doc1b);
+            }
+
+            uint resolvingCount = 0;
+
+            var target = new DatabaseEndpoint(OtherDb);
+            var config = new ReplicatorConfiguration(target)
+            {
+                Continuous = true,
+                ReplicatorType = ReplicatorType.Pull
+            };
+            
+            using var resolvingEvent = new ManualResetEventSlim(false);
+            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            {
+                // ReSharper disable AccessToDisposedClosure
+                ConflictResolver = new BlockConflictResolver(conflict =>
+                {
+                    Interlocked.Increment(ref resolvingCount);
+                    resolvingEvent.Set();
+                    return conflict.RemoteDocument;
+                })
+                // ReSharper restore AccessToDisposedClosure
+            });
+
+            using var r = new Replicator(config);
+            using var offlineEvent = new ManualResetEventSlim(false);
+            using var stoppedEvent = new ManualResetEventSlim(false);
+            
+            // ReSharper disable AccessToDisposedClosure
+            var token = r.AddChangeListener((sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                    offlineEvent.Set();
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    stoppedEvent.Set();
+                }
+            });
+            // ReSharper restore AccessToDisposedClosure
+            
+            r.Start();
+
+            resolvingEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise conflict resolution never started");
+            r.Suspended = true;
+
+            int retryCounter = 0;
+            while (r.PendingConflictCount > 0) {
+                retryCounter++.Should().BeLessThan(20, "because otherwise the pending conflicts never got suspended");
+                Thread.Sleep(500);
+            }
+
+            resolvingCount.Should().BeLessThan(NUM_DOCS, "because the conflicts should have been suspended");
+            offlineEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never suspended");
+            r.Stop();
+
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
+                .BeTrue("because otherwise the replicator never stopped");
+            token.Remove();
+        }
+        
+        #endif
 
         /*
          SG Config
@@ -2907,6 +3221,11 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         {
             throw new NotImplementedException();
         }
+    }
+
+    public class BlockConflictResolver(Func<Conflict, Document> resolveFunc) : IConflictResolver
+    {
+        public Document Resolve(Conflict conflict) => resolveFunc(conflict);
     }
 
 #if COUCHBASE_ENTERPRISE
