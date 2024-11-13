@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 Check();
-                return NativeSafe.c4query_run(_c4Query, (FLSlice)paramJson, err);
+                return NativeSafe.c4query_run(_c4Query!, (FLSlice)paramJson, err);
             });
 
             paramJson.Dispose();

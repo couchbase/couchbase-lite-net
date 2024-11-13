@@ -384,6 +384,7 @@ namespace Test
                     enterInBatchLock.Wait(TimeSpan.FromSeconds(1)).Should().BeTrue("because otherwise t1 didn't enter InBatch");
                     Interlocked.CompareExchange(ref stepCount, 2, 1);
                     using var rs = Db.CreateQuery("select * from _").Execute();
+                    var realized = rs.ToList();
                     enterQueryLock.Set(); // Should have already timed out but set anyway
                     Interlocked.CompareExchange(ref stepCount, 4, 3);
                 } catch (Exception e) {
