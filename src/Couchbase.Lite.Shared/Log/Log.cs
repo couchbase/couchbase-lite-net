@@ -107,6 +107,8 @@ namespace Couchbase.Lite.Internal.Logging
             _CurrentLevel = effectiveLevel;
             Task.Factory.StartNew(() =>
             {
+                SetCallbackLevel(effectiveLevel);
+                LogSinks.SetDomainLevels(Database.Log.OverallLogLevel);
             });
         }
 
