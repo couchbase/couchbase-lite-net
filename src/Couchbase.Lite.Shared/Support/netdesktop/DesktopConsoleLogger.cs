@@ -33,6 +33,7 @@ using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    [Obsolete]
     [CouchbaseDependency]
     internal sealed class DesktopConsoleLogger : IConsoleLogger
     {

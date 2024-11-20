@@ -48,10 +48,14 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessageNetOnly.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)api\info\Defaults_Deprecated.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)api\log\BaseLogSink.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)api\log\ConsoleLogSink.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)api\log\FileLogSink.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ILogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\Log.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)api\log\LogSinks.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayFunction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)api\query\ArrayIndexConfiguration.cs" />
@@ -129,6 +133,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IJSON.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\InMemoryDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\MRoot.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)log\IConsoleLogWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\IndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\LiveQuerier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\NQuery.cs" />
@@ -184,11 +189,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MValue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\AndroidConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\AndroidRuntimePlatform.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)support\android\ConsoleLogWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\DefaultDirectoryResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\MainThreadTaskScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\XamarinAndroidProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\XEReachability.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Freezer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)support\ios\ConsoleLogWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\DefaultDirectoryResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\iOSConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\IOSProxy.cs" />
@@ -197,6 +204,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\MainThreadTaskScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IStoppable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IThreadSafety.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)support\netdesktop\ConsoleLogWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\DefaultDirectoryResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\DesktopConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\LinuxProxy.cs" />

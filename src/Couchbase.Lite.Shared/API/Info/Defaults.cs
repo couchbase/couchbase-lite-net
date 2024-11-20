@@ -71,6 +71,24 @@ public static partial class Constants {
 	public static readonly int DefaultLogFileMaxRotateCount = 1;
 
 	/// <summary>
+	/// Default value for <see cref="FileLogSink.UsePlaintext" /> (false)
+	/// Plaintext is not used, and instead binary encoding is used in log files
+	/// </summary>
+	public static readonly bool DefaultFileLogSinkUsePlaintext = false;
+
+	/// <summary>
+	/// Default value for <see cref="FileLogSink.MaxSize" /> (524288)
+	/// 512 KiB for the size of a log file
+	/// </summary>
+	public static readonly long DefaultFileLogSinkMaxSize = 524288;
+
+	/// <summary>
+	/// Default value for <see cref="FileLogSink.MaxKeptFiles" /> (2)
+	/// 2 files preserved during each log rotation
+	/// </summary>
+	public static readonly int DefaultFileLogSinkMaxKeptFiles = 2;
+
+	/// <summary>
 	/// Default value for <see cref="FullTextIndexConfiguration.IgnoreAccents" /> (false)
 	/// Accents and ligatures are not ignored when indexing via full text search
 	/// </summary>

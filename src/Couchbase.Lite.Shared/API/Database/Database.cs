@@ -162,9 +162,10 @@ namespace Couchbase.Lite
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
         /// <summary>
-        /// Gets the object that stores the available logging methods
+        /// [DEPRECATED] Gets the object that stores the available logging methods
         /// for Couchbase Lite
         /// </summary>
+        [Obsolete("Use the new LogSinks static clas")]
         public static Log Log { get; } = new Log();
 
         /// <summary>
@@ -274,11 +275,6 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        static Database()
-        {
-            Native.c4log_enableFatalExceptionBacktrace();
-        }
-
         /// <summary>
         /// Creates a database with a given name and database configuration.  If the configuration
         /// is <c>null</c> then the default configuration will be used.  If the database does not yet
@@ -305,9 +301,11 @@ namespace Couchbase.Lite
 
         private void CheckFileLogger()
         {
-            if (Log.File.Config == null) {
-                WriteLog.To.Database.W("Logging", "Database.Log.File.Config is null, meaning file logging is disabled.  Log files required for product support are not being generated.");
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (Log.File.Config == null && LogSinks.FileLogSink == null) {
+                WriteLog.To.Database.W("Logging", "LogSinks.FileLogSink is null, meaning file logging is disabled.  Log files required for product support are not being generated.");
             }
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         internal Database(Database other)

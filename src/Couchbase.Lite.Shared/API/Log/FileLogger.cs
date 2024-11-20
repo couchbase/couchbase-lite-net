@@ -34,11 +34,12 @@ using Constants = Couchbase.Lite.Info.Constants;
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
-    /// A class that describes the file configuration for the <see cref="FileLogger"/>
+    /// [DEPRECATED] A class that describes the file configuration for the <see cref="FileLogger"/>
     /// class.  These options must be set atomically so they won't take effect unless
     /// a new configuration object is set on the logger.  Attempting to modify an in-use
     /// configuration object will result in an exception being thrown.
     /// </summary>
+    [Obsolete("Use LogSinks.FileLogSink instead")]
     public sealed class LogFileConfiguration
     {
         #region Constants
@@ -158,14 +159,13 @@ namespace Couchbase.Lite.Logging
     }
 
     /// <summary>
-    /// A class that controls the file logging facility of
+    /// [DEPRECATED] A class that controls the file logging facility of
     /// Couchbase Lite
     /// </summary>
+    [Obsolete("Use LogSinks.FileLogSink instead")]
     public sealed class FileLogger : ILogger
     {
         #region Variables
-
-        private readonly Dictionary<LogDomain,IntPtr> _domainObjects = new Dictionary<LogDomain, IntPtr>();
 
         private LogFileConfiguration? _config;
 
@@ -204,7 +204,7 @@ namespace Couchbase.Lite.Logging
                     throw new InvalidOperationException("Cannot set logging level without a configuration");
                 }
 
-                Native.c4log_setBinaryFileLevel((C4LogLevel) value);
+                Native.c4log_setBinaryFileLevel((C4LogLevel)value);
             }
         }
 
@@ -217,7 +217,6 @@ namespace Couchbase.Lite.Logging
         /// </summary>
         public FileLogger()
         {
-            SetupDomainObjects();
             Native.c4log_setBinaryFileLevel(C4LogLevel.None);
         }
 
@@ -225,33 +224,6 @@ namespace Couchbase.Lite.Logging
 
         #region Private Methods
 
-        private unsafe void SetupDomainObjects()
-        {
-            var bytes = (byte *)Marshal.StringToHGlobalAnsi("Couchbase");
-            _domainObjects[LogDomain.Couchbase] = (IntPtr)Native.c4log_getDomain(bytes, true);
-
-            bytes = (byte *)Marshal.StringToHGlobalAnsi("DB");
-            _domainObjects[LogDomain.Database] = (IntPtr)Native.c4log_getDomain(bytes, true);
-
-            bytes = (byte *)Marshal.StringToHGlobalAnsi("Query");
-            _domainObjects[LogDomain.Query] = (IntPtr)Native.c4log_getDomain(bytes, true);
-
-            bytes = (byte *)Marshal.StringToHGlobalAnsi("Sync");
-            _domainObjects[LogDomain.Replicator] = (IntPtr)Native.c4log_getDomain(bytes, true);
-
-            foreach (var domain in _domainObjects) {
-                Native.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),
-                    C4LogLevel.Debug);
-            }
-
-            foreach (var domain in new[] { 
-                WriteLog.LogDomainBLIP, 
-                WriteLog.LogDomainSyncBusy, 
-                WriteLog.LogDomainWebSocket
-            }) {
-                Native.c4log_setLevel(domain, C4LogLevel.Debug);
-            }
-        }
 
         private unsafe void UpdateConfig()
         {
@@ -281,11 +253,12 @@ namespace Couchbase.Lite.Logging
         /// <inheritdoc />
         public unsafe void Log(LogLevel level, LogDomain domain, string message)
         {
-            if (level < Level || !_domainObjects.ContainsKey(domain)) {
+            var domainObject = LogSinks.GetDomainObject(domain);
+            if (level < Level || domainObject == null) {
                 return;
             }
 
-            Native.c4slog((C4LogDomain*)_domainObjects[domain], (C4LogLevel)level, message);
+            Native.c4slog(domainObject, (C4LogLevel)level, message);
         }
 
         #endregion

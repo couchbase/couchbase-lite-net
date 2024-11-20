@@ -125,6 +125,34 @@ namespace Couchbase.Lite.Internal.Logging
             SendToLoggers(LogLevel.Warning, String.Format(FormatMessage(tag, format), args));
         }
 
+        internal static bool OldApiUsed()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            return Database.Log.Console.Level != LogLevel.Warning
+                || Database.Log.File.Config != null
+                || Database.Log.Custom != null;
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        internal static void ThrowIfOldApiUsed()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (OldApiUsed()) {
+                throw new InvalidOperationException("Cannot use both new and old Logging API simultaneously (old API previously used)");
+            }
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
+
+        internal static void ThrowIfNewApiUsed()
+        {
+            if(LogSinks.ConsoleLogSink == null
+                || LogSinks.ConsoleLogSink.Level != LogLevel.Warning
+                || LogSinks.FileLogSink != null
+                || LogSinks.CustomLogSink != null) {
+                throw new InvalidOperationException("Cannot use both new and old logging API simultaneously (new API previously used)");
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -152,24 +180,44 @@ namespace Couchbase.Lite.Internal.Logging
         }
 
         private void SendToLoggers(LogLevel level, string msg)
-		{
-            Database.Log.Console.Log(level, Domain, msg);
-		    var fileSucceeded = false;
-		    try {
-		        Database.Log.File.Log(level, Domain, msg);
-		        fileSucceeded = true;
-		        Database.Log.Custom?.Log(level, Domain, msg);
-		    } catch (Exception e) {
-		        var logType = fileSucceeded
-		            ? Database.Log.Custom?.GetType().Name
-		            : "log file";
-		        var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
-                Database.Log.Console.Log(LogLevel.Error, LogDomain.None, errMsg);
-		        if (!fileSucceeded) {
-		            Database.Log.Custom?.Log(LogLevel.Error, LogDomain.None, errMsg);
-		        }
-		    }
-		}
+        {
+            var fileSucceeded = false;
+            if (OldApiUsed()) {
+#pragma warning disable CS0618 // Type or member is obsolete
+                Database.Log.Console.Log(level, Domain, msg);
+                try {
+                    Database.Log.File.Log(level, Domain, msg);
+                    fileSucceeded = true;
+                    Database.Log.Custom?.Log(level, Domain, msg);
+                } catch (Exception e) {
+                    var logType = fileSucceeded
+                        ? Database.Log.Custom?.GetType().Name
+                        : "log file";
+                    var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
+                    Database.Log.Console.Log(LogLevel.Error, LogDomain.None, errMsg);
+                    if (!fileSucceeded) {
+                        Database.Log.Custom?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                    }
+                }
+#pragma warning restore CS0618 // Type or member is obsolete
+            } else {
+                LogSinks.ConsoleLogSink?.Log(level, Domain, msg);
+                try {
+                    LogSinks.FileLogSink?.Log(level, Domain, msg);
+                    fileSucceeded = true;
+                    LogSinks.CustomLogSink?.Log(level, Domain, msg);
+                } catch (Exception e) {
+                    var logType = fileSucceeded
+                        ? LogSinks.CustomLogSink?.GetType()?.Name
+                        : "log file";
+                    var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
+                    LogSinks.ConsoleLogSink?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                    if (!fileSucceeded) {
+                        LogSinks.ConsoleLogSink?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                    }
+                }
+            }
+        }
 
         #endregion
 

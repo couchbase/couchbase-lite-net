@@ -15,12 +15,15 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+using System;
+
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
-    /// An interface for implementing a class that can accept
+    /// [DEPRECATED] An interface for implementing a class that can accept
     /// logging messages from Couchbase Lite
     /// </summary>
+    [Obsolete("Use BaseLogSink instead")]
     public interface ILogger
     {
         #region Properties

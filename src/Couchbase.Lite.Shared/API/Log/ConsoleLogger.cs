@@ -15,14 +15,17 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+using System;
+
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
-    /// An interface for an object that will log messages to the
+    /// [DEPRECATED] An interface for an object that will log messages to the
     /// relevant debug console.  For desktop this is the terminal,
     /// WinUI uses the visual studio debug output pane, iOS uses os_log
     /// and Android uses logcat.
     /// </summary>
+    [Obsolete("Use LogSinks.ConsoleLogSink instead")]
     public interface IConsoleLogger : ILogger
     {
         #region Properties
