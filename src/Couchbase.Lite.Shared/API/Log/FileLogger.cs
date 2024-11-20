@@ -205,6 +205,7 @@ namespace Couchbase.Lite.Logging
                 }
 
                 Native.c4log_setBinaryFileLevel((C4LogLevel)value);
+                LogSinks.SetDomainLevels(Database.Log.OverallLogLevel);
             }
         }
 
@@ -244,6 +245,8 @@ namespace Couchbase.Lite.Logging
                 };
                 LiteCoreBridge.Check(err => Native.c4log_writeToBinaryFile(options, err));
             }
+
+            LogSinks.SetDomainLevels(Database.Log.OverallLogLevel);
         }
 
         #endregion

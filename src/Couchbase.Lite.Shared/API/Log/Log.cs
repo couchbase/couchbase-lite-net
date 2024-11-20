@@ -57,6 +57,15 @@ namespace Couchbase.Lite.Logging
         [Obsolete("Use LogSinks.FileLogSink instead")]
         public FileLogger File { get; } = new FileLogger();
 
+        internal LogLevel OverallLogLevel
+        {
+            get {
+                var customLevel = Custom?.Level ?? LogLevel.None;
+
+                return (LogLevel)Math.Min((int)File.Level, Math.Min((int)customLevel, (int)Console.Level));
+            }
+        }
+
         #endregion
     }
 }
