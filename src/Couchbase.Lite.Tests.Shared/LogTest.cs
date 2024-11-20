@@ -25,7 +25,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
-
+using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
@@ -34,7 +34,7 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
 using FluentAssertions;
-
+using Newtonsoft.Json.Bson;
 using Test.Util;
 #if !WINDOWS_UWP
 using Xunit;
@@ -46,26 +46,25 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace Test
 {
-    #if WINDOWS_UWP
+#if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-    #endif
+#endif
     public sealed class LogTest
     {
-        #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__ && !WINUI
+#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__ && !WINUI
         static LogTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
-        #endif
+#endif
 
-        #if !WINDOWS_UWP
+#if !WINDOWS_UWP
         public LogTest(ITestOutputHelper output)
         {
-            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
         }
-        #endif
+#endif
 
-        #if WINDOWS_UWP
+#if WINDOWS_UWP
         private TestContext _testContext;
         public TestContext TestContext
         {
@@ -75,13 +74,13 @@ namespace Test
                 Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
             }
         }
-        #endif
+#endif
 
         [Fact]
         public void TestDefaultLogFormat()
         {
             var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestDefaultLogFormat"));
-            TestWithConfiguration(LogLevel.Info, new LogFileConfiguration(logDirectory), () =>
+            Action a = () =>
             {
                 WriteLog.To.Database.I("TEST", "MESSAGE");
                 var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
@@ -89,45 +88,51 @@ namespace Test
                 var logContent = ReadAllBytes(logFilePath);
                 logContent.Should().StartWith(new byte[] { 0xcf, 0xb2, 0xab, 0x1b },
                     "because the log should be in binary format");
-            });
+            };
+
+            TestWithConfiguration(LogLevel.Info, new LogFileConfiguration(logDirectory), a);
+            TestWithConfiguration(new FileLogSink(LogLevel.Info, logDirectory), a);
         }
 
         [Fact]
         public void TestPlaintext()
         {
             var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestPlaintext"));
-            var config = new LogFileConfiguration(logDirectory, Database.Log.File.Config)
-            {
-                UsePlaintext = true
-            };
 
-            TestWithConfiguration(LogLevel.Info, config, () =>
+            Action a = () =>
             {
-                Database.Log.File.Config = new LogFileConfiguration(logDirectory, Database.Log.File.Config)
-                {
-                    UsePlaintext = true
-                };
-
                 WriteLog.To.Database.I("TEST", "MESSAGE");
                 var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
                 logFilePath.Should().NotBeNullOrEmpty();
                 var logContent = ReadAllLines(logFilePath);
                 logContent.Any(x => x.Contains("MESSAGE") && x.Contains("TEST"))
                     .Should().BeTrue("because the message should show up in plaintext");
-            });
+            };
+
+            var config = new LogFileConfiguration(logDirectory, Database.Log.File.Config)
+            {
+                UsePlaintext = true
+            };
+            TestWithConfiguration(LogLevel.Info, config, a);
+
+            var newSink = new FileLogSink(LogLevel.Info, logDirectory)
+            {
+                UsePlaintext = true
+            };
+            TestWithConfiguration(newSink, a);
         }
 
         [Fact]
         public void TestMaxSize()
         {
             var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestMaxSize"));
-            var config = new LogFileConfiguration(logDirectory)
-            {
-                UsePlaintext = true,
-                MaxSize = 1024
-            };
 
-            TestWithConfiguration(LogLevel.Debug, config, () =>
+            var totalCount = 10;
+#if !DEBUG
+                totalCount -= 1; // Non-debug builds won't log debug files
+#endif
+
+            Action a = () =>
             {
                 for (int i = 0; i < 45; i++) {
                     WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
@@ -136,27 +141,31 @@ namespace Test
                     WriteLog.To.Database.V("TEST", $"MESSAGE {i}");
                     WriteLog.To.Database.D("TEST", $"MESSAGE {i}");
                 }
-                
-                var totalCount = (Database.Log.File.Config.MaxRotateCount + 1) * 5;
-                #if !DEBUG
-                totalCount -= 1; // Non-debug builds won't log debug files
-                #endif
 
                 Directory.EnumerateFiles(logDirectory).Should()
                     .HaveCount(totalCount, "because old log files should be getting pruned");
-            });
+            };
+
+            var config = new LogFileConfiguration(logDirectory)
+            {
+                UsePlaintext = true,
+                MaxSize = 1024
+            };
+            TestWithConfiguration(LogLevel.Debug, config, a);
+
+            var newSink = new FileLogSink(LogLevel.Debug, logDirectory)
+            {
+                UsePlaintext = true,
+                MaxSize = 1024
+            };
+            TestWithConfiguration(newSink, a);
         }
 
         [Fact]
         public void TestDisableLogging()
         {
             var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestDisableLogging"));
-            var config = new LogFileConfiguration(logDirectory)
-            {
-                UsePlaintext = true
-            };
-
-            TestWithConfiguration(LogLevel.None, config, () =>
+            Action a = () =>
             {
                 var sentinel = Guid.NewGuid().ToString();
                 WriteLog.To.Database.E("TEST", sentinel);
@@ -169,7 +178,20 @@ namespace Test
                         line.Should().NotContain(sentinel);
                     }
                 }
-            });
+            };
+
+            var config = new LogFileConfiguration(logDirectory)
+            {
+                UsePlaintext = true
+            };
+
+            TestWithConfiguration(LogLevel.None, config, a);
+
+            var newSink = new FileLogSink(LogLevel.None, logDirectory)
+            {
+                UsePlaintext = true
+            };
+            TestWithConfiguration(newSink, a);
         }
 
         [Fact]
@@ -220,6 +242,15 @@ namespace Test
                 var regex = new Regex($"cbl_(debug|verbose|info|warning|error)_\\d+\\.cbllog");
                 allFiles.Any(x => !regex.IsMatch(x)).Should().BeFalse("because all files should match the pattern");
             });
+
+            logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestLogFilename2"));
+            var newSink = new FileLogSink(LogLevel.Info, logDirectory);
+            TestWithConfiguration(newSink, () =>
+            {
+                var allFiles = Directory.EnumerateFiles(logDirectory, "*.cbllog").ToArray();
+                var regex = new Regex($"cbl_(debug|verbose|info|warning|error)_\\d+\\.cbllog");
+                allFiles.Any(x => !regex.IsMatch(x)).Should().BeFalse("because all files should match the pattern");
+            });
         }
 #endif
 
@@ -227,60 +258,60 @@ namespace Test
         public void TestLogHeader()
         {
             var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestLogHeader"));
+            Action a = () =>
+            {
+                {
+                    for (int i = 0; i < 45; i++) {
+                        WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
+                        WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
+                        WriteLog.To.Database.I("TEST", $"MESSAGE {i}");
+                        WriteLog.To.Database.V("TEST", $"MESSAGE {i}");
+                    }
+
+                    foreach (var file in Directory.EnumerateFiles(logDirectory, "*.cbllog")) {
+                        var lines = ReadAllLines(file);
+                        foreach (var key in new[] { "serialNo", "logDirectory", "fileLogLevel", "fileMaxSize", "fileMaxCount" }) {
+                            lines[0].Should().Contain($"{key}=", "because otherwise a metadata entry is missing on the first line");
+                        }
+                        lines[1].Should().Contain("CouchbaseLite/").And.Subject.Should().Contain("Build/")
+                            .And.Subject.Should().Contain("Commit/");
+
+                    }
+                }
+            };
+
             var config = new LogFileConfiguration(logDirectory)
             {
                 UsePlaintext = true,
                 MaxSize = 1024
             };
 
-            TestWithConfiguration(LogLevel.Verbose, config, () =>
-            {
-                for (int i = 0; i < 45; i++) {
-                    WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
-                    WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
-                    WriteLog.To.Database.I("TEST", $"MESSAGE {i}");
-                    WriteLog.To.Database.V("TEST", $"MESSAGE {i}");
-                }
+            TestWithConfiguration(LogLevel.Verbose, config, a);
 
-                foreach (var file in Directory.EnumerateFiles(logDirectory, "*.cbllog")) {
-                    var lines = ReadAllLines(file);
-                    foreach (var key in new[] { "serialNo", "logDirectory", "fileLogLevel", "fileMaxSize", "fileMaxCount" }) {
-                        lines[0].Should().Contain($"{key}=", "because otherwise a metadata entry is missing on the first line");
-                    }
-                    lines[1].Should().Contain("CouchbaseLite/").And.Subject.Should().Contain("Build/")
-                        .And.Subject.Should().Contain("Commit/");
-                    
-                }
-            });
+            var newSink = new FileLogSink(LogLevel.Verbose, logDirectory)
+            {
+                UsePlaintext = true,
+                MaxSize = 1024
+            };
+            TestWithConfiguration(newSink, a);
         }
 
 #if !__ANDROID__ && !__IOS__
         [Fact]
         public void TestConsoleLoggingLevels()
         {
-            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.Log.Console.Level = LogLevel.None;
-            var stringWriter = new StringWriter();
-            Console.SetOut(stringWriter);
-            WriteLog.To.Database.E("TEST", "TEST ERROR");
-            stringWriter.Flush();
-            stringWriter.ToString().Should().BeEmpty("because logging is disabled");
+            // OLD API
+            try {
+                WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
+                Database.Log.Console.Level = LogLevel.None;
 
-            Database.Log.Console.Level = LogLevel.Verbose;
-            stringWriter = new StringWriter();
-            Console.SetOut(stringWriter);
-            WriteLog.To.Database.V("TEST", "TEST VERBOSE");
-            WriteLog.To.Database.I("TEST", "TEST INFO");
-            WriteLog.To.Database.W("TEST", "TEST WARNING");
-            WriteLog.To.Database.E("TEST", "TEST ERROR");
-            stringWriter.Flush();
-            stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
-                .HaveCount(4, "because all levels should be logged");
+                var stringWriter = new StringWriter();
+                Console.SetOut(stringWriter);
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                stringWriter.Flush();
+                stringWriter.ToString().Should().BeEmpty("because logging is disabled");
 
-            var currentCount = 1;
-            foreach (var level in new[] { LogLevel.Error, LogLevel.Warning, 
-                LogLevel.Info}) {
-                Database.Log.Console.Level = level;
+                Database.Log.Console.Level = LogLevel.Verbose;
                 stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
                 WriteLog.To.Database.V("TEST", "TEST VERBOSE");
@@ -289,93 +320,250 @@ namespace Test
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
                 stringWriter.Flush();
                 stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
-                    .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
-                currentCount++;
+                    .HaveCount(4, "because all levels should be logged");
+
+                var currentCount = 1;
+                foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
+                LogLevel.Info}) {
+                    Database.Log.Console.Level = level;
+                    stringWriter = new StringWriter();
+                    Console.SetOut(stringWriter);
+                    WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                    WriteLog.To.Database.I("TEST", "TEST INFO");
+                    WriteLog.To.Database.W("TEST", "TEST WARNING");
+                    WriteLog.To.Database.E("TEST", "TEST ERROR");
+                    stringWriter.Flush();
+                    stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
+                        .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                    currentCount++;
+                }
+            } finally {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+                Database.Log.Custom = null;
+                Database.Log.Console.Level = LogLevel.Warning;
             }
 
-            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-            Database.Log.Console.Level = LogLevel.Warning;
+            // NEW API
+            var initialConsoleSink = LogSinks.ConsoleLogSink;
+            try {
+                LogSinks.ConsoleLogSink = null;
+                var stringWriter = new StringWriter();
+                Console.SetOut(stringWriter);
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                stringWriter.Flush();
+                stringWriter.ToString().Should().BeEmpty("because logging is disabled");
+
+                LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Verbose);
+                stringWriter = new StringWriter();
+                Console.SetOut(stringWriter);
+                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                WriteLog.To.Database.I("TEST", "TEST INFO");
+                WriteLog.To.Database.W("TEST", "TEST WARNING");
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                stringWriter.Flush();
+                stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
+                    .HaveCount(4, "because all levels should be logged");
+
+                var currentCount = 1;
+                foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
+                LogLevel.Info}) {
+                    LogSinks.ConsoleLogSink = new ConsoleLogSink(level);
+                    stringWriter = new StringWriter();
+                    Console.SetOut(stringWriter);
+                    WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                    WriteLog.To.Database.I("TEST", "TEST INFO");
+                    WriteLog.To.Database.W("TEST", "TEST WARNING");
+                    WriteLog.To.Database.E("TEST", "TEST ERROR");
+                    stringWriter.Flush();
+                    stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
+                        .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                    currentCount++;
+                }
+            } finally {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+                LogSinks.ConsoleLogSink = initialConsoleSink;
+            }
         }
 
         [Fact]
-        public void TestConsoleLoggingDomains()
+        public async Task TestConsoleLoggingDomains()
         {
-            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.Log.Console.Domains = LogDomain.None;
-            Database.Log.Console.Level = LogLevel.Info;
-            var stringWriter = new StringWriter();
-            Console.SetOut(stringWriter);
-            foreach (var domain in WriteLog.To.All) {
-                domain.I("TEST", "TEST MESSAGE");
-            }
-
-            stringWriter.Flush();
-            stringWriter.ToString().Should().BeEmpty("because all domains are disabled");
-            foreach (var domain in WriteLog.To.All) {
-                Database.Log.Console.Domains = domain.Domain;
-                stringWriter = new StringWriter();
+            // OLD API
+            try {
+                WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
+                Database.Log.Console.Domains = LogDomain.None;
+                Database.Log.Console.Level = LogLevel.Info;
+                var stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
-                foreach (var d in WriteLog.To.All) {
-                    d.I("TEST", "TEST MESSAGE");
+                foreach (var domain in WriteLog.To.All) {
+                    domain.I("TEST", "TEST MESSAGE");
                 }
 
                 stringWriter.Flush();
-                stringWriter.ToString().Should().Match(x => x.Contains(domain.Domain.ToString()));
+                stringWriter.ToString().Should().BeEmpty("because all domains are disabled");
+                foreach (var domain in WriteLog.To.All) {
+                    Database.Log.Console.Domains = domain.Domain;
+                    stringWriter = new StringWriter();
+                    Console.SetOut(stringWriter);
+                    foreach (var d in WriteLog.To.All) {
+                        d.I("TEST", "TEST MESSAGE");
+                    }
+
+                    stringWriter.Flush();
+                    stringWriter.ToString().Should().Match(x => x.Contains(domain.Domain.ToString()));
+                }
+            } finally {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+                Database.Log.Console.Domains = LogDomain.All;
+                Database.Log.Console.Level = LogLevel.Warning;
             }
 
-            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-            Database.Log.Console.Domains = LogDomain.All;
-            Database.Log.Console.Level = LogLevel.Warning;
+            // NEW API
+            var initialConsoleSink = LogSinks.ConsoleLogSink;
+            try {
+                LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Info)
+                {
+                    Domains = LogDomain.None
+                };
+
+                var stringWriter = new StringWriter();
+                Console.SetOut(stringWriter);
+                foreach (var domain in WriteLog.To.All) {
+                    domain.I("TEST", "TEST MESSAGE");
+                }
+
+                stringWriter.Flush();
+                stringWriter.ToString().Should().BeEmpty("because all domains are disabled");
+                foreach (var domain in WriteLog.To.All) {
+                    LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Info)
+                    {
+                        Domains = domain.Domain
+                    };
+
+                    stringWriter = new StringWriter();
+                    Console.SetOut(stringWriter);
+                    foreach (var d in WriteLog.To.All) {
+                        d.I("TEST", "TEST MESSAGE");
+                    }
+
+                    stringWriter.Flush();
+                    stringWriter.ToString().Should().Match(x => x.Contains(domain.Domain.ToString()));
+                }
+            } finally {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+                LogSinks.ConsoleLogSink = initialConsoleSink;
+            }
         }
 
         [Fact]
         public void TestFileLogDisabledWarning()
         {
-            Database.Log.File.Config.Should().BeNull();
+            LogSinks.FileLogSink.Should().BeNull();
 
-            using (var sw = new StringWriter()) {
-                Console.SetOut(sw);
-                var fakePath = Path.Combine(Service.GetInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
-                Database.Log.File.Config = new LogFileConfiguration(fakePath);
-                Database.Log.File.Config = null;
-                sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+            // OLD API
+            try {
+                Database.Log.Console.Level = LogLevel.Warning;
+                using (var sw = new StringWriter()) {
+                    Console.SetOut(sw);
+                    var fakePath = Path.Combine(Service.GetInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
+
+                    Database.Log.File.Config = new LogFileConfiguration(fakePath);
+                    Database.Log.File.Config = null;
+                    sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+                }
+            } finally {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+                Database.Log.Console.Level = LogLevel.Warning;
             }
-            
-            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+
+            // NEW API
+            try {
+                using (var sw = new StringWriter()) {
+                    Console.SetOut(sw);
+                    var fakePath = Path.Combine(Service.GetInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
+
+                    LogSinks.FileLogSink = new FileLogSink(LogLevel.Info, fakePath);
+                    LogSinks.FileLogSink = null;
+                    sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+                }
+            } finally {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+                LogSinks.FileLogSink = null;
+            }
         }
 #endif
 
         [Fact]
         public void TestCustomLoggingLevels()
         {
-            var customLogger = new LogTestLogger();
-            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.Log.Custom = customLogger;
-            customLogger.Level = LogLevel.None;
-            WriteLog.To.Database.E("TEST", "TEST ERROR");
-            customLogger.Lines.Should().BeEmpty("because logging level is set to None");
-            
+            // OLD API
+            try {
+                var customLogger = new LogTestLogger();
+                WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
+                Database.Log.Custom = customLogger;
+                customLogger.Level = LogLevel.None;
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                customLogger.Lines.Should().BeEmpty("because logging level is set to None");
 
-            customLogger.Level = LogLevel.Verbose;
-            WriteLog.To.Database.V("TEST", "TEST VERBOSE");
-            WriteLog.To.Database.I("TEST", "TEST INFO");
-            WriteLog.To.Database.W("TEST", "TEST WARNING");
-            WriteLog.To.Database.E("TEST", "TEST ERROR");
-            customLogger.Lines.Should().HaveCount(4, "because all levels should be logged");
-            customLogger.Reset();;
 
-            var currentCount = 1;
-            foreach (var level in new[] { LogLevel.Error, LogLevel.Warning, 
-                LogLevel.Info}) {
-                customLogger.Level = level;
+                customLogger.Level = LogLevel.Verbose;
                 WriteLog.To.Database.V("TEST", "TEST VERBOSE");
                 WriteLog.To.Database.I("TEST", "TEST INFO");
                 WriteLog.To.Database.W("TEST", "TEST WARNING");
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
-                customLogger.Lines.Should()
-                    .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
-                currentCount++;
-                customLogger.Reset();
+                customLogger.Lines.Should().HaveCount(4, "because all levels should be logged");
+                customLogger.Reset(); ;
+
+                var currentCount = 1;
+                foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
+                LogLevel.Info}) {
+                    customLogger.Level = level;
+                    WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                    WriteLog.To.Database.I("TEST", "TEST INFO");
+                    WriteLog.To.Database.W("TEST", "TEST WARNING");
+                    WriteLog.To.Database.E("TEST", "TEST ERROR");
+                    customLogger.Lines.Should()
+                        .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                    currentCount++;
+                    customLogger.Reset();
+                }
+            } finally {
+                Database.Log.Custom = null;
+            }
+
+            // NEW API
+            try {
+                var customSink = new LogTestSink(LogLevel.None);
+                WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
+                LogSinks.CustomLogSink = customSink;
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                customSink.Lines.Should().BeEmpty("because logging level is set to None");
+
+                customSink = new LogTestSink(LogLevel.Verbose);
+                LogSinks.CustomLogSink = customSink;
+                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                WriteLog.To.Database.I("TEST", "TEST INFO");
+                WriteLog.To.Database.W("TEST", "TEST WARNING");
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                customSink.Lines.Should().HaveCount(4, "because all levels should be logged");
+                customSink.Reset();
+
+                var currentCount = 1;
+                foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
+                LogLevel.Info}) {
+                    customSink = new LogTestSink(level);
+                    LogSinks.CustomLogSink = customSink;
+                    WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                    WriteLog.To.Database.I("TEST", "TEST INFO");
+                    WriteLog.To.Database.W("TEST", "TEST WARNING");
+                    WriteLog.To.Database.E("TEST", "TEST ERROR");
+                    customSink.Lines.Should()
+                        .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                    currentCount++;
+                    customSink.Reset();
+                }
+            } finally {
+                LogSinks.CustomLogSink = null;
             }
         }
 
@@ -383,8 +571,27 @@ namespace Test
         public void TestPlaintextLoggingLevels()
         {
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-
             var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestPlaintextLoggingLevels"));
+
+            Action a = () =>
+            {
+                foreach (var file in Directory.EnumerateFiles(logDirectory)) {
+                    if (file.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
+                        ReadAllLines(file).Should()
+                            .HaveCount(3, "because there should be 1 log line and 2 meta lines");
+                    } else if (file.Contains(LogLevel.Info.ToString().ToLowerInvariant())) {
+                        ReadAllLines(file).Should()
+                            .HaveCount(4, "because there should be 2 log lines and 2 meta lines");
+                    } else if (file.Contains(LogLevel.Warning.ToString().ToLowerInvariant())) {
+                        ReadAllLines(file).Should()
+                            .HaveCount(5, "because there should be 3 log lines and 2 meta lines");
+                    } else if (file.Contains(LogLevel.Error.ToString().ToLowerInvariant())) {
+                        ReadAllLines(file).Should()
+                            .HaveCount(6, "because there should be 4 log lines and 2 meta lines");
+                    }
+                }
+            };
+
             var config = new LogFileConfiguration(logDirectory)
             {
                 UsePlaintext = true,
@@ -402,34 +609,43 @@ namespace Test
                     WriteLog.To.Database.E("TEST", "TEST ERROR");
                 }
 
-                foreach (var file in Directory.EnumerateFiles(logDirectory)) {
-                    if (file.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(3, "because there should be 1 log line and 2 meta lines");
-                    } else if (file.Contains(LogLevel.Info.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(4, "because there should be 2 log lines and 2 meta lines");
-                    } else if (file.Contains(LogLevel.Warning.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(5, "because there should be 3 log lines and 2 meta lines");
-                    } else if (file.Contains(LogLevel.Error.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(6, "because there should be 4 log lines and 2 meta lines");
-                    }
-                }
+                a();
             });
+
+            try {
+                foreach (var level in new[]
+                        { LogLevel.None, LogLevel.Error, LogLevel.Warning, LogLevel.Info, LogLevel.Verbose }) {
+                    LogSinks.FileLogSink = new FileLogSink(level, logDirectory)
+                    {
+                        UsePlaintext = true,
+                        MaxKeptFiles = 1
+                    };
+                    WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                    WriteLog.To.Database.I("TEST", "TEST INFO");
+                    WriteLog.To.Database.W("TEST", "TEST WARNING");
+                    WriteLog.To.Database.E("TEST", "TEST ERROR");
+                }
+
+                a();
+            } finally {
+                LogSinks.FileLogSink = null;
+            }
         }
 
         [Fact]
         public void TestNonAscii()
         {
-            var customLogger = new LogTestLogger { Level = LogLevel.Verbose };
-            Database.Log.Custom = customLogger;
-            Database.Log.Console.Level = LogLevel.Verbose;
+            // Not worth testing both APIs on this one since
+            // It's the actual underlying implementation in LiteCore
+            // being tested
+            var customSink = new LogTestSink(LogLevel.Verbose);
+            var initialConsole = LogSinks.ConsoleLogSink;
+            LogSinks.CustomLogSink = customSink;
+            LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Verbose);
             try {
                 var hebrew = "מזג האוויר נחמד היום"; // The weather is nice today.
                 Database.Delete("test_non_ascii", null);
-                using(var db = new Database("test_non_ascii"))
+                using (var db = new Database("test_non_ascii"))
                 using (var doc = new MutableDocument()) {
                     doc.SetString("hebrew", hebrew);
                     db.GetDefaultCollection().Save(doc);
@@ -440,7 +656,7 @@ namespace Test
                     }
 
                     var expectedHebrew = "[{\"hebrew\":\"" + hebrew + "\"}]";
-                    var lines = customLogger.Lines;
+                    var lines = customSink.Lines;
                     foreach (var l in lines) {
                         Console.WriteLine(l);
                     }
@@ -448,8 +664,8 @@ namespace Test
                     lines.Any(x => x.Contains(expectedHebrew)).Should().BeTrue();
                 }
             } finally {
-                Database.Log.Custom = null;
-                Database.Log.Console.Level = LogLevel.Warning;
+                LogSinks.CustomLogSink = null;
+                LogSinks.ConsoleLogSink = initialConsole;
             }
         }
 
@@ -461,8 +677,19 @@ namespace Test
             try {
                 a();
             } finally {
-                Database.Log.File.Level = LogLevel.Info;
+                Database.Log.File.Level = LogLevel.None;
                 Database.Log.File.Config = old;
+            }
+        }
+
+        private void TestWithConfiguration(FileLogSink logSink, Action a)
+        {
+            var old = LogSinks.FileLogSink;
+            LogSinks.FileLogSink = logSink;
+            try {
+                a();
+            } finally {
+                LogSinks.FileLogSink = old;
             }
         }
 
@@ -482,7 +709,7 @@ namespace Test
         private static string[] ReadAllLines(string path)
         {
             var lines = new List<string>();
-            using(var fin = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var fin = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var reader = new StreamReader(fin)) {
                 string line;
                 while ((line = reader.ReadLine()) != null) {
@@ -495,7 +722,7 @@ namespace Test
 
         private static byte[] ReadAllBytes(string path)
         {
-            using(var fin = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var fin = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var reader = new BinaryReader(fin)) {
                 var retVal = new byte[fin.Length];
                 reader.Read(retVal, 0, retVal.Length);
@@ -521,6 +748,17 @@ namespace Test
                     _lines.Add(message);
                 }
             }
+        }
+
+        private class LogTestSink(LogLevel level) : BaseLogSink(level)
+        {
+            private readonly List<string> _lines = new List<string>();
+
+            public IReadOnlyList<string> Lines => _lines;
+
+            protected override void WriteLog(LogLevel level, LogDomain domain, string message) => _lines.Add(message);
+
+            public void Reset() => _lines.Clear();
         }
     }
 }
