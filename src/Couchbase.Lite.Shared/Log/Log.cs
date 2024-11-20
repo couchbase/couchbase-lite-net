@@ -55,15 +55,28 @@ namespace Couchbase.Lite.Internal.Logging
         {
             get {
                 if (!_Initialized.Set(true)) {
-                    var oldLevel = Database.Log.Console.Level;
-                    Database.Log.Console.Level = LogLevel.Info;
-                    _To.Database.I("Startup", HTTPLogic.UserAgent);
-                    Database.Log.Console.Level = oldLevel;
+                    if (DomainLogger.OldApiUsed()) {
+#pragma warning disable CS0618 // Type or member is obsolete
+                        var oldLevel = Database.Log.Console.Level;
+                        Database.Log.Console.Level = LogLevel.Info;
+                        _To.Database.I("Startup", HTTPLogic.UserAgent);
+                        Database.Log.Console.Level = oldLevel;
+#pragma warning restore CS0618 // Type or member is obsolete
+                    } else {
+                        var oldConsole = LogSinks.ConsoleLogSink;
+                        LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Info);
+                        _To.Database.I("Startup", HTTPLogic.UserAgent);
+                        LogSinks.ConsoleLogSink = oldConsole;
+                    }
                 }
 
                 // Not the best place to do this, but otherwise we have to require the developer
                 // To signal us when they change the log level
-                RecalculateLevel();
+                if (DomainLogger.OldApiUsed()) {
+#pragma warning disable CS0612 // Type or member is obsolete
+                    RecalculateLevel();
+#pragma warning restore CS0612 // Type or member is obsolete
+                }
                 return _To;
             }
         }
@@ -82,6 +95,7 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Internal Methods
 
+        [Obsolete]
         internal static void RecalculateLevel()
         {
             var effectiveLevel = (LogLevel)Math.Min((int) Database.Log.Console.Level,
@@ -93,8 +107,12 @@ namespace Couchbase.Lite.Internal.Logging
             _CurrentLevel = effectiveLevel;
             Task.Factory.StartNew(() =>
             {
-                Native.c4log_writeToCallback((C4LogLevel) effectiveLevel, LogCallback, true);
             });
+        }
+
+        internal static void SetCallbackLevel(LogLevel level) 
+        {
+            Native.c4log_writeToCallback((C4LogLevel)level, LogCallback, true);
         }
 
         #endregion
@@ -114,13 +132,24 @@ namespace Couchbase.Lite.Internal.Logging
         {
             // Not the best place to do this, but otherwise we have to require the developer
             // To signal us when they change the log level
-            RecalculateLevel();
+            if (DomainLogger.OldApiUsed()) {
+#pragma warning disable CS0612 // Type or member is obsolete
+                RecalculateLevel();
+#pragma warning restore CS0612 // Type or member is obsolete
+            }
 
             var domainName = Native.c4log_getDomainName(domain) ?? "";
             var logDomain = To.DomainForString(domainName);
             var actualMessage = message.ToUTF8String();
-            Database.Log.Console.Log((LogLevel)level, logDomain, actualMessage);
-            Database.Log.Custom?.Log((LogLevel)level, logDomain, actualMessage);
+            if (DomainLogger.OldApiUsed()) {
+#pragma warning disable CS0618 // Type or member is obsolete
+                Database.Log.Console.Log((LogLevel)level, logDomain, actualMessage);
+                Database.Log.Custom?.Log((LogLevel)level, logDomain, actualMessage);
+#pragma warning restore CS0618 // Type or member is obsolete
+            } else {
+                LogSinks.ConsoleLogSink?.Log((LogLevel)level, logDomain, actualMessage);
+                LogSinks.CustomLogSink?.Log((LogLevel)level, logDomain, actualMessage);
+            }
         }
 
         #endregion

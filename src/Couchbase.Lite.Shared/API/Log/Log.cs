@@ -17,29 +17,44 @@
 // 
 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
+using System;
 
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
-    /// The class that stores the three available logging facilities in Couchbase Lite
+    /// [DEPRECATED] The class that stores the three available logging facilities in Couchbase Lite
     /// </summary>
+    [Obsolete("Use the new LogSinks static class")]
     public sealed class Log
     {
+        private ILogger? _custom;
+
         #region Properties
 
         /// <summary>
-        /// Gets the logging facility that logs to a debugging console
+        /// [DEPRECATED] Gets the logging facility that logs to a debugging console
         /// </summary>
+        [Obsolete("Use LogSinks.ConsoleLogSink instead")]
         public IConsoleLogger Console { get; } = Service.GetRequiredInstance<IConsoleLogger>();
 
         /// <summary>
-        /// Gets or sets the user defined logging facility
+        /// [DEPRECATED] Gets or sets the user defined logging facility
         /// </summary>
-        public ILogger? Custom { get; set; }
+        [Obsolete("Use LogSinks.CustomLogSink instead")]
+        public ILogger? Custom
+        {
+            get => _custom;
+            set {
+                DomainLogger.ThrowIfNewApiUsed();
+                _custom = value;
+            }
+        }
 
         /// <summary>
-        /// Gets the logging facility that logs to files on the disk
+        /// [DEPRECATED] Gets the logging facility that logs to files on the disk
         /// </summary>
+        [Obsolete("Use LogSinks.FileLogSink instead")]
         public FileLogger File { get; } = new FileLogger();
 
         #endregion
