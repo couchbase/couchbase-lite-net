@@ -141,7 +141,7 @@ namespace LiteCore.Interop
         }
     }
 
-    internal unsafe partial struct FLSliceResult
+    internal unsafe partial struct FLSliceResult : IDisposable
     {
         public void* buf;
         private UIntPtr _size;
@@ -154,6 +154,27 @@ namespace LiteCore.Interop
             set {
                 _size = (UIntPtr)value;
             }
+        }
+
+        public FLSliceResult(void* buf, ulong size)
+        {
+            this.buf = buf;
+            _size = (UIntPtr)size;
+        }
+
+        public static explicit operator FLSlice(FLSliceResult input)
+        {
+            return new FLSlice(input.buf, input.size);
+        }
+
+        public string? CreateString()
+        {
+            return ((FLSlice)this).CreateString();
+        }
+
+        public void Dispose()
+        {
+            Native.FLSliceResult_Release(this);
         }
 
         public override int GetHashCode()
@@ -243,30 +264,6 @@ namespace LiteCore.Interop
         }
 
         public override string ToString() => $"FLHeapSlice[{CreateString()}]";
-    }
-
-    internal unsafe partial struct FLSliceResult : IDisposable
-    {
-        public FLSliceResult(void* buf, ulong size)
-        {
-            this.buf = buf;
-            _size = (UIntPtr)size;
-        }
-
-        public static explicit operator FLSlice(FLSliceResult input)
-        {
-            return new FLSlice(input.buf, input.size);
-        }
-
-        public string? CreateString()
-        {
-            return ((FLSlice)this).CreateString();
-        }
-
-        public void Dispose()
-        {
-            Native.FLSliceResult_Release(this);
-        }
     }
 
     internal static unsafe class FLSlotSetExt

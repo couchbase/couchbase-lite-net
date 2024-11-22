@@ -47,6 +47,12 @@ public static partial class Constants {
 	public static readonly bool DefaultDatabaseFullSync = false;
 
 	/// <summary>
+	/// Default value for <see cref="DatabaseConfiguration.MmapEnabled" /> (true)
+	/// Memory mapped database files are enabled by default
+	/// </summary>
+	public static readonly bool DefaultDatabaseMmapEnabled = true;
+
+	/// <summary>
 	/// Default value for <see cref="LogFileConfiguration.UsePlaintext" /> (false)
 	/// Plaintext is not used, and instead binary encoding is used in log files
 	/// </summary>
@@ -140,7 +146,7 @@ public static partial class Constants {
 
 	/// <summary>
 	/// Default value for <see cref="VectorIndexConfiguration.DistanceMetric" /> (DistanceMetric.EuclideanSquared)
-	/// By default, vectors are compared using Squared Euclidean metrics
+	/// By default, vectors are compared using squared Euclidean metrics
 	/// </summary>
 	public static readonly DistanceMetric DefaultVectorIndexDistanceMetric = DistanceMetric.EuclideanSquared;
 
