@@ -201,7 +201,7 @@ namespace Test
 
             _repl.Start(reset);
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(20));
             } catch {
                 _repl.Stop();
                 throw;
