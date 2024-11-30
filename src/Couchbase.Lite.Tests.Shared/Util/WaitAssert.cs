@@ -19,6 +19,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,9 +35,26 @@ namespace Couchbase.Lite
 
         public static void WaitFor(TimeSpan timeout, params WaitAssert[] asserts)
         {
+            // .NET 4.6.2 has issues with WaitHandle.WaitAll, so sort of simulate it
+            // by giving the first wait handle the full wait time and then subtracting
+            // the runtime and giving the remainder to the next, etc
             var handles = asserts.Select(x => x._mre).ToArray();
-            if (!WaitHandle.WaitAll(handles, timeout)) {
-                throw new TimeoutException("Timeout waiting for array of WaitAsserts");
+            if(handles.Length == 0) {
+                return;
+            }
+
+            var timeLeft = timeout;
+            foreach(var handle in handles) {
+                if (timeLeft <= TimeSpan.Zero) {
+                    throw new TimeoutException("Timeout waiting for array of WaitAsserts");
+                }
+
+                var sw = Stopwatch.StartNew();
+                if(!handle.WaitOne(timeLeft)) {
+                    throw new TimeoutException("Timeout waiting for array of WaitAsserts");
+                }
+                sw.Stop();
+                timeLeft -= sw.Elapsed;
             }
         }
 
