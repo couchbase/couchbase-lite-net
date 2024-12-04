@@ -153,6 +153,7 @@ namespace Test
             };
             TestWithConfiguration(LogLevel.Debug, config, a);
 
+            logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestMaxSize"));
             var newSink = new FileLogSink(LogLevel.Debug, logDirectory)
             {
                 UsePlaintext = true,
@@ -567,6 +568,39 @@ namespace Test
             }
         }
 
+        private void VerifyPlaintextLogFile(string path)
+        {
+            var lines = ReadAllLines(path);
+            string textToFind;
+            int expectedFindCount;
+            if (path.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
+                textToFind = "TEST VERBOSE";
+                expectedFindCount = 1;
+            } else if (path.Contains(LogLevel.Info.ToString().ToLowerInvariant())) {
+                textToFind = "TEST INFO";
+                expectedFindCount = 2;
+            } else if (path.Contains(LogLevel.Warning.ToString().ToLowerInvariant())) {
+                textToFind = "TEST WARNING";
+                expectedFindCount = 3;
+            } else if (path.Contains(LogLevel.Error.ToString().ToLowerInvariant())) {
+                textToFind = "TEST ERROR";
+                expectedFindCount = 4;
+            } else {
+                return;
+            }
+
+            var foundCount = 0;
+            lines[0].Should().Contain("serialNo=", "because otherwise the first line of {0} is invalid", path);
+            lines[1].Should().Contain("CouchbaseLite/", "because otherwise the second line of {0} is invalid", path);
+            foreach(var line in lines.Skip(2)) {
+                if(line.Contains(textToFind)) {
+                    foundCount++;
+                }
+            }
+
+            foundCount.Should().Be(expectedFindCount, "because there should be {0} instance of '{1}'", expectedFindCount, textToFind);
+        }
+
         [Fact]
         public void TestPlaintextLoggingLevels()
         {
@@ -576,19 +610,7 @@ namespace Test
             Action a = () =>
             {
                 foreach (var file in Directory.EnumerateFiles(logDirectory)) {
-                    if (file.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(3, "because there should be 1 log line and 2 meta lines");
-                    } else if (file.Contains(LogLevel.Info.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(4, "because there should be 2 log lines and 2 meta lines");
-                    } else if (file.Contains(LogLevel.Warning.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(5, "because there should be 3 log lines and 2 meta lines");
-                    } else if (file.Contains(LogLevel.Error.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(6, "because there should be 4 log lines and 2 meta lines");
-                    }
+                    VerifyPlaintextLogFile(file);
                 }
             };
 
@@ -611,6 +633,8 @@ namespace Test
 
                 a();
             });
+
+            logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestPlaintextLoggingLevels"));
 
             try {
                 foreach (var level in new[]
