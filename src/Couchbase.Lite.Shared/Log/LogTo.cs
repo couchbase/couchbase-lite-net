@@ -145,10 +145,10 @@ namespace Couchbase.Lite.Internal.Logging
 
         internal static void ThrowIfNewApiUsed()
         {
-            if(LogSinks.ConsoleLogSink == null
-                || LogSinks.ConsoleLogSink.Level != LogLevel.Warning
-                || LogSinks.FileLogSink != null
-                || LogSinks.CustomLogSink != null) {
+            if(LogSinks.Console == null
+                || LogSinks.Console.Level != LogLevel.Warning
+                || LogSinks.File != null
+                || LogSinks.Custom != null) {
                 throw new InvalidOperationException("Cannot use both new and old logging API simultaneously (new API previously used)");
             }
         }
@@ -201,19 +201,19 @@ namespace Couchbase.Lite.Internal.Logging
                 }
 #pragma warning restore CS0618 // Type or member is obsolete
             } else {
-                LogSinks.ConsoleLogSink?.Log(level, Domain, msg);
+                LogSinks.Console?.Log(level, Domain, msg);
                 try {
-                    LogSinks.FileLogSink?.Log(level, Domain, msg);
+                    LogSinks.File?.Log(level, Domain, msg);
                     fileSucceeded = true;
-                    LogSinks.CustomLogSink?.Log(level, Domain, msg);
+                    LogSinks.Custom?.Log(level, Domain, msg);
                 } catch (Exception e) {
                     var logType = fileSucceeded
-                        ? LogSinks.CustomLogSink?.GetType()?.Name
+                        ? LogSinks.Custom?.GetType()?.Name
                         : "log file";
                     var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
-                    LogSinks.ConsoleLogSink?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                    LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
                     if (!fileSucceeded) {
-                        LogSinks.ConsoleLogSink?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                        LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
                     }
                 }
             }

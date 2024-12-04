@@ -22,7 +22,7 @@ namespace Couchbase.Lite.Logging;
 
 /// <summary>
 /// The abstract base class of log sinks to inherit from for 
-/// <see cref="LogSinks.CustomLogSink"/>
+/// <see cref="LogSinks.Custom"/>
 /// </summary>
 /// <param name="level">The log level to emit.  Levels more verbose than this will not
 /// be received by <see cref="WriteLog(LogLevel, LogDomain, string)"/></param>

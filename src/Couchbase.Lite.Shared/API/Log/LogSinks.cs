@@ -29,9 +29,9 @@ namespace Couchbase.Lite.Logging;
 /// </summary>
 public static class LogSinks
 {
-    private static FileLogSink? _FileLogSink;
-    private static ConsoleLogSink? _ConsoleLogSink = new ConsoleLogSink(LogLevel.Warning);
-    private static BaseLogSink? _CustomLogSink;
+    private static FileLogSink? _File;
+    private static ConsoleLogSink? _Console = new ConsoleLogSink(LogLevel.Warning);
+    private static BaseLogSink? _Custom;
 
     private static LogLevel _PreviousOverallLogLevel = LogLevel.Warning;
     private static LogLevel _PreviousPlatformSideLogLevel = LogLevel.Warning;
@@ -49,17 +49,17 @@ public static class LogSinks
     /// Gets or sets the file logging sink.  This must be set up in order to receive SDK support, as 
     /// the logs files it generates will be requested.  
     /// </summary>
-    public static FileLogSink? FileLogSink
+    public static FileLogSink? File
     {
         get {
-            return _FileLogSink;
+            return _File;
         }
         set {
             DomainLogger.ThrowIfOldApiUsed();
-            FileLogSink.Apply(_FileLogSink, value);
-            _FileLogSink = value;
+            FileLogSink.Apply(_File, value);
+            _File = value;
             SetDomainLevels(OverallLogLevel);
-            if(_FileLogSink == null) {
+            if(_File == null) {
                 WriteLog.To.Database.W("Logging", "LogSinks.FileLogSink is now null, meaning file logging is disabled.  Log files required for product support are not being generated.");
             }
         }
@@ -69,14 +69,14 @@ public static class LogSinks
     /// Gets or sets the console logging sink.  Useful for quick debugging, but expensive
     /// for production use. 
     /// </summary>
-    public static ConsoleLogSink? ConsoleLogSink
+    public static ConsoleLogSink? Console
     {
         get {
-            return _ConsoleLogSink;
+            return _Console;
         }
         set {
             DomainLogger.ThrowIfOldApiUsed();
-            _ConsoleLogSink = value;
+            _Console = value;
             SetDomainLevels(OverallLogLevel);
             SetPlatformSideLogLevel(PlatformSideLogLevel);
         }
@@ -86,14 +86,14 @@ public static class LogSinks
     /// Gets or sets the custom logging sink.  Useful for hooking into an existing logging
     /// infrastructure that may be set up in an application already. 
     /// </summary>
-    public static BaseLogSink? CustomLogSink
+    public static BaseLogSink? Custom
     {
         get {
-            return _CustomLogSink;
+            return _Custom;
         }
         set {
             DomainLogger.ThrowIfOldApiUsed();
-            _CustomLogSink = value;
+            _Custom = value;
             SetDomainLevels(OverallLogLevel);
             SetPlatformSideLogLevel(PlatformSideLogLevel);
         }
@@ -102,7 +102,7 @@ public static class LogSinks
     private static LogLevel OverallLogLevel
     {
         get {
-            var fileLevel = _FileLogSink?.Level ?? LogLevel.None;
+            var fileLevel = _File?.Level ?? LogLevel.None;
 
             return (LogLevel)Math.Min((int)fileLevel, (int)PlatformSideLogLevel);
         }
@@ -111,8 +111,8 @@ public static class LogSinks
     private static LogLevel PlatformSideLogLevel
     {
         get {
-            var consoleLevel = _ConsoleLogSink?.Level ?? LogLevel.None;
-            var customLevel = _CustomLogSink?.Level ?? LogLevel.None;
+            var consoleLevel = _Console?.Level ?? LogLevel.None;
+            var customLevel = _Custom?.Level ?? LogLevel.None;
 
             return (LogLevel)Math.Min((int)consoleLevel, (int)customLevel);
         }

@@ -302,7 +302,7 @@ namespace Couchbase.Lite
         private void CheckFileLogger()
         {
 #pragma warning disable CS0618 // Type or member is obsolete
-            if (Log.File.Config == null && LogSinks.FileLogSink == null) {
+            if (Log.File.Config == null && LogSinks.File == null) {
                 WriteLog.To.Database.W("Logging", "LogSinks.FileLogSink is null, meaning file logging is disabled.  Log files required for product support are not being generated.");
             }
 #pragma warning restore CS0618 // Type or member is obsolete
