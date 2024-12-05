@@ -345,16 +345,16 @@ namespace Test
             }
 
             // NEW API
-            var initialConsoleSink = LogSinks.ConsoleLogSink;
+            var initialConsoleSink = LogSinks.Console;
             try {
-                LogSinks.ConsoleLogSink = null;
+                LogSinks.Console = null;
                 var stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
                 stringWriter.Flush();
                 stringWriter.ToString().Should().BeEmpty("because logging is disabled");
 
-                LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Verbose);
+                LogSinks.Console = new ConsoleLogSink(LogLevel.Verbose);
                 stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
                 WriteLog.To.Database.V("TEST", "TEST VERBOSE");
@@ -368,7 +368,7 @@ namespace Test
                 var currentCount = 1;
                 foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
                 LogLevel.Info}) {
-                    LogSinks.ConsoleLogSink = new ConsoleLogSink(level);
+                    LogSinks.Console = new ConsoleLogSink(level);
                     stringWriter = new StringWriter();
                     Console.SetOut(stringWriter);
                     WriteLog.To.Database.V("TEST", "TEST VERBOSE");
@@ -382,7 +382,7 @@ namespace Test
                 }
             } finally {
                 Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-                LogSinks.ConsoleLogSink = initialConsoleSink;
+                LogSinks.Console = initialConsoleSink;
             }
         }
 
@@ -420,9 +420,9 @@ namespace Test
             }
 
             // NEW API
-            var initialConsoleSink = LogSinks.ConsoleLogSink;
+            var initialConsoleSink = LogSinks.Console;
             try {
-                LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Info)
+                LogSinks.Console = new ConsoleLogSink(LogLevel.Info)
                 {
                     Domains = LogDomain.None
                 };
@@ -436,7 +436,7 @@ namespace Test
                 stringWriter.Flush();
                 stringWriter.ToString().Should().BeEmpty("because all domains are disabled");
                 foreach (var domain in WriteLog.To.All) {
-                    LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Info)
+                    LogSinks.Console = new ConsoleLogSink(LogLevel.Info)
                     {
                         Domains = domain.Domain
                     };
@@ -452,14 +452,14 @@ namespace Test
                 }
             } finally {
                 Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-                LogSinks.ConsoleLogSink = initialConsoleSink;
+                LogSinks.Console = initialConsoleSink;
             }
         }
 
         [Fact]
         public void TestFileLogDisabledWarning()
         {
-            LogSinks.FileLogSink.Should().BeNull();
+            LogSinks.File.Should().BeNull();
 
             // OLD API
             try {
@@ -483,13 +483,13 @@ namespace Test
                     Console.SetOut(sw);
                     var fakePath = Path.Combine(Service.GetInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
 
-                    LogSinks.FileLogSink = new FileLogSink(LogLevel.Info, fakePath);
-                    LogSinks.FileLogSink = null;
+                    LogSinks.File = new FileLogSink(LogLevel.Info, fakePath);
+                    LogSinks.File = null;
                     sw.ToString().Contains("file logging is disabled").Should().BeTrue();
                 }
             } finally {
                 Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-                LogSinks.FileLogSink = null;
+                LogSinks.File = null;
             }
         }
 #endif
@@ -536,12 +536,12 @@ namespace Test
             try {
                 var customSink = new LogTestSink(LogLevel.None);
                 WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-                LogSinks.CustomLogSink = customSink;
+                LogSinks.Custom = customSink;
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
                 customSink.Lines.Should().BeEmpty("because logging level is set to None");
 
                 customSink = new LogTestSink(LogLevel.Verbose);
-                LogSinks.CustomLogSink = customSink;
+                LogSinks.Custom = customSink;
                 WriteLog.To.Database.V("TEST", "TEST VERBOSE");
                 WriteLog.To.Database.I("TEST", "TEST INFO");
                 WriteLog.To.Database.W("TEST", "TEST WARNING");
@@ -553,7 +553,7 @@ namespace Test
                 foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
                 LogLevel.Info}) {
                     customSink = new LogTestSink(level);
-                    LogSinks.CustomLogSink = customSink;
+                    LogSinks.Custom = customSink;
                     WriteLog.To.Database.V("TEST", "TEST VERBOSE");
                     WriteLog.To.Database.I("TEST", "TEST INFO");
                     WriteLog.To.Database.W("TEST", "TEST WARNING");
@@ -564,7 +564,7 @@ namespace Test
                     customSink.Reset();
                 }
             } finally {
-                LogSinks.CustomLogSink = null;
+                LogSinks.Custom = null;
             }
         }
 
@@ -639,7 +639,7 @@ namespace Test
             try {
                 foreach (var level in new[]
                         { LogLevel.None, LogLevel.Error, LogLevel.Warning, LogLevel.Info, LogLevel.Verbose }) {
-                    LogSinks.FileLogSink = new FileLogSink(level, logDirectory)
+                    LogSinks.File = new FileLogSink(level, logDirectory)
                     {
                         UsePlaintext = true,
                         MaxKeptFiles = 1
@@ -652,7 +652,7 @@ namespace Test
 
                 a();
             } finally {
-                LogSinks.FileLogSink = null;
+                LogSinks.File = null;
             }
         }
 
@@ -663,9 +663,9 @@ namespace Test
             // It's the actual underlying implementation in LiteCore
             // being tested
             var customSink = new LogTestSink(LogLevel.Verbose);
-            var initialConsole = LogSinks.ConsoleLogSink;
-            LogSinks.CustomLogSink = customSink;
-            LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Verbose);
+            var initialConsole = LogSinks.Console;
+            LogSinks.Custom = customSink;
+            LogSinks.Console = new ConsoleLogSink(LogLevel.Verbose);
             try {
                 var hebrew = "מזג האוויר נחמד היום"; // The weather is nice today.
                 Database.Delete("test_non_ascii", null);
@@ -688,8 +688,8 @@ namespace Test
                     lines.Any(x => x.Contains(expectedHebrew)).Should().BeTrue();
                 }
             } finally {
-                LogSinks.CustomLogSink = null;
-                LogSinks.ConsoleLogSink = initialConsole;
+                LogSinks.Custom = null;
+                LogSinks.Console = initialConsole;
             }
         }
 
@@ -708,12 +708,12 @@ namespace Test
 
         private void TestWithConfiguration(FileLogSink logSink, Action a)
         {
-            var old = LogSinks.FileLogSink;
-            LogSinks.FileLogSink = logSink;
+            var old = LogSinks.File;
+            LogSinks.File = logSink;
             try {
                 a();
             } finally {
-                LogSinks.FileLogSink = old;
+                LogSinks.File = old;
             }
         }
 

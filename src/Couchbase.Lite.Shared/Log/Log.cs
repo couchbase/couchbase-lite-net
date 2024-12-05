@@ -63,10 +63,10 @@ namespace Couchbase.Lite.Internal.Logging
                         Database.Log.Console.Level = oldLevel;
 #pragma warning restore CS0618 // Type or member is obsolete
                     } else {
-                        var oldConsole = LogSinks.ConsoleLogSink;
-                        LogSinks.ConsoleLogSink = new ConsoleLogSink(LogLevel.Info);
+                        var oldConsole = LogSinks.Console;
+                        LogSinks.Console = new ConsoleLogSink(LogLevel.Info);
                         _To.Database.I("Startup", HTTPLogic.UserAgent);
-                        LogSinks.ConsoleLogSink = oldConsole;
+                        LogSinks.Console = oldConsole;
                     }
                 }
 
@@ -149,8 +149,8 @@ namespace Couchbase.Lite.Internal.Logging
                 Database.Log.Custom?.Log((LogLevel)level, logDomain, actualMessage);
 #pragma warning restore CS0618 // Type or member is obsolete
             } else {
-                LogSinks.ConsoleLogSink?.Log((LogLevel)level, logDomain, actualMessage);
-                LogSinks.CustomLogSink?.Log((LogLevel)level, logDomain, actualMessage);
+                LogSinks.Console?.Log((LogLevel)level, logDomain, actualMessage);
+                LogSinks.Custom?.Log((LogLevel)level, logDomain, actualMessage);
             }
         }
 
