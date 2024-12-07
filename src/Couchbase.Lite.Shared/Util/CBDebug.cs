@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Util
     [ExcludeFromCodeCoverage]
     internal static class CBDebug
     {
-            public static void AssertAndLog(DomainLogger logger,
+        public static void AssertAndLog(DomainLogger logger,
                 [DoesNotReturnIf(false)]
                 bool assertion, string tag, string message)
         {
