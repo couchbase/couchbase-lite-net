@@ -36,7 +36,7 @@ pipeline {
                                 '''
                             }
                         }
-                        stage(".NET 6 Windows") {
+                        stage(".NET Windows") {
                             steps {
                                 powershell 'jenkins\\run_net_console_tests.ps1'
                             }

@@ -632,8 +632,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
-        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+        /// Creates an index with the given name, using one of the various specializations of <see cref="IndexConfiguration" />
         /// The name can be used for deleting the index. Creating a new different index with an existing
         /// index name will replace the old index; creating the same index with the same name will be no-ops.
         /// </summary>
