@@ -107,7 +107,7 @@ internal static unsafe partial class NativeSafe
     // Database Exclusive Methods
 
     public static bool c4coll_createIndex(C4CollectionWrapper collection, string name, 
-        string indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, 
+        string? indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, 
         C4IndexOptions* indexOptions, C4Error* outError)
     {
         return collection.UseSafe(c =>
