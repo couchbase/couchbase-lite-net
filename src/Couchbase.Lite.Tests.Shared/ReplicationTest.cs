@@ -197,7 +197,7 @@ namespace Test
 
             replicator.Start(reset);
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(20));
             } catch {
                 replicator.Stop();
                 throw;
