@@ -59,8 +59,11 @@ namespace Test
 #endif
 
 #if !WINDOWS_UWP
+        private ITestOutputHelper _output;
+
         public LogTest(ITestOutputHelper output)
         {
+            _output = output;
         }
 #endif
 
@@ -532,15 +535,16 @@ namespace Test
                 Database.Log.Custom = null;
             }
 
+#if !WINDOWS_UWP
             // NEW API
             try {
-                var customSink = new LogTestSink(LogLevel.None);
+                var customSink = new LogTestSink(_output, LogLevel.None);
                 WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
                 LogSinks.Custom = customSink;
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
                 customSink.Lines.Should().BeEmpty("because logging level is set to None");
 
-                customSink = new LogTestSink(LogLevel.Verbose);
+                customSink = new LogTestSink(_output, LogLevel.Verbose);
                 LogSinks.Custom = customSink;
                 WriteLog.To.Database.V("TEST", "TEST VERBOSE");
                 WriteLog.To.Database.I("TEST", "TEST INFO");
@@ -552,7 +556,7 @@ namespace Test
                 var currentCount = 1;
                 foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
                 LogLevel.Info}) {
-                    customSink = new LogTestSink(level);
+                    customSink = new LogTestSink(_output, level);
                     LogSinks.Custom = customSink;
                     WriteLog.To.Database.V("TEST", "TEST VERBOSE");
                     WriteLog.To.Database.I("TEST", "TEST INFO");
@@ -566,6 +570,7 @@ namespace Test
             } finally {
                 LogSinks.Custom = null;
             }
+#endif
         }
 
         private void VerifyPlaintextLogFile(string path)
@@ -656,13 +661,14 @@ namespace Test
             }
         }
 
+#if !WINDOWS_UWP
         [Fact]
         public void TestNonAscii()
         {
             // Not worth testing both APIs on this one since
             // It's the actual underlying implementation in LiteCore
             // being tested
-            var customSink = new LogTestSink(LogLevel.Verbose);
+            var customSink = new LogTestSink(_output, LogLevel.Verbose);
             var initialConsole = LogSinks.Console;
             LogSinks.Custom = customSink;
             LogSinks.Console = new ConsoleLogSink(LogLevel.Verbose);
@@ -692,6 +698,7 @@ namespace Test
                 LogSinks.Console = initialConsole;
             }
         }
+#endif
 
         private void TestWithConfiguration(LogLevel level, LogFileConfiguration config, Action a)
         {
@@ -774,13 +781,17 @@ namespace Test
             }
         }
 
-        private class LogTestSink(LogLevel level) : BaseLogSink(level)
+        private class LogTestSink(ITestOutputHelper output, LogLevel level) : BaseLogSink(level)
         {
             private readonly List<string> _lines = new List<string>();
 
             public IReadOnlyList<string> Lines => _lines;
 
-            protected override void WriteLog(LogLevel level, LogDomain domain, string message) => _lines.Add(message);
+            protected override void WriteLog(LogLevel level, LogDomain domain, string message)
+            {
+                output.WriteLine(message);
+                _lines.Add(message);
+            }
 
             public void Reset() => _lines.Clear();
         }

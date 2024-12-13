@@ -124,6 +124,12 @@ namespace Couchbase.Lite.Sync
         /// If setting the value to <c>true</c>, please ensure that your application delegate
         /// requests background time from the OS until the replication finishes.
         /// </summary>
+        /// <remarks>
+        /// > [!WARNING]
+        /// > There is a bug in 3.2.1 in which the functionality is reversed from
+        /// > what the documentation says, so please upgrade from that version 
+        /// > to get the correct behavior
+        /// </remarks>
         public bool AllowReplicatingInBackground
         {
             get => _allowReplicatingInBackground;

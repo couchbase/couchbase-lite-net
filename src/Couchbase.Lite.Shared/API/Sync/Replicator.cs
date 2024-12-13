@@ -317,7 +317,7 @@ namespace Couchbase.Lite.Sync
                         Config.DatabaseInternal.AddActiveStoppable(this);
                         status = Native.c4repl_getStatus(_repl);
 #if __IOS__ && !MACCATALYST
-                        if(Config.AllowReplicatingInBackground) {
+                        if(!Config.AllowReplicatingInBackground) {
                             if (ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.DEVICE) {
                                 StartBackgroundingMonitor();
                             } else {
