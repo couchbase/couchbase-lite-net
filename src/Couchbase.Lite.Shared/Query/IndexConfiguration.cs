@@ -53,10 +53,6 @@ namespace Couchbase.Lite.Internal.Query
                 if(expressions.Length == 1 && expressions[0] == "") { 
                     throw new ArgumentException("Contained only one empty entry, use null instead", nameof(expressions));
                 }
-
-                if(expressions.Length == 0) {
-                    throw new ArgumentException("Empty list of expressions is not allowed, use null instead", nameof(expressions));
-                }
             }
 
             // Expressions may still be invalid here, but the user will be alerted when they
@@ -70,10 +66,10 @@ namespace Couchbase.Lite.Internal.Query
 
         }
 
-        internal string? ToN1QL()
+        internal string ToN1QL()
         {
             if(Expressions == null) {
-                return null;
+                return "";
             }
 
             return String.Join(",", Expressions);

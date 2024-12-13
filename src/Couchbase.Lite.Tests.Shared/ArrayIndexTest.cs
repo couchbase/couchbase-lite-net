@@ -43,12 +43,6 @@ namespace Test
             
         }
 
-        public static IEnumerable<object[]> BadExpressionValues = new List<object[]>()
-        {
-            new object[] { new List<string>() },
-            new object[] { new List<string> { "" } }
-        };
-
         private void TestCreateArrayIndexWith(string indexName, string path, params string[] expressions)
         {
             var indexNameB = $"{indexName}b";
@@ -90,13 +84,11 @@ namespace Test
         ///     - expressions: [""]
         /// 4. Check that an invalid arument exception is thrown.
         /// </summary>
-        /// <param name="badExpressions"></param>
-        [Theory]
-        [MemberData(nameof(BadExpressionValues))]
-        public void TestArrayIndexConfigInvalidExpressions(List<string> badExpressions)
+        [Fact]
+        public void TestArrayIndexConfigInvalidExpressions()
         {
             using var profiles = Db.CreateCollection("profiles");
-            FluentActions.Invoking(() => new ArrayIndexConfiguration("contacts", badExpressions)).Should().Throw<ArgumentException>();
+            FluentActions.Invoking(() => new ArrayIndexConfiguration("contacts", new List<string> { "" })).Should().Throw<ArgumentException>();
         }
 
         /// <summary>
