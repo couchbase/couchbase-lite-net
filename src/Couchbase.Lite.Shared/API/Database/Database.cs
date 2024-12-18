@@ -1242,10 +1242,9 @@ namespace Couchbase.Lite
             var config = DBConfig;
             var encrypted = "";
 
-#warning FullSync is commented out
-            //if (Config.FullSync) {
-            //    config.flags |= C4DatabaseFlags.DiskSyncFull;
-            //}
+            if (Config.FullSync) {
+                config.flags |= C4DatabaseFlags.DiskSyncFull;
+            }
 
 #pragma warning disable CA1416 // Validate platform compatibility
             if (!Config.MmapEnabled) {
