@@ -18,6 +18,10 @@
 
 #if CBL_PLATFORM_WINUI
 using Couchbase.Lite.DI;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using System;
 using Windows.Storage;
 
 namespace Couchbase.Lite.Support
@@ -25,10 +29,36 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency]
     internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
     {
+        private const long APPMODEL_ERROR_NO_PACKAGE = 15700L;
+        private static readonly bool IsPackaged;
+
+        static DefaultDirectoryResolver()
+        {
+            int length = 0;
+            StringBuilder sb = new StringBuilder(0);
+            int result = GetCurrentPackageFullName(ref length, sb); sb = new StringBuilder(length);
+
+            sb = new StringBuilder(length);
+            result = GetCurrentPackageFullName(ref length, sb);
+            IsPackaged = result != APPMODEL_ERROR_NO_PACKAGE;
+            if(!IsPackaged) {
+                Directory.CreateDirectory(DefaultDirectoryUnpackaged());
+            }
+        }
+
         public string DefaultDirectory()
         {
-            return ApplicationData.Current.LocalFolder.Path;
+            return IsPackaged 
+                ? DefaultDirectoryPackaged()
+                : DefaultDirectoryUnpackaged();
         }
+
+        private static string DefaultDirectoryPackaged() => ApplicationData.Current.LocalFolder.Path;
+
+        private static string DefaultDirectoryUnpackaged() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CouchbaseLite");
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, StringBuilder packageFullName);
     }
 }
 #endif

@@ -43,8 +43,7 @@ namespace Couchbase.Lite
 
         private readonly Freezer _freezer = new Freezer();
 
-        private string _directory =
-            Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
+        private string? _directory;
         private bool _fullSync = Constants.DefaultDatabaseFullSync;
         private bool _mmapEnabled = Constants.DefaultDatabaseMmapEnabled;
 
@@ -61,7 +60,7 @@ namespace Couchbase.Lite
         /// </summary>
         public string Directory
         {
-            get => _directory;
+            get => _directory ??= Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
             set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
         }
 
