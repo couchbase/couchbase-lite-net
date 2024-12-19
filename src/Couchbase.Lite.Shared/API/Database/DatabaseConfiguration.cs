@@ -138,12 +138,14 @@ namespace Couchbase.Lite
 
         internal DatabaseConfiguration Freeze()
         {
+#pragma warning disable CA1416 // Validate platform compatibility
             var retVal = new DatabaseConfiguration
             {
                 Directory = Directory,
                 FullSync = FullSync,
                 MmapEnabled = MmapEnabled
             };
+#pragma warning restore CA1416 // Validate platform compatibility
 
 #if COUCHBASE_ENTERPRISE
             retVal.EncryptionKey = EncryptionKey;

@@ -96,7 +96,11 @@ namespace Couchbase.Lite.Sync
         private C4SocketFactory _socketFactory;
         private bool _isDefaultMaxAttemptSet = true;
 
-        #endregion
+#if __IOS__ && !MACCATALYST
+        private bool _allowReplicatingInBackground;
+#endif
+
+#endregion
 
         #region Properties
 
@@ -111,6 +115,27 @@ namespace Couchbase.Lite.Sync
             get => Options.AcceptParentDomainCookies;
             set => _freezer.PerformAction(() => Options.AcceptParentDomainCookies = value);
         }
+
+#if __IOS__ && !MACCATALYST
+        /// <summary>
+        /// Allows the replicator to continue replicating in the background. The default
+        /// value is <c>false</c>, which means that the replicator will suspend itself when the
+        /// replicator detects that the application is being backgrounded.
+        ///
+        /// If setting the value to <c>true</c>, please ensure that your application delegate
+        /// requests background time from the OS until the replication finishes.
+        /// </summary>
+        /// <remarks>
+        /// > [!WARNING]
+        /// > There is a bug in earlier versions in which the functionality is reversed from
+        /// > what the documentation says, so please upgrade to get the correct behavior
+        /// </remarks>
+        public bool AllowReplicatingInBackground
+        {
+            get => _allowReplicatingInBackground;
+            set => _freezer.SetValue(ref _allowReplicatingInBackground, value);
+        }
+#endif
 
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
@@ -407,7 +432,7 @@ namespace Couchbase.Lite.Sync
             set => _freezer.SetValue(ref _socketFactory, value);
         }
 
-        #endregion
+#endregion
 
         #region Constructors
 
@@ -538,6 +563,9 @@ namespace Couchbase.Lite.Sync
                 ProxyAuthenticator = ProxyAuthenticator,
 #if COUCHBASE_ENTERPRISE
                 AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
+#endif
+#if __IOS__ && !MACCATALYST
+                AllowReplicatingInBackground = AllowReplicatingInBackground,
 #endif
                 Continuous = Continuous,
                 ReplicatorType = ReplicatorType,
