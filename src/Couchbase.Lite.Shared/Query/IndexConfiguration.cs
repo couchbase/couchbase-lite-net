@@ -16,9 +16,12 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using System;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -28,38 +31,35 @@ namespace Couchbase.Lite.Internal.Query
     /// </summary>
     public abstract class IndexConfiguration
     {
-        #region Properties
+        private const string Tag = nameof(IndexConfiguration);
 
         /// <summary>
         /// Gets the expressions to use to create the index
         /// </summary>
         public string[]? Expressions { get; }
 
-        internal C4QueryLanguage QueryLanguage { get; }
-
         internal C4IndexType IndexType { get; }
 
         internal abstract C4IndexOptions Options { get; }
 
-        #endregion
-
-        #region Constructor
-
-        internal IndexConfiguration(C4IndexType indexType, params string[] items)
-            : this(indexType, C4QueryLanguage.N1QLQuery)
+        internal IndexConfiguration(C4IndexType indexType, string[]? expressions)
         {
-            Expressions = items;
-        }
+            if(indexType == C4IndexType.ArrayIndex && expressions != null) {
+                // Quick sanity check.  If I allow this to proceed, no error will happen but
+                // perhaps unintended behavior will.  The final string to pass will be empty
+                // and LiteCore will index the entire path element.  This is ok in some cases
+                // like ArrayIndexConfiguration, but it should be manifest with a null array
+                // and not an empty array or array of empty or array of null.
+                if(expressions.Length == 1 && expressions[0] == "") { 
+                    throw new ArgumentException("Contained only one empty entry, use null instead", nameof(expressions));
+                }
+            }
 
-        internal IndexConfiguration(C4IndexType indexType, C4QueryLanguage queryLanguage)
-        {
+            // Expressions may still be invalid here, but the user will be alerted when they
+            // try to create an index when LiteCore rejects it.
             IndexType = indexType;
-            QueryLanguage = queryLanguage;
+            Expressions = expressions;
         }
-
-        #endregion
-
-        #region Internal Methods
 
         internal virtual void Validate()
         {
@@ -68,13 +68,11 @@ namespace Couchbase.Lite.Internal.Query
 
         internal string ToN1QL()
         {
-            Debug.Assert(Expressions != null);
-            if (Expressions!.Length == 1)
-                return Expressions[0];
+            if(Expressions == null) {
+                return "";
+            }
 
             return String.Join(",", Expressions);
         }
-
-        #endregion
     }
 }

@@ -9,6 +9,7 @@
     <Import_RootNamespace>Couchbase.Lite.Tests.Shared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ArrayIndexTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ArrayTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)BlobTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ConcurrencyTest.cs" />
