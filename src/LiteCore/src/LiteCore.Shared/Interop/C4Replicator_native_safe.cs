@@ -116,7 +116,10 @@ internal static unsafe partial class NativeSafe
         return Native.c4repl_isDocumentPending(repl.RawReplicator, docID, spec, outError);
     }
 
-
+    public static void c4repl_setSuspended(C4ReplicatorWrapper repl, bool suspended)
+    {
+        Native.c4repl_setSuspended(repl.RawReplicator, suspended);
+    }
 
     // Database Exclusive Methods
 

@@ -59,12 +59,16 @@ public partial class Replicator
             DispatchQueue.DispatchSync(() =>
             {
                 _suspended = value;
+                if(_repl == null) {
+                    return;
+                }
+
                 if(value && _state > ReplicatorState.Suspending) {
                     // Currently not in any suspend* or stop* state:
                     _state = ReplicatorState.Suspending;
                 }
 
-                Native.c4repl_setSuspended(_repl, value);
+                NativeSafe.c4repl_setSuspended(_repl, value);
                 SetConflictResolutionSuspended(value);
             });
         }

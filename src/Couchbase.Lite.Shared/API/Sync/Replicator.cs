@@ -83,8 +83,6 @@ namespace Couchbase.Lite.Sync
             Starting
         }
 
-        private readonly ThreadSafety _databaseThreadSafety;
-
         private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
             new Event<DocumentReplicationEventArgs>();
 

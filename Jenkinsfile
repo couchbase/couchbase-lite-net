@@ -36,6 +36,16 @@ pipeline {
                                 '''
                             }
                         }
+                        stage("Compile CE") {
+                            steps {
+                                powershell 'jenkins\\compile_ce.ps1'
+                            }
+                        }
+                        stage("Compile EE") {
+                            steps {
+                                powershell 'jenkins\\compile_ee.ps1'
+                            }
+                        }
                         stage(".NET Windows") {
                             steps {
                                 powershell 'jenkins\\run_net_console_tests.ps1'
