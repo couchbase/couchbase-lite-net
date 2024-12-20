@@ -86,7 +86,7 @@
       <PackagePath>runtimes/win-arm64/native/LiteCore.pdb</PackagePath>
     </None>
   </ItemGroup>
-  <ItemGroup Condition="!$(Configuration.Contains('Packaging'))">
+  <ItemGroup Condition="!$(Configuration.Contains('Packaging')) AND '$(JUST_CSHARP)' == ''">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64\bin\LiteCore.dll">
       <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
