@@ -2074,7 +2074,7 @@ namespace Test
             stoppedWait.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("because otherwise the replicator didn't stop");
         }
 
-        #if __IOS__ && !SANITY_ONLY
+        #if __IOS__ && !MACCATALYST && !SANITY_ONLY
         [SkippableFact]
         public void TestSwitchBackgroundForeground()
         {
