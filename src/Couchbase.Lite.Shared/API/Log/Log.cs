@@ -35,13 +35,13 @@ namespace Couchbase.Lite.Logging
         /// <summary>
         /// [DEPRECATED] Gets the logging facility that logs to a debugging console
         /// </summary>
-        [Obsolete("Use LogSinks.ConsoleLogSink instead")]
+        [Obsolete("Use LogSinks.Console instead")]
         public IConsoleLogger Console { get; } = Service.GetRequiredInstance<IConsoleLogger>();
 
         /// <summary>
         /// [DEPRECATED] Gets or sets the user defined logging facility
         /// </summary>
-        [Obsolete("Use LogSinks.CustomLogSink instead")]
+        [Obsolete("Use LogSinks.Custom instead")]
         public ILogger? Custom
         {
             get => _custom;
@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Logging
         /// <summary>
         /// [DEPRECATED] Gets the logging facility that logs to files on the disk
         /// </summary>
-        [Obsolete("Use LogSinks.FileLogSink instead")]
+        [Obsolete("Use LogSinks.File instead")]
         public FileLogger File { get; } = new FileLogger();
 
         internal LogLevel OverallLogLevel
