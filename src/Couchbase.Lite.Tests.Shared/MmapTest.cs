@@ -103,7 +103,7 @@ namespace Test
             var nativeConfig = TestNative.c4db_getConfig2(c4db);
             var hasFlag = (nativeConfig->flags & C4DatabaseFlags.MmapDisabled) == C4DatabaseFlags.MmapDisabled;
             hasFlag.Should().Be(!useMmap, "because the flag in LiteCore should match MmapEnabled (but flipped)");
-        }
 #endif
+        }
     }
 }

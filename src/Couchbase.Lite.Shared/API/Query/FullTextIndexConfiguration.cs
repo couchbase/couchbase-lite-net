@@ -28,7 +28,6 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public sealed class FullTextIndexConfiguration : IndexConfiguration
     {
-        #region Properties
 
         /// <summary>
         /// Gets whether or not to ignore accents when performing 
@@ -42,13 +41,17 @@ namespace Couchbase.Lite.Query
         /// </summary>
         public string Language { get; } = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
 
+        /// <summary>
+        /// A predicate expression defining conditions for indexing documents. 
+        /// Only documents satisfying the predicate are included, enabling partial indexes.
+        /// </summary>
+        public string? Where { get; set; }
+
         internal override C4IndexOptions Options => new C4IndexOptions {
             ignoreDiacritics = IgnoreAccents,
-            language = Language
+            language = Language,
+            where = Where
         };
-        #endregion
-
-        #region Constructors
 
         /// <summary>
         /// Starts the creation of an index based on a full text search
@@ -59,9 +62,23 @@ namespace Couchbase.Lite.Query
         /// <returns>The beginning of an FTS based index</returns>
         public FullTextIndexConfiguration(string[] expressions, bool ignoreAccents = false, 
             string? locale = null)
+            : this(expressions, null, ignoreAccents, locale)
+        {
+        }
+
+        /// <summary>
+        /// Starts the creation of an index based on a full text search
+        /// </summary>
+        /// <param name="expressions">The expressions to use to create the index</param>
+        /// <param name="ignoreAccents">The boolean value to ignore accents when performing the full text search</param>
+        /// <param name="locale">The locale to use when performing full text searching</param>
+        /// <returns>The beginning of an FTS based index</returns>
+        public FullTextIndexConfiguration(string[] expressions, string? where = null, bool ignoreAccents = false,
+            string? locale = null)
             : base(C4IndexType.FullTextIndex, expressions)
         {
             IgnoreAccents = ignoreAccents;
+            Where = where;
             if (!string.IsNullOrEmpty(locale)) {
                 Language = locale!;
             }
@@ -76,7 +93,5 @@ namespace Couchbase.Lite.Query
             : base(C4IndexType.FullTextIndex, expressions)
         {
         }
-
-        #endregion
     }
 }
