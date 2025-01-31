@@ -18,30 +18,46 @@
 
 using Couchbase.Lite.Internal.Query;
 using LiteCore.Interop;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// An class for an index based on a simple property value
+    /// An class for an index based on one or more simple property values
     /// </summary>
     public sealed class ValueIndexConfiguration : IndexConfiguration
     {
-        #region Properties
-        internal override C4IndexOptions Options => new C4IndexOptions();
-        #endregion
-
-        #region Constructors
+        internal override C4IndexOptions Options => new C4IndexOptions
+        {
+            where = Where
+        };
 
         /// <summary>
-        /// Starts the creation of an index based on a simple property
+        /// A predicate expression defining conditions for indexing documents. 
+        /// Only documents satisfying the predicate are included, enabling partial indexes.
+        /// </summary>
+        public string? Where { get; set; }
+
+        /// <summary>
+        /// Starts the creation of an index based on one or more simple property values
         /// </summary>
         /// <param name="expressions">The expressions to use to create the index</param>
-        /// <returns>The beginning of a value based index</returns>
         public ValueIndexConfiguration(params string[] expressions)
             : base(C4IndexType.ValueIndex, expressions)
         {
         }
 
-        #endregion
+        /// <summary>
+        /// Starts the creation of an index based on one or more simple property values,
+        /// and a predicate for enabling partial indexes.
+        /// </summary>
+        /// <param name="expressions">The expressions to use to create the index</param>
+        /// <param name="where">A where clause used to determine whether or not to include a particular doc</param>
+        public ValueIndexConfiguration(IEnumerable<string> expressions, string? where = null)
+            : base(C4IndexType.ValueIndex, expressions.ToArray())
+        {
+            Where = where;
+        }
     }
 }
