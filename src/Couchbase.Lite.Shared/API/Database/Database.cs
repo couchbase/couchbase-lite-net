@@ -109,6 +109,8 @@ namespace Couchbase.Lite
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
         };
 
+        private static Log? _Log;
+
         private const string DBExtension = "cblite2";
 
         private const string Tag = nameof(Database);
@@ -165,8 +167,20 @@ namespace Couchbase.Lite
         /// [DEPRECATED] Gets the object that stores the available logging methods
         /// for Couchbase Lite
         /// </summary>
-        [Obsolete("Use the new LogSinks static clas")]
-        public static Log Log { get; } = new Log();
+        [Obsolete("Use the new LogSinks static class")]
+        public static Log Log 
+        {
+            get {
+                // This is a bit weird to do, since normally you'd just say Log = new Log() above,
+                // but that doesn't play well with iOS native AOT for some reason, so lazily
+                // init this instead.
+                if(_Log == null) {
+                    _Log = new Log();
+                }
+
+                return _Log;
+            }
+        }
 
         /// <summary>
         /// Gets the database's name
