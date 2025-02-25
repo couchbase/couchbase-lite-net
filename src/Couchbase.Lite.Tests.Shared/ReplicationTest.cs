@@ -2141,7 +2141,7 @@ namespace Test
             token.Remove();
         }
 
-        [Fact]
+        [SkippableFact]
         public void TestSwitchToForegroundImmediately()
         {
             Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
@@ -2189,7 +2189,7 @@ namespace Test
             token.Remove();
         }
 
-        [Fact]
+        [SkippableFact]
         public void TestBackgroundingWhenStopping()
         {
             Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
@@ -2246,7 +2246,7 @@ namespace Test
             token.Remove();
         }
 
-        [Fact]
+        [SkippableFact]
         public void TestBackgroundDuringDataTransfer()
         {
             Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
