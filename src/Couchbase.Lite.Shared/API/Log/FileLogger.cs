@@ -227,17 +227,10 @@ namespace Couchbase.Lite.Logging
 
         private unsafe void SetupDomainObjects()
         {
-            var bytes = (byte *)Marshal.StringToHGlobalAnsi("Couchbase");
-            _domainObjects[LogDomain.Couchbase] = (IntPtr)Native.c4log_getDomain(bytes, true);
-
-            bytes = (byte *)Marshal.StringToHGlobalAnsi("DB");
-            _domainObjects[LogDomain.Database] = (IntPtr)Native.c4log_getDomain(bytes, true);
-
-            bytes = (byte *)Marshal.StringToHGlobalAnsi("Query");
-            _domainObjects[LogDomain.Query] = (IntPtr)Native.c4log_getDomain(bytes, true);
-
-            bytes = (byte *)Marshal.StringToHGlobalAnsi("Sync");
-            _domainObjects[LogDomain.Replicator] = (IntPtr)Native.c4log_getDomain(bytes, true);
+            _domainObjects[LogDomain.Couchbase] = (IntPtr)Native.c4log_getDomain("Couchbase", true);
+            _domainObjects[LogDomain.Database] = (IntPtr)Native.c4log_getDomain("DB", true);
+            _domainObjects[LogDomain.Query] = (IntPtr)Native.c4log_getDomain("Query", true);
+            _domainObjects[LogDomain.Replicator] = (IntPtr)Native.c4log_getDomain("Sync", true);
 
             foreach (var domain in _domainObjects) {
                 Native.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),

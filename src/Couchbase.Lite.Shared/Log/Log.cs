@@ -38,9 +38,9 @@ namespace Couchbase.Lite.Internal.Logging
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
         private static readonly LogTo _To;
 
-        internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", false);
-        internal static readonly C4LogDomain* LogDomainWebSocket = c4log_getDomain("WS", false);
-        internal static readonly C4LogDomain* LogDomainSyncBusy = c4log_getDomain("SyncBusy", false);
+        internal static readonly C4LogDomain* LogDomainBLIP = Native.c4log_getDomain("BLIP", false);
+        internal static readonly C4LogDomain* LogDomainWebSocket = Native.c4log_getDomain("WS", false);
+        internal static readonly C4LogDomain* LogDomainSyncBusy = Native.c4log_getDomain("SyncBusy", false);
         private static LogLevel _CurrentLevel = LogLevel.Warning;
         private static AtomicBool _Initialized = new AtomicBool(false);
 
@@ -100,12 +100,6 @@ namespace Couchbase.Lite.Internal.Logging
         #endregion
 
         #region Private Methods
-
-        private static C4LogDomain* c4log_getDomain(string name, bool create)
-        {
-            var bytes = Marshal.StringToHGlobalAnsi(name);
-            return Native.c4log_getDomain((byte*) bytes, create);
-        }
 
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4LogCallback))]
