@@ -24,9 +24,8 @@ namespace LiteCore.Interop
     [ExcludeFromCodeCoverage]
     internal unsafe static partial class Native
     {
-        // NOTE: Must allocate unmanaged memory via Marshal class
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern C4LogDomain* c4log_getDomain(byte* name,
+        public static extern C4LogDomain* c4log_getDomain(string name,
             [MarshalAs(UnmanagedType.U1)] bool create);
 
     }
