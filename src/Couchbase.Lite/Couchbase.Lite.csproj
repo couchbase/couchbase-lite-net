@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <MauiDotNetVersion>net8.0</MauiDotNetVersion>
+    <MauiDotNetVersion>net9.0</MauiDotNetVersion>
     <ConsoleDotNetVersion>net8.0</ConsoleDotNetVersion>
     <DotNetFrameworkVersion>net462</DotNetFrameworkVersion>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
