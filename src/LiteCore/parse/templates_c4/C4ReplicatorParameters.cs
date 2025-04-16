@@ -10,4 +10,8 @@
         public C4SocketFactory* socketFactory;
         public C4ReplicationCollection* collections;
         public IntPtr collectionCount;
+
+        #if COUCHBASE_ENTERPRISE
+        public C4KeyPair* externalKey;
+        #endif
     }
