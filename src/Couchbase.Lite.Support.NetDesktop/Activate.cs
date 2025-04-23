@@ -171,8 +171,8 @@ namespace Couchbase.Lite.Support
                     continue;
                 }
 
-                if (version < 14.40) {
-                    Console.WriteLine($"Found C++ runtime, but version too old ({keyComponents[3]} < 14.40). Please ensure that the\r\n" +
+                if (version < 14.30) {
+                    Console.WriteLine($"Found C++ runtime, but version too old ({keyComponents[3]} < 14.30). Please ensure that the\r\n" +
                         "Visual Studio 2022 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
                     continue;
                 }
