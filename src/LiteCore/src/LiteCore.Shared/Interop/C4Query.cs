@@ -43,6 +43,11 @@ namespace LiteCore.Interop
             if (old != IntPtr.Zero) {
                 Marshal.FreeHGlobal(old);
             }
+
+            old = Interlocked.Exchange(ref _where, IntPtr.Zero);
+            if (old != IntPtr.Zero) {
+                Marshal.FreeHGlobal(old);
+            }
         }
     }
 
