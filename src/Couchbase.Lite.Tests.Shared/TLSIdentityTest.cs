@@ -68,19 +68,42 @@ namespace Test
         #region TLSIdentity tests
 
         [Fact]
-        public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(true);
+        public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(KeyUsages.ServerAuth);
 
         [Fact]
-        public void TestCreateDuplicateServerIdentity() => CreateDuplicateServerIdentity(true);
+        public void TestCreateDuplicateServerIdentity() => CreateDuplicateServerIdentity(KeyUsages.ServerAuth);
 
         [Fact]
-        public void TestCreateGetDeleteClientIdentity() => CreateGetDeleteServerIdentity(false);
+        public void TestCreateGetDeleteClientIdentity() => CreateGetDeleteServerIdentity(KeyUsages.ClientAuth);
 
         [Fact]
-        public void TestCreateDuplicateClientIdentity() => CreateDuplicateServerIdentity(false);
+        public void TestCreateDuplicateClientIdentity() => CreateDuplicateServerIdentity(KeyUsages.ClientAuth);
 
         [Fact]
         public void TestGetIdentityWithCertCollection()
+        {
+            TLSIdentity id;
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            TLSIdentity? identity = TLSIdentity.CreateIdentity(KeyUsages.ClientAuth,
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest1" } },
+                null,
+                _store,
+                ClientCertLabel,
+                null);
+
+            identity.Should().NotBeNull();
+            var certs = identity!.Certs;
+
+            id = TLSIdentity.GetIdentity(certs);
+            id.Should().NotBeNull();
+
+            // Delete
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+        }
+
+        [Fact]
+        [Obsolete]
+        public void TestGetIdentityWithCertCollection_Old()
         {
             TLSIdentity id;
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
@@ -138,7 +161,7 @@ namespace Test
             id.Should().BeNull();
 
             // Create id with empty Attributes
-            Action badAction = (() => TLSIdentity.CreateIdentity(true,
+            Action badAction = (() => TLSIdentity.CreateIdentity(KeyUsages.ServerAuth,
                 new Dictionary<string, string>() { },
                 null,
                 _store,
@@ -160,7 +183,7 @@ namespace Test
             id.Should().BeNull();
 
             var fiveMinToExpireCert = DateTimeOffset.UtcNow.AddMinutes(5);
-            id = TLSIdentity.CreateIdentity(true,
+            id = TLSIdentity.CreateIdentity(KeyUsages.ServerAuth,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest" } },
                 fiveMinToExpireCert,
                 _store,
@@ -197,10 +220,10 @@ namespace Test
             return true;
         }
 
-        private void CreateGetDeleteServerIdentity(bool isServer)
+        private void CreateGetDeleteServerIdentity(KeyUsages keyUsages)
         {
-            string commonName = isServer ? "CBL-Server" : "CBL-Client";
-            string label = isServer ? ServerCertLabel : ClientCertLabel;
+            string commonName = keyUsages.HasFlag(KeyUsages.ServerAuth) ? "CBL-Server" : "CBL-Client";
+            string label = keyUsages.HasFlag(KeyUsages.ServerAuth) ? ServerCertLabel : ClientCertLabel;
             TLSIdentity? id;
 
             // Delete 
@@ -211,7 +234,7 @@ namespace Test
             id.Should().BeNull();
 
             // Create
-            id = TLSIdentity.CreateIdentity(isServer,
+            id = TLSIdentity.CreateIdentity(keyUsages,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } },
                 null,
                 _store,
@@ -235,10 +258,10 @@ namespace Test
             id.Should().BeNull();
         }
 
-        private void CreateDuplicateServerIdentity(bool isServer)
+        private void CreateDuplicateServerIdentity(KeyUsages keyUsages)
         {
-            string commonName = isServer ? "CBL-Server" : "CBL-Client";
-            string label = isServer ? ServerCertLabel : ClientCertLabel;
+            string commonName = keyUsages.HasFlag(KeyUsages.ServerAuth) ? "CBL-Server" : "CBL-Client";
+            string label = keyUsages.HasFlag(KeyUsages.ServerAuth) ? ServerCertLabel : ClientCertLabel;
             TLSIdentity? id;
             Dictionary<string, string> attr = new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } };
 
@@ -246,7 +269,7 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, label, null);
 
             // Create
-            id = TLSIdentity.CreateIdentity(isServer,
+            id = TLSIdentity.CreateIdentity(keyUsages,
                 attr,
                 null,
                 _store,
@@ -260,7 +283,7 @@ namespace Test
             //id.Should().NotBeNull();
 
             // Create again with the same label
-            Action badAction = (() => TLSIdentity.CreateIdentity(isServer,
+            Action badAction = (() => TLSIdentity.CreateIdentity(keyUsages,
                 attr,
                 null,
                 _store,
