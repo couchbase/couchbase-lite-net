@@ -1,7 +1,7 @@
 //
 // C4Listener_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLMutableArray* c4listener_getURLs(C4Listener* listener, C4Database* db, C4ListenerAPIs api, C4Error* err);
+        public static extern FLMutableArray* c4listener_getURLs(C4Listener* listener, C4Database* db, C4Error* err);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ushort c4listener_getPort(C4Listener* listener);

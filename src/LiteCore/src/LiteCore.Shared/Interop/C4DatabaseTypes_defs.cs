@@ -1,7 +1,7 @@
 //
 // C4DatabaseTypes_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ namespace LiteCore.Interop
         NonObservable   = 0x40,
         DiskSyncFull    = 0x80,
         FakeVectorClock = 0x0100,
+        NoHousekeeping  = 0x0200,
     }
 
     internal enum C4EncryptionAlgorithm : uint
