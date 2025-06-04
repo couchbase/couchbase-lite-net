@@ -1,7 +1,7 @@
 //
 // C4DocumentTypes_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,7 +65,6 @@ namespace LiteCore.Interop
         DocGetMetadata,
         DocGetCurrentRev,
         DocGetAll,
-        DocGetUpgraded,
     }
 
 	internal unsafe struct C4Revision

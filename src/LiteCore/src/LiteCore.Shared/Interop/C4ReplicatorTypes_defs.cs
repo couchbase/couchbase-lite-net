@@ -1,7 +1,7 @@
 //
 // C4ReplicatorTypes_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -118,6 +118,17 @@ namespace LiteCore.Interop
         }
     }
 
+	internal unsafe struct C4BlobProgress
+    {
+        public C4CollectionSpec collectionSpec;
+        public FLSlice docID;
+        public FLSlice docProperty;
+        public C4BlobKey blobKey;
+        public ulong bytesComplete;
+        public ulong bytesTotal;
+        public C4Error error;
+    }
+
     internal unsafe struct C4ReplicationCollection
     {
         public C4CollectionSpec collection;
@@ -135,12 +146,13 @@ namespace LiteCore.Interop
         public IntPtr onStatusChanged;
         public IntPtr onDocumentEnded;
         public IntPtr onBlobProgress;
-		public IntPtr propertyEncryptor;
-		public IntPtr propertyDecryptor;
+        public IntPtr propertyEncryptor;
+        public IntPtr propertyDecryptor;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
         public C4ReplicationCollection* collections;
         public IntPtr collectionCount;
+        public C4KeyPair* externalKey;
     }
 
 }

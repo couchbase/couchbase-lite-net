@@ -1,7 +1,7 @@
 //
 // C4ListenerTypes_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,13 +38,6 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-    [Flags]
-    internal enum C4ListenerAPIs : uint
-    {
-        RESTAPI = 0x01,
-        SyncAPI = 0x02
-    }
-
     internal enum C4PrivateKeyRepresentation : uint
     {
         PrivateKeyFromCert,
@@ -77,38 +70,14 @@ namespace LiteCore.Interop
     {
         public ushort port;
         public FLSlice networkInterface;
-        public C4ListenerAPIs apis;
         public C4TLSConfig* tlsConfig;
+        public FLSlice serverName;
+        public FLSlice serverVersion;
         public IntPtr httpAuthCallback;
         public void* callbackContext;
-        public FLSlice directory;
-        private byte _allowCreateDBs;
-        private byte _allowDeleteDBs;
-        private byte _allowCreateCollections;
-        private byte _allowDeleteCollections;
         private byte _allowPush;
         private byte _allowPull;
         private byte _enableDeltaSync;
-
-        public bool allowCreateDBs
-        {
-            get {
-                return Convert.ToBoolean(_allowCreateDBs);
-            }
-            set {
-                _allowCreateDBs = Convert.ToByte(value);
-            }
-        }
-
-        public bool allowDeleteDBs
-        {
-            get {
-                return Convert.ToBoolean(_allowDeleteDBs);
-            }
-            set {
-                _allowDeleteDBs = Convert.ToByte(value);
-            }
-        }
 
         public bool allowPush
         {
@@ -141,6 +110,43 @@ namespace LiteCore.Interop
         }
     }
 
+
+	internal unsafe struct C4ListenerDatabaseConfig
+    {
+        private byte _allowPush;
+        private byte _allowPull;
+        private byte _enableDeltaSync;
+
+        public bool allowPush
+        {
+            get {
+                return Convert.ToBoolean(_allowPush);
+            }
+            set {
+                _allowPush = Convert.ToByte(value);
+            }
+        }
+
+        public bool allowPull
+        {
+            get {
+                return Convert.ToBoolean(_allowPull);
+            }
+            set {
+                _allowPull = Convert.ToByte(value);
+            }
+        }
+
+        public bool enableDeltaSync
+        {
+            get {
+                return Convert.ToBoolean(_enableDeltaSync);
+            }
+            set {
+                _enableDeltaSync = Convert.ToByte(value);
+            }
+        }
+    }
 }
 
 #pragma warning restore IDE0051 // Remove unused private members

@@ -2,38 +2,14 @@
     {
         public ushort port;
         public FLSlice networkInterface;
-        public C4ListenerAPIs apis;
         public C4TLSConfig* tlsConfig;
+        public FLSlice serverName;
+        public FLSlice serverVersion;
         public IntPtr httpAuthCallback;
         public void* callbackContext;
-        public FLSlice directory;
-        private byte _allowCreateDBs;
-        private byte _allowDeleteDBs;
-        private byte _allowCreateCollections;
-        private byte _allowDeleteCollections;
         private byte _allowPush;
         private byte _allowPull;
         private byte _enableDeltaSync;
-
-        public bool allowCreateDBs
-        {
-            get {
-                return Convert.ToBoolean(_allowCreateDBs);
-            }
-            set {
-                _allowCreateDBs = Convert.ToByte(value);
-            }
-        }
-
-        public bool allowDeleteDBs
-        {
-            get {
-                return Convert.ToBoolean(_allowDeleteDBs);
-            }
-            set {
-                _allowDeleteDBs = Convert.ToByte(value);
-            }
-        }
 
         public bool allowPush
         {
