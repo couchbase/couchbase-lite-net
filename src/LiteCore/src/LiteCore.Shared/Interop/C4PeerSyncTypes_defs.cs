@@ -58,14 +58,14 @@ namespace LiteCore.Interop
         public void* context;
     }
 
-    internal unsafe partial struct C4PeerSyncCollection
+	internal unsafe struct C4PeerSyncCollection
     {
         public C4CollectionSpec collection;
         private byte _pushEnabled;
         private byte _pullEnabled;
         public FLSlice optionsDictFleece;
-        private IntPtr _pushFilter;
-        private IntPtr _pullFilter;
+        public C4PeerSync_ValidationFunction pushFilter;
+        public C4PeerSync_ValidationFunction pullFilter;
         public void* callbackContext;
 
         public bool pushEnabled
