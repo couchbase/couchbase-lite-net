@@ -23,7 +23,7 @@ using System.Linq;
 using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
-using FluentAssertions;
+using Shouldly;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -45,18 +45,16 @@ namespace Test
         public void TestCreate()
         {
             var array = new MutableArrayObject();
-            array.Count.Should().Be(0, "because the array is empty");
-            array.ToList().Should().BeEmpty("because the array is empty");
+            array.Count.ShouldBe(0, "because the array is empty");
+            array.ToList().ShouldBeEmpty("because the array is empty");
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
             doc.GetArray("array")
-                .As<MutableArrayObject>()
-                .Should()
-                .BeSameAs(array, "because the doc should return the same object");
+                .ShouldBeSameAs(array, "because the doc should return the same object");
             
             SaveDocument(doc,
-                d => { d.GetArray("array")?.ToList().Should().BeEmpty("because no objects were inserted"); });
+                d => { d.GetArray("array")?.ToList().ShouldBeEmpty("because no objects were inserted"); });
         }
 
         [Fact]
@@ -64,17 +62,14 @@ namespace Test
         {
             var data = new[] {"1", "2", "3"};
             var array = new MutableArrayObject(data);
-            array.Count.Should().Be(data.Length, "because the two objects should have the same length");
-            array.ToList().Should().ContainInOrder(data, "because the contents should match");
+            array.ToArray().ShouldBe(data, "because the contents should match");
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
             doc.GetArray("array")
-                .As<object>()
-                .Should()
-                .BeSameAs(array, "because the doc should return the same object");
+                .ShouldBeSameAs(array, "because the doc should return the same object");
 
-            SaveDocument(doc, d => { d.GetArray("array").Should().ContainInOrder(data); });
+            SaveDocument(doc, d => { d.GetArray("array").ShouldBe(data); });
         }
 
         [Fact]
@@ -84,22 +79,22 @@ namespace Test
             var array = new MutableArrayObject();
             array.SetData(data);
 
-            array.Count.Should().Be(data.Length, "because the two objects should have the same length");
-            array.ToList().Should().ContainInOrder(data, "because the contents should match");
+            array.Count.ShouldBe(data.Length, "because the two objects should have the same length");
+            array.ToArray().ShouldBe(data, "because the contents should match");
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
             SaveDocument(doc);
             doc = DefaultCollection.GetDocument(doc.Id)?.ToMutable();
-            doc.Should().NotBeNull("because the document was just saved");
+            doc.ShouldNotBeNull("because the document was just saved");
 
             var gotArray = doc!.GetArray("array");
-            gotArray.Should().NotBeNull("because the array was just saved into the document");
+            gotArray.ShouldNotBeNull("because the array was just saved into the document");
             data = ["4", "5", "6"];
             gotArray!.SetData(data);
 
-            gotArray.Count.Should().Be(data.Length, "because the two objects should have the same length");
-            gotArray.ToList().Should().ContainInOrder(data, "because the contents should match");
+            gotArray.Count.ShouldBe(data.Length, "because the two objects should have the same length");
+            gotArray.ToArray().ShouldBe(data, "because the contents should match");
         }
 
         [Fact]
@@ -111,27 +106,27 @@ namespace Test
 
             SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(11, "because 11 entries were added");
-                a.GetValue(0).Should().Be(true, "because that is what was added");
-                a.GetValue(1).Should().Be(false, "because that is what was added");
-                a.GetValue(2).Should().Be("string", "because that is what was added");
-                a.GetInt(3).Should().Be(0, "because that is what was added");
-                a.GetInt(4).Should().Be(1, "because that is what was added");
-                a.GetInt(5).Should().Be(-1, "because that is what was added");
-                a.GetValue(6).Should().Be(1.1, "because that is what was added");
-                a.GetDate(7).Should().Be(ArrayTestDate, "because that is what was added");
+                a.Count.ShouldBe(11, "because 11 entries were added");
+                a.GetValue(0).ShouldBe(true, "because that is what was added");
+                a.GetValue(1).ShouldBe(false, "because that is what was added");
+                a.GetValue(2).ShouldBe("string", "because that is what was added");
+                a.GetInt(3).ShouldBe(0, "because that is what was added");
+                a.GetInt(4).ShouldBe(1, "because that is what was added");
+                a.GetInt(5).ShouldBe(-1, "because that is what was added");
+                a.GetValue(6).ShouldBe(1.1, "because that is what was added");
+                a.GetDate(7).ShouldBe(ArrayTestDate, "because that is what was added");
 
                 var subdict = a.GetDictionary(8);
-                subdict.Should().NotBeNull("because a dictionary should be present at this index");
+                subdict.ShouldNotBeNull("because a dictionary should be present at this index");
                 subdict!.ToDictionary()
-                    .Should().BeEquivalentTo(new Dictionary<string, object> {
+                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is what was added");
 
                 var subarray = a.GetArray(9);
-                subarray.Should().NotBeNull("because an array should be present at this index");
-                subarray!.ToList().Should().ContainInOrder(new[] {"a", "b", "c"}, "because that is what was added");
-                a.GetBlob(10).Should().Be(ArrayTestBlob(), "because that is what was added");
+                subarray.ShouldNotBeNull("because an array should be present at this index");
+                subarray!.ToArray().ShouldBe(new[] {"a", "b", "c"}, "because that is what was added");
+                a.GetBlob(10).ShouldBe(ArrayTestBlob(), "because that is what was added");
             });
         }
 
@@ -146,34 +141,34 @@ namespace Test
                 SaveDocument(doc);
 
                 array = doc.GetArray("array");
-                array.Should().NotBeNull("because an array should be present at this key");
+                array.ShouldNotBeNull("because an array should be present at this key");
 
                 PopulateData(array!); // Extra stuff
                 SaveDocument(doc, d =>
                 {
                     var a = d.GetArray("array");
-                    a.Should().NotBeNull("because it was saved into the doucment at the beginning of the test");
-                    a!.Count.Should().Be(22, "because 11 entries were added");
-                    a.GetValue(11).Should().Be(true, "because that is what was added");
-                    a.GetValue(12).Should().Be(false, "because that is what was added");
-                    a.GetValue(13).Should().Be("string", "because that is what was added");
-                    a.GetInt(14).Should().Be(0, "because that is what was added");
-                    a.GetInt(15).Should().Be(1, "because that is what was added");
-                    a.GetInt(16).Should().Be(-1, "because that is what was added");
-                    a.GetValue(17).Should().Be(1.1, "because that is what was added");
-                    a.GetDate(18).Should().Be(ArrayTestDate, "because that is what was added");
+                    a.ShouldNotBeNull("because it was saved into the doucment at the beginning of the test");
+                    a!.Count.ShouldBe(22, "because 11 entries were added");
+                    a.GetValue(11).ShouldBe(true, "because that is what was added");
+                    a.GetValue(12).ShouldBe(false, "because that is what was added");
+                    a.GetValue(13).ShouldBe("string", "because that is what was added");
+                    a.GetInt(14).ShouldBe(0, "because that is what was added");
+                    a.GetInt(15).ShouldBe(1, "because that is what was added");
+                    a.GetInt(16).ShouldBe(-1, "because that is what was added");
+                    a.GetValue(17).ShouldBe(1.1, "because that is what was added");
+                    a.GetDate(18).ShouldBe(ArrayTestDate, "because that is what was added");
 
                     var subdict = a.GetDictionary(19);
-                    subdict.Should().NotBeNull("because a dictionary should be present at this index");
+                    subdict.ShouldNotBeNull("because a dictionary should be present at this index");
                     subdict!.ToDictionary()
-                        .Should().BeEquivalentTo(new Dictionary<string, object> { ["name"] = "Scott Tiger" },
+                        .ShouldBeEquivalentTo(new Dictionary<string, object> { ["name"] = "Scott Tiger" },
                             "because that is what was added");
 
                     var subarray = a.GetArray(20);
-                    subarray.Should().NotBeNull("because an array should be present at this index");
-                    subarray!.ToList().Should()
-                        .ContainInOrder(new[] { "a", "b", "c" }, "because that is what was added");
-                    a.GetBlob(21).Should().Be(ArrayTestBlob(), "because that is what was added");
+                    subarray.ShouldNotBeNull("because an array should be present at this index");
+                    subarray!.ToArray()
+                        .ShouldBe(new[] { "a", "b", "c" }, "because that is what was added");
+                    a.GetBlob(21).ShouldBe(ArrayTestBlob(), "because that is what was added");
                 });
             }
         }
@@ -196,27 +191,27 @@ namespace Test
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(11, "because 11 entries were added");
-                a.GetValue(0).Should().Be(true, "because that is what was added");
-                a.GetValue(1).Should().Be(false, "because that is what was added");
-                a.GetValue(2).Should().Be("string", "because that is what was added");
-                a.GetInt(3).Should().Be(0, "because that is what was added");
-                a.GetInt(4).Should().Be(1, "because that is what was added");
-                a.GetInt(5).Should().Be(-1, "because that is what was added");
-                a.GetValue(6).Should().Be(1.1, "because that is what was added");
-                a.GetDate(7).Should().Be(ArrayTestDate, "because that is what was added");
+                a.Count.ShouldBe(11, "because 11 entries were added");
+                a.GetValue(0).ShouldBe(true, "because that is what was added");
+                a.GetValue(1).ShouldBe(false, "because that is what was added");
+                a.GetValue(2).ShouldBe("string", "because that is what was added");
+                a.GetInt(3).ShouldBe(0, "because that is what was added");
+                a.GetInt(4).ShouldBe(1, "because that is what was added");
+                a.GetInt(5).ShouldBe(-1, "because that is what was added");
+                a.GetValue(6).ShouldBe(1.1, "because that is what was added");
+                a.GetDate(7).ShouldBe(ArrayTestDate, "because that is what was added");
 
                 var subdict = a.GetDictionary(8);
-                subdict.Should().NotBeNull("because a dictionary should be present at this index");
+                subdict.ShouldNotBeNull("because a dictionary should be present at this index");
                 subdict!.ToDictionary()
-                    .Should().BeEquivalentTo(new Dictionary<string, object> {
+                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is what was added");
 
                 var subarray = a.GetArray(9);
-                subarray.Should().NotBeNull("because an array should be present at this index");
-                subarray!.ToList().Should().ContainInOrder(new[] { "a", "b", "c" }, "because that is what was added");
-                a.GetBlob(10).Should().Be(ArrayTestBlob(), "because that is what was added");
+                subarray.ShouldNotBeNull("because an array should be present at this index");
+                subarray!.ToArray().ShouldBe(new[] { "a", "b", "c" }, "because that is what was added");
+                a.GetBlob(10).ShouldBe(ArrayTestBlob(), "because that is what was added");
             });
         }
 
@@ -230,10 +225,10 @@ namespace Test
             doc.SetArray("array", array);
             DefaultCollection.Save(doc);
             var gotArray = doc.GetArray("array");
-            gotArray.Should().NotBeNull("because it was just saved into the document");
+            gotArray.ShouldNotBeNull("because it was just saved into the document");
 
             var data = CreateArrayOfAllTypes();
-            array.Count.Should().Be(data.Count, "because the array was populated with this data");
+            array.Count.ShouldBe(data.Count, "because the array was populated with this data");
 
             // Reverse the array
             for (int i = 0; i < data.Count; i++) {
@@ -242,27 +237,27 @@ namespace Test
 
             SaveArray(gotArray!, doc, "array", a =>
             {
-                a.Count.Should().Be(11, "because 11 entries were added");
-                a.GetValue(10).Should().Be(true, "because that is what was added");
-                a.GetValue(9).Should().Be(false, "because that is what was added");
-                a.GetValue(8).Should().Be("string", "because that is what was added");
-                a.GetInt(7).Should().Be(0, "because that is what was added");
-                a.GetInt(6).Should().Be(1, "because that is what was added");
-                a.GetInt(5).Should().Be(-1, "because that is what was added");
-                a.GetValue(4).Should().Be(1.1, "because that is what was added");
-                a.GetDate(3).Should().Be(ArrayTestDate, "because that is what was added");
+                a.Count.ShouldBe(11, "because 11 entries were added");
+                a.GetValue(10).ShouldBe(true, "because that is what was added");
+                a.GetValue(9).ShouldBe(false, "because that is what was added");
+                a.GetValue(8).ShouldBe("string", "because that is what was added");
+                a.GetInt(7).ShouldBe(0, "because that is what was added");
+                a.GetInt(6).ShouldBe(1, "because that is what was added");
+                a.GetInt(5).ShouldBe(-1, "because that is what was added");
+                a.GetValue(4).ShouldBe(1.1, "because that is what was added");
+                a.GetDate(3).ShouldBe(ArrayTestDate, "because that is what was added");
 
                 var subdict = a.GetDictionary(2);
-                subdict.Should().NotBeNull("because a dictionary should be present at this index");
+                subdict.ShouldNotBeNull("because a dictionary should be present at this index");
                 subdict!.ToDictionary()
-                    .Should().BeEquivalentTo(new Dictionary<string, object> {
+                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is what was added");
 
                 var subarray = a.GetArray(1);
-                subarray.Should().NotBeNull("because an array should be present at this index");
-                subarray!.ToList().Should().ContainInOrder(new[] { "a", "b", "c" }, "because that is what was added");
-                a.GetBlob(0).Should().Be(ArrayTestBlob(), "because that is what was added");
+                subarray.ShouldNotBeNull("because an array should be present at this index");
+                subarray!.ToArray().ShouldBe(new[] { "a", "b", "c" }, "because that is what was added");
+                a.GetBlob(0).ShouldBe(ArrayTestBlob(), "because that is what was added");
             });
         }
 
@@ -272,7 +267,7 @@ namespace Test
             var array = new MutableArrayObject();
             array.AddString("a");
             foreach (var index in new[] {-1, 1}) {
-                array.Invoking(a => a.SetString(index, "b")).Should().Throw<ArgumentOutOfRangeException>();
+                Should.Throw<ArgumentOutOfRangeException>(() => array.SetString(index, "b"));
             }
         }
 
@@ -281,24 +276,24 @@ namespace Test
         {
             var array = new MutableArrayObject();
             array.InsertString(0, "a");
-            array.Count.Should().Be(1, "because one item was inserted");
-            array.GetValue(0).Should().Be("a", "because that is what was inserted");
+            array.Count.ShouldBe(1, "because one item was inserted");
+            array.GetValue(0).ShouldBe("a", "because that is what was inserted");
 
             array.InsertString(0, "c");
-            array.Count.Should().Be(2, "because another item was inserted");
-            array.Should().ContainInOrder(new[] {"c", "a"}, "because these are the new contents");
+            array.Count.ShouldBe(2, "because another item was inserted");
+            array.ToArray().ShouldBe(["c", "a"], "because these are the new contents");
 
             array.InsertString(1, "d");
-            array.Count.Should().Be(3, "because another item was inserted");
-            array.Should().ContainInOrder(new[] { "c", "d", "a" }, "because these are the new contents");
+            array.Count.ShouldBe(3, "because another item was inserted");
+            array.ToArray().ShouldBe(["c", "d", "a"], "because these are the new contents");
 
             array.InsertString(2, "e");
-            array.Count.Should().Be(4, "because another item was inserted");
-            array.Should().ContainInOrder(new[] { "c", "d", "e", "a" }, "because these are the new contents");
+            array.Count.ShouldBe(4, "because another item was inserted");
+            array.ToArray().ShouldBe(["c", "d", "e", "a"], "because these are the new contents");
 
             array.InsertString(4, "f");
-            array.Count.Should().Be(5, "because another item was inserted");
-            array.Should().ContainInOrder(new[] { "c", "d", "e", "a", "f" }, "because these are the new contents");
+            array.Count.ShouldBe(5, "because another item was inserted");
+            array.ToArray().ShouldBe(["c", "d", "e", "a", "f"], "because these are the new contents");
         }
 
         [Fact]
@@ -309,41 +304,41 @@ namespace Test
             SaveDocument(doc);
 
             var array = doc.GetArray("array");
-            array.Should().NotBeNull("because an array exists at this key");
+            array.ShouldNotBeNull("because an array exists at this key");
 
             array!.InsertString(0, "a");
             doc = SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(1, "because one item has been inserted");
-                array.Should().ContainInOrder(new[] {"a"}, "because those are the correct contents");
+                a.Count.ShouldBe(1, "because one item has been inserted");
+                array.ToArray().ShouldBe(["a"], "because those are the correct contents");
             }).ToMutable();
 
             array.InsertString(0, "c");
             doc = SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(2, "because two items have been inserted");
-                array.Should().ContainInOrder(new[] { "c", "a" }, "because those are the correct contents");
+                a.Count.ShouldBe(2, "because two items have been inserted");
+                array.ToArray().ShouldBe(["c", "a"], "because those are the correct contents");
             }).ToMutable();
 
             array.InsertString(1, "d");
             doc = SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(3, "because three items have been inserted");
-                array.Should().ContainInOrder(new[] { "c", "d", "a" }, "because those are the correct contents");
+                a.Count.ShouldBe(3, "because three items have been inserted");
+                array.ToArray().ShouldBe(["c", "d", "a"], "because those are the correct contents");
             }).ToMutable();
 
             array.InsertString(2, "e");
             doc = SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(4, "because four items have been inserted");
-                array.Should().ContainInOrder(new[] { "c", "d", "e", "a" }, "because those are the correct contents");
+                a.Count.ShouldBe(4, "because four items have been inserted");
+                array.ToArray().ShouldBe(["c", "d", "e", "a"], "because those are the correct contents");
             }).ToMutable();
 
             array.InsertString(4, "f");
             SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(5, "because five items have been inserted");
-                array.Should().ContainInOrder(new[] { "c", "d", "e", "a", "f" }, "because those are the correct contents");
+                a.Count.ShouldBe(5, "because five items have been inserted");
+                array.ToArray().ShouldBe(["c", "d", "e", "a", "f"], "because those are the correct contents");
             });
         }
 
@@ -354,7 +349,7 @@ namespace Test
             array.AddString("a");
 
             foreach (int index in new[] {-1, 2}) {
-                array.Invoking(a => a.InsertString(index, "b")).Should().Throw<ArgumentOutOfRangeException>();
+                Should.Throw<ArgumentOutOfRangeException>(() => array.InsertString(index, "b"));
             }
         }
 
@@ -371,8 +366,8 @@ namespace Test
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(0, "because all elements were removed");
-                a.Should().BeEmpty("because there are no elements inside");
+                a.Count.ShouldBe(0, "because all elements were removed");
+                a.ShouldBeEmpty("because there are no elements inside");
             });
         }
 
@@ -386,7 +381,7 @@ namespace Test
             doc.SetArray("array", array);
             SaveDocument(doc);
             var gotArray = doc.GetArray("array");
-            gotArray.Should().NotBeNull("because it was just saved into the document");
+            gotArray.ShouldNotBeNull("because it was just saved into the document");
 
             for (int i = gotArray!.Count - 1; i >= 0; i--) {
                 gotArray.RemoveAt(i);
@@ -394,8 +389,8 @@ namespace Test
             
             SaveArray(gotArray, doc, "array", a =>
             {
-                a.Count.Should().Be(0, "because all elements were removed");
-                a.Should().BeEmpty("because there are no elements inside");
+                a.Count.ShouldBe(0, "because all elements were removed");
+                a.ShouldBeEmpty("because there are no elements inside");
             });
         }
 
@@ -405,7 +400,7 @@ namespace Test
             var array = new MutableArrayObject();
             array.AddString("a");
             foreach (int index in new[] { -1, 1 }) {
-                array.Invoking(a => a.RemoveAt(index)).Should().Throw<ArgumentOutOfRangeException>();
+                Should.Throw<ArgumentOutOfRangeException>(() => array.RemoveAt(index));
             }
         }
 
@@ -418,7 +413,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.Count.Should().Be(11, "because that is how many elements were inserted");
+                a.Count.ShouldBe(11, "because that is how many elements were inserted");
             });
         }
 
@@ -427,22 +422,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetString(0).Should().BeNull("because that is the default value");
-                a.GetString(1).Should().BeNull("because that is the default value");
-                a.GetString(2).Should().Be("string", "because that is the value at this index");
-                a.GetString(3).Should().BeNull("because that is the default value");
-                a.GetString(4).Should().BeNull("because that is the default value");
-                a.GetString(5).Should().BeNull("because that is the default value");
-                a.GetString(6).Should().BeNull("because that is the default value");
-                a.GetString(7).Should().Be(ArrayTestDate.ToString("o"), "because the date at this index can be a string");
-                a.GetString(8).Should().BeNull("because that is the default value");
-                a.GetString(9).Should().BeNull("because that is the default value");
-                a.GetString(10).Should().BeNull("because that is the default value");
+                a.GetString(0).ShouldBeNull("because that is the default value");
+                a.GetString(1).ShouldBeNull("because that is the default value");
+                a.GetString(2).ShouldBe("string", "because that is the value at this index");
+                a.GetString(3).ShouldBeNull("because that is the default value");
+                a.GetString(4).ShouldBeNull("because that is the default value");
+                a.GetString(5).ShouldBeNull("because that is the default value");
+                a.GetString(6).ShouldBeNull("because that is the default value");
+                a.GetString(7).ShouldBe(ArrayTestDate.ToString("o"), "because the date at this index can be a string");
+                a.GetString(8).ShouldBeNull("because that is the default value");
+                a.GetString(9).ShouldBeNull("because that is the default value");
+                a.GetString(10).ShouldBeNull("because that is the default value");
             });
         }
 
@@ -451,22 +446,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetInt(0).Should().Be(1, "because a boolean true becomes 1");
-                a.GetInt(1).Should().Be(0, "because a boolean false becomes 0");
-                a.GetInt(2).Should().Be(0, "because that is the default value");
-                a.GetInt(3).Should().Be(0, "because that is the stored value");
-                a.GetInt(4).Should().Be(1, "because that is the stored value");
-                a.GetInt(5).Should().Be(-1, "because that is the stored value");
-                a.GetInt(6).Should().Be(1, "because that is the truncated value of 1.1");
-                a.GetInt(7).Should().Be(0, "because that is the default value");
-                a.GetInt(8).Should().Be(0, "because that is the default value");
-                a.GetInt(9).Should().Be(0, "because that is the default value");
-                a.GetInt(10).Should().Be(0, "because that is the default value");
+                a.GetInt(0).ShouldBe(1, "because a boolean true becomes 1");
+                a.GetInt(1).ShouldBe(0, "because a boolean false becomes 0");
+                a.GetInt(2).ShouldBe(0, "because that is the default value");
+                a.GetInt(3).ShouldBe(0, "because that is the stored value");
+                a.GetInt(4).ShouldBe(1, "because that is the stored value");
+                a.GetInt(5).ShouldBe(-1, "because that is the stored value");
+                a.GetInt(6).ShouldBe(1, "because that is the truncated value of 1.1");
+                a.GetInt(7).ShouldBe(0, "because that is the default value");
+                a.GetInt(8).ShouldBe(0, "because that is the default value");
+                a.GetInt(9).ShouldBe(0, "because that is the default value");
+                a.GetInt(10).ShouldBe(0, "because that is the default value");
             });
         }
 
@@ -475,22 +470,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetLong(0).Should().Be(1L, "because a boolean true becomes 1L");
-                a.GetLong(1).Should().Be(0L, "because a boolean false becomes 0");
-                a.GetLong(2).Should().Be(0L, "because that is the default value");
-                a.GetLong(3).Should().Be(0L, "because that is the stored value");
-                a.GetLong(4).Should().Be(1L, "because that is the stored value");
-                a.GetLong(5).Should().Be(-1L, "because that is the stored value");
-                a.GetLong(6).Should().Be(1L, "because that is the truncated value of 1L.1L");
-                a.GetLong(7).Should().Be(0L, "because that is the default value");
-                a.GetLong(8).Should().Be(0L, "because that is the default value");
-                a.GetLong(9).Should().Be(0L, "because that is the default value");
-                a.GetLong(10).Should().Be(0L, "because that is the default value");
+                a.GetLong(0).ShouldBe(1L, "because a boolean true becomes 1L");
+                a.GetLong(1).ShouldBe(0L, "because a boolean false becomes 0");
+                a.GetLong(2).ShouldBe(0L, "because that is the default value");
+                a.GetLong(3).ShouldBe(0L, "because that is the stored value");
+                a.GetLong(4).ShouldBe(1L, "because that is the stored value");
+                a.GetLong(5).ShouldBe(-1L, "because that is the stored value");
+                a.GetLong(6).ShouldBe(1L, "because that is the truncated value of 1L.1L");
+                a.GetLong(7).ShouldBe(0L, "because that is the default value");
+                a.GetLong(8).ShouldBe(0L, "because that is the default value");
+                a.GetLong(9).ShouldBe(0L, "because that is the default value");
+                a.GetLong(10).ShouldBe(0L, "because that is the default value");
             });
         }
 
@@ -499,22 +494,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetDouble(0).Should().Be(1.0, "because a boolean true becomes 1.0");
-                a.GetDouble(1).Should().Be(0.0, "because a boolean false becomes 0.0");
-                a.GetDouble(2).Should().Be(0.0, "because that is the default value");
-                a.GetDouble(3).Should().Be(0.0, "because 0 becomes 0.0");
-                a.GetDouble(4).Should().Be(1.0, "because 1 becomes 1.0");
-                a.GetDouble(5).Should().Be(-1.0, "because -1 becomes -1.0");
-                a.GetDouble(6).Should().Be(1.1, "because that is the stored value");
-                a.GetDouble(7).Should().Be(0.0, "because that is the default value");
-                a.GetDouble(8).Should().Be(0.0, "because that is the default value");
-                a.GetDouble(9).Should().Be(0.0, "because that is the default value");
-                a.GetDouble(10).Should().Be(0.0, "because that is the default value");
+                a.GetDouble(0).ShouldBe(1.0, "because a boolean true becomes 1.0");
+                a.GetDouble(1).ShouldBe(0.0, "because a boolean false becomes 0.0");
+                a.GetDouble(2).ShouldBe(0.0, "because that is the default value");
+                a.GetDouble(3).ShouldBe(0.0, "because 0 becomes 0.0");
+                a.GetDouble(4).ShouldBe(1.0, "because 1 becomes 1.0");
+                a.GetDouble(5).ShouldBe(-1.0, "because -1 becomes -1.0");
+                a.GetDouble(6).ShouldBe(1.1, "because that is the stored value");
+                a.GetDouble(7).ShouldBe(0.0, "because that is the default value");
+                a.GetDouble(8).ShouldBe(0.0, "because that is the default value");
+                a.GetDouble(9).ShouldBe(0.0, "because that is the default value");
+                a.GetDouble(10).ShouldBe(0.0, "because that is the default value");
             });
         }
 
@@ -523,22 +518,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetFloat(0).Should().Be(1.0f, "because a boolean true becomes 1.0f");
-                a.GetFloat(1).Should().Be(0.0f, "because a boolean false becomes 0.0f");
-                a.GetFloat(2).Should().Be(0.0f, "because that is the default value");
-                a.GetFloat(3).Should().Be(0.0f, "because 0 becomes 0.0f");
-                a.GetFloat(4).Should().Be(1.0f, "because 1 becomes 1.0f");
-                a.GetFloat(5).Should().Be(-1.0f, "because -1 becomes -1.0f");
-                a.GetFloat(6).Should().Be(1.1f, "because that is the stored value");
-                a.GetFloat(7).Should().Be(0.0f, "because that is the default value");
-                a.GetFloat(8).Should().Be(0.0f, "because that is the default value");
-                a.GetFloat(9).Should().Be(0.0f, "because that is the default value");
-                a.GetFloat(10).Should().Be(0.0f, "because that is the default value");
+                a.GetFloat(0).ShouldBe(1.0f, "because a boolean true becomes 1.0f");
+                a.GetFloat(1).ShouldBe(0.0f, "because a boolean false becomes 0.0f");
+                a.GetFloat(2).ShouldBe(0.0f, "because that is the default value");
+                a.GetFloat(3).ShouldBe(0.0f, "because 0 becomes 0.0f");
+                a.GetFloat(4).ShouldBe(1.0f, "because 1 becomes 1.0f");
+                a.GetFloat(5).ShouldBe(-1.0f, "because -1 becomes -1.0f");
+                a.GetFloat(6).ShouldBe(1.1f, "because that is the stored value");
+                a.GetFloat(7).ShouldBe(0.0f, "because that is the default value");
+                a.GetFloat(8).ShouldBe(0.0f, "because that is the default value");
+                a.GetFloat(9).ShouldBe(0.0f, "because that is the default value");
+                a.GetFloat(10).ShouldBe(0.0f, "because that is the default value");
             });
         }
 
@@ -555,14 +550,14 @@ namespace Test
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetValue(0).Should().Be(Int64.MaxValue, "because that is the stored value");
-                a.GetValue(1).Should().Be(Int64.MinValue, "because that is the stored value");
-                a.GetLong(0).Should().Be(Int64.MaxValue, "because that is the stored value");
-                a.GetLong(1).Should().Be(Int64.MinValue, "because that is the stored value");
-                a.GetValue(2).Should().Be(Double.MaxValue, "because that is the stored value");
-                a.GetValue(3).Should().Be(Double.MinValue, "because that is the stored value");
-                a.GetDouble(2).Should().Be(Double.MaxValue, "because that is the stored value");
-                a.GetDouble(3).Should().Be(Double.MinValue, "because that is the stored value");
+                a.GetValue(0).ShouldBe(Int64.MaxValue, "because that is the stored value");
+                a.GetValue(1).ShouldBe(Int64.MinValue, "because that is the stored value");
+                a.GetLong(0).ShouldBe(Int64.MaxValue, "because that is the stored value");
+                a.GetLong(1).ShouldBe(Int64.MinValue, "because that is the stored value");
+                a.GetValue(2).ShouldBe(Double.MaxValue, "because that is the stored value");
+                a.GetValue(3).ShouldBe(Double.MinValue, "because that is the stored value");
+                a.GetDouble(2).ShouldBe(Double.MaxValue, "because that is the stored value");
+                a.GetDouble(3).ShouldBe(Double.MinValue, "because that is the stored value");
             });
         }
 
@@ -580,21 +575,21 @@ namespace Test
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetInt(0).Should().Be(1, "because that is the converted value");
-                a.GetLong(0).Should().Be(1L, "because that is the converted value");
-                a.GetDouble(0).Should().Be(1.00, "because that is the stored value");
-                a.GetInt(1).Should().Be(1, "because that is the converted value");
-                a.GetLong(1).Should().Be(1L, "because that is the converted value");
-                a.GetDouble(1).Should().Be(1.49, "because that is the stored value");
-                a.GetInt(2).Should().Be(1, "because that is the converted value");
-                a.GetLong(2).Should().Be(1L, "because that is the converted value");
-                a.GetDouble(2).Should().Be(1.50, "because that is the stored value");
-                a.GetInt(3).Should().Be(1, "because that is the converted value");
-                a.GetLong(3).Should().Be(1L, "because that is the converted value");
-                a.GetDouble(3).Should().Be(1.51, "because that is the stored value");
-                a.GetInt(4).Should().Be(1, "because that is the converted value");
-                a.GetLong(4).Should().Be(1L, "because that is the converted value");
-                a.GetDouble(4).Should().Be(1.99, "because that is the stored value");
+                a.GetInt(0).ShouldBe(1, "because that is the converted value");
+                a.GetLong(0).ShouldBe(1L, "because that is the converted value");
+                a.GetDouble(0).ShouldBe(1.00, "because that is the stored value");
+                a.GetInt(1).ShouldBe(1, "because that is the converted value");
+                a.GetLong(1).ShouldBe(1L, "because that is the converted value");
+                a.GetDouble(1).ShouldBe(1.49, "because that is the stored value");
+                a.GetInt(2).ShouldBe(1, "because that is the converted value");
+                a.GetLong(2).ShouldBe(1L, "because that is the converted value");
+                a.GetDouble(2).ShouldBe(1.50, "because that is the stored value");
+                a.GetInt(3).ShouldBe(1, "because that is the converted value");
+                a.GetLong(3).ShouldBe(1L, "because that is the converted value");
+                a.GetDouble(3).ShouldBe(1.51, "because that is the stored value");
+                a.GetInt(4).ShouldBe(1, "because that is the converted value");
+                a.GetLong(4).ShouldBe(1L, "because that is the converted value");
+                a.GetDouble(4).ShouldBe(1.99, "because that is the stored value");
             });
         }
 
@@ -603,22 +598,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetBoolean(0).Should().Be(true, "because that is the stored value");
-                a.GetBoolean(1).Should().Be(false, "because that is the stored value");
-                a.GetBoolean(2).Should().Be(true, "because that is the value for non-zero objects");
-                a.GetBoolean(3).Should().Be(false, "because zero means false");
-                a.GetBoolean(4).Should().Be(true, "because non-zero means true");
-                a.GetBoolean(5).Should().Be(true, "because non-zero means true");
-                a.GetBoolean(6).Should().Be(true, "because non-zero means true");
-                a.GetBoolean(7).Should().Be(true, "because that is the value for non-zero objects");
-                a.GetBoolean(8).Should().Be(true, "because that is the value for non-zero objects");
-                a.GetBoolean(9).Should().Be(true, "because that is the value for non-zero objects");
-                a.GetBoolean(10).Should().Be(true, "because that is the value for non-zero objects");
+                a.GetBoolean(0).ShouldBe(true, "because that is the stored value");
+                a.GetBoolean(1).ShouldBe(false, "because that is the stored value");
+                a.GetBoolean(2).ShouldBe(true, "because that is the value for non-zero objects");
+                a.GetBoolean(3).ShouldBe(false, "because zero means false");
+                a.GetBoolean(4).ShouldBe(true, "because non-zero means true");
+                a.GetBoolean(5).ShouldBe(true, "because non-zero means true");
+                a.GetBoolean(6).ShouldBe(true, "because non-zero means true");
+                a.GetBoolean(7).ShouldBe(true, "because that is the value for non-zero objects");
+                a.GetBoolean(8).ShouldBe(true, "because that is the value for non-zero objects");
+                a.GetBoolean(9).ShouldBe(true, "because that is the value for non-zero objects");
+                a.GetBoolean(10).ShouldBe(true, "because that is the value for non-zero objects");
             });
         }
 
@@ -627,22 +622,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetDate(0).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(1).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(2).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(3).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(4).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(5).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(6).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(7).Should().Be(ArrayTestDate, "because that is the value that was stored");
-                a.GetDate(8).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(9).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
-                a.GetDate(10).Should().Be(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(0).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(1).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(2).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(3).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(4).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(5).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(6).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(7).ShouldBe(ArrayTestDate, "because that is the value that was stored");
+                a.GetDate(8).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(9).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
+                a.GetDate(10).ShouldBe(DateTimeOffset.MinValue, "because that is the default value");
             });
         }
 
@@ -651,27 +646,27 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetDictionary(0).Should().BeNull("because that is the default value");
-                a.GetDictionary(1).Should().BeNull("because that is the default value");
-                a.GetDictionary(2).Should().BeNull("because that is the default value");
-                a.GetDictionary(3).Should().BeNull("because that is the default value");
-                a.GetDictionary(4).Should().BeNull("because that is the default value");
-                a.GetDictionary(5).Should().BeNull("because that is the default value");
-                a.GetDictionary(6).Should().BeNull("because that is the default value");
-                a.GetDictionary(7).Should().BeNull("because that is the default value");
-                a.GetDictionary(8).Should().NotBeNull("because it was set at the beginning of the test");
+                a.GetDictionary(0).ShouldBeNull("because that is the default value");
+                a.GetDictionary(1).ShouldBeNull("because that is the default value");
+                a.GetDictionary(2).ShouldBeNull("because that is the default value");
+                a.GetDictionary(3).ShouldBeNull("because that is the default value");
+                a.GetDictionary(4).ShouldBeNull("because that is the default value");
+                a.GetDictionary(5).ShouldBeNull("because that is the default value");
+                a.GetDictionary(6).ShouldBeNull("because that is the default value");
+                a.GetDictionary(7).ShouldBeNull("because that is the default value");
+                a.GetDictionary(8).ShouldNotBeNull("because it was set at the beginning of the test");
                 a.GetDictionary(8)!
                     .ToDictionary()
-                    .Should().BeEquivalentTo(new Dictionary<string, object> {
+                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is the stored value");
-                a.GetDictionary(9).Should().BeNull("because that is the default value");
-                a.GetDictionary(10).Should().BeNull("because that is the default value");
+                a.GetDictionary(9).ShouldBeNull("because that is the default value");
+                a.GetDictionary(10).ShouldBeNull("because that is the default value");
             });
         }
 
@@ -680,22 +675,22 @@ namespace Test
         {
             var array = new MutableArrayObject();
             PopulateData(array);
-            array.Count.Should().Be(11, "because that is how many elements were inserted");
+            array.Count.ShouldBe(11, "because that is how many elements were inserted");
 
             var doc = new MutableDocument("doc1");
             SaveArray(array, doc, "array", a =>
             {
-                a.GetArray(0).Should().BeNull("because that is the default value");
-                a.GetArray(1).Should().BeNull("because that is the default value");
-                a.GetArray(2).Should().BeNull("because that is the default value");
-                a.GetArray(3).Should().BeNull("because that is the default value");
-                a.GetArray(4).Should().BeNull("because that is the default value");
-                a.GetArray(5).Should().BeNull("because that is the default value");
-                a.GetArray(6).Should().BeNull("because that is the default value");
-                a.GetArray(7).Should().BeNull("because that is the default value");
-                a.GetArray(8).Should().BeNull("because that is the default value");
-                a.GetArray(9).Should().ContainInOrder(new[] {"a", "b", "c"}, "because that is the stored value");
-                a.GetArray(10).Should().BeNull("because that is the default value");
+                a.GetArray(0).ShouldBeNull("because that is the default value");
+                a.GetArray(1).ShouldBeNull("because that is the default value");
+                a.GetArray(2).ShouldBeNull("because that is the default value");
+                a.GetArray(3).ShouldBeNull("because that is the default value");
+                a.GetArray(4).ShouldBeNull("because that is the default value");
+                a.GetArray(5).ShouldBeNull("because that is the default value");
+                a.GetArray(6).ShouldBeNull("because that is the default value");
+                a.GetArray(7).ShouldBeNull("because that is the default value");
+                a.GetArray(8).ShouldBeNull("because that is the default value");
+                a.GetArray(9)?.ToArray().ShouldBe(["a", "b", "c"], "because that is the stored value");
+                a.GetArray(10).ShouldBeNull("because that is the default value");
             });
         }
 
@@ -712,17 +707,17 @@ namespace Test
 
                 SaveDocument(mDoc);
                 using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
-                    doc.Should().NotBeNull("because it was saved in the previous line");
+                    doc.ShouldNotBeNull("because it was saved in the previous line");
                     var array = doc!.GetArray("array");
-                    array.Should().NotBeNull();
-                    array!.GetArray(0).Should().BeNull();
-                    array.GetArray(1).Should().BeNull();
-                    array.GetArray(2).Should().BeNull();
-                    array.GetArray(3).Should().NotBeNull();
+                    array.ShouldNotBeNull();
+                    array!.GetArray(0).ShouldBeNull();
+                    array.GetArray(1).ShouldBeNull();
+                    array.GetArray(2).ShouldBeNull();
+                    array.GetArray(3).ShouldNotBeNull();
 
                     var nestedArray = array.GetArray(3);
-                    nestedArray.Should().BeEquivalentTo(mNestedArray);
-                    array.Should().BeEquivalentTo(mArray);
+                    nestedArray?.ToArray().ShouldBe(mNestedArray.ToArray());
+                    array?.ToArray().ShouldBe(mArray.ToArray());
                 }
             }
         }
@@ -742,12 +737,12 @@ namespace Test
             SaveArray(array1, doc, "array", a =>
             {
                 var a1 = a;
-                a1.Count.Should().Be(1, "because this array has one element");
+                a1.Count.ShouldBe(1, "because this array has one element");
                 var a2 = a1.GetArray(0);
-                a2.Should().HaveCount(1, "because this array has one element");
+                a2?.Count.ShouldBe(1, "because this array has one element");
                 var a3 = a2!.GetArray(0); // If this were null the previous check would fail
-                a3.Should().HaveCount(3, "because this array has three elements");
-                a3.Should().ContainInOrder(new[] {"a", "b", "c"}, "because otherwise the contents are incorrect");
+                a3?.Count.ShouldBe(3, "because this array has three elements");
+                a3?.ToArray().ShouldBe(["a", "b", "c"], "because otherwise the contents are incorrect");
             });
         }
 
@@ -760,14 +755,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Count.Should().Be(1);
+                    doc.Count.ShouldBe(1);
                     var array = doc.GetArray("array");
-                    array.Should().NotBeNull();
-                    array.Should().HaveCount(4);
-                    array!.GetValue(0).Should().BeNull(); // If this were null the previous check would fail
-                    array.GetValue(1).Should().BeNull();
-                    array.GetValue(2).Should().BeNull();
-                    array.GetValue(3).Should().BeNull();
+                    array.ShouldNotBeNull();
+                    array.Count.ShouldBe(4);
+                    array!.GetValue(0).ShouldBeNull(); // If this were null the previous check would fail
+                    array.GetValue(1).ShouldBeNull();
+                    array.GetValue(2).ShouldBeNull();
+                    array.GetValue(3).ShouldBeNull();
                 });
             }
         }
@@ -782,30 +777,30 @@ namespace Test
                 .AddString("b")
                 .AddString("c");
 
-            array1.Count.Should().Be(3, "because the array has three elements inside");
-            array1.Should().ContainInOrder(new[] { "a", "b", "c" }, "because otherwise the contents are incorrect");
+            array1.Count.ShouldBe(3, "because the array has three elements inside");
+            array1.ToArray().ShouldBe(["a", "b", "c"], "because otherwise the contents are incorrect");
             doc.SetArray("array", array1);
 
             var array2 = new MutableArrayObject();
 
             array2.AddString("x").AddString("y").AddString("z");
 
-            array2.Count.Should().Be(3, "because the array has three elements inside");
-            array2.Should().ContainInOrder(new[] { "x", "y", "z" }, "because otherwise the contents are incorrect");
+            array2.Count.ShouldBe(3, "because the array has three elements inside");
+            array2.ToArray().ShouldBe(["x", "y", "z"], "because otherwise the contents are incorrect");
 
             doc.SetArray("array", array2);
 
             array1.AddString("d");
-            array1.Count.Should().Be(4, "because another element was added");
-            array1.Should().ContainInOrder(new[] { "a", "b", "c", "d" }, "because otherwise the contents are incorrect");
-            array2.Count.Should().Be(3, "because array1 should not affect array2");
-            array2.Should().ContainInOrder(new[] { "x", "y", "z" }, "because array1 should not affect array2");
+            array1.Count.ShouldBe(4, "because another element was added");
+            array1.ToArray().ShouldBe(["a", "b", "c", "d"], "because otherwise the contents are incorrect");
+            array2.Count.ShouldBe(3, "because array1 should not affect array2");
+            array2.ToArray().ShouldBe(["x", "y", "z"], "because array1 should not affect array2");
             
             SaveDocument(doc, d =>
             {
                 var savedArray = d.GetArray("array");
-                savedArray.Should().HaveCount(3, "because there are still just three items");
-                savedArray.Should().ContainInOrder(new[] { "x", "y", "z" }, "because otherwise the contents are incorrect");
+                savedArray?.Count.ShouldBe(3, "because there are still just three items");
+                savedArray?.ToArray().ShouldBe(["x", "y", "z"], "because otherwise the contents are incorrect");
             });
         }
 
@@ -818,19 +813,19 @@ namespace Test
                 .AddString("b")
                 .AddString("c");
 
-            array1.Count.Should().Be(3, "because the array has three elements inside");
-            array1.Should().ContainInOrder(new[] { "a", "b", "c" }, "because otherwise the contents are incorrect");
+            array1.Count.ShouldBe(3, "because the array has three elements inside");
+            array1.ToArray().ShouldBe(["a", "b", "c"], "because otherwise the contents are incorrect");
             doc.SetArray("array", array1);
 
             doc.SetString("array", "Daniel Tiger");
-            doc.GetValue("array").Should().Be("Daniel Tiger", "because it was replaced");
+            doc.GetValue("array").ShouldBe("Daniel Tiger", "because it was replaced");
 
             array1.AddString("d");
-            array1.Count.Should().Be(4, "because another element was added");
-            array1.Should().ContainInOrder(new[] { "a", "b", "c", "d" }, "because otherwise the contents are incorrect");
+            array1.Count.ShouldBe(4, "because another element was added");
+            array1.ToArray().ShouldBe(["a", "b", "c", "d"], "because otherwise the contents are incorrect");
 
             SaveDocument(doc,
-                d => { d.GetValue("array").Should().Be("Daniel Tiger", "because that is what was saved"); });
+                d => { d.GetValue("array").ShouldBe("Daniel Tiger", "because that is what was saved"); });
         }
 
         [Fact]
@@ -843,15 +838,14 @@ namespace Test
 
             var content = array.ToList();
             List<object?> result = [.. array];
-            result.AddRange(array);
-            result.Should().ContainInOrder(content, "because that is the correct content");
+            result.ShouldBe(content, "because that is the correct content");
 
             array.RemoveAt(1);
             array.AddInt(20).AddInt(21);
             content = [.. array];
 
             result = [.. array];
-            result.Should().ContainInOrder(content, "because that is the correct content");
+            result.ShouldBe(content, "because that is the correct content");
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
@@ -859,7 +853,7 @@ namespace Test
             {
                 result = [.. a];
                 for (int i = 0; i < 20; i++) {
-                    Convert.ToInt32(result[i]).Should().Be(Convert.ToInt32(content[i]),
+                    Convert.ToInt32(result[i]).ShouldBe(Convert.ToInt32(content[i]),
                         $"because that is the correct entry for index {i}");
                 }
             });
@@ -873,8 +867,8 @@ namespace Test
             using (var doc = new MutableDocument("doc1")) {
                 SaveArray(array, doc, "array", a =>
                 {
-                    a.Count.Should().Be(1);
-                    a.GetValue(0).Should().BeNull();
+                    a.Count.ShouldBe(1);
+                    a.GetValue(0).ShouldBeNull();
                 });
             }
         }
@@ -890,13 +884,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Count.Should().Be(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetInt(0).Should().Be(0); // If this were null the previous check would fail
-                    array.GetInt(1).Should().Be(Int32.MaxValue);
-                    array.GetInt(2).Should().Be(Int32.MinValue);
+                    array?.Count.ShouldBe(3);
+                    array!.GetInt(0).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetInt(1).ShouldBe(Int32.MaxValue);
+                    array.GetInt(2).ShouldBe(Int32.MinValue);
                 });
             }
         }
@@ -917,13 +911,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Count.Should().Be(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetInt(2).Should().Be(0); // If this were null the previous check would fail
-                    array.GetInt(0).Should().Be(Int32.MaxValue);
-                    array.GetInt(1).Should().Be(Int32.MinValue);
+                    array?.Count.ShouldBe(3);
+                    array!.GetInt(2).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetInt(0).ShouldBe(Int32.MaxValue);
+                    array.GetInt(1).ShouldBe(Int32.MinValue);
                 });
             }
         }
@@ -941,14 +935,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(4);
-                    array!.GetInt(0).Should().Be(0); // If this were null the previous check would fail
-                    array.GetInt(1).Should().Be(Int32.MaxValue);
-                    array.GetInt(2).Should().Be(Int32.MinValue);
-                    array.GetInt(3).Should().Be(10);
+                    array?.Count.ShouldBe(4);
+                    array!.GetInt(0).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetInt(1).ShouldBe(Int32.MaxValue);
+                    array.GetInt(2).ShouldBe(Int32.MinValue);
+                    array.GetInt(3).ShouldBe(10);
                 });
             }
         }
@@ -964,13 +958,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3); // If this were null the previous check would fail
-                    array!.GetLong(0).Should().Be(0);
-                    array.GetLong(1).Should().Be(Int64.MaxValue);
-                    array.GetLong(2).Should().Be(Int64.MinValue);
+                    array?.Count.ShouldBe(3); // If this were null the previous check would fail
+                    array!.GetLong(0).ShouldBe(0);
+                    array.GetLong(1).ShouldBe(Int64.MaxValue);
+                    array.GetLong(2).ShouldBe(Int64.MinValue);
                 });
             }
         }
@@ -991,13 +985,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetLong(2).Should().Be(0); // If this were null the previous check would fail
-                    array.GetLong(0).Should().Be(Int64.MaxValue);
-                    array.GetLong(1).Should().Be(Int64.MinValue);
+                    array?.Count.ShouldBe(3);
+                    array!.GetLong(2).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetLong(0).ShouldBe(Int64.MaxValue);
+                    array.GetLong(1).ShouldBe(Int64.MinValue);
                 });
             }
         }
@@ -1015,14 +1009,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(4);
-                    array!.GetLong(0).Should().Be(0); // If this were null the previous check would fail
-                    array.GetLong(1).Should().Be(Int64.MaxValue);
-                    array.GetLong(2).Should().Be(Int64.MinValue);
-                    array.GetLong(3).Should().Be(10);
+                    array?.Count.ShouldBe(4);
+                    array!.GetLong(0).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetLong(1).ShouldBe(Int64.MaxValue);
+                    array.GetLong(2).ShouldBe(Int64.MinValue);
+                    array.GetLong(3).ShouldBe(10);
                 });
             }
         }
@@ -1038,13 +1032,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetFloat(0).Should().Be(0); // If this were null the previous check would fail
-                    array.GetFloat(1).Should().Be(Single.MaxValue);
-                    array.GetFloat(2).Should().Be(Single.MinValue);
+                    array?.Count.ShouldBe(3);
+                    array!.GetFloat(0).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetFloat(1).ShouldBe(Single.MaxValue);
+                    array.GetFloat(2).ShouldBe(Single.MinValue);
                 });
             }
         }
@@ -1065,13 +1059,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetFloat(2).Should().Be(0); // If this were null the previous check would fail
-                    array.GetFloat(0).Should().Be(Single.MaxValue);
-                    array.GetFloat(1).Should().Be(Single.MinValue);
+                    array?.Count.ShouldBe(3);
+                    array!.GetFloat(2).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetFloat(0).ShouldBe(Single.MaxValue);
+                    array.GetFloat(1).ShouldBe(Single.MinValue);
                 });
             }
         }
@@ -1089,14 +1083,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(4);
-                    array!.GetFloat(0).Should().Be(0); // If this were null the previous check would fail
-                    array.GetFloat(1).Should().Be(Single.MaxValue);
-                    array.GetFloat(2).Should().Be(Single.MinValue);
-                    array.GetFloat(3).Should().Be(10);
+                    array?.Count.ShouldBe(4);
+                    array!.GetFloat(0).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetFloat(1).ShouldBe(Single.MaxValue);
+                    array.GetFloat(2).ShouldBe(Single.MinValue);
+                    array.GetFloat(3).ShouldBe(10);
                 });
             }
         }
@@ -1112,13 +1106,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetDouble(0).Should().Be(0); // If this were null the previous check would fail
-                    array.GetDouble(1).Should().Be(Double.MaxValue);
-                    array.GetDouble(2).Should().Be(Double.MinValue);
+                    array?.Count.ShouldBe(3);
+                    array!.GetDouble(0).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetDouble(1).ShouldBe(Double.MaxValue);
+                    array.GetDouble(2).ShouldBe(Double.MinValue);
                 });
             }
         }
@@ -1139,13 +1133,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetDouble(2).Should().Be(0); // If this were null the previous check would fail
-                    array.GetDouble(0).Should().Be(Double.MaxValue);
-                    array.GetDouble(1).Should().Be(Double.MinValue);
+                    array?.Count.ShouldBe(3);
+                    array!.GetDouble(2).ShouldBe(0); // If this were null the previous check would fail
+                    array.GetDouble(0).ShouldBe(Double.MaxValue);
+                    array.GetDouble(1).ShouldBe(Double.MinValue);
                 });
             }
         }
@@ -1163,14 +1157,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(4);
-                    array!.GetDouble(0).Should().Be(0);
-                    array.GetDouble(1).Should().Be(Double.MaxValue);
-                    array.GetDouble(2).Should().Be(Double.MinValue);
-                    array.GetDouble(3).Should().Be(10);
+                    array?.Count.ShouldBe(4);
+                    array!.GetDouble(0).ShouldBe(0);
+                    array.GetDouble(1).ShouldBe(Double.MaxValue);
+                    array.GetDouble(2).ShouldBe(Double.MinValue);
+                    array.GetDouble(3).ShouldBe(10);
                 });
             }
         }
@@ -1187,14 +1181,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(4);
-                    array!.GetString(0).Should().Be(""); // If this were null the previous check would fail
-                    array.GetString(1).Should().Be("Hello");
-                    array.GetString(2).Should().Be("World");
-                    array.GetString(3).Should().Be("This is a test test test test test test test test test test");
+                    array?.Count.ShouldBe(4);
+                    array!.GetString(0).ShouldBe(""); // If this were null the previous check would fail
+                    array.GetString(1).ShouldBe("Hello");
+                    array.GetString(2).ShouldBe("World");
+                    array.GetString(3).ShouldBe("This is a test test test test test test test test test test");
                 });
             }
         }
@@ -1215,13 +1209,13 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(3);
-                    array!.GetString(2).Should().Be(""); // If this were null the previous check would fail
-                    array.GetString(0).Should().Be("Hello");
-                    array.GetString(1).Should().Be("World");
+                    array?.Count.ShouldBe(3);
+                    array!.GetString(2).ShouldBe(""); // If this were null the previous check would fail
+                    array.GetString(0).ShouldBe("Hello");
+                    array.GetString(1).ShouldBe("World");
                 });
             }
         }
@@ -1239,14 +1233,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(4);
-                    array!.GetString(0).Should().Be("Hello"); // If this were null the previous check would fail
-                    array.GetString(1).Should().Be("World");
-                    array.GetString(2).Should().Be("!");
-                    array.GetString(3).Should().Be("");
+                    array?.Count.ShouldBe(4);
+                    array!.GetString(0).ShouldBe("Hello"); // If this were null the previous check would fail
+                    array.GetString(1).ShouldBe("World");
+                    array.GetString(2).ShouldBe("!");
+                    array.GetString(3).ShouldBe("");
                 });
             }
         }
@@ -1261,12 +1255,12 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(2);
-                    array!.GetBoolean(0).Should().BeTrue(); // If this were null the previous check would fail
-                    array.GetBoolean(1).Should().BeFalse();
+                    array?.Count.ShouldBe(2);
+                    array!.GetBoolean(0).ShouldBeTrue(); // If this were null the previous check would fail
+                    array.GetBoolean(1).ShouldBeFalse();
                 });
             }
         }
@@ -1285,12 +1279,12 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(2);
-                    array!.GetBoolean(1).Should().BeTrue(); // If this were null the previous check would fail
-                    array.GetBoolean(0).Should().BeFalse();
+                    array?.Count.ShouldBe(2);
+                    array!.GetBoolean(1).ShouldBeTrue(); // If this were null the previous check would fail
+                    array.GetBoolean(0).ShouldBeFalse();
                 });
             }
         }
@@ -1308,14 +1302,14 @@ namespace Test
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
-                    doc.Should().HaveCount(1);
-                    doc.Contains("array").Should().BeTrue();
+                    doc.Count.ShouldBe(1);
+                    doc.Contains("array").ShouldBeTrue();
                     var array = doc.GetArray("array");
-                    array.Should().HaveCount(4);
-                    array!.GetBoolean(0).Should().BeTrue(); // If this were null the previous check would fail
-                    array.GetBoolean(1).Should().BeFalse();
-                    array.GetBoolean(2).Should().BeFalse();
-                    array.GetBoolean(3).Should().BeTrue();
+                    array?.Count.ShouldBe(4);
+                    array!.GetBoolean(0).ShouldBeTrue(); // If this were null the previous check would fail
+                    array.GetBoolean(1).ShouldBeFalse();
+                    array.GetBoolean(2).ShouldBeFalse();
+                    array.GetBoolean(3).ShouldBeTrue();
                 });
             }
         }
@@ -1324,9 +1318,9 @@ namespace Test
         public void TestTypes()
         {
             var array = new MutableArrayObject();
-            array.Invoking(a => a.AddValue(new ASCIIEncoding())).Should().Throw<ArgumentException>();
-            array.Invoking(a => a.AddValue(new[] { new ASCIIEncoding() })).Should().Throw<ArgumentException>();
-            array.Invoking(a => a.AddValue(new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).Should().Throw<ArgumentException>();
+            Should.Throw<ArgumentException>(() => array.AddValue(new ASCIIEncoding()));
+            Should.Throw<ArgumentException>(() => array.AddValue(new[] { new ASCIIEncoding() }));
+            Should.Throw<ArgumentException>(() => array.AddValue(new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() }));
             array.AddValue((byte) 1);
             array.AddValue((sbyte) 1);
             array.AddValue((ushort) 1);
@@ -1363,31 +1357,31 @@ namespace Test
             }
 
             using (var savedDoc = DefaultCollection.GetDocument("doc1")) {
-                savedDoc.Should().NotBeNull("beecause it was just saved into the database");
+                savedDoc.ShouldNotBeNull("beecause it was just saved into the database");
                 var savedArray = savedDoc!.GetArray("array");
-                savedArray.Should().NotBeNull("because it is a part of the saved document");
+                savedArray.ShouldNotBeNull("because it is a part of the saved document");
                 var json = savedArray!.ToJSON();
                 var jList = DataOps.ParseTo<List<object>>(json);
-                jList.Should().NotBeNull("because otherwise somehow the saved array is corrupt");
+                jList.ShouldNotBeNull("because otherwise somehow the saved array is corrupt");
                 var count = jList!.Count;
-                jList.Count.Should().Be(17, "because 17 entries were added");
+                jList.Count.ShouldBe(17, "because 17 entries were added");
                 for (int i = 0; i < count; i++) {
                     if (array[i] != null && array[i]!.GetType().Equals(typeof(Blob))) {
-                        var b1JsonD = ((JObject) jList[i]).ToObject<Dictionary<string, object?>>()!;
-                        var b2JsonD = ((Blob?) array[i])!.JsonRepresentation;
+                        var b1JsonD = ((JObject)jList[i]).ToObject<Dictionary<string, object?>>()!;
+                        var b2JsonD = ((Blob?)array[i])!.JsonRepresentation;
 
                         var blob = new Blob(Db, b1JsonD);
-                        blob.Should().BeEquivalentTo((Blob?) array[i]);
+                        blob.ShouldBe((Blob?) array[i]);
 
                         foreach (var kv in b1JsonD) {
                             var hasValue = b2JsonD.TryGetValue(kv.Key, out var gotValue);
-                            hasValue.Should().BeTrue("because otherwise b2JsonD is missing key '{key}'", kv.Key);
-                            gotValue!.ToString().Should().Be(kv.Value?.ToString());
+                            hasValue.ShouldBeTrue($"because otherwise b2JsonD is missing key '{kv.Key}'");
+                            gotValue!.ToString().ShouldBe(kv.Value?.ToString());
                         }
                     } else if (array[i] != null && array[i]!.GetType().Equals(typeof(float))) {
-                        DataOps.ConvertToFloat(jList[i]).Should().BeApproximately((float) array[i]!, 0.0000000001f);
+                        DataOps.ConvertToFloat(jList[i]).ShouldBe((float) array[i]!, 0.0000000001f);
                     } else {
-                        (DataOps.ToCouchbaseObject(jList[i])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(array[i])));
+                        (DataOps.ToCouchbaseObject(jList[i])).ShouldBeEquivalentToFluent((DataOps.ToCouchbaseObject(array[i])));
                     }
                 }
             }
@@ -1403,49 +1397,49 @@ namespace Test
             for (int index=0; index < cnt; index++) {
                 switch (array[index]) {
                     case null:
-                        ma.GetValue(index).Should().Be(array[index]);
+                        ma.GetValue(index).ShouldBe(array[index]);
                         break;
                     case DateTimeOffset dto:
-                        ma.GetDate(index).Should().Be(dto);
+                        ma.GetDate(index).ShouldBe(dto);
                         break;
                     case byte b:
                     case ushort us:
                     case uint ui:
                     case ulong ul:
-                        Convert.ToUInt64(ma.GetValue(index)).Should().Be(Convert.ToUInt64(array[index]));
+                        Convert.ToUInt64(ma.GetValue(index)).ShouldBe(Convert.ToUInt64(array[index]));
                         break;
                     case sbyte sb:
                     case short s:
                     case int i:
                     case long l:
-                        Convert.ToInt64(ma.GetLong(index)).Should().Be(Convert.ToInt64(array[index]));
+                        Convert.ToInt64(ma.GetLong(index)).ShouldBe(Convert.ToInt64(array[index]));
                         break;
                     case string str:
-                        ma.GetString(index).Should().Be(str);
+                        ma.GetString(index).ShouldBe(str);
                         break;
                     case bool bl:
-                        ma.GetBoolean(index).Should().Be(bl);
+                        ma.GetBoolean(index).ShouldBe(bl);
                         break;
                     case float f:
-                        ma.GetFloat(index).Should().BeApproximately(f, 0.0000000001f);
+                        ma.GetFloat(index).ShouldBe(f, 0.0000000001f);
                         break;
                     case double d:
-                        ma.GetDouble(index).Should().Be(d);
+                        ma.GetDouble(index).ShouldBe(d);
                         break;
                     case List<int> ao:
-                        ma.GetArray(index).Should().BeEquivalentTo(new MutableArrayObject(ao));
-                        ma.GetValue(index).Should().BeEquivalentTo(new MutableArrayObject(ao));
+                        ma.GetArray(index).ShouldBeEquivalentToFluent(new MutableArrayObject(ao));
+                        ma.GetValue(index).ShouldBeEquivalentToFluent(new MutableArrayObject(ao));
                         break;
                     case Dictionary<string, object?> dict:
-                        ma.GetDictionary(index).Should().BeEquivalentTo(new MutableDictionaryObject(dict));
-                        ma.GetValue(index).Should().BeEquivalentTo(new MutableDictionaryObject(dict));
+                        ma.GetDictionary(index).ShouldBeEquivalentToFluent(new MutableDictionaryObject(dict));
+                        ma.GetValue(index).ShouldBeEquivalentToFluent(new MutableDictionaryObject(dict));
                         break;
                     case Blob blob:
-                        ma.GetBlob(index).Should().BeNull("Because we are getting a dictionary represents Blob object back.");
+                        ma.GetBlob(index).ShouldBeNull("Because we are getting a dictionary represents Blob object back.");
                         var di = ((MutableDictionaryObject?)ma.GetValue(index))?.ToDictionary();
-                        di.Should().NotBeNull("because the dictionary to reconstruct the blob should exist");
-                        Blob.IsBlob(di!).Should().BeTrue();
-                        di.Should().BeEquivalentTo(((Blob?)array[index])!.JsonRepresentation);
+                        di.ShouldNotBeNull("because the dictionary to reconstruct the blob should exist");
+                        Blob.IsBlob(di!).ShouldBeTrue();
+                        di.ShouldBeEquivalentToFluent(((Blob?)array[index])!.JsonRepresentation);
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");
@@ -1458,36 +1452,35 @@ namespace Test
         {
             var ma = new MutableArrayObject();
             // with random string 
-            Action badAction = (() => ma.SetJSON("random string"));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            var ex = Should.Throw<CouchbaseLiteException>(() => ma.SetJSON("random string"));
+            ex?.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
 
             //with dict json string    
             var dict = new Dictionary<string, int> { { "apple", 5 }, { "banana", 2 }, { "orange", 10 } };
             var jdict = JsonConvert.SerializeObject(dict);
-            badAction = (() => ma.SetJSON(jdict));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            ex = Should.Throw<CouchbaseLiteException>(() => ma.SetJSON(jdict));
+            ex?.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
         }
 
         [Fact]
         public void TestMutableArrayToJsonThrowExcwption()
         {
             var ma = new MutableArrayObject();
-            Action badAction = (() => ma.ToJSON());
-            badAction.Should().Throw<NotSupportedException>();
+            Should.Throw<NotSupportedException>(() => ma.ToJSON());
         }
 
         [Fact]
         public void TestCreateMutableArrayWithInvaldStr()
         {
             // with random string 
-            Action badAction = (() => new MutableArrayObject("random string"));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            var ex = Should.Throw<CouchbaseLiteException>(() => new MutableArrayObject("random string"));
+            ex?.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
 
             //with dict json string    
             var dict = new Dictionary<string, int> { { "apple", 5}, { "banana", 2 }, { "orange", 10 } };
             var jdict = JsonConvert.SerializeObject(dict);
-            badAction = (() => new MutableArrayObject(jdict));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            ex = Should.Throw<CouchbaseLiteException>(() => new MutableArrayObject(jdict));
+            ex?.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
         }
 
         private IList<object> CreateArrayOfAllTypes()
@@ -1532,10 +1525,10 @@ namespace Test
             doc.SetArray(key, array);
             DefaultCollection.Save(doc);
             var savedDoc = DefaultCollection.GetDocument(doc.Id);
-            savedDoc.Should().NotBeNull("because the document was just saved");
+            savedDoc.ShouldNotBeNull("because the document was just saved");
 
             var savedArray = savedDoc!.GetArray("array");
-            savedArray.Should().NotBeNull("because otherwise the array being evaluated does not exist");
+            savedArray.ShouldNotBeNull("because otherwise the array being evaluated does not exist");
             eval(savedArray!);
 
             return savedDoc;

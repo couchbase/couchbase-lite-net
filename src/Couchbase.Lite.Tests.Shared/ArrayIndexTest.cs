@@ -20,7 +20,6 @@ using System;
 using Xunit.Abstractions;
 using Xunit;
 using Couchbase.Lite.Query;
-using FluentAssertions;
 using System.Linq;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
@@ -28,8 +27,7 @@ using LiteCore;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite;
-using System.IO;
-using System.Linq.Expressions;
+using Shouldly;
 
 namespace Test
 {
@@ -52,21 +50,21 @@ namespace Test
             var indexConfigb = new ArrayIndexConfiguration(path, expressions.Any() ? new List<string>(expressions) : null);
             profiles.CreateIndex(indexName, indexConfig);
             profiles.CreateIndex(indexNameB, indexConfigb);
-            profiles.GetIndexes().Any(x => x == indexName).Should().BeTrue("because the index was just created");
-            profiles.GetIndexes().Any(x => x == indexNameB).Should().BeTrue("because the index was just created");
+            profiles.GetIndexes().Any(x => x == indexName).ShouldBeTrue("because the index was just created");
+            profiles.GetIndexes().Any(x => x == indexNameB).ShouldBeTrue("because the index was just created");
             C4Error err;
             IDictionary<string, object>? indexInfo;
             IDictionary<string, object>? indexInfoB;
             unsafe {
                 var allIndexInfo = TestNative.c4coll_getIndexesInfo(profiles, &err);
-                allIndexInfo.Should().NotBeNull("because an index exists");
+                allIndexInfo.ShouldNotBeNull("because an index exists");
                 indexInfo = allIndexInfo!.FirstOrDefault(x => (x["name"] as string) == indexName);
                 indexInfoB = allIndexInfo!.FirstOrDefault(x => (x["name"] as string) == indexNameB);
             }
-            indexInfo.Should().NotBeNull("because otherwise the contacts index does not exist");
-            ((long)indexInfo!["type"]).Should().Be((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
-            (indexInfo["lang"] as string).Should().Be("n1ql", "because otherwise the wrong query language was used");
-            (indexInfo["expr"] as string).Should().Be(expressions != null ? String.Join(",", expressions) : "", "because otherwise the wrong expression was used");
+            indexInfo.ShouldNotBeNull("because otherwise the contacts index does not exist");
+            ((long)indexInfo!["type"]).ShouldBe((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
+            (indexInfo["lang"] as string).ShouldBe("n1ql", "because otherwise the wrong query language was used");
+            (indexInfo["expr"] as string).ShouldBe(expressions != null ? String.Join(",", expressions) : "", "because otherwise the wrong expression was used");
         }
 
         /// <summary>
@@ -88,7 +86,7 @@ namespace Test
         public void TestArrayIndexConfigInvalidExpressions()
         {
             using var profiles = Db.CreateCollection("profiles");
-            FluentActions.Invoking(() => new ArrayIndexConfiguration("contacts", new List<string> { "" })).Should().Throw<ArgumentException>();
+            Should.Throw<ArgumentException>(() => new ArrayIndexConfiguration("contacts", new List<string> { "" }));
         }
 
         /// <summary>
