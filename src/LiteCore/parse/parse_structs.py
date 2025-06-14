@@ -12,7 +12,7 @@ type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte
 "FLString":"FLSlice"}
 bridge_types = ["UIntPtr","string","bool"]
 reverse_bridge_map = {"string":"IntPtr","bool":"byte"}
-skip_types = ["C4FullTextTerm","C4SocketFactory","C4ReplicatorParameters","C4ReplicationCollection","C4PredictiveModel", "C4ExtraInfo", "C4TLSConfig", "C4ListenerConfig", "C4ExternalKeyCallbacks"]
+skip_types = ["C4FullTextTerm","C4SocketFactory","C4ReplicatorParameters","C4ReplicationCollection","C4PredictiveModel", "C4ExtraInfo", "C4TLSConfig", "C4ListenerConfig", "C4ExternalKeyCallbacks", "C4PeerSyncCollection"]
 partials = ["C4RawDocument", "C4Address", "C4QueryEnumerator", "C4SocketFactory", "C4Error","C4Slice","C4BlobKey","C4EncryptionKey","C4DatabaseConfig","C4IndexOptions",
             "C4EnumeratorOptions","C4QueryOptions","C4UUID","FLSlice","FLSliceResult","C4FullTextMatch","C4DocPutRequest", "C4DocumentInfo",
             "C4Document", "C4SocketFactory"]
@@ -111,7 +111,8 @@ if __name__ == "__main__":
                         continue
 
                     line = line.replace("FL_NULLABLE", "") \
-                        .replace("C4NULLABLE", "")
+                        .replace("C4NULLABLE", "") \
+                        .replace("const*", "")
                     stripped = re.search(r'([^ ;{}]+) +(\**)([^ ;{}*]+);', line)
                     if not stripped:
                         continue

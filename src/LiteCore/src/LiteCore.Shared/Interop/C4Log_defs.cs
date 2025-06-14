@@ -1,7 +1,7 @@
 //
 // C4Log_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,6 +68,40 @@ namespace LiteCore.Interop
             }
             set {
                 _use_plaintext = Convert.ToByte(value);
+            }
+        }
+    }
+
+	internal unsafe struct C4LogEntry
+    {
+        public long timestamp;
+        public C4LogLevel level;
+        public C4LogDomain domain;
+        public FLHeapSlice message;
+    }
+
+	internal unsafe struct C4DomainLevel
+    {
+        public C4LogDomain domain;
+        public C4LogLevel level;
+    }
+
+	internal unsafe struct C4LogObserverConfig
+    {
+        public C4LogLevel defaultLevel;
+        public C4DomainLevel* domains;
+        private UIntPtr _domainsCount;
+        public C4LogObserverCallback callback;
+        public void* callbackContext;
+        public C4LogFileOptions* fileOptions;
+
+        public ulong domainsCount
+        {
+            get {
+                return _domainsCount.ToUInt64();
+            }
+            set {
+                _domainsCount = (UIntPtr)value;
             }
         }
     }

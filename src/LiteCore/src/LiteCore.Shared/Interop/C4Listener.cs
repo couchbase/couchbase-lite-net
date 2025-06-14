@@ -167,6 +167,8 @@ namespace LiteCore.Interop
         private C4ListenerConfig _c4ListenerConfig;
         private C4ListenerHTTPAuthCallback? _onHTTPAuthCallback;
         private C4String _networkInterface;
+        private C4String _serverName;
+        private C4String _serverVersion;
 
         #endregion
 
@@ -223,49 +225,35 @@ namespace LiteCore.Interop
         }
 
         /// <summary>
-        /// Which API(s) to enable
-        /// </summary>
-        public C4ListenerAPIs Apis
-        {
-            get => _c4ListenerConfig.apis;
-            set => _c4ListenerConfig.apis = value;
-        }
-
-        /// <summary>
         /// TLS configuration, or NULL for no TLS
         /// </summary>
         public TLSConfig? TlsConfig { get; set; }
 
-        #region For REST listeners only:
-
         /// <summary>
-        /// Directory where newly-PUT databases will be created
+        /// The optional name of the server to return from requests
         /// </summary>
-        public FLSlice Directory
+        public string? ServerName
         {
-            get => _c4ListenerConfig.directory;
-            set => _c4ListenerConfig.directory = value;
+            get => _c4ListenerConfig.serverName.CreateString();
+            set {
+                _serverName.Dispose();
+                _serverName = new C4String(value);
+                _c4ListenerConfig.serverName = _serverName.AsFLSlice();
+            }
         }
 
         /// <summary>
-        /// If true, "PUT /db" is allowed
+        /// The optional version of the server to return from requests
         /// </summary>
-        public bool AllowCreateDBs
+        public string? ServerVersion
         {
-            get => _c4ListenerConfig.allowCreateDBs;
-            set => _c4ListenerConfig.allowCreateDBs = value;
+            get => _c4ListenerConfig.serverName.CreateString();
+            set {
+                _serverVersion.Dispose();
+                _serverVersion = new C4String(value);
+                _c4ListenerConfig.serverName = _serverVersion.AsFLSlice();
+            }
         }
-
-        /// <summary>
-        /// If true, "DELETE /db" is allowed
-        /// </summary>
-        public bool AllowDeleteDBs
-        {
-            get => _c4ListenerConfig.allowDeleteDBs;
-            set => _c4ListenerConfig.allowDeleteDBs = value;
-        }
-
-        #endregion
 
         #region For sync listeners only:
 
@@ -307,6 +295,8 @@ namespace LiteCore.Interop
         {
             Context = null;
             _networkInterface.Dispose();
+            _serverName.Dispose();
+            _serverVersion.Dispose();
         }
 
         #endregion

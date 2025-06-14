@@ -1,7 +1,7 @@
 //
 // C4IndexTypes_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -115,6 +115,7 @@ namespace LiteCore.Interop
         private IntPtr _stopWords;
         private IntPtr _unnestPath;
         public C4VectorIndexOptions vector;
+        private IntPtr _where;
 
         public string? language
         {
@@ -165,6 +166,17 @@ namespace LiteCore.Interop
             }
             set {
                 var old = Interlocked.Exchange(ref _unnestPath, Marshal.StringToHGlobalAnsi(value));
+                Marshal.FreeHGlobal(old);
+            }
+        }
+
+        public string? where
+        {
+            get {
+                return Marshal.PtrToStringAnsi(_where);
+            }
+            set {
+                var old = Interlocked.Exchange(ref _where, Marshal.StringToHGlobalAnsi(value));
                 Marshal.FreeHGlobal(old);
             }
         }

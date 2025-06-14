@@ -257,7 +257,7 @@ namespace Couchbase.Lite.Logging
                 var options = new C4LogFileOptions
                 {
                     base_path = dir.AsFLSlice(),
-                    log_level = (C4LogLevel) Level,
+                    log_level = Config?.Directory == null ? C4LogLevel.None : (C4LogLevel) Level,
                     max_rotate_count = _config?.MaxRotateCount ?? 1,
                     max_size_bytes = _config?.MaxSize ?? 1024 * 500L,
                     use_plaintext = _config?.UsePlaintext ?? false,
