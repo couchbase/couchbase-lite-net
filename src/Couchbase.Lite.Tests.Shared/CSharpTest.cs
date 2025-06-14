@@ -39,7 +39,7 @@ using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
-using FluentAssertions;
+using Shouldly;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -76,21 +76,18 @@ namespace Test
         {
             byte[] derivedData;
             using (var key = new EncryptionKey("test")) {
-                key.KeyData.Should().NotBeNullOrEmpty();
+                key.KeyData.ShouldNotBeEmpty();
                 derivedData = key.KeyData;
             }
 
             using (var key = new EncryptionKey(derivedData)) {
-                key.HexData.Should().Be(BitConverter.ToString(derivedData).Replace("-", String.Empty).ToLower());
-                key.KeyData.Should().Equal(derivedData);
+                key.HexData.ShouldBe(BitConverter.ToString(derivedData).Replace("-", String.Empty).ToLower());
+                key.KeyData.ShouldBe(derivedData);
             }
 
-            Action badAction = (() => new EncryptionKey(new byte[] {1, 2, 3, 4}));
-            badAction.Should().Throw<ArgumentOutOfRangeException>("because the encryption key data must be 32 bytes");
-            badAction = (() => new EncryptionKey("foo", new byte[] {1}, 200));
-            badAction.Should().Throw<ArgumentOutOfRangeException>("because the salt must be at least 4 bytes");
-            badAction = (() => new EncryptionKey("foo", new byte[] {1, 2, 3, 4, 5}, 5));
-            badAction.Should().Throw<ArgumentOutOfRangeException>("because the rounds must be >= 200");
+            Should.Throw<ArgumentOutOfRangeException>(() => new EncryptionKey([1, 2, 3, 4]), "because the encryption key data must be 32 bytes");
+            Should.Throw<ArgumentOutOfRangeException>(() => new EncryptionKey("foo", [1], 200), "because the salt must be at least 4 bytes");
+            Should.Throw<ArgumentOutOfRangeException>(() => new EncryptionKey("foo", [1, 2, 3, 4, 5], 5), "because the rounds must be >= 200");
         }
 #endif
 
@@ -111,26 +108,26 @@ namespace Test
             try {
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
-                    mRoot.Context.Should().BeSameAs(context);
+                    mRoot.Context.ShouldBeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
                         NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
                     var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mArr = new FleeceMutableArray(new MValue(flValue), mRoot);
                     var deserializedArray = new ArrayObject(mArr, false);
-                    deserializedArray.GetArray(2).Should().Equal(1L, 2L, 3L);
-                    deserializedArray.GetArray(3).Should().BeNull();
-                    deserializedArray.GetBlob(1).Should().BeNull();
-                    deserializedArray.GetDate(3).Should().Be(now);
-                    deserializedArray.GetDate(4).Should().Be(DateTimeOffset.MinValue);
-                    deserializedArray[1].ToString().Should().Be("str");
-                    deserializedArray.GetString(2).Should().BeNull();
-                    deserializedArray.GetDictionary(4).Should().BeEquivalentTo(nestedDict);
-                    deserializedArray[0].Dictionary.Should().BeNull();
+                    deserializedArray.GetArray(2).ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                    deserializedArray.GetArray(3).ShouldBeNull();
+                    deserializedArray.GetBlob(1).ShouldBeNull();
+                    deserializedArray.GetDate(3).ShouldBe(now);
+                    deserializedArray.GetDate(4).ShouldBe(DateTimeOffset.MinValue);
+                    deserializedArray[1].ToString().ShouldBe("str");
+                    deserializedArray.GetString(2).ShouldBeNull();
+                    deserializedArray.GetDictionary(4).ShouldBeEquivalentToFluent(nestedDict);
+                    deserializedArray[0].Dictionary.ShouldBeNull();
 
                     var list = deserializedArray.ToList();
-                    list[2].Should().BeAssignableTo<IList<object>>();
-                    list[4].Should().BeAssignableTo<IDictionary<string, object>>();
+                    list[2].ShouldBeAssignableTo<IList<object>>();
+                    list[4].ShouldBeAssignableTo<IDictionary<string, object>>();
 
                     var mVal = new MValue();
                     Native.FLDoc_Release(fleeceDoc);
@@ -165,9 +162,9 @@ namespace Test
             ao.InsertDate(0, now);
             ao.InsertArray(0, arr);
             ao.InsertDictionary(0, dict);
-            ao.Should().Equal(dict, arr, nowStr, blob, true, Math.PI, 3.14f, Int64.MaxValue, 42, 1.1f, blob,
+            ao.ShouldBe([ dict, arr, nowStr, blob, true, Math.PI, 3.14f, Int64.MaxValue, 42, 1.1f, blob,
                 nowStr,
-                dict);
+                dict ]);
 
             ao.SetLong(0, Int64.MaxValue);
             ao.SetFloat(1, 3.14f);
@@ -177,9 +174,9 @@ namespace Test
             ao.SetArray(5, arr);
             ao.SetDictionary(6, dict);
             ao.SetDate(7, now);
-            ao.Should().Equal(Int64.MaxValue, 3.14f, Math.PI, true, blob, arr, dict, nowStr, 42, 1.1f, blob,
+            ao.ShouldBe([Int64.MaxValue, 3.14f, Math.PI, true, blob, arr, dict, nowStr, 42, 1.1f, blob,
                 nowStr,
-                dict);
+                dict ]);
         }
 
         [Fact]
@@ -204,7 +201,7 @@ namespace Test
             try {
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
-                    mRoot.Context.Should().BeSameAs(context);
+                    mRoot.Context.ShouldBeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
                         NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
@@ -212,19 +209,19 @@ namespace Test
                     var mDict = new MDict(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
 
-                    deserializedDict["bogus"].Blob.Should().BeNull();
-                    deserializedDict["date"].Date.Should().Be(now);
-                    deserializedDict.GetDate("bogus").Should().Be(DateTimeOffset.MinValue);
-                    deserializedDict.GetArray("array").Should().Equal(1L, 2L, 3L);
-                    deserializedDict.GetArray("bogus").Should().BeNull();
-                    deserializedDict.GetDictionary("dict").Should().BeEquivalentTo(nestedDict);
-                    deserializedDict.GetDictionary("bogus").Should().BeNull();
+                    deserializedDict["bogus"].Blob.ShouldBeNull();
+                    deserializedDict["date"].Date.ShouldBe(now);
+                    deserializedDict.GetDate("bogus").ShouldBe(DateTimeOffset.MinValue);
+                    deserializedDict.GetArray("array").ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                    deserializedDict.GetArray("bogus").ShouldBeNull();
+                    deserializedDict.GetDictionary("dict").ShouldBeEquivalentToFluent(nestedDict);
+                    deserializedDict.GetDictionary("bogus").ShouldBeNull();
 
                     var dict = deserializedDict.ToDictionary();
-                    dict["array"].As<IEnumerable<object>>().Should().Equal(1L, 2L, 3L);
-                    dict["dict"].As<IDictionary<string, object>>().Should().BeEquivalentTo(nestedDict);
+                    (dict["array"] as IEnumerable<object?>).ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                    (dict["dict"] as IDictionary<string, object>).ShouldBeEquivalentToFluent(nestedDict);
                     var isContain = mDict.Contains("");
-                    isContain.Should().BeFalse();
+                    isContain.ShouldBeFalse();
                     Native.FLDoc_Release(fleeceDoc);
                 }
             } finally {
@@ -252,27 +249,27 @@ Transfer-Encoding: chunked";
 
             var parser = new HttpMessageParser(Encoding.ASCII.GetBytes(httpResponse));
             parser.Append("foo: bar");
-            parser.StatusCode.Should().Be(HttpStatusCode.OK);
-            parser.Reason.Should().Be("OK");
-            parser.Headers["X-XSS-Protection"].Should().Be("1; mode=block");
-            parser.Headers["X-Frame-Options"].Should().Be("SAMEORIGIN");
-            parser.Headers["Cache-Control"].Should().Be("private, max-age=0");
-            parser.Headers["P3P"].Should().Be("CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\"");
-            parser.Headers["Set-Cookie"].Should().Be(
+            parser.StatusCode.ShouldBe(HttpStatusCode.OK);
+            parser.Reason.ShouldBe("OK");
+            parser.Headers["X-XSS-Protection"].ShouldBe("1; mode=block");
+            parser.Headers["X-Frame-Options"].ShouldBe("SAMEORIGIN");
+            parser.Headers["Cache-Control"].ShouldBe("private, max-age=0");
+            parser.Headers["P3P"].ShouldBe("CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\"");
+            parser.Headers["Set-Cookie"].ShouldBe(
                 "1P_JAR=2017-10-13-05; expires=Fri, 20-Oct-2017 05:54:52 GMT; path=/; domain=.google.co.jp,NID=114=Vzr79B7ISI0vlP54dhHQ1lyoyqxePhvy_k3w2ofp1oce73oG3m9ltBiUgdQNj4tSMkp-oWtzmhUi3rf314Fcrjy6J2DxtyEdA_suJlgfdN9973V2HO32OG9D3svImEJf; expires=Sat, 14-Apr-2018 05:54:52 GMT; path=/; domain=.google.co.jp; HttpOnly");
-            parser.Headers["foo"].Should().Be("bar");
+            parser.Headers["foo"].ShouldBe("bar");
 
             parser = new HttpMessageParser("HTTP/1.1 200 OK");
-            parser.StatusCode.Should().Be(HttpStatusCode.OK);
-            parser.Reason.Should().Be("OK");
+            parser.StatusCode.ShouldBe(HttpStatusCode.OK);
+            parser.Reason.ShouldBe("OK");
         }
 
         [Fact]
         public void TestHttpMessageParserWithString()
         {
             var parser = new HttpMessageParser("HTTP/1.1 200 OK");
-            parser.StatusCode.Should().Be(HttpStatusCode.OK);
-            parser.Reason.Should().Be("OK");
+            parser.StatusCode.ShouldBe(HttpStatusCode.OK);
+            parser.Reason.ShouldBe("OK");
         }
 
         #if !CBL_NO_EXTERN_FILES
@@ -289,7 +286,7 @@ Transfer-Encoding: chunked";
             {
                 using (var reader = new JsonTextReader(new StringReader(line))) {
                     var gotten = s.Deserialize<Dictionary<string, object?>>(reader);
-                    gotten.Should().NotBeNull("because otherwise the JSON on disk was corrupt");
+                    gotten.ShouldNotBeNull("because otherwise the JSON on disk was corrupt");
                     masterList.Add(gotten!);
                 }
 
@@ -308,11 +305,11 @@ Transfer-Encoding: chunked";
             });
 
             var i = 0;
-            retrieved.Should().NotBeNull("because otherwise the fleece conversion failed");
+            retrieved.ShouldNotBeNull("because otherwise the fleece conversion failed");
             foreach (var entry in retrieved!) {
                 var entry2 = masterList[i];
                 foreach (var key in entry.Keys) {
-                    entry[key].Should().Be(entry2[key]);
+                    entry[key].ShouldBe(entry2[key]);
                 }
 
                 i++;
@@ -329,22 +326,19 @@ Transfer-Encoding: chunked";
                 Username = "user"
             };
 
-            dict["type"].Should().Be("Basic");
+            dict["type"].ShouldBe("Basic");
 
-            dict.Validate("type", "Basic").Should().BeTrue();
-            dict.Validate("type", "Bogus").Should().BeFalse();
-            dict.Invoking(d => d.Add("type", "Bogus"))
-                .Should().Throw<InvalidOperationException>("because the type is invalid");
-            dict.Invoking(d => d.Add(new KeyValuePair<string, object?>("type", "Bogus")))
-                .Should().Throw<InvalidOperationException>("because the type is invalid");
-            dict.Invoking(d => d["type"] = "Bogus")
-                .Should().Throw<InvalidOperationException>("because the type is invalid");
-            dict.Invoking(d => d.Remove("type"))
-                .Should().Throw<InvalidOperationException>("because the type key is required");
-            dict.Invoking(d => d.Remove(new KeyValuePair<string, object?>("type", "Basic")))
-                .Should().Throw<InvalidOperationException>("because the type key is required");
+            dict.Validate("type", "Basic").ShouldBeTrue();
+            dict.Validate("type", "Bogus").ShouldBeFalse();
+            Should.Throw<InvalidOperationException>(() => dict.Add("type", "Bogus"), "because the type is invalid");
+            Should.Throw<InvalidOperationException>(() => dict.Add(new KeyValuePair<string, object?>("type", "Bogus")), 
+                "because the type is invalid");
+            Should.Throw<InvalidOperationException>(() => dict["type"] = "Bogus", "because the type is invalid");
+            Should.Throw<InvalidOperationException>(() => dict.Remove("type"), "because the type key is required");
+            Should.Throw<InvalidOperationException>(() => dict.Remove(new KeyValuePair<string, object?>("type", "Basic")), 
+                "because the type key is required");
             dict.Clear();
-            dict.Count.Should().Be(0);
+            dict.Count.ShouldBe(0);
         }
         
         [Fact]
@@ -354,21 +348,21 @@ Transfer-Encoding: chunked";
             logic["User-Agent"] = "BadUser/1.0\r\n";
             logic["Cookie"] = null;
             var dataString = Encoding.ASCII.GetString(logic.HTTPRequestData());
-            dataString.IndexOf("\r\n\r\n").Should().Be(dataString.Length - 4);
+            dataString.IndexOf("\r\n\r\n").ShouldBe(dataString.Length - 4);
         }
 
         [Fact]
         public void TestGettingPortFromHTTPLogic()
         {
             var logic = new HTTPLogic(new Uri("ws://192.168.0.1:59840"));
-            logic.Port.Should().Be(59840);
+            logic.Port.ShouldBeEquivalentToFluent(59840);
             logic.Credential = new NetworkCredential("user", "password");
-            logic.Credential.UserName.Should().Be("user");
-            logic.Credential.Password.Should().Be("password");
+            logic.Credential.UserName.ShouldBe("user");
+            logic.Credential.Password.ShouldBe("password");
             logic.Credential.UserName = "newuser";
             logic.Credential.Password = "newpassword";
-            logic.Credential.UserName.Should().Be("newuser");
-            logic.Credential.Password.Should().Be("newpassword");
+            logic.Credential.UserName.ShouldBe("newuser");
+            logic.Credential.Password.ShouldBe("newpassword");
             var proxyRequest = logic.ProxyRequest();
             logic.HasProxy = false;
         }
@@ -378,13 +372,13 @@ Transfer-Encoding: chunked";
         {
             ReplicatorOptionsDictionary options = new ReplicatorOptionsDictionary();
             var auth = new BasicAuthenticator("user", "password");
-            auth.Username.Should().Be("user");
-            auth.Password.Should().Be("password");
+            auth.Username.ShouldBe("user");
+            auth.Password.ShouldBe("password");
             auth.Authenticate(options);
-            options.Auth.Should().NotBeNull("because the Authenticate method should have set the Auth dict");
-            options.Auth!.Username.Should().Be("user");
-            options.Auth.Password.Should().Be("password");
-            options.Auth.Type.Should().Be(AuthType.HttpBasic);
+            options.Auth.ShouldNotBeNull("because the Authenticate method should have set the Auth dict");
+            options.Auth!.Username.ShouldBe("user");
+            options.Auth.Password.ShouldBe("password");
+            options.Auth.Type.ShouldBe(AuthType.HttpBasic);
         }
 
         [Fact]
@@ -393,12 +387,12 @@ Transfer-Encoding: chunked";
             ReplicatorOptionsDictionary options = new ReplicatorOptionsDictionary();
             var auth = new SessionAuthenticator("justSessionID");
             var auth2 = new SessionAuthenticator("sessionId", "myNameIsCookie");
-            auth.SessionID.Should().Be("justSessionID");
-            auth2.SessionID.Should().Be("sessionId");
-            auth2.CookieName.Should().Be("myNameIsCookie");
+            auth.SessionID.ShouldBe("justSessionID");
+            auth2.SessionID.ShouldBe("sessionId");
+            auth2.CookieName.ShouldBe("myNameIsCookie");
             auth2.Authenticate(options);
-            options.Cookies.Count.Should().BeGreaterThan(0);
-            options.Cookies.First().Name.Should().Be("myNameIsCookie");
+            options.Cookies.Count.ShouldBeGreaterThan(0);
+            options.Cookies.First().Name.ShouldBe("myNameIsCookie");
         }
 
         [Fact]
@@ -429,24 +423,24 @@ Transfer-Encoding: chunked";
             IDictionary<string, object> idict = dict;
             IReadOnlyDictionary<string, object> roDict = dict;
 
-            idict.TryGetValue("value", out int tmpInt).Should().BeTrue();
-            tmpInt.Should().Be(1);
-            idict.TryGetValue("bogus", out tmpInt).Should().BeFalse();
+            idict.TryGetValue("value", out int tmpInt).ShouldBeTrue();
+            tmpInt.ShouldBe(1);
+            idict.TryGetValue("bogus", out tmpInt).ShouldBeFalse();
 
             tmpInt = 0;
-            roDict.TryGetValue("value", out tmpInt).Should().BeTrue();
-            tmpInt.Should().Be(1);
-            roDict.TryGetValue("bogus", out tmpInt).Should().BeFalse();
+            roDict.TryGetValue("value", out tmpInt).ShouldBeTrue();
+            tmpInt.ShouldBe(1);
+            roDict.TryGetValue("bogus", out tmpInt).ShouldBeFalse();
 
-            idict.TryGetValue("value", out DateTimeOffset date).Should().BeFalse();
-            roDict.TryGetValue("value", out date).Should().BeFalse();
+            idict.TryGetValue("value", out DateTimeOffset date).ShouldBeFalse();
+            roDict.TryGetValue("value", out date).ShouldBeFalse();
 
-            idict.TryGetValue("value", out long tmpLong).Should().BeTrue();
-            tmpLong.Should().Be(1L);
+            idict.TryGetValue("value", out long tmpLong).ShouldBeTrue();
+            tmpLong.ShouldBe(1L);
 
             tmpLong = 0L;
-            idict.TryGetValue("value", out tmpLong).Should().BeTrue();
-            tmpLong.Should().Be(1L);
+            idict.TryGetValue("value", out tmpLong).ShouldBeTrue();
+            tmpLong.ShouldBe(1L);
         }
 
         [Fact]
@@ -475,7 +469,7 @@ Transfer-Encoding: chunked";
             foreach (var pair in exceptions.Zip(errors, (a, b) => new { a, b })) {
                 C4Error tmp;
                 Status.ConvertNetworkError(pair.a, &tmp);
-                tmp.Should().Be(pair.b);
+                tmp.ShouldBe(pair.b);
             }
         }
 
@@ -497,17 +491,17 @@ Transfer-Encoding: chunked";
                 ["array"] = new MutableArrayObject().AddInt(42)
             };
 
-            dict.RecursiveEqual(dict).Should().BeTrue();
+            dict.RecursiveEqual(dict).ShouldBeTrue();
             foreach (var num in new object[] { (sbyte) 42, (short) 42, 42L }) {
-                42.RecursiveEqual(num).Should().BeTrue();
+                42.RecursiveEqual(num).ShouldBeTrue();
             }
 
             foreach (var num in new object[] { (byte) 42, (ushort) 42, 42UL }) {
-                42U.RecursiveEqual(num).Should().BeTrue();
+                42U.RecursiveEqual(num).ShouldBeTrue();
             }
 
             foreach (var num in new object[] { 3.14f, 3.14 }) {
-                3.14m.RecursiveEqual(num).Should().BeTrue();
+                3.14m.RecursiveEqual(num).ShouldBeTrue();
             }
         }
 
@@ -520,16 +514,16 @@ Transfer-Encoding: chunked";
             var then = now;
             using var ignore = queue.DispatchAfter(TimeSpan.FromSeconds(1), () => then = DateTime.Now);
             await Task.Delay(250);
-            then.Should().Be(now);
+            then.ShouldBe(now);
             await Task.Delay(800);
-            then.Should().NotBe(now);
+            then.ShouldNotBe(now);
 
             var testBool = false;
-            queue.DispatchSync<bool>(() => Volatile.Read(ref testBool)).Should().BeFalse();
+            queue.DispatchSync<bool>(() => Volatile.Read(ref testBool)).ShouldBeFalse();
 
             var t = queue.DispatchAfter<bool>(TimeSpan.FromMilliseconds(500), () => Volatile.Read(ref testBool));
             Volatile.Write(ref testBool, true);
-            (await t).Should().BeTrue();
+            (await t).ShouldBeTrue();
         }
 #endif
 
@@ -540,46 +534,46 @@ Transfer-Encoding: chunked";
             var jArray = new JArray(jVal);
             var jObj = new JObject { ["test"] = jVal };
 
-            DataOps.ToCouchbaseObject(jVal).Should().Be("test");
-            DataOps.ToCouchbaseObject(jArray).As<MutableArrayObject>()[0].String.Should().Be("test");
-            DataOps.ToCouchbaseObject(jObj).As<MutableDictionaryObject>()["test"].String.Should().Be("test");
+            DataOps.ToCouchbaseObject(jVal).ShouldBe("test");
+            (DataOps.ToCouchbaseObject(jArray) as MutableArrayObject)?[0].String.ShouldBe("test");
+            (DataOps.ToCouchbaseObject(jObj) as MutableDictionaryObject)?["test"].String.ShouldBe("test");
 
             var jsonString = "{\"level1\":{\"foo\":\"bar\"},\"level2\":{\"list\":[1, 3.14, \"s\"]}, \"$type\":\"JSON .NET Object\"}";
             var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(jsonString);
             var converted = DataOps.ToCouchbaseObject(json) as MutableDictionaryObject;
-            converted.Should().NotBeNull();
+            converted.ShouldNotBeNull();
 
-            converted!["level1"]["foo"].String.Should().Be("bar");
-            converted["level2"]["list"][0].Int.Should().Be(1);
-            converted["level2"]["list"][1].Double.Should().Be(3.14);
-            converted["level2"]["list"][2].String.Should().Be("s");
-            converted["$type"].String.Should().Be("JSON .NET Object");
+            converted!["level1"]["foo"].String.ShouldBe("bar");
+            converted["level2"]["list"][0].Int.ShouldBe(1);
+            converted["level2"]["list"][1].Double.ShouldBe(3.14);
+            converted["level2"]["list"][2].String.ShouldBe("s");
+            converted["$type"].String.ShouldBe("JSON .NET Object");
         }
 
         [Fact]
         public void TestCreateExceptions()
         {
             var fleeceException = CouchbaseException.Create(new C4Error(FLError.EncodeError)) as CouchbaseFleeceException;
-            fleeceException.Should().NotBeNull();
-            fleeceException!.Error.Should().Be((int) FLError.EncodeError);
-            fleeceException.Domain.Should().Be(CouchbaseLiteErrorType.Fleece);
+            fleeceException.ShouldNotBeNull();
+            fleeceException!.Error.ShouldBe((int) FLError.EncodeError);
+            fleeceException.Domain.ShouldBe(CouchbaseLiteErrorType.Fleece);
 
             var sqliteException =
                 CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (int) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
-            sqliteException.Should().NotBeNull();
-            sqliteException!.BaseError.Should().Be(SQLiteStatus.Misuse);
-            sqliteException.Error.Should().Be((int) SQLiteStatus.Misuse);
-            sqliteException.Domain.Should().Be(CouchbaseLiteErrorType.SQLite);
+            sqliteException.ShouldNotBeNull();
+            sqliteException!.BaseError.ShouldBe(SQLiteStatus.Misuse);
+            sqliteException.Error.ShouldBe((int) SQLiteStatus.Misuse);
+            sqliteException.Domain.ShouldBe(CouchbaseLiteErrorType.SQLite);
 
             var webSocketException = CouchbaseException.Create(new C4Error(C4ErrorDomain.WebSocketDomain, 1003)) as CouchbaseWebsocketException;
-            webSocketException!.Error.Should().Be(CouchbaseLiteError.WebSocketDataError);
-            webSocketException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+            webSocketException!.Error.ShouldBe(CouchbaseLiteError.WebSocketDataError);
+            webSocketException.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
 
             var networkException =
                 CouchbaseException.Create(new C4Error(C4NetworkErrorCode.InvalidURL)) as CouchbaseNetworkException;
-            networkException.Should().NotBeNull();
-            networkException!.Error.Should().Be(CouchbaseLiteError.InvalidUrl);
-            networkException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+            networkException.ShouldNotBeNull();
+            networkException!.Error.ShouldBe(CouchbaseLiteError.InvalidUrl);
+            networkException.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         [Fact]
@@ -594,8 +588,8 @@ Transfer-Encoding: chunked";
             }
 
             using (var doc = DefaultCollection.GetDocument("test_ulong")) {
-                doc.Should().NotBeNull("because it was just saved into the database");
-                doc!["nested"]["high_value"].Value.Should().Be(UInt64.MaxValue);
+                doc.ShouldNotBeNull("because it was just saved into the database");
+                doc!["nested"]["high_value"].Value.ShouldBe(UInt64.MaxValue);
             }
         }
 
@@ -610,12 +604,12 @@ Transfer-Encoding: chunked";
             }
 
             var onMainThread = await Task.Factory.StartNew(() => scheduler.IsMainThread);
-            onMainThread.Should().BeFalse();
+            onMainThread.ShouldBeFalse();
 
             var t = new Task<bool>(() => scheduler.IsMainThread);
             t.Start(scheduler.AsTaskScheduler());
             onMainThread = await t;
-            onMainThread.Should().BeTrue();
+            onMainThread.ShouldBeTrue();
         }
 
 #endif
@@ -624,13 +618,12 @@ Transfer-Encoding: chunked";
         public void TestCBDebugItemsMustNotBeNull()
         {
             List<object?> list = ["couchbase", null, "debug"];
-            Action badAction = (() =>
+            Should.Throw<ArgumentNullException>(() =>
             CBDebug.ItemsMustNotBeNull(
                 WriteLog.To.Query, 
                 nameof(CSharpTest), 
                 nameof(TestCBDebugItemsMustNotBeNull), 
-                list));
-            badAction.Should().Throw<ArgumentNullException>("because the item in enumeration cannot be null.");
+                list), "because the item in enumeration cannot be null.");
 
             list.RemoveAt(1);
             var items = CBDebug.ItemsMustNotBeNull(
@@ -639,8 +632,8 @@ Transfer-Encoding: chunked";
                 nameof(TestCBDebugItemsMustNotBeNull),
                 list);
 
-            items.Count().Should().Be(2);
-            items.ElementAt(1).Should().Be("debug");
+            items.Count().ShouldBe(2);
+            items.ElementAt(1).ShouldBe("debug");
         }
 
 #if !SANITY_ONLY && DEBUG
@@ -683,15 +676,15 @@ Transfer-Encoding: chunked";
                         : queryWrapper.InstanceSafety;
                 }
 
-                lockEvent.WaitOne(TimeSpan.FromMinutes(1)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                lockEvent.WaitOne(TimeSpan.FromMinutes(1)).ShouldBeTrue($"because otherwise UseSafe was not entered {iteration}");
                 using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
 
                 if (blocking) {
-                    sw.Elapsed.Should().BeGreaterOrEqualTo(WrapperThreadBlockTime, "because otherwise the lock didn't block ({0})", iteration);
+                    sw.Elapsed.ShouldBeGreaterThanOrEqualTo(WrapperThreadBlockTime, $"because otherwise the lock didn't block ({iteration})");
                 } else {
-                    sw.Elapsed.Should().BeLessThan(WrapperThreadBlockTime, "because otherwise the lock blocked ({0})", iteration);
+                    sw.Elapsed.ShouldBeLessThan(WrapperThreadBlockTime, $"because otherwise the lock blocked ({iteration})");
                 }
 
                 iteration++;
@@ -736,15 +729,15 @@ Transfer-Encoding: chunked";
                         : documentWrapper.InstanceSafety;
                 }
 
-                lockEvent.WaitOne(TimeSpan.FromMinutes(1)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                lockEvent.WaitOne(TimeSpan.FromMinutes(1)).ShouldBeTrue($"because otherwise UseSafe was not entered {iteration}");
                 using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
 
                 if (blocking) {
-                    sw.Elapsed.Should().BeGreaterOrEqualTo(WrapperThreadBlockTime, "because otherwise the lock didn't block ({0})", iteration);
+                    sw.Elapsed.ShouldBeGreaterThanOrEqualTo(WrapperThreadBlockTime, $"because otherwise the lock didn't block ({iteration})");
                 } else {
-                    sw.Elapsed.Should().BeLessThan(WrapperThreadBlockTime, "because otherwise the lock blocked ({0})", iteration);
+                    sw.Elapsed.ShouldBeLessThan(WrapperThreadBlockTime, $"because otherwise the lock blocked ({iteration})");
                 }
 
                 iteration++;
@@ -789,15 +782,15 @@ Transfer-Encoding: chunked";
                         : indexWrapper.InstanceSafety;
                 }
 
-                lockEvent.WaitOne(TimeSpan.FromMinutes(1)).Should().BeTrue("because otherwise UseSafe was not entered {0}", iteration);
+                lockEvent.WaitOne(TimeSpan.FromMinutes(1)).ShouldBeTrue($"because otherwise UseSafe was not entered {iteration}");
                 using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
 
                 if (blocking) {
-                    sw.Elapsed.Should().BeGreaterOrEqualTo(WrapperThreadBlockTime, "because otherwise the lock didn't block ({0})", iteration);
+                    sw.Elapsed.ShouldBeGreaterThanOrEqualTo(WrapperThreadBlockTime, $"because otherwise the lock didn't block ({iteration})");
                 } else {
-                    sw.Elapsed.Should().BeLessThan(WrapperThreadBlockTime, "because otherwise the lock blocked ({0})", iteration);
+                    sw.Elapsed.ShouldBeLessThan(WrapperThreadBlockTime, $"because otherwise the lock blocked ({iteration})");
                 }
 
                 iteration++;
@@ -814,11 +807,11 @@ Transfer-Encoding: chunked";
         {
             using (var encoded = item.FLEncode()) {
                 var flValue = NativeRaw.FLValue_FromData((FLSlice) encoded, FLTrust.Trusted);
-                ((IntPtr) flValue).Should().NotBe(IntPtr.Zero);
+                ((IntPtr) flValue).ShouldNotBe(IntPtr.Zero);
                 if (item is IEnumerable enumerable && item is not string) {
-                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)!).Should().BeEquivalentTo(enumerable);
+                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)!).ShouldBeEquivalentToFluent(enumerable);
                 } else {
-                    Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).Should().Be(item);
+                    Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).ShouldBe(item);
                 }
             }
         }

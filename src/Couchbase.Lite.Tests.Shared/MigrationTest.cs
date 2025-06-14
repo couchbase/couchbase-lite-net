@@ -18,7 +18,7 @@
 
 #if !CBL_NO_EXTERN_FILES
 using Couchbase.Lite;
-using FluentAssertions;
+using Shouldly;
 using System.IO.Compression;
 using System.Text;
 using Xunit;
@@ -42,20 +42,20 @@ namespace Test
             }
 
             var config = new DatabaseConfiguration{ Directory = Directory };
-            using(var db = new Database("android-sqlite", config)) {
-                db.GetDefaultCollection().Count.Should().Be(2);
+            using (var db = new Database("android-sqlite", config)) {
+                db.GetDefaultCollection().Count.ShouldBe(2UL);
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
-                    doc.Should().NotBeNull();
-                    doc!.GetString("key").Should().Be(i.ToString());
+                    doc.ShouldNotBeNull();
+                    doc!.GetString("key").ShouldBe(i.ToString());
 
                     var attachments = doc.GetDictionary("_attachments");
-                    attachments.Should().NotBeNull();
+                    attachments.ShouldNotBeNull();
                     var key = $"attach{i}";
                     var blob = attachments!.GetBlob(key);
-                    blob.Should().NotBeNull();
+                    blob.ShouldNotBeNull();
                     var attach = Encoding.UTF8.GetBytes(key);
-                    blob!.Content.Should().Equal(attach);
+                    blob!.Content.ShouldBe(attach);
                 }
             }
 
@@ -72,11 +72,11 @@ namespace Test
 
             var config = new DatabaseConfiguration { Directory = Directory };
             using (var db = new Database("android-sqlite", config)) {
-                db.GetDefaultCollection().Count.Should().Be(2);
+                db.GetDefaultCollection().Count.ShouldBe(2UL);
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
-                    doc.Should().NotBeNull();
-                    doc!.GetString("key").Should().Be(i.ToString());
+                    doc.ShouldNotBeNull();
+                    doc!.GetString("key").ShouldBe(i.ToString());
                 }
             }
 
@@ -93,17 +93,17 @@ namespace Test
 
             var config = new DatabaseConfiguration { Directory = Directory };
             using (var db = new Database("android-sqlite", config)) {
-                db.GetDefaultCollection().Count.Should().Be(2);
+                db.GetDefaultCollection().Count.ShouldBe(2UL);
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
-                    doc.Should().NotBeNull();
-                    doc!.GetString("key").Should().Be(i.ToString());
+                    doc.ShouldNotBeNull();
+                    doc!.GetString("key").ShouldBe(i.ToString());
                     
                     var key = $"attach{i}";
                     var blob = doc.GetBlob(key);
-                    blob.Should().NotBeNull();
+                    blob.ShouldNotBeNull();
                     var attach = Encoding.UTF8.GetBytes(key);
-                    blob!.Content.Should().Equal(attach);
+                    blob!.Content.ShouldBe(attach);
                 }
             }
 

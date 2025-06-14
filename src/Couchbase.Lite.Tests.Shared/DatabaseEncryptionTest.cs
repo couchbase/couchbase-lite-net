@@ -22,7 +22,7 @@ using System.IO;
 using System.Text;
 
 using Couchbase.Lite;
-using FluentAssertions;
+using Shouldly;
 using Couchbase.Lite.Query;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,11 +49,11 @@ namespace Test
                 }
             }
 
-            this.Invoking(t => OpenSeekrit("wrong")).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
-                .Be(CouchbaseLiteError.UnreadableDatabase);
+            var ex = Should.Throw<CouchbaseLiteException>(() => OpenSeekrit("wrong"));
+            ex.Error.ShouldBe(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit(null)) {
-                seekrit.GetDefaultCollection().Count.Should().Be(1UL);
+                seekrit.GetDefaultCollection().Count.ShouldBe(1UL);
             }
         }
 
@@ -68,13 +68,13 @@ namespace Test
                 }
             }
 
-            this.Invoking(t => OpenSeekrit(null)).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
-                .Be(CouchbaseLiteError.UnreadableDatabase);
-            this.Invoking(t => OpenSeekrit("wrong")).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
-                .Be(CouchbaseLiteError.UnreadableDatabase);
+            var ex = Should.Throw<CouchbaseLiteException>(() => OpenSeekrit(null));
+            ex.Error.ShouldBe(CouchbaseLiteError.UnreadableDatabase);
+            ex = Should.Throw<CouchbaseLiteException>(() => OpenSeekrit("wrong"));
+            ex.Error.ShouldBe(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit("letmein")) {
-                seekrit.GetDefaultCollection().Count.Should().Be(1UL);
+                seekrit.GetDefaultCollection().Count.ShouldBe(1UL);
             }
         }
 
@@ -88,16 +88,16 @@ namespace Test
 
             // Recreate
             using (var seekrit = OpenSeekrit(null)) {
-                seekrit.GetDefaultCollection().Count.Should().Be(0UL);
+                seekrit.GetDefaultCollection().Count.ShouldBe(0UL);
             }
 
             // Reopen
             using (var seekrit = OpenSeekrit(null)) {
-                seekrit.GetDefaultCollection().Count.Should().Be(0UL);
+                seekrit.GetDefaultCollection().Count.ShouldBe(0UL);
             }
 
-            this.Invoking(t => OpenSeekrit("letmein")).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
-                .Be(CouchbaseLiteError.UnreadableDatabase);
+            var ex = Should.Throw<CouchbaseLiteException>(() => OpenSeekrit("letmein"));
+            ex.Error.ShouldBe(CouchbaseLiteError.UnreadableDatabase);
         }
 
         [Fact]
@@ -118,7 +118,7 @@ namespace Test
             }
 
             using (var seekrit = OpenSeekrit("letmein")) {
-                seekrit.GetDefaultCollection().Count.Should().Be(1UL);
+                seekrit.GetDefaultCollection().Count.ShouldBe(1UL);
             }
         }
 
@@ -194,13 +194,13 @@ namespace Test
 
             using(var seekrit = OpenSeekrit(newPass)) {
                 using (var doc = seekrit.GetDefaultCollection().GetDocument("att")) {
-                    doc.Should().NotBeNull("because it was saved at the beginning of the test");
+                    doc.ShouldNotBeNull("because it was saved at the beginning of the test");
                     var blob = doc!.GetBlob("blob");
-                    blob.Should().NotBeNull("because the blob was saved to the document");
-                    blob!.Digest.Should().NotBeNull("because the blob should have a digest upon save");
-                    blob.Content.Should().NotBeNull("because the blob should not be empty");
+                    blob.ShouldNotBeNull("because the blob was saved to the document");
+                    blob.Digest.ShouldNotBeNull("because the blob should have a digest upon save");
+                    blob.Content.ShouldNotBeNull("because the blob should not be empty");
                     var content = Encoding.UTF8.GetString(blob.Content!);
-                    content.Should().Be("This is a blob!");
+                    content.ShouldBe("This is a blob!");
                 }
 
                 using (var q = QueryBuilder.Select(SelectResult.Property("seq"))
@@ -210,10 +210,10 @@ namespace Test
                     var rs = q.Execute();
                     var i = 0;
                     foreach (var r in rs) {
-                        r.GetInt(0).Should().Be(i++);
+                        r.GetInt(0).ShouldBe(i++);
                     }
 
-                    i.Should().Be(100);
+                    i.ShouldBe(100);
                 }
             }
         }
@@ -229,30 +229,30 @@ namespace Test
                 seekrit.GetDefaultCollection().Save(doc);
 
                 blob = doc.GetBlob("blob");
-                blob?.Digest.Should().NotBeNull();
+                blob?.Digest.ShouldNotBeNull();
 
                 var fileName = blob!.Digest!.Substring(5).Replace("/", "_");
                 var path = $"{seekrit.Path}Attachments{Path.DirectorySeparatorChar}{fileName}.blob";
                 var raw = File.ReadAllBytes(path);
 
                 if (password != null) {
-                    raw.Should().NotBeEquivalentTo(body, "because otherwise the attachment was not encrypted");
+                    raw.ShouldNotBeEquivalentTo(body, "because otherwise the attachment was not encrypted");
                 } else {
-                    raw.Should().BeEquivalentTo(body, "because otherwise the attachment was encrypted");
+                    raw.ShouldBeEquivalentTo(body, "because otherwise the attachment was encrypted");
                 }
 
                 if (password == null) {
-                    raw.Should().BeEquivalentTo(body, "because otherwise the attachment was encrypted");
+                    raw.ShouldBeEquivalentTo(body, "because otherwise the attachment was encrypted");
                 }
             }
 
             using (var savedDoc = seekrit.GetDefaultCollection().GetDocument("att")) {
                 blob = savedDoc?.GetBlob("blob");
-                blob.Should().NotBeNull("because the document and blob were saved earlier in the test");
-                blob!.Digest.Should().NotBeNull();
-                blob.Content.Should().NotBeNull("because the blob should not be empty");
+                blob.ShouldNotBeNull("because the document and blob were saved earlier in the test");
+                blob!.Digest.ShouldNotBeNull();
+                blob.Content.ShouldNotBeNull("because the blob should not be empty");
                 var content = Encoding.UTF8.GetString(blob.Content!);
-                content.Should().Be("This is a blob!");
+                content.ShouldBe("This is a blob!");
             }
 
             return seekrit;

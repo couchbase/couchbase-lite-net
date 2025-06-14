@@ -39,6 +39,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TunesPerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)URLEndpointListenerTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)util\Assertions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Benchmark.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ForIssueAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IMockConnectionErrorLogic.cs" />
