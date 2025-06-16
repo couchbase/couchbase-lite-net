@@ -24,8 +24,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using Couchbase.Lite;
-using Couchbase.Lite.Internal.Serialization;
-using FluentAssertions;
+using Shouldly;
 using Newtonsoft.Json;
 using Test.Util;
 using Xunit;
@@ -47,9 +46,9 @@ namespace Test
         public void TestCreateDoc()
         {
             var doc = new MutableDocument();
-            doc.Id.Should().NotBeNullOrEmpty("because every document should have an ID");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.ToDictionary().Should().BeEmpty("because the document has no properties");
+            doc.Id.ShouldNotBeEmpty("because every document should have an ID");
+            doc.IsDeleted.ShouldBeFalse("because the document is not deleted");
+            doc.ToDictionary().ShouldBeEmpty("because the document has no properties");
 
             SaveDocument(doc);
         }
@@ -58,9 +57,9 @@ namespace Test
         public void TestCreateDocWithID()
         {
             var doc = new MutableDocument("doc1");
-            doc.Id.Should().Be("doc1", "because that was the ID it was given");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.ToDictionary().Should().BeEmpty("because the document has no properties");
+            doc.Id.ShouldBe("doc1", "because that was the ID it was given");
+            doc.IsDeleted.ShouldBeFalse("because the document is not deleted");
+            doc.ToDictionary().ShouldBeEmpty("because the document has no properties");
 
             SaveDocument(doc);
         }
@@ -69,23 +68,22 @@ namespace Test
         public void TestCreateDocWithEmptyStringID()
         {
             var doc = new MutableDocument("");
-            doc.Id.Should().BeEmpty("because that was the ID it was given");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.ToDictionary().Should().BeEmpty("because the document has no properties");
+            doc.Id.ShouldBeEmpty("because that was the ID it was given");
+            doc.IsDeleted.ShouldBeFalse("because the document is not deleted");
+            doc.ToDictionary().ShouldBeEmpty("because the document has no properties");
 
-            DefaultCollection.Invoking(d => d.Save(doc))
-                .Should().Throw<CouchbaseLiteException>()
-                .Where(e => e.Error == CouchbaseLiteError.BadDocID &&
-                                     e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
+            var ex = Should.Throw<CouchbaseLiteException>(() => DefaultCollection.Save(doc));
+            ex.Error.ShouldBe(CouchbaseLiteError.BadDocID);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         [Fact]
         public void TestCreateDocWithNullID()
         {
             var doc = new MutableDocument(default(string));
-            doc.Id.Should().NotBeNullOrEmpty("because every document should have an ID");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.ToDictionary().Should().BeEmpty("because the document has no properties");
+            doc.Id.ShouldNotBeEmpty("because every document should have an ID");
+            doc.IsDeleted.ShouldBeFalse("because the document is not deleted");
+            doc.ToDictionary().ShouldBeEmpty("because the document has no properties");
 
             SaveDocument(doc);
         }
@@ -105,9 +103,9 @@ namespace Test
             };
 
             var doc = new MutableDocument(dict);
-            doc.Id.Should().NotBeNullOrEmpty("because every document should have an ID");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.ToDictionary().Should().BeEquivalentTo(dict, "because the document was given properties");
+            doc.Id.ShouldNotBeEmpty("because every document should have an ID");
+            doc.IsDeleted.ShouldBeFalse("because the document is not deleted");
+            doc.ToDictionary().ShouldBeEquivalentToFluent(dict, "because the document was given properties");
 
             SaveDocument(doc);
         }
@@ -127,9 +125,9 @@ namespace Test
             };
 
             var doc = new MutableDocument("doc1", dict);
-            doc.Id.Should().Be("doc1", "because that was the ID it was given");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.ToDictionary().Should().BeEquivalentTo(dict, "because the document was given properties");
+            doc.Id.ShouldBe("doc1", "because that was the ID it was given");
+            doc.IsDeleted.ShouldBeFalse("because the document is not deleted");
+            doc.ToDictionary().ShouldBeEquivalentToFluent(dict, "because the document was given properties");
 
             SaveDocument(doc);
         }
@@ -150,7 +148,7 @@ namespace Test
 
             var doc = new MutableDocument("doc1");
             doc.SetData(dict);
-            doc.ToDictionary().Should().BeEquivalentTo(dict, "because that is what was just set");
+            doc.ToDictionary().ShouldBeEquivalentToFluent(dict, "because that is what was just set");
 
             SaveDocument(doc);
 
@@ -166,7 +164,7 @@ namespace Test
             };
             
             doc.SetData(nuDict);
-            doc.ToDictionary().Should().BeEquivalentTo(nuDict, "because that is what was just set");
+            doc.ToDictionary().ShouldBeEquivalentToFluent(nuDict, "because that is what was just set");
 
             SaveDocument(doc);
         }
@@ -177,17 +175,17 @@ namespace Test
             var doc = new MutableDocument("doc1");
             SaveDocument(doc, d =>
             {
-                d.GetInt("key").Should().Be(0, "because no integer exists for this key");
-                d.GetDouble("key").Should().Be(0.0, "because no double exists for this key");
-                d.GetFloat("key").Should().Be(0.0f, "because no float exists for this key");
-                d.GetBoolean("key").Should().BeFalse("because no boolean exists for this key");
-                d.GetBlob("key").Should().BeNull("because no blob exists for this key");
-                d.GetDate("key").Should().Be(DateTimeOffset.MinValue, "because no date exists for this key");
-                d.GetValue("key").Should().BeNull("because no object exists for this key");
-                d.GetString("key").Should().BeNull("because no string exists for this key");
-                d.GetDictionary("key").Should().BeNull("because no subdocument exists for this key");
-                d.GetArray("key").Should().BeNull("because no array exists for this key");
-                d.ToDictionary().Should().BeEmpty("because this document has no properties");
+                d.GetInt("key").ShouldBe(0, "because no integer exists for this key");
+                d.GetDouble("key").ShouldBe(0.0, "because no double exists for this key");
+                d.GetFloat("key").ShouldBe(0.0f, "because no float exists for this key");
+                d.GetBoolean("key").ShouldBeFalse("because no boolean exists for this key");
+                d.GetBlob("key").ShouldBeNull("because no blob exists for this key");
+                d.GetDate("key").ShouldBe(DateTimeOffset.MinValue, "because no date exists for this key");
+                d.GetValue("key").ShouldBeNull("because no object exists for this key");
+                d.GetString("key").ShouldBeNull("because no string exists for this key");
+                d.GetDictionary("key").ShouldBeNull("because no subdocument exists for this key");
+                d.GetArray("key").ShouldBeNull("because no array exists for this key");
+                d.ToDictionary().ShouldBeEmpty("because this document has no properties");
             });
         }
 
@@ -197,17 +195,17 @@ namespace Test
             var doc = new MutableDocument("doc1");
             SaveDocument(doc, d =>
             {
-                d.GetInt("key").Should().Be(0, "because no integer exists for this key");
-                d.GetDouble("key").Should().Be(0.0, "because no double exists for this key");
-                d.GetFloat("key").Should().Be(0.0f, "because no float exists for this key");
-                d.GetBoolean("key").Should().BeFalse("because no boolean exists for this key");
-                d.GetBlob("key").Should().BeNull("because no blob exists for this key");
-                d.GetDate("key").Should().Be(DateTimeOffset.MinValue, "because no date exists for this key");
-                d.GetValue("key").Should().BeNull("because no object exists for this key");
-                d.GetString("key").Should().BeNull("because no string exists for this key");
-                d.GetDictionary("key").Should().BeNull("because no subdocument exists for this key");
-                d.GetArray("key").Should().BeNull("because no array exists for this key");
-                d.ToDictionary().Should().BeEmpty("because this document has no properties");
+                d.GetInt("key").ShouldBe(0, "because no integer exists for this key");
+                d.GetDouble("key").ShouldBe(0.0, "because no double exists for this key");
+                d.GetFloat("key").ShouldBe(0.0f, "because no float exists for this key");
+                d.GetBoolean("key").ShouldBeFalse("because no boolean exists for this key");
+                d.GetBlob("key").ShouldBeNull("because no blob exists for this key");
+                d.GetDate("key").ShouldBe(DateTimeOffset.MinValue, "because no date exists for this key");
+                d.GetValue("key").ShouldBeNull("because no object exists for this key");
+                d.GetString("key").ShouldBeNull("because no string exists for this key");
+                d.GetDictionary("key").ShouldBeNull("because no subdocument exists for this key");
+                d.GetArray("key").ShouldBeNull("because no array exists for this key");
+                d.ToDictionary().ShouldBeEmpty("because this document has no properties");
             });
 
             using (var doc1 = new MutableDocument("doc1")) {
@@ -231,10 +229,10 @@ namespace Test
 
             using (var anotherDb = new Database(Db)) {
                 var doc1b = anotherDb.GetDefaultCollection().GetDocument("doc1");
-                doc1b.Should().NotBeNull("because even from another handle the document should be retrievable");
-                doc1b.As<object?>().Should().NotBeSameAs(doc, "because unique instances should be returned");
-                doc.Id.Should().Be(doc1b!.Id, "because object for the same document should have matching IDs");
-                doc.ToDictionary().Should().BeEquivalentTo(doc1b.ToDictionary(), "because the contents should match");
+                doc1b.ShouldNotBeNull("because even from another handle the document should be retrievable");
+                (doc1b as object).ShouldNotBeSameAs(doc, "because unique instances should be returned");
+                doc.Id.ShouldBe(doc1b!.Id, "because object for the same document should have matching IDs");
+                doc.ToDictionary().ShouldBeEquivalentToFluent(doc1b.ToDictionary(), "because the contents should match");
             }
         }
 
@@ -246,31 +244,31 @@ namespace Test
             SaveDocument(doc1a);
 
             var doc1b = DefaultCollection.GetDocument("doc1");
-            doc1b.Should().NotBeNull("because the document was just saved");
+            doc1b.ShouldNotBeNull("because the document was just saved");
             var doc1c = DefaultCollection.GetDocument("doc1"); // Note this is the exact same code, no need to null check again
 
             using (var anotherDb = new Database(Db)) {
                 var doc1d = anotherDb.GetDefaultCollection().GetDocument("doc1");
-                doc1d.Should().NotBeNull("because even from another handle the document should be retrievable");
+                doc1d.ShouldNotBeNull("because even from another handle the document should be retrievable");
 
-                doc1a.As<object>().Should().NotBeSameAs(doc1b, "because unique instances should be returned");
-                doc1a.As<object>().Should().NotBeSameAs(doc1c, "because unique instances should be returned");
-                doc1a.As<object>().Should().NotBeSameAs(doc1d, "because unique instances should be returned");
-                doc1b.As<object>().Should().NotBeSameAs(doc1c, "because unique instances should be returned");
-                doc1b.As<object>().Should().NotBeSameAs(doc1d, "because unique instances should be returned");
-                doc1c.As<object>().Should().NotBeSameAs(doc1d, "because unique instances should be returned");
+                doc1a.ShouldNotBeSameAs(doc1b, "because unique instances should be returned");
+                doc1a.ShouldNotBeSameAs(doc1c, "because unique instances should be returned");
+                doc1a.ShouldNotBeSameAs(doc1d, "because unique instances should be returned");
+                doc1b.ShouldNotBeSameAs(doc1c, "because unique instances should be returned");
+                doc1b.ShouldNotBeSameAs(doc1d, "because unique instances should be returned");
+                doc1c.ShouldNotBeSameAs(doc1d, "because unique instances should be returned");
 
-                doc1a.ToDictionary().Should().BeEquivalentTo(doc1b!.ToDictionary(), "because the contents should match");
-                doc1a.ToDictionary().Should().BeEquivalentTo(doc1c!.ToDictionary(), "because the contents should match");
-                doc1a.ToDictionary().Should().BeEquivalentTo(doc1d!.ToDictionary(), "because the contents should match");
+                doc1a.ToDictionary().ShouldBeEquivalentToFluent(doc1b!.ToDictionary(), "because the contents should match");
+                doc1a.ToDictionary().ShouldBeEquivalentToFluent(doc1c!.ToDictionary(), "because the contents should match");
+                doc1a.ToDictionary().ShouldBeEquivalentToFluent(doc1d!.ToDictionary(), "because the contents should match");
 
                 var updatedDoc1b = doc1b.ToMutable();
                 updatedDoc1b.SetString("name", "Daniel Tiger");
                 SaveDocument(updatedDoc1b);
 
-                updatedDoc1b.Equals(doc1a).Should().BeFalse("because the contents should not match anymore");
-                updatedDoc1b.Equals(doc1c).Should().BeFalse("because the contents should not match anymore");
-                updatedDoc1b.Equals(doc1d).Should().BeFalse("because the contents should not match anymore");
+                updatedDoc1b.Equals(doc1a).ShouldBeFalse("because the contents should not match anymore");
+                updatedDoc1b.Equals(doc1c).ShouldBeFalse("because the contents should not match anymore");
+                updatedDoc1b.Equals(doc1d).ShouldBeFalse("because the contents should not match anymore");
             }
         }
 
@@ -283,24 +281,22 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.GetString("string1").Should().Be("", "because that is the value of the first revision of string1");
+                d.GetString("string1").ShouldBe("", "because that is the value of the first revision of string1");
                 d.GetString("string2")
-                    .Should()
-                    .Be("string", "because that is the value of the first revision of string2");
+                    .ShouldBe("string", "because that is the value of the first revision of string2");
             });
 
             doc.Dispose();
             doc = DefaultCollection.GetDocument("doc1")?.ToMutable();
-            doc.Should().NotBeNull("because the document was just saved");
+            doc.ShouldNotBeNull("because the document was just saved");
             doc!.SetString("string2", "");
             doc.SetString("string1", "string");
 
             SaveDocument(doc, d =>
             {
-                d.GetString("string2").Should().Be("", "because that is the value of the second revision of string2");
+                d.GetString("string2").ShouldBe("", "because that is the value of the second revision of string2");
                 d.GetString("string1")
-                    .Should()
-                    .Be("string", "because that is the value of the second revision of string1");
+                    .ShouldBe("string", "because that is the value of the second revision of string1");
             });
         }
 
@@ -311,18 +307,18 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetString("true").Should().BeNull("because there is no string in 'true'");
-                d.GetString("false").Should().BeNull("because there is no string in 'false'");
-                d.GetString("string").Should().Be("string", "because there is a string in 'string'");
-                d.GetString("zero").Should().BeNull("because there is no string in 'zero'");
-                d.GetString("one").Should().BeNull("because there is no string in 'one'");
-                d.GetString("minus_one").Should().BeNull("because there is no string in 'minus_one'");
-                d.GetString("one_dot_one").Should().BeNull("because there is no string in 'one_dot_one'");
-                d.GetString("date").Should().Be(d.GetDate("date").ToString("o"), "because date is convertible to string");
-                d.GetString("dict").Should().BeNull("because there is no string in 'subdoc'");
-                d.GetString("array").Should().BeNull("because there is no string in 'array'");
-                d.GetString("blob").Should().BeNull("because there is no string in 'blob'");
-                d.GetString("non_existing_key").Should().BeNull("because that key has no value");
+                d.GetString("true").ShouldBeNull("because there is no string in 'true'");
+                d.GetString("false").ShouldBeNull("because there is no string in 'false'");
+                d.GetString("string").ShouldBe("string", "because there is a string in 'string'");
+                d.GetString("zero").ShouldBeNull("because there is no string in 'zero'");
+                d.GetString("one").ShouldBeNull("because there is no string in 'one'");
+                d.GetString("minus_one").ShouldBeNull("because there is no string in 'minus_one'");
+                d.GetString("one_dot_one").ShouldBeNull("because there is no string in 'one_dot_one'");
+                d.GetString("date").ShouldBe(d.GetDate("date").ToString("o"), "because date is convertible to string");
+                d.GetString("dict").ShouldBeNull("because there is no string in 'subdoc'");
+                d.GetString("array").ShouldBeNull("because there is no string in 'array'");
+                d.GetString("blob").ShouldBeNull("because there is no string in 'blob'");
+                d.GetString("non_existing_key").ShouldBeNull("because that key has no value");
             });
         }
 
@@ -337,15 +333,15 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.GetInt("number1").Should().Be(1, "because that is the value of the first revision of number1");
-                d.GetInt("number2").Should().Be(0, "because that is the value of the first revision of number2");
-                d.GetInt("number3").Should().Be(-1, "because that is the value of the first revision of number3");
-                d.GetDouble("number4").Should().Be(1.1, "because that is the value of the first revision of number4");
+                d.GetInt("number1").ShouldBe(1, "because that is the value of the first revision of number1");
+                d.GetInt("number2").ShouldBe(0, "because that is the value of the first revision of number2");
+                d.GetInt("number3").ShouldBe(-1, "because that is the value of the first revision of number3");
+                d.GetDouble("number4").ShouldBe(1.1, "because that is the value of the first revision of number4");
             });
 
             doc.Dispose();
             doc = DefaultCollection.GetDocument("doc1")?.ToMutable();
-            doc.Should().NotBeNull("because the document was just saved");
+            doc.ShouldNotBeNull("because the document was just saved");
             doc!.SetInt("number1", 0);
             doc.SetInt("number2", 1);
             doc.SetDouble("number3", 1.1);
@@ -353,10 +349,10 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.GetInt("number1").Should().Be(0, "because that is the value of the second revision of number1");
-                d.GetInt("number2").Should().Be(1, "because that is the value of the second revision of number2");
-                d.GetDouble("number3").Should().Be(1.1, "because that is the value of the second revision of number3");
-                d.GetInt("number4").Should().Be(-1, "because that is the value of the second revision of number4");
+                d.GetInt("number1").ShouldBe(0, "because that is the value of the second revision of number1");
+                d.GetInt("number2").ShouldBe(1, "because that is the value of the second revision of number2");
+                d.GetDouble("number3").ShouldBe(1.1, "because that is the value of the second revision of number3");
+                d.GetInt("number4").ShouldBe(-1, "because that is the value of the second revision of number4");
             });
         }
 
@@ -367,18 +363,18 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetInt("true").Should().Be(1, "because a true bool value will be coalesced to 1");
-                d.GetInt("false").Should().Be(0, "because a false bool value will be coalesced to 0");
-                d.GetInt("string").Should().Be(0, "because that is the default value");
-                d.GetInt("zero").Should().Be(0, "because zero was stored in this key");
-                d.GetInt("one").Should().Be(1, "because one was stored in this key");
-                d.GetInt("minus_one").Should().Be(-1, "because -1 was stored in this key");
-                d.GetInt("one_dot_one").Should().Be(1, "because 1.1 gets truncated to 1");
-                d.GetInt("date").Should().Be(0, "because that is the default value");
-                d.GetInt("dict").Should().Be(0, "because that is the default value");
-                d.GetInt("array").Should().Be(0, "because that is the default value");
-                d.GetInt("blob").Should().Be(0, "because that is the default value");
-                d.GetInt("non_existing_key").Should().Be(0, "because that key has no value");
+                d.GetInt("true").ShouldBe(1, "because a true bool value will be coalesced to 1");
+                d.GetInt("false").ShouldBe(0, "because a false bool value will be coalesced to 0");
+                d.GetInt("string").ShouldBe(0, "because that is the default value");
+                d.GetInt("zero").ShouldBe(0, "because zero was stored in this key");
+                d.GetInt("one").ShouldBe(1, "because one was stored in this key");
+                d.GetInt("minus_one").ShouldBe(-1, "because -1 was stored in this key");
+                d.GetInt("one_dot_one").ShouldBe(1, "because 1.1 gets truncated to 1");
+                d.GetInt("date").ShouldBe(0, "because that is the default value");
+                d.GetInt("dict").ShouldBe(0, "because that is the default value");
+                d.GetInt("array").ShouldBe(0, "because that is the default value");
+                d.GetInt("blob").ShouldBe(0, "because that is the default value");
+                d.GetInt("non_existing_key").ShouldBe(0, "because that key has no value");
             });
         }
 
@@ -389,18 +385,18 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetLong("true").Should().Be(1L, "because a true bool value will be coalesced to 1L");
-                d.GetLong("false").Should().Be(0L, "because a false bool value will be coalesced to 0L");
-                d.GetLong("string").Should().Be(0L, "because that is the default value");
-                d.GetLong("zero").Should().Be(0L, "because zero was stored in this key");
-                d.GetLong("one").Should().Be(1L, "because one was stored in this key");
-                d.GetLong("minus_one").Should().Be(-1L, "because -1L was stored in this key");
-                d.GetLong("one_dot_one").Should().Be(1L, "because 1L.1L gets truncated to 1L");
-                d.GetLong("date").Should().Be(0L, "because that is the default value");
-                d.GetLong("dict").Should().Be(0L, "because that is the default value");
-                d.GetLong("array").Should().Be(0L, "because that is the default value");
-                d.GetLong("blob").Should().Be(0L, "because that is the default value");
-                d.GetLong("non_existing_key").Should().Be(0L, "because that key has no value");
+                d.GetLong("true").ShouldBe(1L, "because a true bool value will be coalesced to 1L");
+                d.GetLong("false").ShouldBe(0L, "because a false bool value will be coalesced to 0L");
+                d.GetLong("string").ShouldBe(0L, "because that is the default value");
+                d.GetLong("zero").ShouldBe(0L, "because zero was stored in this key");
+                d.GetLong("one").ShouldBe(1L, "because one was stored in this key");
+                d.GetLong("minus_one").ShouldBe(-1L, "because -1L was stored in this key");
+                d.GetLong("one_dot_one").ShouldBe(1L, "because 1L.1L gets truncated to 1L");
+                d.GetLong("date").ShouldBe(0L, "because that is the default value");
+                d.GetLong("dict").ShouldBe(0L, "because that is the default value");
+                d.GetLong("array").ShouldBe(0L, "because that is the default value");
+                d.GetLong("blob").ShouldBe(0L, "because that is the default value");
+                d.GetLong("non_existing_key").ShouldBe(0L, "because that key has no value");
             });
         }
 
@@ -411,18 +407,18 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetDouble("true").Should().Be(1.0, "because a true bool value will be coalesced to 1.0");
-                d.GetDouble("false").Should().Be(0.0, "because a false bool value will be coalesced to 0.0");
-                d.GetDouble("string").Should().Be(0.0, "because that is the default value");
-                d.GetDouble("zero").Should().Be(0.0, "because zero was stored in this key");
-                d.GetDouble("one").Should().Be(1.0, "because one was stored in this key");
-                d.GetDouble("minus_one").Should().Be(-1.0, "because -1 was stored in this key");
-                d.GetDouble("one_dot_one").Should().Be(1.1, "because 1.1 was stored in this key");
-                d.GetDouble("date").Should().Be(0.0, "because that is the default value");
-                d.GetDouble("dict").Should().Be(0.0, "because that is the default value");
-                d.GetDouble("array").Should().Be(0.0, "because that is the default value");
-                d.GetDouble("blob").Should().Be(0.0, "because that is the default value");
-                d.GetDouble("non_existing_key").Should().Be(0.0, "because that key has no value");
+                d.GetDouble("true").ShouldBe(1.0, "because a true bool value will be coalesced to 1.0");
+                d.GetDouble("false").ShouldBe(0.0, "because a false bool value will be coalesced to 0.0");
+                d.GetDouble("string").ShouldBe(0.0, "because that is the default value");
+                d.GetDouble("zero").ShouldBe(0.0, "because zero was stored in this key");
+                d.GetDouble("one").ShouldBe(1.0, "because one was stored in this key");
+                d.GetDouble("minus_one").ShouldBe(-1.0, "because -1 was stored in this key");
+                d.GetDouble("one_dot_one").ShouldBe(1.1, "because 1.1 was stored in this key");
+                d.GetDouble("date").ShouldBe(0.0, "because that is the default value");
+                d.GetDouble("dict").ShouldBe(0.0, "because that is the default value");
+                d.GetDouble("array").ShouldBe(0.0, "because that is the default value");
+                d.GetDouble("blob").ShouldBe(0.0, "because that is the default value");
+                d.GetDouble("non_existing_key").ShouldBe(0.0, "because that key has no value");
             });
         }
 
@@ -433,18 +429,18 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetFloat("true").Should().Be(1.0f, "because a true bool value will be coalesced to 1.0f");
-                d.GetFloat("false").Should().Be(0.0f, "because a false bool value will be coalesced to 0.0f");
-                d.GetFloat("string").Should().Be(0.0f, "because that is the default value");
-                d.GetFloat("zero").Should().Be(0.0f, "because zero was stored in this key");
-                d.GetFloat("one").Should().Be(1.0f, "because one was stored in this key");
-                d.GetFloat("minus_one").Should().Be(-1.0f, "because -1 was stored in this key");
-                d.GetFloat("one_dot_one").Should().Be(1.1f, "because 1.1f was stored in this key");
-                d.GetFloat("date").Should().Be(0.0f, "because that is the default value");
-                d.GetFloat("dict").Should().Be(0.0f, "because that is the default value");
-                d.GetFloat("array").Should().Be(0.0f, "because that is the default value");
-                d.GetFloat("blob").Should().Be(0.0f, "because that is the default value");
-                d.GetFloat("non_existing_key").Should().Be(0.0f, "because that key has no value");
+                d.GetFloat("true").ShouldBe(1.0f, "because a true bool value will be coalesced to 1.0f");
+                d.GetFloat("false").ShouldBe(0.0f, "because a false bool value will be coalesced to 0.0f");
+                d.GetFloat("string").ShouldBe(0.0f, "because that is the default value");
+                d.GetFloat("zero").ShouldBe(0.0f, "because zero was stored in this key");
+                d.GetFloat("one").ShouldBe(1.0f, "because one was stored in this key");
+                d.GetFloat("minus_one").ShouldBe(-1.0f, "because -1 was stored in this key");
+                d.GetFloat("one_dot_one").ShouldBe(1.1f, "because 1.1f was stored in this key");
+                d.GetFloat("date").ShouldBe(0.0f, "because that is the default value");
+                d.GetFloat("dict").ShouldBe(0.0f, "because that is the default value");
+                d.GetFloat("array").ShouldBe(0.0f, "because that is the default value");
+                d.GetFloat("blob").ShouldBe(0.0f, "because that is the default value");
+                d.GetFloat("non_existing_key").ShouldBe(0.0f, "because that key has no value");
             });
         }
 
@@ -461,12 +457,12 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.GetLong("min_int").Should().Be(Int64.MinValue, "because that is what was stored");
-                d.GetLong("max_int").Should().Be(Int64.MaxValue, "because that is what was stored");
-                d.GetDouble("min_double").Should().Be(Double.MinValue, "because that is what was stored");
-                d.GetDouble("max_double").Should().Be(Double.MaxValue, "because that is what was stored");
-                d.GetFloat("min_float").Should().Be(Single.MinValue, "because that is what was stored");
-                d.GetFloat("max_float").Should().Be(Single.MaxValue, "because that is what was stored");
+                d.GetLong("min_int").ShouldBe(Int64.MinValue, "because that is what was stored");
+                d.GetLong("max_int").ShouldBe(Int64.MaxValue, "because that is what was stored");
+                d.GetDouble("min_double").ShouldBe(Double.MinValue, "because that is what was stored");
+                d.GetDouble("max_double").ShouldBe(Double.MaxValue, "because that is what was stored");
+                d.GetFloat("min_float").ShouldBe(Single.MinValue, "because that is what was stored");
+                d.GetFloat("max_float").ShouldBe(Single.MaxValue, "because that is what was stored");
             });
         }
 
@@ -482,25 +478,25 @@ namespace Test
 
                 SaveDocument(doc, d =>
                 {
-                    d.GetInt("number1").Should().Be(1);
-                    d.GetFloat("number1").Should().Be(1.00f);
-                    d.GetDouble("number1").Should().Be(1.00);
+                    d.GetInt("number1").ShouldBe(1);
+                    d.GetFloat("number1").ShouldBe(1.00f);
+                    d.GetDouble("number1").ShouldBe(1.00);
 
-                    d.GetInt("number2").Should().Be(1);
-                    d.GetFloat("number2").Should().Be(1.49f);
-                    d.GetDouble("number2").Should().BeApproximately(1.49, 0.00001);
+                    d.GetInt("number2").ShouldBe(1);
+                    d.GetFloat("number2").ShouldBe(1.49f);
+                    d.GetDouble("number2").ShouldBe(1.49, 0.00001);
 
-                    d.GetInt("number3").Should().Be(1);
-                    d.GetFloat("number3").Should().Be(1.50f);
-                    d.GetDouble("number3").Should().BeApproximately(1.50, 0.00001);
+                    d.GetInt("number3").ShouldBe(1);
+                    d.GetFloat("number3").ShouldBe(1.50f);
+                    d.GetDouble("number3").ShouldBe(1.50, 0.00001);
 
-                    d.GetInt("number4").Should().Be(1);
-                    d.GetFloat("number4").Should().Be(1.51f);
-                    d.GetDouble("number4").Should().BeApproximately(1.51, 0.00001);
+                    d.GetInt("number4").ShouldBe(1);
+                    d.GetFloat("number4").ShouldBe(1.51f);
+                    d.GetDouble("number4").ShouldBe(1.51, 0.00001);
 
-                    d.GetInt("number5").Should().Be(1);
-                    d.GetFloat("number5").Should().Be(1.99f);
-                    d.GetDouble("number5").Should().BeApproximately(1.99, 0.00001);
+                    d.GetInt("number5").ShouldBe(1);
+                    d.GetFloat("number5").ShouldBe(1.99f);
+                    d.GetDouble("number5").ShouldBe(1.99, 0.00001);
                 });
             }
         }
@@ -514,20 +510,20 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.GetBoolean("boolean1").Should().Be(true, "because that is the value of the first revision of boolean1");
-                d.GetBoolean("boolean2").Should().Be(false, "because that is the value of the first revision of boolean2");
+                d.GetBoolean("boolean1").ShouldBe(true, "because that is the value of the first revision of boolean1");
+                d.GetBoolean("boolean2").ShouldBe(false, "because that is the value of the first revision of boolean2");
             });
 
             doc.Dispose();
             doc = DefaultCollection.GetDocument("doc1")?.ToMutable();
-            doc.Should().NotBeNull("because the document was just saved");
+            doc.ShouldNotBeNull("because the document was just saved");
             doc!.SetBoolean("boolean1", false);
             doc.SetBoolean("boolean2", true);
 
             SaveDocument(doc, d =>
             {
-                d.GetBoolean("boolean1").Should().Be(false, "because that is the value of the second revision of boolean1");
-                d.GetBoolean("boolean2").Should().Be(true, "because that is the value of the second revision of boolean2");
+                d.GetBoolean("boolean1").ShouldBe(false, "because that is the value of the second revision of boolean1");
+                d.GetBoolean("boolean2").ShouldBe(true, "because that is the value of the second revision of boolean2");
             });
         }
 
@@ -538,18 +534,18 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetBoolean("true").Should().Be(true, "because true was stored");
-                d.GetBoolean("false").Should().Be(false, "because false was stored");
-                d.GetBoolean("string").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("zero").Should().Be(false, "because zero will coalesce to false");
-                d.GetBoolean("one").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("minus_one").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("one_dot_one").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("date").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("dict").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("array").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("blob").Should().Be(true, "because any non-zero object will be true");
-                d.GetBoolean("non_existing_key").Should().Be(false, "because that key has no value");
+                d.GetBoolean("true").ShouldBe(true, "because true was stored");
+                d.GetBoolean("false").ShouldBe(false, "because false was stored");
+                d.GetBoolean("string").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("zero").ShouldBe(false, "because zero will coalesce to false");
+                d.GetBoolean("one").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("minus_one").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("one_dot_one").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("date").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("dict").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("array").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("blob").ShouldBe(true, "because any non-zero object will be true");
+                d.GetBoolean("non_existing_key").ShouldBe(false, "because that key has no value");
             });
         }
 
@@ -563,22 +559,22 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.GetValue("date").Should().Be(dateStr, "because that is what was stored");
-                d.GetString("date").Should().Be(dateStr, "because a string was stored");
-                d.GetDate("date").Should().Be(date, "because the string is convertible to a date");
+                d.GetValue("date").ShouldBe(dateStr, "because that is what was stored");
+                d.GetString("date").ShouldBe(dateStr, "because a string was stored");
+                d.GetDate("date").ShouldBe(date, "because the string is convertible to a date");
             });
 
             doc.Dispose();
             doc = DefaultCollection.GetDocument("doc1")?.ToMutable();
-            doc.Should().NotBeNull("because the document was just saved");
+            doc.ShouldNotBeNull("because the document was just saved");
             var nuDate = date + TimeSpan.FromSeconds(60);
             var nuDateStr = nuDate.ToString("o");
             doc!.SetDate("date", nuDate);
             
             SaveDocument(doc, d =>
             {
-                d.GetDate("date").Should().Be(nuDate, "because that is what was stored the second time");
-                d.GetString("date").Should().Be(nuDateStr, "because the date is convertible to a string");
+                d.GetDate("date").ShouldBe(nuDate, "because that is what was stored the second time");
+                d.GetString("date").ShouldBe(nuDateStr, "because the date is convertible to a string");
             });
         }
 
@@ -589,18 +585,18 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetDate("true").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("false").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("string").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("zero").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("one").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("minus_one").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("one_dot_one").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("date").ToString("o").Should().Be(d.GetString("date"), "because the date and its string should match");
-                d.GetDate("dict").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("array").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("blob").Should().Be(DateTimeOffset.MinValue, "because that is the default");
-                d.GetDate("non_existing_key").Should().Be(DateTimeOffset.MinValue, "because that key has no value");
+                d.GetDate("true").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("false").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("string").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("zero").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("one").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("minus_one").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("one_dot_one").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("date").ToString("o").ShouldBe(d.GetString("date"), "because the date and its string should match");
+                d.GetDate("dict").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("array").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("blob").ShouldBe(DateTimeOffset.MinValue, "because that is the default");
+                d.GetDate("non_existing_key").ShouldBe(DateTimeOffset.MinValue, "because that key has no value");
             });
         }
 
@@ -614,36 +610,34 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.GetValue("blob")
-                    .As<Blob>()
-                    .Properties.Should().BeEquivalentTo(blob.Properties,
+                (d.GetValue("blob") as Blob)?
+                    .Properties.ShouldBeEquivalentToFluent(blob.Properties,
                         "because otherwise the blob did not store correctly");
                 d.GetBlob("blob")?
-                    .Properties.Should().BeEquivalentTo(blob.Properties,
+                    .Properties.ShouldBeEquivalentToFluent(blob.Properties,
                     "because otherwise the blob did not store correctly");
                 d.GetBlob("blob")?
-                    .Content.Should().BeEquivalentTo(blob.Content,
+                    .Content.ShouldBeEquivalentToFluent(blob.Content,
                         "because otherwise the blob did not store correctly");
             });
 
             doc.Dispose();
             doc = DefaultCollection.GetDocument("doc1")?.ToMutable();
-            doc.Should().NotBeNull("because the document was just saved");
+            doc.ShouldNotBeNull("because the document was just saved");
             var nuContent = Encoding.UTF8.GetBytes("1234567890");
             var nuBlob = new Blob("text/plain", nuContent);
             doc!.SetBlob("blob", nuBlob);
 
             SaveDocument(doc, d =>
             {
-                d.GetValue("blob")
-                    .As<Blob>()
-                    .Properties.Should().BeEquivalentTo(nuBlob.Properties,
+                (d.GetValue("blob") as Blob)?
+                    .Properties.ShouldBeEquivalentToFluent(nuBlob.Properties,
                         "because otherwise the blob did not update correctly");
                 d.GetBlob("blob")?
-                    .Properties.Should().BeEquivalentTo(nuBlob.Properties,
+                    .Properties.ShouldBeEquivalentToFluent(nuBlob.Properties,
                         "because otherwise the blob did not update correctly");
                 d.GetBlob("blob")?
-                    .Content.Should().BeEquivalentTo(nuBlob.Content,
+                    .Content.ShouldBeEquivalentToFluent(nuBlob.Content,
                         "because otherwise the blob did not update correctly");
             });
         }
@@ -655,20 +649,21 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetBlob("true").Should().BeNull("because that is the default");
-                d.GetBlob("false").Should().BeNull("because that is the default");
-                d.GetBlob("string").Should().BeNull("because that is the default");
-                d.GetBlob("zero").Should().BeNull("because that is the default");
-                d.GetBlob("one").Should().BeNull("because that is the default");
-                d.GetBlob("minus_one").Should().BeNull("because that is the default");
-                d.GetBlob("one_dot_one").Should().BeNull("because that is the default");
-                d.GetBlob("date").Should().BeNull("because that is the default");
-                d.GetBlob("dict").Should().BeNull("because that is the default");
-                d.GetBlob("array").Should().BeNull("because that is the default");
-                d.GetBlob("blob").Should().NotBeNull().And.Subject.As<Blob>()
-                    .Content.Should().BeEquivalentTo(Encoding.UTF8.GetBytes("12345"),
+                d.GetBlob("true").ShouldBeNull("because that is the default");
+                d.GetBlob("false").ShouldBeNull("because that is the default");
+                d.GetBlob("string").ShouldBeNull("because that is the default");
+                d.GetBlob("zero").ShouldBeNull("because that is the default");
+                d.GetBlob("one").ShouldBeNull("because that is the default");
+                d.GetBlob("minus_one").ShouldBeNull("because that is the default");
+                d.GetBlob("one_dot_one").ShouldBeNull("because that is the default");
+                d.GetBlob("date").ShouldBeNull("because that is the default");
+                d.GetBlob("dict").ShouldBeNull("because that is the default");
+                d.GetBlob("array").ShouldBeNull("because that is the default");
+                var b = d.GetBlob("blob");
+                b.ShouldNotBeNull();
+                b.Content.ShouldBe(Encoding.UTF8.GetBytes("12345"),
                         "because that is the content that was stored");
-                d.GetBlob("non_existing_key").Should().BeNull("because that key has no value");
+                d.GetBlob("non_existing_key").ShouldBeNull("because that key has no value");
             });
         }
 
@@ -679,12 +674,12 @@ namespace Test
             var dict = new MutableDictionaryObject();
             dict.SetString("street", "1 Main street");
             doc.SetDictionary("dict", dict);
-            doc.GetValue("dict").Should().Be(dict, "because that is what was stored");
-            SaveDocument(doc, d => { d.GetDictionary("dict").Should().BeEquivalentTo(dict); });
+            doc.GetValue("dict").ShouldBe(dict, "because that is what was stored");
+            SaveDocument(doc, d => { d.GetDictionary("dict").ShouldBeEquivalentToFluent(dict); });
 
             dict = doc.GetDictionary("dict");
             dict?.SetString("city", "Mountain View");
-            SaveDocument(doc, d => { d.GetDictionary("dict").Should().BeEquivalentTo(dict); });
+            SaveDocument(doc, d => { d.GetDictionary("dict").ShouldBeEquivalentToFluent(dict); });
         }
 
         [Fact]
@@ -694,28 +689,26 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetDictionary("true").Should().BeNull("because that is the default");
-                d.GetDictionary("false").Should().BeNull("because that is the default");
-                d.GetDictionary("string").Should().BeNull("because that is the default");
-                d.GetDictionary("zero").Should().BeNull("because that is the default");
-                d.GetDictionary("one").Should().BeNull("because that is the default");
-                d.GetDictionary("minus_one").Should().BeNull("because that is the default");
-                d.GetDictionary("one_dot_one").Should().BeNull("because that is the default");
-                d.GetDictionary("date").Should().BeNull("because that is the default");
+                d.GetDictionary("true").ShouldBeNull("because that is the default");
+                d.GetDictionary("false").ShouldBeNull("because that is the default");
+                d.GetDictionary("string").ShouldBeNull("because that is the default");
+                d.GetDictionary("zero").ShouldBeNull("because that is the default");
+                d.GetDictionary("one").ShouldBeNull("because that is the default");
+                d.GetDictionary("minus_one").ShouldBeNull("because that is the default");
+                d.GetDictionary("one_dot_one").ShouldBeNull("because that is the default");
+                d.GetDictionary("date").ShouldBeNull("because that is the default");
                 var csharpDict = new Dictionary<string, object> {
                     ["street"] = "1 Main street",
                     ["city"] = "Mountain View",
                     ["state"] = "CA"
                 };
-                d.GetDictionary("dict")
-                    .Should()
-                    .NotBeNull()
-                    .And.Subject.As<IDictionaryObject>()
-                    .ToDictionary()
-                    .Should().BeEquivalentTo(csharpDict, "because those are the stored contents");
-                d.GetDictionary("array").Should().BeNull("because that is the default");
-                d.GetDictionary("blob").Should().BeNull("because that is the default");
-                d.GetDictionary("non_existing_key").Should().BeNull("because that key has no value");
+                var dict = d.GetDictionary("dict");
+                dict.ShouldNotBeNull();
+                dict.ToDictionary().ShouldBeEquivalentToFluent(csharpDict, 
+                    "because those are the stored contents");
+                d.GetDictionary("array").ShouldBeNull("because that is the default");
+                d.GetDictionary("blob").ShouldBeNull("because that is the default");
+                d.GetDictionary("non_existing_key").ShouldBeNull("because that key has no value");
             });
         }
 
@@ -728,22 +721,22 @@ namespace Test
 
             doc.SetArray("array", array);
 
-            doc.GetValue("array").Should().Be(array, "because that is what was stored");
-            doc.GetArray("array").As<object>().Should().Be(array, "because that is what was stored");
+            doc.GetValue("array").ShouldBe(array, "because that is what was stored");
+            doc.GetArray("array").ShouldBe(array, "because that is what was stored");
             doc.GetArray("array")
-                .Should()
-                .ContainInOrder(new[] {"item1", "item2", "item3"}, "because otherwise the contents are incorrect");
+                .ShouldBeEquivalentToFluent(new[] {"item1", "item2", "item3"}, 
+                "because otherwise the contents are incorrect");
 
-            SaveDocument(doc, d => { d.GetArray("array")?.ToList().Should().ContainInOrder(array.ToList()); });
+            SaveDocument(doc, d => { d.GetArray("array")?.ToList().ShouldBe(array.ToList()); });
 
             array = doc.GetArray("array");
-            array.Should().NotBeNull("because it was saved into the document");
+            array.ShouldNotBeNull("because it was saved into the document");
             array!.AddString("item4");
             array.AddString("item5");
-            SaveDocument(doc, d => { d.GetArray("array")?.ToList().Should().ContainInOrder(array.ToList()); });
+            SaveDocument(doc, d => { d.GetArray("array")?.ToList().ShouldBe(array.ToList()); });
 
             var imarr = new ArrayObject(array, false);
-            imarr.Should().BeEquivalentTo(array.ToImmutable());
+            imarr.ShouldBeEquivalentToFluent(array.ToImmutable());
         }
 
         [Fact]
@@ -753,23 +746,21 @@ namespace Test
             PopulateData(doc);
             SaveDocument(doc, d =>
             {
-                d.GetArray("true").Should().BeNull("because that is the default");
-                d.GetArray("false").Should().BeNull("because that is the default");
-                d.GetArray("string").Should().BeNull("because that is the default");
-                d.GetArray("zero").Should().BeNull("because that is the default");
-                d.GetArray("one").Should().BeNull("because that is the default");
-                d.GetArray("minus_one").Should().BeNull("because that is the default");
-                d.GetArray("one_dot_one").Should().BeNull("because that is the default");
-                d.GetArray("date").Should().BeNull("because that is the default");
-                d.GetArray("dict").Should().BeNull("because that is the default");
-                d.GetArray("array")
-                    .Should()
-                    .NotBeNull()
-                    .And.Subject.As<IArray>()
-                    .Should()
-                    .ContainInOrder(new[] {"650-123-0001", "650-123-0002"}, "because that is the array that was stored");
-                d.GetArray("blob").Should().BeNull("because that is the default");
-                d.GetArray("non_existing_key").Should().BeNull("because that key has no value");
+                d.GetArray("true").ShouldBeNull("because that is the default");
+                d.GetArray("false").ShouldBeNull("because that is the default");
+                d.GetArray("string").ShouldBeNull("because that is the default");
+                d.GetArray("zero").ShouldBeNull("because that is the default");
+                d.GetArray("one").ShouldBeNull("because that is the default");
+                d.GetArray("minus_one").ShouldBeNull("because that is the default");
+                d.GetArray("one_dot_one").ShouldBeNull("because that is the default");
+                d.GetArray("date").ShouldBeNull("because that is the default");
+                d.GetArray("dict").ShouldBeNull("because that is the default");
+                var arr = d.GetArray("array");
+                arr.ShouldNotBeNull();
+                arr.ShouldBeEquivalentToFluent(new[] { "650-123-0001", "650-123-0002" },
+                    "because that is the array that was stored");
+                d.GetArray("blob").ShouldBeNull("because that is the default");
+                d.GetArray("non_existing_key").ShouldBeNull("because that key has no value");
             });
         }
 
@@ -780,8 +771,8 @@ namespace Test
             doc.SetValue("null", null);
             SaveDocument(doc, d =>
             {
-                d.GetValue("null").Should().BeNull("because that is what was stored");
-                d.Count.Should().Be(1, "because the value is null, not missing");
+                d.GetValue("null").ShouldBeNull("because that is what was stored");
+                d.Count.ShouldBe(1, "because the value is null, not missing");
             });
         }
 
@@ -798,12 +789,11 @@ namespace Test
             doc.SetValue("address", dict);
 
             var address = doc.GetDictionary("address");
-            address.As<object?>()
-                .Should().BeSameAs(doc.GetValue("address"), "because the same doc should return the same object");
-            address!.GetString("street").Should().Be("1 Main street", "because that is the street that was stored");
-            address.GetString("city").Should().Be("Mountain View", "because that is the city that was stored");
-            address.GetString("state").Should().Be("CA", "because that is the state that was stored");
-            address.ToDictionary().Should().BeEquivalentTo(dict, "because the content should be the same");
+            address.ShouldBeSameAs(doc.GetValue("address"), "because the same doc should return the same object");
+            address!.GetString("street").ShouldBe("1 Main street", "because that is the street that was stored");
+            address.GetString("city").ShouldBe("Mountain View", "because that is the city that was stored");
+            address.GetString("state").ShouldBe("CA", "because that is the state that was stored");
+            address.ToDictionary().ShouldBeEquivalentToFluent(dict, "because the content should be the same");
 
             var nuDict = new Dictionary<string, object> {
                 ["street"] = "1 Second street",
@@ -813,21 +803,21 @@ namespace Test
             doc.SetValue("address", nuDict);
 
             // Make sure the old address dictionary is not affected
-            address.Should().NotBeSameAs(doc.GetDictionary("address"), "because address is now detached");
-            address.GetString("street").Should().Be("1 Main street", "because that is the street that was stored");
-            address.GetString("city").Should().Be("Mountain View", "because that is the city that was stored");
-            address.GetString("state").Should().Be("CA", "because that is the state that was stored");
-            address.ToDictionary().Should().BeEquivalentTo(dict, "because the content should be the same");
+            address.ShouldNotBeSameAs(doc.GetDictionary("address"), "because address is now detached");
+            address.GetString("street").ShouldBe("1 Main street", "because that is the street that was stored");
+            address.GetString("city").ShouldBe("Mountain View", "because that is the city that was stored");
+            address.GetString("state").ShouldBe("CA", "because that is the state that was stored");
+            address.ToDictionary().ShouldBeEquivalentToFluent(dict, "because the content should be the same");
             var nuAddress = doc.GetDictionary("address");
-            nuAddress.Should().NotBeNull("because it was written into the document");
-            nuAddress.Should().NotBeSameAs(address, "beacuse they are two different entities");
+            nuAddress.ShouldNotBeNull("because it was written into the document");
+            nuAddress.ShouldNotBeSameAs(address, "beacuse they are two different entities");
 
             nuAddress!.SetString("zip", "94302");
-            nuAddress.GetString("zip").Should().Be("94302", "because that was what was just stored");
-            address.GetString("zip").Should().BeNull("because address should not be affected");
+            nuAddress.GetString("zip").ShouldBe("94302", "because that was what was just stored");
+            address.GetString("zip").ShouldBeNull("because address should not be affected");
 
             nuDict["zip"] = "94302";
-            SaveDocument(doc, d => { d.GetDictionary("address").Should().BeEquivalentTo(nuDict); });
+            SaveDocument(doc, d => { d.GetDictionary("address").ShouldBeEquivalentToFluent(nuDict); });
         }
 
         [Fact]
@@ -838,34 +828,34 @@ namespace Test
             doc.SetValue("members", array);
 
             var members = doc.GetArray("members");
-            members.As<object?>()
-                .Should()
-                .BeSameAs(doc.GetValue("members"), "because the same document should return the same object");
+            members.ShouldNotBeNull();
+            members
+                .ShouldBeSameAs(doc.GetValue("members"), "because the same document should return the same object");
 
-            members.Should().HaveCount(3, "because there are three elements inside");
-            members.Should().ContainInOrder(array, "because otherwise the contents are wrong");
-            members!.ToArray().Should().ContainInOrder(array, "because otherwise the contents are wrong");
+            members.Count.ShouldBe(3, "because there are three elements inside");
+            members.ShouldBeEquivalentToFluent(array, "because otherwise the contents are wrong");
+            members.ToArray().ShouldBeEquivalentToFluent(array, "because otherwise the contents are wrong");
 
             var nuArray = new[] {"d", "e", "f"};
             doc.SetValue("members", nuArray);
 
             // Make sure the old members array is not affected
-            members.Should().HaveCount(3, "because there are three elements inside");
-            members.Should().ContainInOrder(array, "because otherwise the contents are wrong");
-            members!.ToArray().Should().ContainInOrder(array, "because otherwise the contents are wrong");
+            members.Count.ShouldBe(3, "because there are three elements inside");
+            members.ShouldBeEquivalentToFluent(array, "because otherwise the contents are wrong");
+            members.ToArray().ShouldBeEquivalentToFluent(array, "because otherwise the contents are wrong");
 
             var nuMembers = doc.GetArray("members");
-            nuMembers.Should().NotBeNull("because the array was written into the document");
-            members.Should().NotBeSameAs(nuMembers, "because the new array should have no relation to the old");
-            nuMembers!.AddString("g");
-            nuMembers.Count.Should().Be(4, "because another element was added");
-            nuMembers.GetValue(3).Should().Be("g", "because that is what was added");
-            members.Should().HaveCount(3, "beacuse members still has three elements");
+            nuMembers.ShouldNotBeNull("because the array was written into the document");
+            members.ShouldNotBeSameAs(nuMembers, "because the new array should have no relation to the old");
+            nuMembers.AddString("g");
+            nuMembers.Count.ShouldBe(4, "because another element was added");
+            nuMembers.GetValue(3).ShouldBe("g", "because that is what was added");
+            members.Count.ShouldBe(3, "beacuse members still has three elements");
 
             SaveDocument(doc, d =>
             {
                 d.ToDictionary()
-                    .Should().BeEquivalentTo(new Dictionary<string, object> { ["members"] = new[] { "d", "e", "f", "g" } },
+                    .ShouldBeEquivalentToFluent(new Dictionary<string, object> { ["members"] = new[] { "d", "e", "f", "g" } },
                         "beacuse otherwise the document contents are incorrect");
             });
         }
@@ -885,7 +875,7 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object>
+                d.ToDictionary().ShouldBeEquivalentToFluent(new Dictionary<string, object>
                 {
                     ["addresses"] = new Dictionary<string, object>
                     {
@@ -900,12 +890,12 @@ namespace Test
             });
 
             var gotShipping = doc.GetDictionary("addresses")?.GetDictionary("shipping");
-            gotShipping.Should().NotBeNull("because it was saved into the document");
+            gotShipping.ShouldNotBeNull("because it was saved into the document");
             gotShipping!.SetString("zip", "94042");
 
             SaveDocument(doc, d =>
             {
-                d.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object>
+                d.ToDictionary().ShouldBeEquivalentToFluent(new Dictionary<string, object>
                 {
                     ["addresses"] = new Dictionary<string, object>
                     {
@@ -960,15 +950,15 @@ namespace Test
                         }
                     }
                 };
-                d.ToDictionary().Should().BeEquivalentTo(result);
+                d.ToDictionary().ShouldBeEquivalentToFluent(result);
             });
 
             address1 = doc.GetArray("addresses")?.GetDictionary(0);
-            address1.Should().NotBeNull("because address1 was just created");
+            address1.ShouldNotBeNull("because address1 was just created");
             address1!.SetString("zip", "94042");
 
             address2 = doc.GetArray("addresses")?.GetDictionary(1);
-            address2.Should().NotBeNull("because address2 was just created");
+            address2.ShouldNotBeNull("because address2 was just created");
             address2!.SetString("zip", "94132");
 
             SaveDocument(doc, d =>
@@ -989,15 +979,15 @@ namespace Test
                         }
                     }
                 };
-                d.ToDictionary().Should().BeEquivalentTo(result);
+                d.ToDictionary().ShouldBeEquivalentToFluent(result);
             });
             
             address1 = doc.GetArray("addresses")?.GetDictionary(0);
-            address1.Should().NotBeNull("because address1 was just saved");
+            address1.ShouldNotBeNull("because address1 was just saved");
             address1!.SetString("street", "2 Main street");
 
             address2 = doc.GetArray("addresses")?.GetDictionary(1);
-            address2.Should().NotBeNull("because address1 was just created");
+            address2.ShouldNotBeNull("because address1 was just created");
             address2!.SetString("street", "2 Second street");
 
             SaveDocument(doc, d =>
@@ -1018,7 +1008,7 @@ namespace Test
                         }
                     }
                 };
-                d.ToDictionary().Should().BeEquivalentTo(result);
+                d.ToDictionary().ShouldBeEquivalentToFluent(result);
             });
         }
 
@@ -1049,17 +1039,17 @@ namespace Test
                             { 1, 2, 3 }
                     }
                 };
-                d.ToDictionary().Should().BeEquivalentTo(result);
+                d.ToDictionary().ShouldBeEquivalentToFluent(result);
             });
 
             group1 = doc.GetArray("groups")?.GetArray(0);
-            group1.Should().NotBeNull("because group1 was just added");
+            group1.ShouldNotBeNull("because group1 was just added");
             group1!.SetString(0, "d");
             group1.SetString(1, "e");
             group1.SetString(2, "f");
 
             group2 = doc.GetArray("groups")?.GetArray(1);
-            group2.Should().NotBeNull("because group2 was just added");
+            group2.ShouldNotBeNull("because group2 was just added");
             group2!.SetInt(0, 4);
             group2.SetInt(1, 5);
             group2.SetInt(2, 6);
@@ -1076,7 +1066,7 @@ namespace Test
                             { 4, 5, 6 }
                     }
                 };
-                d.ToDictionary().Should().BeEquivalentTo(result);
+                d.ToDictionary().ShouldBeEquivalentToFluent(result);
             });
         }
 
@@ -1115,17 +1105,17 @@ namespace Test
                         }
                     }
                 };
-                d.ToDictionary().Should().BeEquivalentTo(result);
+                d.ToDictionary().ShouldBeEquivalentToFluent(result);
             });
 
             member1 = doc.GetDictionary("group1")?.GetArray("member");
-            member1.Should().NotBeNull("because member was just added to group1");
+            member1.ShouldNotBeNull("because member was just added to group1");
             member1!.SetString(0, "d");
             member1.SetString(1, "e");
             member1.SetString(2, "f");
 
             member2 = doc.GetDictionary("group2")?.GetArray("member");
-            member2.Should().NotBeNull("because member was just added to group2");
+            member2.ShouldNotBeNull("because member was just added to group2");
             member2!.SetInt(0, 4);
             member2.SetInt(1, 5);
             member2.SetInt(2, 6);
@@ -1149,7 +1139,7 @@ namespace Test
                         }
                     }
                 };
-                d.ToDictionary().Should().BeEquivalentTo(result);
+                d.ToDictionary().ShouldBeEquivalentToFluent(result);
             });
         }
 
@@ -1164,34 +1154,32 @@ namespace Test
             doc.SetDictionary("shipping", address);
             doc.SetDictionary("billing", address);
 
-            doc.GetValue("shipping").Should().BeSameAs(address, "because that is the object that was stored");
-            doc.GetValue("billing").Should().BeSameAs(address, "because that is the object that was stored");
+            doc.GetValue("shipping").ShouldBeSameAs(address, "because that is the object that was stored");
+            doc.GetValue("billing").ShouldBeSameAs(address, "because that is the object that was stored");
             
             address.SetString("zip", "94042");
             doc.GetDictionary("shipping")?
                 .GetString("zip")
-                .Should()
-                .Be("94042", "because the update should be received by both dictionaries");
+                .ShouldBe("94042", "because the update should be received by both dictionaries");
             doc.GetDictionary("billing")?
                 .GetString("zip")
-                .Should()
-                .Be("94042", "because the update should be received by both dictionaries");
+                .ShouldBe("94042", "because the update should be received by both dictionaries");
 
             SaveDocument(doc);
 
             DictionaryObject? shipping = doc.GetDictionary("shipping");
             DictionaryObject? billing = doc.GetDictionary("billing");
-            shipping.Should().BeSameAs(address, "because the dictionaries should remain the same until the save");
-            billing.Should().BeSameAs(address, "because the dictionaries should remain the same until the save");
+            shipping.ShouldBeSameAs(address, "because the dictionaries should remain the same until the save");
+            billing.ShouldBeSameAs(address, "because the dictionaries should remain the same until the save");
 
             using(var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
-                savedDoc.Should().NotBeNull("because otherwise the save failed");
+                savedDoc.ShouldNotBeNull("because otherwise the save failed");
                 shipping = savedDoc!.GetDictionary("shipping");
                 billing = savedDoc.GetDictionary("billing");
                 
-                shipping.Should().NotBeSameAs(address, "because the dictionaries should now be independent");
-                billing.Should().NotBeSameAs(address, "because the dictionaries should now be independent");
-                shipping.Should().NotBeSameAs(billing, "because the dictionaries should now be independent");
+                shipping.ShouldNotBeSameAs(address, "because the dictionaries should now be independent");
+                billing.ShouldNotBeSameAs(address, "because the dictionaries should now be independent");
+                shipping.ShouldNotBeSameAs(billing, "because the dictionaries should now be independent");
             }
         }
 
@@ -1207,12 +1195,10 @@ namespace Test
 
             phones.AddString("650-000-0003");
             doc.GetArray("mobile")
-                .Should()
-                .ContainInOrder(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
+                .ShouldBeEquivalentToFluent(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
                     "because both arrays should receive the update");
             doc.GetArray("home")
-                .Should()
-                .ContainInOrder(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
+                .ShouldBeEquivalentToFluent(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
                     "because both arrays should receive the update");
 
             SaveDocument(doc);
@@ -1220,16 +1206,16 @@ namespace Test
             // Both mobile and home are still the same instance
             ArrayObject? mobile = doc.GetArray("mobile");
             ArrayObject? home = doc.GetArray("home");
-            mobile.Should().BeSameAs(phones, "because all the arrays should still be the same");
-            home.Should().BeSameAs(phones, "because all the arrays should still be the same");
+            mobile.ShouldBeSameAs(phones, "because all the arrays should still be the same");
+            home.ShouldBeSameAs(phones, "because all the arrays should still be the same");
 
             using (var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
-                savedDoc.Should().NotBeNull("because otherwise the save failed");
+                savedDoc.ShouldNotBeNull("because otherwise the save failed");
                 mobile = savedDoc!.GetArray("mobile");
                 home = savedDoc.GetArray("home");
-                mobile.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
-                home.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
-                mobile.Should().NotBeSameAs(home, "because after save the arrays should be independent");
+                mobile.ShouldNotBeSameAs(phones, "because after save the arrays should be independent");
+                home.ShouldNotBeSameAs(phones, "because after save the arrays should be independent");
+                mobile.ShouldNotBeSameAs(home, "because after save the arrays should be independent");
             }
         }
 
@@ -1245,28 +1231,27 @@ namespace Test
 
             using (var doc1 = DefaultCollection.GetDocument("doc1"))
             using (var mDoc1 = doc1?.ToMutable()) {
-                mDoc1.Should().NotBeNull("because otherwise the save failed");
+                mDoc1.ShouldNotBeNull("because otherwise the save failed");
                 var phones1 = mDoc1!.GetArray("mobile");
-                phones1.Should().NotBeNull("because otherwise the save didn't persist properly");
+                phones1.ShouldNotBeNull("because otherwise the save didn't persist properly");
                 for (int i = 0; i < phones1!.Count; i++) {
                     if (i == 0)
-                        phones1[i].ToString().Should().Be("650-000-0001");
+                        phones1[i].ToString().ShouldBe("650-000-0001");
                     if (i == 1)
-                        phones1[i].ToString().Should().Be("650-000-0002");
+                        phones1[i].ToString().ShouldBe("650-000-0002");
                 }
 
                 phones1.AddString("650-000-0003");
-                phones1.GetString(0).Should().Be("650-000-0001");
-                phones1.GetString(1).Should().Be("650-000-0002");
+                phones1.GetString(0).ShouldBe("650-000-0001");
+                phones1.GetString(1).ShouldBe("650-000-0002");
                 SaveDocument(mDoc1);
             }
 
             using (var doc2 = DefaultCollection.GetDocument("doc1"))
             using (var mDoc2 = doc2?.ToMutable()) {
-                mDoc2.Should().NotBeNull("because otherwise the save failed");
+                mDoc2.ShouldNotBeNull("because otherwise the save failed");
                 mDoc2!.GetArray("mobile")
-                .Should()
-                .ContainInOrder(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
+                .ShouldBeEquivalentToFluent(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
                     "because both arrays should receive the update");
             }
         }
@@ -1279,9 +1264,9 @@ namespace Test
 
             SaveDocument(doc, d =>
             {
-                d.Count.Should().Be(11, "because that is the number of entries that were added");
-                d.Count.Should()
-                    .Be(doc.ToDictionary().Count, "because the count should not change when converting to dictionary");
+                d.Count.ShouldBe(11, "because that is the number of entries that were added");
+                d.Count.ShouldBe(doc.ToDictionary().Count, 
+                    "because the count should not change when converting to dictionary");
             });
         }
 
@@ -1307,34 +1292,34 @@ namespace Test
             doc.Remove("active");
             doc.GetDictionary("address")?.Remove("city");
 
-            doc.GetString("name").Should().BeNull("because it was removed");
-            doc.GetDouble("weight").Should().Be(0.0, "because it was removed");
-            doc.GetFloat("weight").Should().Be(0.0f, "because it was removed");
-            doc.GetLong("age").Should().Be(0L, "because it was removed");
-            doc.GetBoolean("active").Should().BeFalse("because it was removed");
+            doc.GetString("name").ShouldBeNull("because it was removed");
+            doc.GetDouble("weight").ShouldBe(0.0, "because it was removed");
+            doc.GetFloat("weight").ShouldBe(0.0f, "because it was removed");
+            doc.GetLong("age").ShouldBe(0L, "because it was removed");
+            doc.GetBoolean("active").ShouldBeFalse("because it was removed");
 
-            doc.GetValue("name").Should().BeNull("because it was removed");
-            doc.GetValue("weight").Should().BeNull("because it was removed");
-            doc.GetValue("age").Should().BeNull("because it was removed");
-            doc.GetValue("active").Should().BeNull("because it was removed");
-            doc.GetDictionary("address")?.GetString("city").Should().BeNull("because it was removed");
+            doc.GetValue("name").ShouldBeNull("because it was removed");
+            doc.GetValue("weight").ShouldBeNull("because it was removed");
+            doc.GetValue("age").ShouldBeNull("because it was removed");
+            doc.GetValue("active").ShouldBeNull("because it was removed");
+            doc.GetDictionary("address")?.GetString("city").ShouldBeNull("because it was removed");
 
-            doc.Contains("name").Should().BeFalse("because that key was removed");
-            doc.Contains("weight").Should().BeFalse("because that key was removed");
-            doc.Contains("age").Should().BeFalse("because that key was removed");
-            doc.Contains("active").Should().BeFalse("because that key was removed");
-            doc.GetDictionary("address")?.Contains("city").Should().BeFalse("because that key was removed");
+            doc.Contains("name").ShouldBeFalse("because that key was removed");
+            doc.Contains("weight").ShouldBeFalse("because that key was removed");
+            doc.Contains("age").ShouldBeFalse("because that key was removed");
+            doc.Contains("active").ShouldBeFalse("because that key was removed");
+            doc.GetDictionary("address")?.Contains("city").ShouldBeFalse("because that key was removed");
 
             var address = doc.GetDictionary("address");
-            address.Should().NotBeNull("because the address dictionary should still be present");
-            doc.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object?> {
+            address.ShouldNotBeNull("because the address dictionary should still be present");
+            doc.ToDictionary().ShouldBeEquivalentToFluent(new Dictionary<string, object?> {
                 ["type"] = "profile",
                 ["address"] = new Dictionary<string, object> {
                     ["street"] = "1 milky way.",
                     ["zip"] = 12345L
                 }
             });
-            address!.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object?> {
+            address!.ToDictionary().ShouldBeEquivalentToFluent(new Dictionary<string, object?> {
                 ["street"] = "1 milky way.",
                 ["zip"] = 12345L
             });
@@ -1342,9 +1327,9 @@ namespace Test
             // Remove the rest:
             doc.Remove("type");
             doc.Remove("address");
-            doc.GetValue("type").Should().BeNull("because it was removed");
-            doc.GetValue("address").Should().BeNull("because it was removed");
-            doc.ToDictionary().Should().BeEmpty("because everything was removed");
+            doc.GetValue("type").ShouldBeNull("because it was removed");
+            doc.GetValue("address").ShouldBeNull("because it was removed");
+            doc.ToDictionary().ShouldBeEmpty("because everything was removed");
         }
 
         [Fact]
@@ -1364,11 +1349,11 @@ namespace Test
             };
 
             var existingDoc = DefaultCollection.GetDocument("docName")?.ToMutable();
-            existingDoc.Should().NotBeNull("because otherwise the save failed");
+            existingDoc.ShouldNotBeNull("because otherwise the save failed");
             existingDoc!.SetData(newProps);
             DefaultCollection.Save(existingDoc);
 
-            existingDoc.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object?> {
+            existingDoc.ToDictionary().ShouldBeEquivalentToFluent(new Dictionary<string, object?> {
                 ["PropName3"] = "Val3",
                 ["PropName4"] = 84
             });
@@ -1387,10 +1372,10 @@ namespace Test
                 }
             });
 
-            doc.Contains("type").Should().BeTrue("because 'type' exists in the document");
-            doc.Contains("name").Should().BeTrue("because 'name' exists in the document");
-            doc.Contains("address").Should().BeTrue("because 'address' exists in the document");
-            doc.Contains("weight").Should().BeFalse("because 'weight' does not exist in the document");
+            doc.Contains("type").ShouldBeTrue("because 'type' exists in the document");
+            doc.Contains("name").ShouldBeTrue("because 'name' exists in the document");
+            doc.Contains("address").ShouldBeTrue("because 'address' exists in the document");
+            doc.Contains("weight").ShouldBeFalse("because 'weight' does not exist in the document");
         }
 
         [Fact]
@@ -1398,15 +1383,14 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             doc.SetString("name", "Scott Tiger");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
+            doc.IsDeleted.ShouldBeFalse("beacuse the document is not deleted");
 
-            DefaultCollection.Invoking(d => d.Delete(doc))
-                .Should().Throw<CouchbaseLiteException>()
-                .Where(
-                    e => e.Error == CouchbaseLiteError.NotFound &&
-                         e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because deleting a non-existent document is invalid");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
-            doc.GetString("name").Should().Be("Scott Tiger", "because the delete was invalid");
+            var ex = Should.Throw<CouchbaseLiteException>(() => DefaultCollection.Delete(doc),
+                "because deleted a non-existent document is invalid");
+            ex.Error.ShouldBe(CouchbaseLiteError.NotFound);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
+            doc.IsDeleted.ShouldBeFalse("beacuse the document is still not deleted");
+            doc.GetString("name").ShouldBe("Scott Tiger", "because the delete was invalid");
         }
 
         [Fact]
@@ -1417,7 +1401,7 @@ namespace Test
             SaveDocument(doc1);
 
             DefaultCollection.Delete(doc1);
-            DefaultCollection.GetDocument(doc1.Id).Should().BeNull();
+            DefaultCollection.GetDocument(doc1.Id).ShouldBeNull();
         }
 
         [Fact]
@@ -1435,18 +1419,18 @@ namespace Test
             SaveDocument(doc);
 
             using (var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
-                savedDoc.Should().NotBeNull("because otherwise the save failed");
+                savedDoc.ShouldNotBeNull("because otherwise the save failed");
                 var address = savedDoc!.GetDictionary("address");
-                address.Should().NotBeNull("because otherwise the save didn't persist properly");
-                address!.GetString("street").Should().Be("1 Main street", "because that is the street that was stored");
-                address.GetString("city").Should().Be("Mountain View", "because that is the city that was stored");
-                address.GetString("state").Should().Be("CA", "because that is the state that was stored");
+                address.ShouldNotBeNull("because otherwise the save didn't persist properly");
+                address!.GetString("street").ShouldBe("1 Main street", "because that is the street that was stored");
+                address.GetString("city").ShouldBe("Mountain View", "because that is the city that was stored");
+                address.GetString("state").ShouldBe("CA", "because that is the state that was stored");
 
                 DefaultCollection.Delete(savedDoc);
 
-                address.GetString("street").Should().Be("1 Main street", "because the dictionary is independent");
-                address.GetString("city").Should().Be("Mountain View", "because the dictionary is independent");
-                address.GetString("state").Should().Be("CA", "because the dictionary is independent");
+                address.GetString("street").ShouldBe("1 Main street", "because the dictionary is independent");
+                address.GetString("city").ShouldBe("Mountain View", "because the dictionary is independent");
+                address.GetString("state").ShouldBe("CA", "because the dictionary is independent");
             }
         }
 
@@ -1461,15 +1445,16 @@ namespace Test
             SaveDocument(doc);
 
             using (var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
-                savedDoc.Should().NotBeNull("because otherwise the save failed");
+                savedDoc.ShouldNotBeNull("because otherwise the save failed");
                 var members = savedDoc!.GetArray("members");
-                members.Should().HaveCount(3, "because three elements were added");
-                members!.SequenceEqual(dict["members"].As<IList<object>>()).Should().BeTrue("because otherwise the array has incorrect elements");
+                members.ShouldNotBeNull();
+                members.Count.ShouldBe(3, "because three elements were added");
+                members.ShouldBeEquivalentToFluent(dict["members"], "because otherwise the array has incorrect elements");
 
                 DefaultCollection.Delete(savedDoc);
 
-                members.Should().HaveCount(3, "because the array is independent of the document");
-                members!.SequenceEqual(dict["members"].As<IList<object>>()).Should().BeTrue("because the array is independent of the document");
+                members.Count.ShouldBe(3, "because the array is independent of the document");
+                members.ShouldBeEquivalentToFluent(dict["members"], "because the array is independent of the document");
             }
         }
 
@@ -1479,16 +1464,16 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetString("type", "profile");
             doc.SetString("name", "Scott");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
+            doc.IsDeleted.ShouldBeFalse("beacuse the document is not deleted");
 
-            DefaultCollection.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>().Where(e =>
-                e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
+            var ex = Should.Throw<CouchbaseLiteException>(() => DefaultCollection.Purge(doc));
+            ex.Error.ShouldBe(CouchbaseLiteError.NotFound);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
 
             // Save:
             SaveDocument(doc);
 
-            // Purge should not throw:
-            DefaultCollection.Purge(doc);
+            Should.NotThrow(() => DefaultCollection.Purge(doc));
         }
 
         [Fact]
@@ -1497,18 +1482,17 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetString("type", "profile");
             doc.SetString("name", "Scott");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
+            doc.IsDeleted.ShouldBeFalse("beacuse the document is not deleted");
 
-            DefaultCollection.Invoking(db => db.Purge("doc1")).Should().Throw<CouchbaseLiteException>().Where(e =>
-                e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
+            var ex = Should.Throw<CouchbaseLiteException>(() => DefaultCollection.Purge("doc1"));
+            ex.Error.ShouldBe(CouchbaseLiteError.NotFound);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
 
             // Save:
             SaveDocument(doc);
 
-            // Purge should not throw:
             DefaultCollection.Purge("doc1");
-
-            DefaultCollection.GetDocument("doc1").Should().BeNull();
+            DefaultCollection.GetDocument("doc1").ShouldBeNull();
         }
 
         [Fact]
@@ -1521,8 +1505,8 @@ namespace Test
             ReopenDB();
 
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            gotDoc?.ToDictionary().Should().Equal(new Dictionary<string, object?> { ["string"] = "str" }, "because otherwise the property didn't get saved");
-            gotDoc?["string"].ToString().Should().Be("str", "because otherwise the property didn't get saved");
+            gotDoc?.ToDictionary().ShouldBeEquivalentToFluent(new Dictionary<string, object?> { ["string"] = "str" }, "because otherwise the property didn't get saved");
+            gotDoc?["string"].ToString().ShouldBe("str", "because otherwise the property didn't get saved");
         }
 
         [Fact]
@@ -1537,26 +1521,26 @@ namespace Test
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
-                doc1.Should().NotBeNull("because the document should be accessible from another handle");
-                doc1!["name"].ToString().Should().Be("Jim", "because the document should be persistent after save");
-                doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
+                doc1.ShouldNotBeNull("because the document should be accessible from another handle");
+                doc1!["name"].ToString().ShouldBe("Jim", "because the document should be persistent after save");
+                doc1["data"].Value.ShouldBeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
-                data.Should().NotBeNull("because otherwise the save didn't persist properly");
-                data!.Length.Should().Be(5, "because the data is 5 bytes long");
-                data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                data.ShouldNotBeNull("because otherwise the save didn't persist properly");
+                data!.Length.ShouldBe(5, "because the data is 5 bytes long");
+                data.Content.ShouldBe(content, "because the data should have been retrieved correctly");
                 var contentStream = data.ContentStream;
-                contentStream.Should().NotBeNull("because the blob contents should be readable");
+                contentStream.ShouldNotBeNull("because the blob contents should be readable");
                 var buffer = new byte[10];
                 var bytesRead = contentStream!.Read(buffer, 0, 10);
                 contentStream.Dispose();
-                bytesRead.Should().Be(5, "because the data is 5 bytes long");
+                bytesRead.ShouldBe(5, "because the data is 5 bytes long");
             }
 
             var stream = new MemoryStream(content);
             data = new Blob("text/plain", stream);
-            data.Content.Should().NotBeNull("because the content is in memory");
-            data.Content!.SequenceEqual(content).Should().BeTrue();
+            data.Content.ShouldNotBeNull("because the content is in memory");
+            data.Content!.SequenceEqual(content).ShouldBeTrue();
         }
 
         [Fact]
@@ -1570,19 +1554,19 @@ namespace Test
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
-                doc1.Should().NotBeNull("because the document should be accessible from another handle");
-                doc1!["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
+                doc1.ShouldNotBeNull("because the document should be accessible from another handle");
+                doc1!["data"].Value.ShouldBeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
-                data.Should().NotBeNull("because otherwise the save didn't persist properly");
-                data!.Length.Should().Be(0, "because the data is 5 bytes long");
-                data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                data.ShouldNotBeNull("because otherwise the save didn't persist properly");
+                data!.Length.ShouldBe(0, "because the data is 5 bytes long");
+                data.Content.ShouldBe(content, "because the data should have been retrieved correctly");
                 var contentStream = data.ContentStream;
-                contentStream.Should().NotBeNull("because the blob should be readable");
+                contentStream.ShouldNotBeNull("because the blob should be readable");
                 var buffer = new byte[10];
                 var bytesRead = contentStream!.Read(buffer, 0, 10);
                 contentStream.Dispose();
-                bytesRead.Should().Be(0, "because the data is 5 bytes long");
+                bytesRead.ShouldBe(0, "because the data is 5 bytes long");
             }
         }
 
@@ -1598,17 +1582,17 @@ namespace Test
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
-                doc1?["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
+                doc1?["data"].Value.ShouldBeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1?.GetBlob("data");
 
-                data?.Length.Should().Be(0, "because the data is 0 bytes long");
-                data?.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                data?.Length.ShouldBe(0, "because the data is 0 bytes long");
+                data?.Content.ShouldBe(content, "because the data should have been retrieved correctly");
                 contentStream = data?.ContentStream;
-                contentStream.Should().NotBeNull("because the blob should be readable");
+                contentStream.ShouldNotBeNull("because the blob should be readable");
                 var buffer = new byte[10];
                 var bytesRead = contentStream!.Read(buffer, 0, 10);
                 contentStream.Dispose();
-                bytesRead.Should().Be(0, "because the data is 0 bytes long");
+                bytesRead.ShouldBe(0, "because the data is 0 bytes long");
             }
         }
 
@@ -1620,13 +1604,13 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetBlob("data", data);
             data = doc.GetBlob("data");
-            data.Should().NotBeNull("because it was just added");
+            data.ShouldNotBeNull("because it was just added");
             for (int i = 0; i < 5; i++) {
-                data!.Content.Should().Equal(content, "because otherwise incorrect data was read");
+                data!.Content.ShouldBe(content, "because otherwise incorrect data was read");
                 using (var contentStream = data.ContentStream) {
                     var buffer = new byte[10];
                     var bytesRead = contentStream?.Read(buffer, 0, 10);
-                    bytesRead.Should().Be(5, "because the data has 5 bytes");
+                    bytesRead.ShouldBe(5, "because the data has 5 bytes");
                 }
             }
 
@@ -1634,19 +1618,19 @@ namespace Test
             
             using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
-                doc1.Should().NotBeNull("because it should be accessible from another handle");
-                doc1!["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
+                doc1.ShouldNotBeNull("because it should be accessible from another handle");
+                doc1!["data"].Value.ShouldBeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
-                data.Should().NotBeNull("because otherwise the save didn't persist properly");
-                data!.Length.Should().Be(5, "because the data is 5 bytes long");
-                data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                data.ShouldNotBeNull("because otherwise the save didn't persist properly");
+                data!.Length.ShouldBe(5, "because the data is 5 bytes long");
+                data.Content.ShouldBe(content, "because the data should have been retrieved correctly");
                 var contentStream = data.ContentStream;
-                contentStream.Should().NotBeNull("because the blob should be readable");
+                contentStream.ShouldNotBeNull("because the blob should be readable");
                 var buffer = new byte[10];
                 var bytesRead = contentStream!.Read(buffer, 0, 10);
                 contentStream.Dispose();
-                bytesRead.Should().Be(5, "because the data is 5 bytes long");
+                bytesRead.ShouldBe(5, "because the data is 5 bytes long");
             }
         }
 
@@ -1663,15 +1647,15 @@ namespace Test
             ReopenDB();
 
             var gotDoc = DefaultCollection.GetDocument("doc1");
-            gotDoc.Should().NotBeNull("because otherwise the save failed");
-            gotDoc!.GetBlob("data")?.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+            gotDoc.ShouldNotBeNull("because otherwise the save failed");
+            gotDoc!.GetBlob("data")?.Content.ShouldBe(content, "because the data should have been retrieved correctly");
 
             ReopenDB();
 
             doc = DefaultCollection.GetDocument("doc1")!.ToMutable();
             doc.SetString("foo", "bar");
             DefaultCollection.Save(doc);
-            doc.GetBlob("data")?.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+            doc.GetBlob("data")?.Content.ShouldBe(content, "because the data should have been retrieved correctly");
         }
 
         [Fact]
@@ -1690,7 +1674,7 @@ namespace Test
                 result[item.Key] = item.Value;
             }
 
-            result.Should().BeEquivalentTo(content, "because that is the correct content");
+            result.ShouldBeEquivalentToFluent(content, "because that is the correct content");
             content = doc.Remove("key2").SetInt("key20", 20).SetInt("key21", 21).ToDictionary();
 
             result = new Dictionary<string, object?>();
@@ -1699,7 +1683,7 @@ namespace Test
                 result[item.Key] = item.Value;
             }
 
-            result.Should().BeEquivalentTo(content, "because that is the correct content");
+            result.ShouldBeEquivalentToFluent(content, "because that is the correct content");
 
             SaveDocument(doc, d =>
             {
@@ -1709,7 +1693,7 @@ namespace Test
                     result[item.Key] = item.Value;
                 }
 
-                result.Should().BeEquivalentTo(content, "because that is the correct content");
+                result.ShouldBeEquivalentToFluent(content, "because that is the correct content");
             });
         }
 
@@ -1723,19 +1707,19 @@ namespace Test
                 mDoc1.SetString("name", "Jim");
                 mDoc1.SetInt("score", 10);
                 using (var mDoc2 = mDoc1.ToMutable()) {
-                    mDoc2.Should().NotBeSameAs(mDoc1);
-                    mDoc2.GetBlob("data").Should().Be(mDoc1.GetBlob("data"));
-                    mDoc2.GetString("name").Should().Be(mDoc1.GetString("name"));
-                    mDoc2.GetInt("score").Should().Be(mDoc1.GetInt("score"));
+                    mDoc2.ShouldNotBeSameAs(mDoc1);
+                    mDoc2.GetBlob("data").ShouldBe(mDoc1.GetBlob("data"));
+                    mDoc2.GetString("name").ShouldBe(mDoc1.GetString("name"));
+                    mDoc2.GetInt("score").ShouldBe(mDoc1.GetInt("score"));
                 }
 
                 SaveDocument(mDoc1);
                 using (var doc1 = DefaultCollection.GetDocument(mDoc1.Id)) 
                 using (var mDoc3 = doc1?.ToMutable()) {
-                    mDoc3.Should().NotBeNull("because otherwise the save failed");
-                    doc1!.GetBlob("data").Should().Be(mDoc3!.GetBlob("data"));
-                    doc1.GetString("name").Should().Be(mDoc3.GetString("name"));
-                    doc1.GetInt("score").Should().Be(mDoc3.GetInt("score"));
+                    mDoc3.ShouldNotBeNull("because otherwise the save failed");
+                    doc1!.GetBlob("data").ShouldBe(mDoc3!.GetBlob("data"));
+                    doc1.GetString("name").ShouldBe(mDoc3.GetString("name"));
+                    doc1.GetInt("score").ShouldBe(mDoc3.GetInt("score"));
                 }
             }
         }
@@ -1762,24 +1746,21 @@ namespace Test
                 doc1c.SetBlob("attachment", new Blob("text/plain", data2));
                 doc1c.SetString("comment", "This is a comment");
 
-                doc1a.As<object>().Should().Be(doc1a);
-                doc1a.As<object>().Should().Be(doc1b);
-                doc1a.As<object>().Should().NotBe(doc1c);
+                doc1a.ShouldBeEquivalentToFluent(doc1b);
+                doc1a.ShouldNotBeEquivalentTo(doc1c);
 
-                doc1b.As<object>().Should().Be(doc1a);
-                doc1b.As<object>().Should().Be(doc1b);
-                doc1b.As<object>().Should().NotBe(doc1c);
+                doc1b.ShouldBeEquivalentToFluent(doc1a);
+                doc1b.ShouldNotBeEquivalentTo(doc1c);
 
-                doc1c.As<object>().Should().NotBe(doc1a);
-                doc1c.As<object>().Should().NotBe(doc1b);
-                doc1c.As<object>().Should().Be(doc1c);
+                doc1c.ShouldNotBeEquivalentTo(doc1a);
+                doc1c.ShouldNotBeEquivalentTo(doc1b);
 
                 DefaultCollection.Save(doc1c);
                 using(var savedDoc = DefaultCollection.GetDocument(doc1c.Id))
                 using (var mDoc = savedDoc?.ToMutable()) {
-                    mDoc.As<object?>().Should().Be(savedDoc);
+                    mDoc.ShouldBeEquivalentToFluent(savedDoc);
                     mDoc?.SetInt("answer", 50);
-                    mDoc.As<object>().Should().NotBe(savedDoc);
+                    mDoc.ShouldNotBe(savedDoc);
                 }
             }
         }
@@ -1795,17 +1776,17 @@ namespace Test
                 DefaultCollection.Save(doc2);
                 using (var sDoc1 = DefaultCollection.GetDocument(doc1.Id))
                 using (var sDoc2 = DefaultCollection.GetDocument(doc2.Id)) {
-                    sDoc1.As<object>().Should().Be(doc1);
-                    sDoc2.As<object>().Should().Be(doc2);
+                    sDoc1.ShouldEqual(doc1);
+                    sDoc2.ShouldEqual(doc2);
 
-                    doc1.As<object>().Should().Be(doc1);
-                    doc1.As<object>().Should().NotBe(doc2);
+                    doc1.ShouldEqual(doc1);
+                    doc1.ShouldNotEqual(doc2);
 
-                    doc2.As<object>().Should().NotBe(doc1);
-                    doc2.As<object>().Should().Be(doc2);
+                    doc2.ShouldNotEqual(doc1);
+                    doc2.ShouldEqual(doc2);
 
-                    sDoc1.As<object>().Should().NotBe(sDoc2);
-                    sDoc2.As<object>().Should().NotBe(sDoc1);
+                    sDoc1.ShouldNotEqual(sDoc2);
+                    sDoc2.ShouldNotEqual(sDoc1);
                 }
                 
             }
@@ -1820,27 +1801,27 @@ namespace Test
                 using (var doc1b = new MutableDocument("doc1")) {
                     doc1a.SetInt("answer", 42);
                     doc1b.SetInt("answer", 42);
-                    doc1a.As<object>().Should().Be(doc1b);
+                    doc1a.ShouldEqual(doc1b);
 
                     DefaultCollection.Save(doc1a);
                     otherDB.GetDefaultCollection().Save(doc1b);
                     using (var sdoc1a = DefaultCollection.GetDocument(doc1a.Id))
                     using (var sdoc1b = otherDB.GetDefaultCollection().GetDocument(doc1b.Id)) {
-                        sdoc1a.As<object>().Should().Be(doc1a);
-                        sdoc1b.As<object>().Should().Be(doc1b);
-                        doc1a.As<object>().Should().NotBe(doc1b);
-                        sdoc1a.As<object>().Should().NotBe(sdoc1b);
+                        sdoc1a.ShouldEqual(doc1a);
+                        sdoc1b.ShouldEqual(doc1b);
+                        doc1a.ShouldNotEqual(doc1b);
+                        sdoc1a.ShouldNotEqual(sdoc1b);
                     }
                 }
 
                 using (var sdoc1a = DefaultCollection.GetDocument("doc1"))
                 using (var sdoc1b = otherDB.GetDefaultCollection().GetDocument("doc1")) {
-                    sdoc1a.As<object>().Should().NotBe(sdoc1b);
+                    sdoc1a.ShouldNotEqual(sdoc1b);
 
 
                     using var sameDB = new Database(Db);
                     using var anotherDoc1a = sameDB.GetDefaultCollection().GetDocument("doc1");
-                    sdoc1a.As<object>().Should().Be(anotherDoc1a);
+                    sdoc1a.ShouldEqual(anotherDoc1a);
                 }
             } finally {
                 otherDB.Delete();
@@ -1853,41 +1834,41 @@ namespace Test
         public void TestDeleteDocAndGetDoc()
         {
             const string docID = "doc-1";
-            DefaultCollection.GetDocument(docID).Should().BeNull();
+            DefaultCollection.GetDocument(docID).ShouldBeNull();
             using (var mDoc = new MutableDocument(docID)) {
                 mDoc.SetString("key", "value");
                 DefaultCollection.Save(mDoc);
                 using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
-                    doc.Should().NotBeNull();
-                    DefaultCollection.Count.Should().Be(1);
+                    doc.ShouldNotBeNull();
+                    DefaultCollection.Count.ShouldBe(1UL);
                 }
 
                 using (var doc = DefaultCollection.GetDocument(docID)) {
-                    doc.Should().NotBeNull();
-                    doc!.GetString("key").Should().Be("value");
+                    doc.ShouldNotBeNull();
+                    doc!.GetString("key").ShouldBe("value");
                     DefaultCollection.Delete(doc);
-                    DefaultCollection.Count.Should().Be(0);
+                    DefaultCollection.Count.ShouldBe(0UL);
                 }
 
-                DefaultCollection.GetDocument(docID).Should().BeNull();
+                DefaultCollection.GetDocument(docID).ShouldBeNull();
             }
 
             using (var mDoc = new MutableDocument(docID)) {
                 mDoc.SetString("key", "value");
                 DefaultCollection.Save(mDoc);
                 using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
-                    doc.Should().NotBeNull();
-                    DefaultCollection.Count.Should().Be(1);
+                    doc.ShouldNotBeNull();
+                    DefaultCollection.Count.ShouldBe(1UL);
                 }
 
                 using (var doc = DefaultCollection.GetDocument(docID)) {
-                    doc.Should().NotBeNull();
-                    doc!.GetString("key").Should().Be("value");
+                    doc.ShouldNotBeNull();
+                    doc!.GetString("key").ShouldBe("value");
                     DefaultCollection.Delete(doc);
-                    DefaultCollection.Count.Should().Be(0);
+                    DefaultCollection.Count.ShouldBe(0UL);
                 }
 
-                DefaultCollection.GetDocument(docID).Should().BeNull();
+                DefaultCollection.GetDocument(docID).ShouldBeNull();
             }
         }
 
@@ -1911,14 +1892,14 @@ namespace Test
                 doc1c.SetValue("options", new[] { 1, 2, 3 });
                 DefaultCollection.Save(doc1c);
 
-                DefaultCollection.SetDocumentExpiration("doc1", dto30).Should().Be(true);
-                DefaultCollection.SetDocumentExpiration("doc3", dto30).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto30).ShouldBe(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto30).ShouldBe(true);
             }
-            DefaultCollection.SetDocumentExpiration("doc3", null).Should().Be(true);
+            DefaultCollection.SetDocumentExpiration("doc3", null).ShouldBe(true);
             var v = DefaultCollection.GetDocumentExpiration("doc1");
-            v.Should().BeSameDateAs(dto30.DateTime);
-            DefaultCollection.GetDocumentExpiration("doc2").Should().Be(null);
-            DefaultCollection.GetDocumentExpiration("doc3").Should().Be(null);
+            v.ShouldBeEquivalentToFluent(dto30.DateTime);
+            DefaultCollection.GetDocumentExpiration("doc2").ShouldBe(null);
+            DefaultCollection.GetDocumentExpiration("doc3").ShouldBe(null);
         }
 
 #if !SANITY_ONLY
@@ -1931,7 +1912,7 @@ namespace Test
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
                 DefaultCollection.Save(doc1a);
 
-                DefaultCollection.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc_to_expired", dto3).ShouldBe(true);
 
             }
             Thread.Sleep(3100);
@@ -1939,7 +1920,7 @@ namespace Test
                 .Times(5)
                 .WriteProgress(WriteLine)
                 .Delay(TimeSpan.FromMilliseconds(500))
-                .Go().Should().BeTrue();
+                .Go().ShouldBeTrue();
         }
 
         [Fact]
@@ -1952,12 +1933,12 @@ namespace Test
                 DefaultCollection.Save(doc1a);
                 DefaultCollection.Delete(doc1a);
 
-                DefaultCollection.SetDocumentExpiration("deleted_doc1", dto3).Should().BeTrue();
+                DefaultCollection.SetDocumentExpiration("deleted_doc1", dto3).ShouldBeTrue();
                 Thread.Sleep(3100);
 
                 Action badAction = (() => DefaultCollection.SetDocumentExpiration("deleted_doc1", dto3));
-                Try.Assertion(() => badAction.Should().Throw<CouchbaseLiteException>("Cannot find the document."))
-                    .Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
+                Try.Assertion(() => Should.Throw<CouchbaseLiteException>(badAction, "because the document has been purged"))
+                    .Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().ShouldBeTrue();
             }
         }
 #endif
@@ -1970,26 +1951,24 @@ namespace Test
                 doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
                 DefaultCollection.Save(doc1a);
-                DefaultCollection.SetDocumentExpiration("deleted_doc", dto3).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("deleted_doc", dto3).ShouldBe(true);
                 DefaultCollection.Delete(doc1a);  
             }
             var exp = DefaultCollection.GetDocumentExpiration("deleted_doc");
-            exp.Should().BeSameDateAs(dto3);
+            exp.ShouldBeEquivalentToFluent(dto3);
         }
 
         [Fact]
         public void TestSetExpirationOnNoneExistDoc()
         {
             var dto30 = DateTimeOffset.Now.AddSeconds(30);
-            Action badAction = (() => DefaultCollection.SetDocumentExpiration("not_exist", dto30));
-            badAction.Should().Throw<CouchbaseLiteException>("Cannot find the document.");
+            Should.Throw<CouchbaseLiteException>(() => DefaultCollection.SetDocumentExpiration("not_exist", dto30), "because the document does not exist");
         }
         
         [Fact]
         public void TestGetExpirationFromNoneExistDoc()
         {
-            Action badAction = (() => DefaultCollection.GetDocumentExpiration("not_exist"));
-            badAction.Should().Throw<CouchbaseLiteException>("Cannot find the document.");
+            Should.Throw<CouchbaseLiteException>(() => DefaultCollection.GetDocumentExpiration("not_exist"), "because the document does not exist");
         }
 
         [Fact]
@@ -2001,12 +1980,12 @@ namespace Test
                 doc.SetValue("options", new[] { 1, 2, 3 });
                 DefaultCollection.Save(doc);
 
-                DefaultCollection.GetDocumentExpiration("doc").Should().BeNull();
+                DefaultCollection.GetDocumentExpiration("doc").ShouldBeNull();
                 DefaultCollection.SetDocumentExpiration("doc", DateTimeOffset.UtcNow.AddDays(60));
 
                 var exp = DefaultCollection.GetDocumentExpiration("doc");
-                exp.Should().NotBeNull();
-                (Math.Abs((exp!.Value - now).TotalDays - 60.0) < 1.0).Should().BeTrue();
+                exp.ShouldNotBeNull();
+                (Math.Abs((exp!.Value - now).TotalDays - 60.0) < 1.0).ShouldBeTrue();
             }
         }
 
@@ -2020,13 +1999,13 @@ namespace Test
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
                 DefaultCollection.Save(doc1a);
 
-                DefaultCollection.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc_to_expired", dto3).ShouldBe(true);
 
             }
-            DefaultCollection.SetDocumentExpiration("doc_to_expired", null).Should().Be(true);
+            DefaultCollection.SetDocumentExpiration("doc_to_expired", null).ShouldBe(true);
 
             Thread.Sleep(3100);
-            DefaultCollection.GetDocument("doc_to_expired").Should().NotBeNull();
+            DefaultCollection.GetDocument("doc_to_expired").ShouldNotBeNull();
         }
 
         [Fact]
@@ -2051,19 +2030,19 @@ namespace Test
                 doc1c.SetString("c", "string");
                 DefaultCollection.Save(doc1c);
 
-                DefaultCollection.SetDocumentExpiration("doc1", dto2).Should().Be(true);
-                DefaultCollection.SetDocumentExpiration("doc2", dto3).Should().Be(true);
-                DefaultCollection.SetDocumentExpiration("doc3", dto4).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto2).ShouldBe(true);
+                DefaultCollection.SetDocumentExpiration("doc2", dto3).ShouldBe(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto4).ShouldBe(true);
             }
 
             Thread.Sleep(4100);
 
             Try.Assertion(() =>
             {
-                DefaultCollection.GetDocument("doc1").Should().BeNull();
-                DefaultCollection.GetDocument("doc2").Should().BeNull();
-                DefaultCollection.GetDocument("doc3").Should().BeNull();
-            }).Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
+                DefaultCollection.GetDocument("doc1").ShouldBeNull();
+                DefaultCollection.GetDocument("doc2").ShouldBeNull();
+                DefaultCollection.GetDocument("doc3").ShouldBeNull();
+            }).Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().ShouldBeTrue();
         }
 #endif
 
@@ -2076,10 +2055,10 @@ namespace Test
                 DefaultCollection.Save(doc1);
             }
 
-            DefaultCollection.GetDocument(docId).Should().NotBeNull("because the expiration has not been set yet");
+            DefaultCollection.GetDocument(docId).ShouldNotBeNull("because the expiration has not been set yet");
             DefaultCollection.SetDocumentExpiration(docId, DateTimeOffset.Now);
             Thread.Sleep(50);
-            DefaultCollection.GetDocument(docId).Should().BeNull("because the purge should happen immediately");
+            DefaultCollection.GetDocument(docId).ShouldBeNull("because the purge should happen immediately");
         }
 
 #if !SANITY_ONLY
@@ -2097,7 +2076,7 @@ namespace Test
             DefaultCollection.Purge("doc1");
             Thread.Sleep(1000);
             try {
-                mre.Wait(TimeSpan.FromSeconds(1)).Should().BeTrue("because purge should fire a changed event");
+                mre.Wait(TimeSpan.FromSeconds(1)).ShouldBeTrue("because purge should fire a changed event");
             } finally {
                 mre.Dispose();
             }
@@ -2108,9 +2087,9 @@ namespace Test
         public void TestRevisionIDNewDoc()
         {
             using (var doc = new MutableDocument()) {
-                doc.RevisionID.Should().BeNull();
+                doc.RevisionID.ShouldBeNull();
                 DefaultCollection.Save(doc);
-                doc.RevisionID.Should().NotBeNull();
+                doc.RevisionID.ShouldNotBeNull();
             }
         }
 
@@ -2123,13 +2102,13 @@ namespace Test
 
             using (var doc = DefaultCollection.GetDocument("doc1"))
             using (var mutabledoc = doc?.ToMutable()) {
-                mutabledoc.Should().NotBeNull("because otherwise the save failed");
+                mutabledoc.ShouldNotBeNull("because otherwise the save failed");
                 var docRevId = doc?.RevisionID;
-                doc!.RevisionID.Should().Be(mutabledoc!.RevisionID);
+                doc!.RevisionID.ShouldBe(mutabledoc!.RevisionID);
                 mutabledoc.SetInt("int", 88);
                 DefaultCollection.Save(mutabledoc);
-                doc.RevisionID.Should().NotBe(mutabledoc.RevisionID);
-                docRevId.Should().Be(doc.RevisionID);
+                doc.RevisionID.ShouldNotBe(mutabledoc.RevisionID);
+                docRevId.ShouldBe(doc.RevisionID);
             }
         }
 
@@ -2147,7 +2126,7 @@ namespace Test
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
                 var json = doc?.ToJSON();
-                json.Should().NotBeNull("because otherwise converting to JSON failed");
+                json.ShouldNotBeNull("because otherwise converting to JSON failed");
                 ValidateToJsonValues(json!, dic);
             }
         }
@@ -2166,8 +2145,7 @@ namespace Test
         public void TestMutableDocToJsonThrowExcwption()
         {
             var md = new MutableDocument();
-            Action badAction = (() => md.ToJSON());
-            badAction.Should().Throw<NotSupportedException>();
+            Should.Throw<NotSupportedException>(md.ToJSON);
         }
 
         [Fact]
@@ -2175,14 +2153,12 @@ namespace Test
         {
             using (var md = new MutableDocument("doc1")) {
                 // with random string 
-                Action badAction = (() => md.SetJSON("random string"));
-                badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+                Should.Throw<CouchbaseLiteException>(() => md.SetJSON("random string"));
 
                 //with array json string    
                 string[] arr = { "apple", "banana", "orange" };
                 var jarr = JsonConvert.SerializeObject(arr);
-                badAction = (() => md.SetJSON(jarr));
-                badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+                Should.Throw<CouchbaseLiteException>(() => md.SetJSON(jarr));
             }
         }
 
@@ -2190,14 +2166,12 @@ namespace Test
         public void TestCreateMutableDocWithInvaldStr()
         {
             // with random string 
-            Action badAction = (() => new MutableDocument("doc1", "random string"));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            Should.Throw<CouchbaseLiteException>(() => new MutableDocument("doc1", "random string"));
 
             //with array json string    
             string[] arr = { "apple", "banana", "orange" };
             var jarr = JsonConvert.SerializeObject(arr);
-            badAction = (() => new MutableDocument("doc1", jarr));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            Should.Throw<CouchbaseLiteException>(() => new MutableDocument("doc1", jarr));
         }
 
         [Fact]
@@ -2210,12 +2184,12 @@ namespace Test
             collection1Db1.Save(bengalCreate);
 
             using var differentDbCollection = otherHandle.GetCollection("cats", "mammals");
-            differentDbCollection.Should().NotBeNull("because it should be accessible from another handle");
+            differentDbCollection.ShouldNotBeNull("because it should be accessible from another handle");
 
-            bengalCreate.Should().NotBeNull("because otherwise it vanished from the collection");
+            bengalCreate.ShouldNotBeNull("because otherwise it vanished from the collection");
             bengalCreate.SetInt("age", 10);
-            FluentActions.Invoking(() => differentDbCollection.Save(bengalCreate)).Should().
-                    Throw<CouchbaseLiteException>("because the collection is from a different database object");
+            Should.Throw<CouchbaseLiteException>(() => differentDbCollection.Save(bengalCreate),
+                "because the collection is from a different database object");
         }
 
         private void PopulateData(MutableDocument doc)

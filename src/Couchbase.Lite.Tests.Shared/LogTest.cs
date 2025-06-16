@@ -28,7 +28,7 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 
-using FluentAssertions;
+using Shouldly;
 
 using Test.Util;
 using Xunit;
@@ -58,9 +58,9 @@ namespace Test
             {
                 WriteLog.To.Database.I("TEST", "MESSAGE");
                 var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
-                logFilePath.Should().NotBeNullOrEmpty();
+                logFilePath.ShouldNotBeEmpty();
                 var logContent = ReadAllBytes(logFilePath!);
-                logContent.Should().StartWith([0xcf, 0xb2, 0xab, 0x1b],
+                logContent.Take(4).ShouldBe([0xcf, 0xb2, 0xab, 0x1b],
                     "because the log should be in binary format");
             });
         }
@@ -83,10 +83,10 @@ namespace Test
 
                 WriteLog.To.Database.I("TEST", "MESSAGE");
                 var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
-                logFilePath.Should().NotBeNullOrEmpty();
+                logFilePath.ShouldNotBeEmpty();
                 var logContent = ReadAllLines(logFilePath!);
                 logContent.Any(x => x.Contains("MESSAGE") && x.Contains("TEST"))
-                    .Should().BeTrue("because the message should show up in plaintext");
+                    .ShouldBeTrue("because the message should show up in plaintext");
             });
         }
 
@@ -115,8 +115,8 @@ namespace Test
                 totalCount -= 1; // Non-debug builds won't log debug files
                 #endif
 
-                Directory.EnumerateFiles(logDirectory).Should()
-                    .HaveCount(totalCount, "because old log files should be getting pruned");
+                Directory.EnumerateFiles(logDirectory)
+                    .Count().ShouldBe(totalCount, "because old log files should be getting pruned");
             });
         }
 
@@ -139,7 +139,7 @@ namespace Test
                 WriteLog.To.Database.D("TEST", sentinel);
                 foreach (var file in Directory.EnumerateFiles(logDirectory)) {
                     foreach (var line in ReadAllLines(file)) {
-                        line.Should().NotContain(sentinel);
+                        line.Contains(sentinel).ShouldBeFalse();
                     }
                 }
             });
@@ -176,7 +176,7 @@ namespace Test
                         }
                     }
 
-                    found.Should().BeTrue();
+                    found.ShouldBeTrue();
                 }
             });
         }
@@ -191,7 +191,7 @@ namespace Test
             {
                 var allFiles = Directory.EnumerateFiles(logDirectory, "*.cbllog").ToArray();
                 var regex = new Regex($"cbl_(debug|verbose|info|warning|error)_\\d+\\.cbllog");
-                allFiles.Any(x => !regex.IsMatch(x)).Should().BeFalse("because all files should match the pattern");
+                allFiles.Any(x => !regex.IsMatch(x)).ShouldBeFalse("because all files should match the pattern");
             });
         }
 #endif
@@ -218,11 +218,11 @@ namespace Test
                 foreach (var file in Directory.EnumerateFiles(logDirectory, "*.cbllog")) {
                     var lines = ReadAllLines(file);
                     foreach (var key in new[] { "serialNo", "logDirectory", "fileLogLevel", "fileMaxSize", "fileMaxCount" }) {
-                        lines[0].Should().Contain($"{key}=", "because otherwise a metadata entry is missing on the first line");
+                        lines[0].Contains($"{key}=").ShouldBeTrue("because otherwise a metadata entry is missing on the first line");
                     }
-                    lines[1].Should().Contain("CouchbaseLite/").And.Subject.Should().Contain("Build/")
-                        .And.Subject.Should().Contain("Commit/");
-                    
+                    lines[1].Contains("CouchbaseLite/").ShouldBeTrue();
+                    lines[1].Contains("Build/").ShouldBeTrue();
+                    lines[1].Contains("Commit/").ShouldBeTrue();
                 }
             });
         }
@@ -237,7 +237,7 @@ namespace Test
             Console.SetOut(stringWriter);
             WriteLog.To.Database.E("TEST", "TEST ERROR");
             stringWriter.Flush();
-            stringWriter.ToString().Should().BeEmpty("because logging is disabled");
+            stringWriter.ToString().ShouldBeEmpty("because logging is disabled");
 
             Database.Log.Console.Level = LogLevel.Verbose;
             stringWriter = new StringWriter();
@@ -247,8 +247,8 @@ namespace Test
             WriteLog.To.Database.W("TEST", "TEST WARNING");
             WriteLog.To.Database.E("TEST", "TEST ERROR");
             stringWriter.Flush();
-            stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
-                .HaveCount(4, "because all levels should be logged");
+            stringWriter.ToString().Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries)
+                .Count().ShouldBe(4, "because all levels should be logged");
 
             var currentCount = 1;
             foreach (var level in new[] { LogLevel.Error, LogLevel.Warning, 
@@ -261,8 +261,8 @@ namespace Test
                 WriteLog.To.Database.W("TEST", "TEST WARNING");
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
                 stringWriter.Flush();
-                stringWriter.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Should()
-                    .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                stringWriter.ToString().Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries)
+                    .Count().ShouldBe(currentCount, $"because {currentCount} levels should be logged for {level}");
                 currentCount++;
             }
 
@@ -283,7 +283,7 @@ namespace Test
             }
 
             stringWriter.Flush();
-            stringWriter.ToString().Should().BeEmpty("because all domains are disabled");
+            stringWriter.ToString().ShouldBeEmpty("because all domains are disabled");
             foreach (var domain in WriteLog.To.All) {
                 Database.Log.Console.Domains = domain.Domain;
                 stringWriter = new StringWriter();
@@ -293,7 +293,7 @@ namespace Test
                 }
 
                 stringWriter.Flush();
-                stringWriter.ToString().Should().Match(x => x.Contains(domain.Domain.ToString()));
+                stringWriter.ToString().Contains(domain.Domain.ToString()).ShouldBeTrue();
             }
 
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
@@ -304,14 +304,14 @@ namespace Test
         [Fact]
         public void TestFileLogDisabledWarning()
         {
-            Database.Log.File.Config.Should().BeNull();
+            Database.Log.File.Config.ShouldBeNull();
 
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
                 var fakePath = Path.Combine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
                 Database.Log.File.Config = new LogFileConfiguration(fakePath);
                 Database.Log.File.Config = null;
-                sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+                sw.ToString().Contains("file logging is disabled").ShouldBeTrue();
             }
             
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
@@ -326,7 +326,7 @@ namespace Test
             Database.Log.Custom = customLogger;
             customLogger.Level = LogLevel.None;
             WriteLog.To.Database.E("TEST", "TEST ERROR");
-            customLogger.Lines.Should().BeEmpty("because logging level is set to None");
+            customLogger.Lines.ShouldBeEmpty("because logging level is set to None");
             
 
             customLogger.Level = LogLevel.Verbose;
@@ -334,7 +334,7 @@ namespace Test
             WriteLog.To.Database.I("TEST", "TEST INFO");
             WriteLog.To.Database.W("TEST", "TEST WARNING");
             WriteLog.To.Database.E("TEST", "TEST ERROR");
-            customLogger.Lines.Should().HaveCount(4, "because all levels should be logged");
+            customLogger.Lines.Count.ShouldBe(4, "because all levels should be logged");
             customLogger.Reset();;
 
             var currentCount = 1;
@@ -345,8 +345,8 @@ namespace Test
                 WriteLog.To.Database.I("TEST", "TEST INFO");
                 WriteLog.To.Database.W("TEST", "TEST WARNING");
                 WriteLog.To.Database.E("TEST", "TEST ERROR");
-                customLogger.Lines.Should()
-                    .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                customLogger.Lines.Count
+                    .ShouldBe(currentCount, $"because {currentCount} levels should be logged for {level}");
                 currentCount++;
                 customLogger.Reset();
             }
@@ -377,17 +377,17 @@ namespace Test
 
                 foreach (var file in Directory.EnumerateFiles(logDirectory)) {
                     if (file.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(3, "because there should be 1 log line and 2 meta lines");
+                        ReadAllLines(file).Count()
+                            .ShouldBe(3, "because there should be 1 log line and 2 meta lines");
                     } else if (file.Contains(LogLevel.Info.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(4, "because there should be 2 log lines and 2 meta lines");
+                        ReadAllLines(file).Count()
+                            .ShouldBe(4, "because there should be 2 log lines and 2 meta lines");
                     } else if (file.Contains(LogLevel.Warning.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(5, "because there should be 3 log lines and 2 meta lines");
+                        ReadAllLines(file).Count()
+                            .ShouldBe(5, "because there should be 3 log lines and 2 meta lines");
                     } else if (file.Contains(LogLevel.Error.ToString().ToLowerInvariant())) {
-                        ReadAllLines(file).Should()
-                            .HaveCount(6, "because there should be 4 log lines and 2 meta lines");
+                        ReadAllLines(file).Count()
+                            .ShouldBe(6, "because there should be 4 log lines and 2 meta lines");
                     }
                 }
             });
@@ -409,7 +409,7 @@ namespace Test
 
                     using (var q = QueryBuilder.Select(SelectResult.All())
                         .From(DataSource.Collection(db.GetDefaultCollection()))) {
-                        q.Execute().Count().Should().Be(1);
+                        q.Execute().Count().ShouldBe(1);
                     }
 
                     var expectedHebrew = "[{\"hebrew\":\"" + hebrew + "\"}]";
@@ -418,7 +418,7 @@ namespace Test
                         Console.WriteLine(l);
                     }
 
-                    lines.Any(x => x.Contains(expectedHebrew)).Should().BeTrue();
+                    lines.Any(x => x.Contains(expectedHebrew)).ShouldBeTrue();
                 }
             } finally {
                 Database.Log.Custom = null;
