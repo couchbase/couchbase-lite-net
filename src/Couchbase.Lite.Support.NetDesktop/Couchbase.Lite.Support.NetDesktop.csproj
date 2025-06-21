@@ -79,20 +79,25 @@
       <Pack>true</Pack>
       <PackagePath>runtimes/linux-x64/native/libLiteCore.so</PackagePath>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicudata.so.71">
-      <Link>libicudata.so.71</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicudata.so.76">
+      <Link>libicudata.so.76</Link>
       <Pack>true</Pack>
-      <PackagePath>runtimes/linux-x64/native/libicudata.so.71</PackagePath>
+      <PackagePath>runtimes/linux-x64/native/libicudata.so.76</PackagePath>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicui18n.so.71">
-      <Link>libicui18n.so.71</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicui18n.so.76">
+      <Link>libicui18n.so.76</Link>
       <Pack>true</Pack>
-      <PackagePath>runtimes/linux-x64/native/libicui18n.so.71</PackagePath>
+      <PackagePath>runtimes/linux-x64/native/libicui18n.so.76</PackagePath>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicuuc.so.71">
-      <Link>libicuuc.so.71</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libicuuc.so.76">
+      <Link>libicuuc.so.76</Link>
       <Pack>true</Pack>
-      <PackagePath>runtimes/linux-x64/native/libicuuc.so.71</PackagePath>
+      <PackagePath>runtimes/linux-x64/native/libicuuc.so.76</PackagePath>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libstdc++.so.6">
+      <Link>libicuuc.so.76</Link>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/libstdc++.so.6</PackagePath>
     </None>
   </ItemGroup>
   <Import Project="..\AssemblyInfo.props" />
