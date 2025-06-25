@@ -26,8 +26,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 
-using FluentAssertions;
-using FluentAssertions.Execution;
+using Shouldly;
 
 using Newtonsoft.Json;
 using Test.Util;
@@ -114,7 +113,7 @@ namespace Test
             eval(document);
             DefaultCollection.Save(document);
             using (var retVal = DefaultCollection.GetDocument(document.Id)) {
-                retVal.Should().NotBeNull("because otherwise the save failed");
+                retVal.ShouldNotBeNull("because otherwise the save failed");
                 WriteLine("After Save...");
                 eval(retVal!);
             }
@@ -178,10 +177,10 @@ namespace Test
             DefaultCollection.Save(document);
 
             using (var savedDoc = DefaultCollection.GetDocument(document.Id)) {
-                savedDoc.Should().NotBeNull("because otherwise the save failed");
-                savedDoc!.Id.Should().Be(document.Id);
+                savedDoc.ShouldNotBeNull("because otherwise the save failed");
+                savedDoc!.Id.ShouldBe(document.Id);
                 if (!TestObjectEquality(document.ToDictionary(), savedDoc.ToDictionary())) {
-                    throw new AssertionFailedException($"Expected the saved document to match the original");
+                    throw new ShouldAssertException("Expected the saved document to match the original");
                 }
             }
         }
@@ -191,48 +190,48 @@ namespace Test
             foreach (var kvPair in dic) {
                 switch (kvPair.Key) {
                     case "nullObj":
-                        md.GetValue(kvPair.Key).Should().Be(kvPair.Value);
+                        md.GetValue(kvPair.Key).ShouldBe(kvPair.Value);
                         break;
                     case "byteVal":
                     case "ushortVal":
                     case "uintVal":
                     case "ulongVal":
-                        Convert.ToUInt64(md.GetValue(kvPair.Key)).Should().Be(Convert.ToUInt64(kvPair.Value));
+                        Convert.ToUInt64(md.GetValue(kvPair.Key)).ShouldBe(Convert.ToUInt64(kvPair.Value));
                         break;
                     case "sbyteVal":
                     case "shortVal":
                     case "intVal":
                     case "longVal":
-                        Convert.ToInt64(md.GetValue(kvPair.Key)).Should().Be(Convert.ToInt64(kvPair.Value));
+                        Convert.ToInt64(md.GetValue(kvPair.Key)).ShouldBe(Convert.ToInt64(kvPair.Value));
                         break;
                     case "boolVal":
-                        md.GetBoolean(kvPair.Key).Should().Be((bool) kvPair.Value!);
+                        md.GetBoolean(kvPair.Key).ShouldBe((bool) kvPair.Value!);
                         break;
                     case "stringVal":
-                        md.GetString(kvPair.Key).Should().Be((string) kvPair.Value!);
+                        md.GetString(kvPair.Key).ShouldBe((string) kvPair.Value!);
                         break;
                     case "floatVal":
-                        md.GetFloat(kvPair.Key).Should().BeApproximately((float) kvPair.Value!, 0.0000000001f);
+                        md.GetFloat(kvPair.Key).ShouldBe((float) kvPair.Value!, 0.0000000001f);
                         break;
                     case "doubleVal":
-                        md.GetDouble(kvPair.Key).Should().BeApproximately((double) kvPair.Value!, 0.00001);
+                        md.GetDouble(kvPair.Key).ShouldBe((double) kvPair.Value!, 0.00001);
                         break;
                     case "dateTimeOffset":
-                        md.GetDate(kvPair.Key).Should().Be((DateTimeOffset) kvPair.Value!);
+                        md.GetDate(kvPair.Key).ShouldBe((DateTimeOffset) kvPair.Value!);
                         break;
                     case "array":
-                        md.GetArray(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value!));
-                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value!));
+                        md.GetArray(kvPair.Key).ShouldBeEquivalentToFluent(new MutableArrayObject((List<int>) kvPair.Value!));
+                        md.GetValue(kvPair.Key).ShouldBeEquivalentToFluent(new MutableArrayObject((List<int>) kvPair.Value!));
                         break;
                     case "dictionary":
-                        md.GetDictionary(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
-                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
+                        md.GetDictionary(kvPair.Key).ShouldBeEquivalentToFluent(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
+                        md.GetValue(kvPair.Key).ShouldBeEquivalentToFluent(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
                         break;
                     case "blob":
-                        md.GetBlob(kvPair.Key).Should().BeNull("Because we are getting a dictionary represents Blob object back.");
+                        md.GetBlob(kvPair.Key).ShouldBeNull("Because we are getting a dictionary represents Blob object back.");
                         var di = ((MutableDictionaryObject?) md.GetValue(kvPair.Key))!.ToDictionary();
-                        Blob.IsBlob(di).Should().BeTrue();
-                        di.Should().BeEquivalentTo(((Blob) dic[kvPair.Key]!).JsonRepresentation);
+                        Blob.IsBlob(di).ShouldBeTrue();
+                        di.ShouldBeEquivalentToFluent(((Blob) dic[kvPair.Key]!).JsonRepresentation);
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");
@@ -244,25 +243,25 @@ namespace Test
         internal void ValidateToJsonValues(string json, Dictionary<string, object?> dic)
         {
             var jdic = DataOps.ParseTo<Dictionary<string, object>>(json);
-            jdic.Should().NotBeNull("because otherwise DataOps.ParseTo failed");
+            jdic.ShouldNotBeNull("because otherwise DataOps.ParseTo failed");
             foreach (var i in dic) {
                 if (i.Key == "blob") {
                     var b1JsonD = ((JObject) jdic![i.Key]).ToObject<IDictionary<string, object?>>();
-                    b1JsonD.Should().NotBeNull("because otherwise ToObject failed");
+                    b1JsonD.ShouldNotBeNull("because otherwise ToObject failed");
                     var b2JsonD = ((Blob?) dic[i.Key])!.JsonRepresentation;
 
                     foreach (var kv in b2JsonD) {
                         var hasValue = b1JsonD!.TryGetValue(kv.Key, out var gotValue);
-                        hasValue.Should().BeTrue("because otherwise b1JsonD is missing the key {key}", kv.Key);
-                        gotValue!.ToString().Should().Be(kv.Value?.ToString());
+                        hasValue.ShouldBeTrue($"because otherwise b1JsonD is missing the key {kv.Key}");
+                        gotValue!.ToString().ShouldBe(kv.Value?.ToString());
                     }
 
                     var blob = new Blob(Db!, b1JsonD!);
-                    blob.Should().BeEquivalentTo((Blob) dic[i.Key]!);
+                    blob.ShouldBeEquivalentToFluent((Blob) dic[i.Key]!);
                 } else if (i.Key == "floatVal") {
-                    (DataOps.ConvertToFloat(jdic![i.Key])).Should().BeApproximately((float) dic[i.Key]!, 0.0000000001f);
+                    (DataOps.ConvertToFloat(jdic![i.Key])).ShouldBe((float) dic[i.Key]!, 0.0000000001f);
                 } else {
-                    (DataOps.ToCouchbaseObject(jdic![i.Key])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
+                    (DataOps.ToCouchbaseObject(jdic![i.Key])).ShouldBeEquivalentToFluent((DataOps.ToCouchbaseObject(dic[i.Key])));
                 }
             }
         }
@@ -410,7 +409,7 @@ namespace Test
             foreach (var pair in dic1) {
                 var second = dic2.FirstOrDefault(x => x.Key.Equals(pair.Key, StringComparison.Ordinal));
                 if (String.CompareOrdinal(pair.Key, second.Key) != 0) {
-                    throw new AssertionFailedException(
+                    throw new ShouldAssertException(
                         $"Expected a dictionary to contain the key {pair.Key} but it didn't");
                 }
 
@@ -531,20 +530,20 @@ namespace Test
                 });
 
                 wa.WaitForResult(TimeSpan.FromSeconds(2));
-                count.Should().Be(1, "because we should have received a callback");
+                count.ShouldBe(1, "because we should have received a callback");
                 AddPersonInState("after1", "AL", isLegacy: isLegacy);
                 Thread.Sleep(2000);
-                count.Should().Be(1, "because we should not receive a callback since AL is not part of query result");
+                count.ShouldBe(1, "because we should not receive a callback since AL is not part of query result");
                 AddPersonInState("after2", "CA", isLegacy: isLegacy);
                 wa2.WaitForResult(TimeSpan.FromSeconds(2));
-                count.Should().Be(2, "because we should have received a callback, query result has updated");
+                count.ShouldBe(2, "because we should have received a callback, query result has updated");
                 if(isLegacy)
                     DefaultCollection.Purge("after2");
                 else
                     CollA.Purge("after2");
 
                 wa3.WaitForResult(TimeSpan.FromSeconds(2));
-                count.Should().Be(3, "because we should have received a callback, query result has updated");
+                count.ShouldBe(3, "because we should have received a callback, query result has updated");
             }
         }
 
@@ -579,13 +578,13 @@ namespace Test
                 });
 
                 foreach (var handle in new[] { wait1, wait2 }) {
-                    handle.Wait(TimeSpan.FromSeconds(2)).Should().BeTrue();
+                    handle.Wait(TimeSpan.FromSeconds(2)).ShouldBeTrue();
                 }
 
-                qCount.Should().Be(1, "because we should have received a callback");
-                qResultCnt.Should().Be(8);
-                q1Count.Should().Be(1, "because we should have received a callback");
-                q1ResultCnt.Should().Be(8);
+                qCount.ShouldBe(1, "because we should have received a callback");
+                qResultCnt.ShouldBe(8);
+                q1Count.ShouldBe(1, "because we should have received a callback");
+                q1ResultCnt.ShouldBe(8);
                 q2.AddChangeListener(null, (sender, args) =>
                 {
                     q2Count++;
@@ -596,7 +595,7 @@ namespace Test
                 });
 
                 wa2.WaitForResult(TimeSpan.FromSeconds(2));
-                q2Count.Should().Be(1, "because we should have received a callback");
+                q2Count.ShouldBe(1, "because we should have received a callback");
             }
         }
 
@@ -621,12 +620,12 @@ namespace Test
             });
 
             wa.WaitForResult(TimeSpan.FromSeconds(2));
-            count.Should().Be(1, "because we should have received a callback");
+            count.ShouldBe(1, "because we should have received a callback");
             qParameters.SetString("state", "NY");
             query.Parameters = qParameters;
             //query.Parameters.SetString("state", "NY"); //This works as well
             wa2.WaitForResult(TimeSpan.FromSeconds(2));
-            count.Should().Be(2, "because we should have received a callback, query result has updated");
+            count.ShouldBe(2, "because we should have received a callback, query result has updated");
         }
 
         protected void LoadJSONResource(string resourceName, Database? db = null, Collection? coll = null)
@@ -641,7 +640,7 @@ namespace Test
                 {
                     var docID = $"doc-{++n:D3}";
                     var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
-                    json.Should().NotBeNull("because otherwise the line failed to parse");
+                    json.ShouldNotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
                     doc.SetData(json!);
                     if(coll == null)

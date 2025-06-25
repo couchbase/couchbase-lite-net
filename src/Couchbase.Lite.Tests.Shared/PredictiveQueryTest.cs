@@ -26,7 +26,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Enterprise.Query;
 using Couchbase.Lite.Query;
 
-using FluentAssertions;
+using Shouldly;
 
 using LiteCore.Interop;
 
@@ -62,24 +62,26 @@ namespace Test
                     SelectResult.Expression(Function.Prediction(aggregateModel.Name, input)))
                 .From(DataSource.Collection(DefaultCollection))) {
                 Action badAction = () => q.Execute();
-                badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int)SQLiteStatus.Error);
+                var ex = Should.Throw<CouchbaseSQLiteException>(badAction);
+                ex.Error.ShouldBe((int)SQLiteStatus.Error);
 
                 aggregateModel.RegisterModel();
                 var numRows = VerifyQuery(q, (i, result) =>
                 {
                     var numbers = result.GetArray(0)?.ToList();
-                    numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
+                    numbers.ShouldNotBeEmpty("because otherwise the data didn't come through");
                     var pred = result.GetDictionary(1);
-                    pred.Should().NotBeNull();
-                    pred!.GetLong("sum").Should().Be(numbers!.Cast<long>().Sum());
-                    pred.GetLong("min").Should().Be(numbers!.Cast<long>().Min());
-                    pred.GetLong("max").Should().Be(numbers!.Cast<long>().Max());
-                    pred.GetDouble("avg").Should().Be(numbers!.Cast<long>().Average());
+                    pred.ShouldNotBeNull();
+                    pred!.GetLong("sum").ShouldBe(numbers!.Cast<long>().Sum());
+                    pred.GetLong("min").ShouldBe(numbers!.Cast<long>().Min());
+                    pred.GetLong("max").ShouldBe(numbers!.Cast<long>().Max());
+                    pred.GetDouble("avg").ShouldBe(numbers!.Cast<long>().Average());
                 });
 
-                numRows.Should().Be(2);
+                numRows.ShouldBe(2);
                 aggregateModel.UnregisterModel();
-                badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int)SQLiteStatus.Error);
+                ex = Should.Throw<CouchbaseSQLiteException>(badAction);
+                ex.Error.ShouldBe((int)SQLiteStatus.Error);
             }
         }
 
@@ -100,10 +102,10 @@ namespace Test
                     var rows = VerifyQuery(q, (n, result) =>
                     {
                         var pred = result.GetDictionary(0);
-                        pred.Should().NotBeNull("because otherwise the results didn't come through");
-                        pred!.GetInt("sum").Should().Be(15);
+                        pred.ShouldNotBeNull("because otherwise the results didn't come through");
+                        pred!.GetInt("sum").ShouldBe(15);
                     });
-                    rows.Should().Be(1);
+                    rows.ShouldBe(1);
 
                     var echoModel = new EchoModel();
                     Database.Prediction.RegisterModel(model, echoModel);
@@ -111,12 +113,12 @@ namespace Test
                     rows = VerifyQuery(q, (n, result) =>
                     {
                         var pred = result.GetDictionary(0);
-                        pred.Should().NotBeNull("because otherwise the results didn't come through");
-                        pred!.GetValue("sum").Should().BeNull("because the model should have been replaced");
+                        pred.ShouldNotBeNull("because otherwise the results didn't come through");
+                        pred!.GetValue("sum").ShouldBeNull("because the model should have been replaced");
                         pred.GetArray("numbers")?.SequenceEqual(new List<object> { 1L, 2L, 3L, 4L, 5L })
-                            .Should().BeTrue("because the document should simply be echoed back");
+                            .ShouldBeTrue("because the document should simply be echoed back");
                     });
-                    rows.Should().Be(1);
+                    rows.ShouldBe(1);
                 }
 
 
@@ -184,38 +186,38 @@ namespace Test
                 var rows = VerifyQuery(q, (n, result) =>
                 {
                     var pred = result.GetDictionary(0);
-                    pred.Should().NotBeNull("because otherwise the results didn't come through");
-                    pred.Should().HaveCount(map.Count,
+                    pred.ShouldNotBeNull("because otherwise the results didn't come through");
+                    pred.Count.ShouldBe(map.Count,
                         "because all properties should be serialized and recovered correctly");
-                    pred!.GetInt("number1").Should().Be(10);
-                    pred.GetDouble("number2").Should().Be(10.1);
-                    pred.GetInt("int_min").Should().Be(Int32.MinValue);
-                    pred.GetInt("int_max").Should().Be(Int32.MaxValue);
-                    pred.GetLong("int64_min").Should().Be(Int64.MinValue);
-                    pred.GetLong("int64_max").Should().Be(Int64.MaxValue);
-                    pred.GetFloat("float_min").Should().Be(Single.MinValue);
-                    pred.GetFloat("float_max").Should().Be(Single.MaxValue);
-                    pred.GetBoolean("boolean_true").Should().BeTrue();
-                    pred.GetBoolean("boolean_false").Should().BeFalse();
-                    pred.GetString("string").Should().Be("hello");
-                    pred.GetDate("date").Should().Be(date);
-                    pred.GetString("null").Should().BeNull();
-                    pred.GetDictionary("dict").Should().Contain(submap);
-                    pred.GetArray("array").Should().ContainInOrder(subList);
+                    pred!.GetInt("number1").ShouldBe(10);
+                    pred.GetDouble("number2").ShouldBe(10.1);
+                    pred.GetInt("int_min").ShouldBe(Int32.MinValue);
+                    pred.GetInt("int_max").ShouldBe(Int32.MaxValue);
+                    pred.GetLong("int64_min").ShouldBe(Int64.MinValue);
+                    pred.GetLong("int64_max").ShouldBe(Int64.MaxValue);
+                    pred.GetFloat("float_min").ShouldBe(Single.MinValue);
+                    pred.GetFloat("float_max").ShouldBe(Single.MaxValue);
+                    pred.GetBoolean("boolean_true").ShouldBeTrue();
+                    pred.GetBoolean("boolean_false").ShouldBeFalse();
+                    pred.GetString("string").ShouldBe("hello");
+                    pred.GetDate("date").ShouldBe(date);
+                    pred.GetString("null").ShouldBeNull();
+                    pred.GetDictionary("dict").ShouldBeEquivalentToFluent(submap);
+                    pred.GetArray("array").ShouldBeEquivalentToFluent(subList);
 
-                    pred.GetString("expr_property").Should().Be("Daniel");
-                    pred.GetInt("expr_value_number1").Should().Be(20);
-                    pred.GetDouble("expr_value_number2").Should().Be(20.1);
-                    pred.GetBoolean("expr_value_boolean").Should().BeTrue();
-                    pred.GetString("expr_value_string").Should().Be("hi");
-                    pred.GetDate("expr_value_date").Should().Be(date);
-                    pred.GetString("expr_value_null").Should().BeNull();
-                    pred.GetDictionary("expr_value_dict").Should().Contain(subExprMap);
-                    pred.GetArray("expr_value_array").Should().ContainInOrder(subExprList);
-                    pred.GetInt("expr_power").Should().Be(4);
+                    pred.GetString("expr_property").ShouldBe("Daniel");
+                    pred.GetInt("expr_value_number1").ShouldBe(20);
+                    pred.GetDouble("expr_value_number2").ShouldBe(20.1);
+                    pred.GetBoolean("expr_value_boolean").ShouldBeTrue();
+                    pred.GetString("expr_value_string").ShouldBe("hi");
+                    pred.GetDate("expr_value_date").ShouldBe(date);
+                    pred.GetString("expr_value_null").ShouldBeNull();
+                    pred.GetDictionary("expr_value_dict").ShouldBeEquivalentToFluent(subExprMap);
+                    pred.GetArray("expr_value_array").ShouldBeEquivalentToFluent(subExprList);
+                    pred.GetInt("expr_power").ShouldBe(4);
                 });
 
-                rows.Should().Be(1);
+                rows.ShouldBe(1);
             }
         }
 
@@ -237,13 +239,13 @@ namespace Test
                 var numRows = VerifyQuery(q, (i, result) =>
                 {
                     var numbers = result.GetArray(0)?.ToList();
-                    numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
+                    numbers.ShouldNotBeEmpty("because otherwise the data didn't come through");
                     var sum = result.GetLong(1);
-                    sum.Should().Be(result.GetLong("sum"));
-                    sum.Should().Be(numbers!.Cast<long>().Sum());
+                    sum.ShouldBe(result.GetLong("sum"));
+                    sum.ShouldBe(numbers!.Cast<long>().Sum());
                 });
 
-                numRows.Should().Be(2);
+                numRows.ShouldBe(2);
                 aggregateModel.UnregisterModel();
             }
         }
@@ -273,25 +275,25 @@ namespace Test
                     var dict = new MutableDictionaryObject();
                     dict.SetArray("numbers", numbers);
                     var expected = aggregateModel.Predict(dict);
-                    expected.Should().NotBeNull("because otherwise the prediction failed");
+                    expected.ShouldNotBeNull("because otherwise the prediction failed");
 
                     var sum = result.GetInt(1);
                     var min = result.GetInt(2);
                     var max = result.GetInt(3);
                     var avg = result.GetDouble(4);
 
-                    result.GetInt("sum").Should().Be(sum);
-                    result.GetInt("min").Should().Be(min);
-                    result.GetInt("max").Should().Be(max);
-                    result.GetDouble("avg").Should().Be(avg);
+                    result.GetInt("sum").ShouldBe(sum);
+                    result.GetInt("min").ShouldBe(min);
+                    result.GetInt("max").ShouldBe(max);
+                    result.GetDouble("avg").ShouldBe(avg);
 
-                    sum.Should().Be(expected!.GetInt("sum"));
-                    min.Should().Be(expected.GetInt("min"));
-                    max.Should().Be(expected.GetInt("max"));
-                    avg.Should().Be(expected.GetDouble("avg"));
+                    sum.ShouldBe(expected!.GetInt("sum"));
+                    min.ShouldBe(expected.GetInt("min"));
+                    max.ShouldBe(expected.GetInt("max"));
+                    avg.ShouldBe(expected.GetDouble("avg"));
                 });
 
-                rows.Should().Be(2);
+                rows.ShouldBe(2);
             }
         }
 
@@ -325,7 +327,7 @@ namespace Test
                 }
             }
 
-            textModel.ContentType.Should().Be("text/plain");
+            textModel.ContentType.ShouldBe("text/plain");
             Database.Prediction.UnregisterModel(textModel.Name);
         }
 
@@ -351,10 +353,10 @@ namespace Test
                 q.Parameters = parameters;
                 var numRows = VerifyQuery(q, (n, r) =>
                     {
-                        r.GetLong(0).Should().Be(14, "because that is the word count of the sentence in the parameter");
+                        r.GetLong(0).ShouldBe(14, "because that is the word count of the sentence in the parameter");
                     });
-                numRows.Should().Be(1);
-                textModel.ContentType.Should().Be("text/plain");
+                numRows.ShouldBe(1);
+                textModel.ContentType.ShouldBe("text/plain");
                 textModel.UnregisterModel();
             }
         }
@@ -377,8 +379,8 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
                 .From(DataSource.Collection(DefaultCollection))) {
-                q.Invoking(x => x.Execute()).Should().Throw<CouchbaseSQLiteException>()
-                    .Where(x => x.BaseError == SQLiteStatus.Error);
+                var ex = Should.Throw<CouchbaseSQLiteException>(() => q.Execute());
+                ex.BaseError.ShouldBe(SQLiteStatus.Error);
             }
 
             var dict = new Dictionary<string, object> { ["key"] = this };
@@ -387,7 +389,7 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
                 .From(DataSource.Collection(DefaultCollection))) {
-                q.Invoking(x => x.Execute()).Should().Throw<ArgumentException>();
+                Should.Throw<ArgumentException>(() => q.Execute());
             }
         }
 
@@ -418,12 +420,12 @@ namespace Test
                     var max = result.GetInt(3);
                     var avg = result.GetDouble(4);
 
-                    sum.Should().Be(15);
-                    min.Should().Be(1);
-                    max.Should().Be(5);
-                    avg.Should().Be(3.0);
+                    sum.ShouldBe(15);
+                    min.ShouldBe(1);
+                    max.ShouldBe(5);
+                    avg.ShouldBe(3.0);
                 });
-                rows.Should().Be(1);
+                rows.ShouldBe(1);
             }
         }
 
@@ -447,9 +449,9 @@ namespace Test
                 var rows = VerifyQuery(q, (n, result) =>
                 {
                     var sum = result.GetInt(0);
-                    sum.Should().Be(n == 1 ? 40 : 15);
+                    sum.ShouldBe(n == 1 ? 40 : 15);
                 });
-                rows.Should().Be(2);
+                rows.ShouldBe(2);
             }
         }
 
@@ -476,14 +478,14 @@ namespace Test
                 var rows = VerifyQuery(q, (n, result) =>
                 {
                     if (n == 1) {
-                        result.GetDictionary(0).Should().NotBeNull();
-                        result.GetInt(1).Should().Be(15);
+                        result.GetDictionary(0).ShouldNotBeNull();
+                        result.GetInt(1).ShouldBe(15);
                     } else {
-                        result.GetDictionary(0).Should().BeNull();
-                        result.GetValue(1).Should().BeNull();
+                        result.GetDictionary(0).ShouldBeNull();
+                        result.GetValue(1).ShouldBeNull();
                     }
                 });
-                rows.Should().Be(2);
+                rows.ShouldBe(2);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
@@ -493,10 +495,10 @@ namespace Test
                 var explain = q.Explain();
                 var rows = VerifyQuery(q, (n, result) =>
                 {
-                    result.GetDictionary(0).Should().NotBeNull();
-                    result.GetInt(1).Should().Be(15);
+                    result.GetDictionary(0).ShouldNotBeNull();
+                    result.GetInt(1).ShouldBe(15);
                 });
-                rows.Should().Be(1);
+                rows.ShouldBe(1);
             }
         }
 
@@ -518,17 +520,17 @@ namespace Test
                     SelectResult.Expression(sumPrediction))
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(sumPrediction.EqualTo(Expression.Int(15)))) {
-                q.Explain().IndexOf("USING INDEX SumIndex").Should()
-                    .NotBe(-1, "because the query should make use of the index");
+                q.Explain().IndexOf("USING INDEX SumIndex")
+                    .ShouldNotBe(-1, "because the query should make use of the index");
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     var numbers = r.GetArray(0)!.Cast<long>().ToList();
                     var sum = r.GetLong(1);
-                    sum.Should().Be(numbers.Sum());
+                    sum.ShouldBe(numbers.Sum());
                 });
 
-                numRows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(2,
+                numRows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(2,
                     "because the value should be cached and not call the prediction function again");
             }
         }
@@ -555,14 +557,14 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(sumPrediction.LessThanOrEqualTo(Expression.Int(15)).Or(avgPrediction.EqualTo(Expression.Int(8))))) {
                 var explain = q.Explain();
-                explain.IndexOf("USING INDEX SumIndex").Should().NotBe(-1, "because the sum index should be used");
-                explain.IndexOf("USING INDEX AvgIndex").Should().NotBe(-1, "because the average index should be used");
+                explain.IndexOf("USING INDEX SumIndex").ShouldNotBe(-1, "because the sum index should be used");
+                explain.IndexOf("USING INDEX AvgIndex").ShouldNotBe(-1, "because the average index should be used");
 
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.Should().Match<Result>(x => x.GetLong(0) == 15 || x.GetLong(1) == 8);
+                    (r.GetLong(0) == 15 || r.GetLong(1) == 8).ShouldBeTrue();
                 });
-                numRows.Should().Be(2);
+                numRows.ShouldBe(2);
             }
         }
 
@@ -592,15 +594,15 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(sumPrediction.EqualTo(Expression.Int(15)).And(avgPrediction.EqualTo(Expression.Int(3))))) {
                 var explain = q.Explain();
-                explain.IndexOf("USING INDEX SumAvgIndex").Should().NotBe(-1, "because the sum index should be used");
+                explain.IndexOf("USING INDEX SumAvgIndex").ShouldNotBe(-1, "because the sum index should be used");
 
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetLong(0).Should().Be(15);
-                    r.GetLong(1).Should().Be(3);
+                    r.GetLong(0).ShouldBe(15);
+                    r.GetLong(1).ShouldBe(3);
                 });
-                numRows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(4);
+                numRows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(4);
             }
         }
 
@@ -627,13 +629,13 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX AggIndex").Should()
-                    .BeFalse("because unlike other indexes, predictive result indexes don't create SQLite indexes");
+                explain.Contains("USING INDEX AggIndex")
+                    .ShouldBeFalse("because unlike other indexes, predictive result indexes don't create SQLite indexes");
 
-                var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).Should().Be(15); });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(2);
+                var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).ShouldBe(15); });
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(2);
             }
         }
 
@@ -660,12 +662,12 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
+                explain.Contains("USING INDEX SumIndex").ShouldBeTrue();
 
-                var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).Should().Be(15); });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(2);
+                var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).ShouldBe(15); });
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(2);
             }
         }
 
@@ -696,16 +698,16 @@ namespace Test
                 .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
                     prediction.Property("avg").EqualTo(Expression.Int(8))))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
-                explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
+                explain.Contains("USING INDEX SumIndex").ShouldBeTrue();
+                explain.Contains("USING INDEX AvgIndex").ShouldBeTrue();
 
                 var rows = VerifyQuery(q, (n, result) =>
                     {
-                        result.Should().Match<Result>(x => x.GetInt(0) == 15 || x.GetInt(1) == 8);
+                        (result.GetLong(0) == 15 || result.GetLong(1) == 8).ShouldBeTrue();
                     });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(2);
-                aggregateModel.NumberOfCalls.Should().Be(2);
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(2);
+                aggregateModel.NumberOfCalls.ShouldBe(2);
             }
         }
 
@@ -733,17 +735,17 @@ namespace Test
                 .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).And(
                     prediction.Property("avg").EqualTo(Expression.Int(3))))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumAvgIndex").Should().BeTrue();
+                explain.Contains("USING INDEX SumAvgIndex").ShouldBeTrue();
 
                 var rows = VerifyQuery(q, (n, result) =>
                 {
-                    result.GetInt(0).Should().Be(15);
-                    result.GetInt(1).Should().Be(3);
+                    result.GetInt(0).ShouldBe(15);
+                    result.GetInt(1).ShouldBe(3);
                 });
 
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(2);
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(2);
             }
         }
 
@@ -769,12 +771,12 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
+                explain.Contains("USING INDEX SumIndex").ShouldBeTrue();
 
-                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(2);
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(2);
             }
 
             DefaultCollection.DeleteIndex("SumIndex");
@@ -784,12 +786,12 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumIndex").Should().BeFalse();
+                explain.Contains("USING INDEX SumIndex").ShouldBeFalse();
 
-                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(2);
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(2);
             }
         }
 
@@ -820,13 +822,13 @@ namespace Test
                 .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
                     prediction.Property("avg").EqualTo(Expression.Int(8))))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
-                explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
+                explain.Contains("USING INDEX SumIndex").ShouldBeTrue();
+                explain.Contains("USING INDEX AvgIndex").ShouldBeTrue();
 
-                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(2);
-                aggregateModel.NumberOfCalls.Should().Be(2);
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(2);
+                aggregateModel.NumberOfCalls.ShouldBe(2);
             }
 
             DefaultCollection.DeleteIndex("SumIndex");
@@ -841,12 +843,12 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumIndex").Should().BeFalse();
+                explain.Contains("USING INDEX SumIndex").ShouldBeFalse();
 
-                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(0);
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(0);
             }
 
             aggregateModel.Reset();
@@ -855,12 +857,12 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
+                explain.Contains("USING INDEX AvgIndex").ShouldBeTrue();
 
-                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-                aggregateModel.Error.Should().BeNull();
-                rows.Should().Be(1);
-                aggregateModel.NumberOfCalls.Should().Be(0);
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
+                aggregateModel.Error.ShouldBeNull();
+                rows.ShouldBe(1);
+                aggregateModel.NumberOfCalls.ShouldBe(0);
             }
 
             DefaultCollection.DeleteIndex("AvgIndex");
@@ -873,16 +875,16 @@ namespace Test
                     .From(DataSource.Collection(DefaultCollection))
                     .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
                     var explain = q.Explain();
-                    explain.Contains("USING INDEX SumIndex").Should().BeFalse();
-                    explain.Contains("USING INDEX AvgIndex").Should().BeFalse();
+                    explain.Contains("USING INDEX SumIndex").ShouldBeFalse();
+                    explain.Contains("USING INDEX AvgIndex").ShouldBeFalse();
 
-                    var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-                    aggregateModel.Error.Should().BeNull();
-                    rows.Should().Be(1);
+                    var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
+                    aggregateModel.Error.ShouldBeNull();
+                    rows.ShouldBe(1);
                     if (i == 0) {
-                        aggregateModel.NumberOfCalls.Should().Be(0);
+                        aggregateModel.NumberOfCalls.ShouldBe(0);
                     } else {
-                        aggregateModel.NumberOfCalls.Should().BeGreaterThan(0);
+                        aggregateModel.NumberOfCalls.ShouldBeGreaterThan(0);
                     }
                 }
 
@@ -927,7 +929,7 @@ namespace Test
         private void TestDistanceFunction(IExpression distance, string testData)
         {
             var tests = JsonConvert.DeserializeObject<IList<IList<object?>>>(testData);
-            tests.Should().NotBeNull("because otherwise testData was invalid");
+            tests.ShouldNotBeNull("because otherwise testData was invalid");
 
             foreach (var t in tests!) {
                 using (var doc = new MutableDocument()) {
@@ -942,10 +944,10 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetValue(0).Should().Be(r.GetValue(1));
+                    r.GetValue(0).ShouldBe(r.GetValue(1));
                 });
 
-                numRows.Should().Be(tests.Count);
+                numRows.ShouldBe(tests.Count);
             }
         }
 

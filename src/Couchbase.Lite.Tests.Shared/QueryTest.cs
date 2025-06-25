@@ -29,8 +29,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 
-using FluentAssertions;
-using FluentAssertions.Execution;
+using Shouldly;
 
 using Newtonsoft.Json;
 
@@ -71,7 +70,7 @@ namespace Test
                     .Where(Meta.ID.EqualTo(Expression.String(docId)))) {
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Be(doc.RevisionID!.ToString());
+                        row.GetString(0).ShouldBe(doc.RevisionID!.ToString());
                     });
 
                     // Update doc:
@@ -79,7 +78,7 @@ namespace Test
                     DefaultCollection.Save(doc);
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Be(doc.RevisionID!.ToString());
+                        row.GetString(0).ShouldBe(doc.RevisionID!.ToString());
                     });
                 }
 
@@ -89,7 +88,7 @@ namespace Test
                 .Where(Meta.RevisionID.EqualTo(Expression.String(docId)))) {
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Be(docId.ToString());
+                        row.GetString(0).ShouldBe(docId.ToString());
                     });
                 }
 
@@ -100,7 +99,7 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Be(doc.RevisionID!.ToString());
+                        row.GetString(0).ShouldBe(doc.RevisionID!.ToString());
                     });
                 }
             }
@@ -130,9 +129,9 @@ namespace Test
                 doc1c.SetString("c", "string");
                 DefaultCollection.Save(doc1c);
 
-                DefaultCollection.SetDocumentExpiration("doc1", dto2).Should().Be(true);
-                DefaultCollection.SetDocumentExpiration("doc2", dto3).Should().Be(true);
-                DefaultCollection.SetDocumentExpiration("doc3", dto4).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto2).ShouldBe(true);
+                DefaultCollection.SetDocumentExpiration("doc2", dto3).ShouldBe(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto4).ShouldBe(true);
             }
 
             Thread.Sleep(4100);
@@ -145,9 +144,9 @@ namespace Test
                         .LessThan(Expression.Long(dto6InMS)))) {
 
                     var b = r.Execute().AllResults();
-                    b.Count.Should().Be(0);
+                    b.Count.ShouldBe(0);
                 }
-            }).Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
+            }).Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().ShouldBeTrue();
         }
 #endif
 
@@ -174,9 +173,9 @@ namespace Test
                 doc1c.SetString("c", "string");
                 DefaultCollection.Save(doc1c);
 
-                DefaultCollection.SetDocumentExpiration("doc1", dto20).Should().Be(true);
-                DefaultCollection.SetDocumentExpiration("doc2", dto30).Should().Be(true);
-                DefaultCollection.SetDocumentExpiration("doc3", dto40).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto20).ShouldBe(true);
+                DefaultCollection.SetDocumentExpiration("doc2", dto30).ShouldBe(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto40).ShouldBe(true);
             }
 
             using (var r = QueryBuilder.Select(DocID, Expiration)
@@ -185,7 +184,7 @@ namespace Test
                 .LessThan(Expression.Long(dto60InMS)))) {
 
                 var b = r.Execute().AllResults();
-                b.Should().HaveCount(3);
+                b.Count.ShouldBe(3);
             }
         }
 
@@ -210,10 +209,10 @@ namespace Test
                  .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(false)))) {
                 var count = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetString(0).Should().Be("doc1");
-                    r.GetBoolean(1).Should().BeFalse();
+                    r.GetString(0).ShouldBe("doc1");
+                    r.GetBoolean(1).ShouldBeFalse();
                 });
-                count.Should().Be(1);
+                count.ShouldBe(1);
             }
         }
 
@@ -238,10 +237,10 @@ namespace Test
                  .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
                 var count = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetString(0).Should().Be("doc2");
-                    r.GetBoolean(1).Should().BeTrue();
+                    r.GetString(0).ShouldBe("doc2");
+                    r.GetBoolean(1).ShouldBeTrue();
                 });
-                count.Should().Be(1);
+                count.ShouldBe(1);
             }
         }
 
@@ -264,15 +263,15 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Collection(DefaultCollection))) {
-                var count = VerifyQuery(q, (n, r) => { r.GetString(0).Should().Be("doc2"); });
-                count.Should().Be(1);
+                var count = VerifyQuery(q, (n, r) => { r.GetString(0).ShouldBe("doc2"); });
+                count.ShouldBe(1);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
-                var count = VerifyQuery(q, (n, r) => throw new AssertionFailedException("No results should be present"));
-                count.Should().Be(0);
+                var count = VerifyQuery(q, (n, r) => throw new ShouldAssertException("No results should be present"));
+                count.ShouldBe(0);
             }
         }
 
@@ -282,9 +281,9 @@ namespace Test
             using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Collection(DefaultCollection))) {
                 var parameters = new Parameters().SetString("foo", "bar");
                 q.Parameters = parameters;
-                q.Parameters.GetValue("foo").Should().Be("bar");
-                q.Invoking(q2 => q2.Parameters.SetValue("foo2", "bar2"))
-                    .Should().Throw<InvalidOperationException>("because the parameters are read only once in use");
+                q.Parameters.GetValue("foo").ShouldBe("bar");
+                Should.Throw<InvalidOperationException>(() => q.Parameters.SetValue("foo2", "bar2"),
+                        "because the parameters are read only once in use");
             }
         }
 
@@ -295,7 +294,7 @@ namespace Test
             var utcNow = DateTime.UtcNow;
             dict.Add(utcNow.ToShortDateString(), utcNow);
             var parameters = new Parameters(dict);
-            parameters.GetValue(utcNow.ToShortDateString()).Should().Be(utcNow);
+            parameters.GetValue(utcNow.ToShortDateString()).ShouldBe(utcNow);
         }
 
 #if !CBL_NO_EXTERN_FILES
@@ -307,17 +306,17 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
-                    row.GetString(0).Should().Be(expectedID, "because otherwise the IDs were out of order");
-                    row.GetLong(1).Should().Be(n, "because otherwise the sequences were out of order");
+                    row.GetString(0).ShouldBe(expectedID, "because otherwise the IDs were out of order");
+                    row.GetLong(1).ShouldBe(n, "because otherwise the sequences were out of order");
 
                     var doc = DefaultCollection.GetDocument(row.GetString(0)!);
-                    doc.Should().NotBeNull("because the document should be retrievable");
-                    doc!.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
-                    doc.Sequence.Should()
-                        .Be((ulong)n, "because the sequence on the row should match the document");
+                    doc.ShouldNotBeNull("because the document should be retrievable");
+                    doc!.Id.ShouldBe(expectedID, "because the document ID on the row should match the document");
+                    doc.Sequence
+                        .ShouldBe((ulong)n, "because the sequence on the row should match the document");
                 });
 
-                numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
+                numRows.ShouldBe(100, "because otherwise the incorrect number of rows was returned");
             }
         }
 #endif
@@ -362,12 +361,12 @@ namespace Test
                     {
                         if (n <= expectedDocs.Length) {
                             var doc = expectedDocs[n - 1];
-                            row.GetString("id").Should()
-                                .Be(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
+                            row.GetString("id")
+                                .ShouldBe(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
                         }
                     });
 
-                    numRows.Should().Be(expectedDocs.Length, "because otherwise too many rows were returned");
+                    numRows.ShouldBe(expectedDocs.Length, "because otherwise too many rows were returned");
                 }
 
                 testNum++;
@@ -416,12 +415,12 @@ namespace Test
                         if (n <= expectedDocs.Length)
                         {
                             var doc = expectedDocs[n - 1];
-                            row.GetString("id").Should()
-                                .Be(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
+                            row.GetString("id")
+                                .ShouldBe(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
                         }
                     });
 
-                    numRows.Should().Be(expectedDocs.Length, "because otherwise too many rows were returned");
+                    numRows.ShouldBe(expectedDocs.Length, "because otherwise too many rows were returned");
                 }
 
                 testNum++;
@@ -529,13 +528,13 @@ namespace Test
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetString(0).Should().NotBeNull("because otherwise the query didn't get correct results");
+                    row.GetString(0).ShouldNotBeNull("because otherwise the query didn't get correct results");
                     var doc = DefaultCollection.GetDocument(row.GetString(0)!);
-                    doc.Should().NotBeNull("because otherwise the save failed");
-                    doc!.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                    doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
+                    doc.ShouldNotBeNull("because otherwise the save failed");
+                    doc!.Id.ShouldBe(doc1.Id, "because otherwise the wrong document ID was populated");
+                    doc["string"].ToString().ShouldBe("string", "because otherwise garbage data was inserted");
                 });
-                numRows.Should().Be(1, "beacuse one row matches the given query");
+                numRows.ShouldBe(1, "beacuse one row matches the given query");
             }
 
             using (var q = QueryBuilder.Select(DocID)
@@ -544,13 +543,13 @@ namespace Test
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetString(0).Should().NotBeNull("because otherwise the query didn't get correct results");
+                    row.GetString(0).ShouldNotBeNull("because otherwise the query didn't get correct results");
                     var doc = DefaultCollection.GetDocument(row.GetString(0)!);
-                    doc.Should().NotBeNull("because otherwise the save failed");
-                    doc!.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                    doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
+                    doc.ShouldNotBeNull("because otherwise the save failed");
+                    doc!.Id.ShouldBe(doc1.Id, "because otherwise the wrong document ID was populated");
+                    doc["string"].ToString().ShouldBe("string", "because otherwise garbage data was inserted");
                 });
-                numRows.Should().Be(1, "because one row matches the 'IS NOT' query");
+                numRows.ShouldBe(1, "because one row matches the 'IS NOT' query");
             }
         }
 
@@ -586,10 +585,10 @@ namespace Test
                 {
 
                     var name = row.GetString(0);
-                    name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
+                    name.ShouldBe(expected[n - 1], "because otherwise incorrect rows were returned");
                 });
 
-                numRows.Should().Be(expected.Length, "because otherwise an incorrect number of rows were returned");
+                numRows.ShouldBe(expected.Length, "because otherwise an incorrect number of rows were returned");
             }
         }
 
@@ -613,9 +612,8 @@ namespace Test
                     }
                 });
 
-                numRows.Should().Be(5, "because there are 5 rows like that in the data source");
-                firstNames.Should()
-                    .OnlyContain(str => str.Contains("Mar"), "because otherwise an incorrect entry came in");
+                numRows.ShouldBe(5, "because there are 5 rows like that in the data source");
+                firstNames.All(x => x.Contains("Mar")).ShouldBeTrue("because otherwise an incorrect entry came in");
             }
         }
 
@@ -639,10 +637,9 @@ namespace Test
                     }
                 });
 
-                numRows.Should().Be(5, "because there are 5 rows like that in the data source");
+                numRows.ShouldBe(5, "because there are 5 rows like that in the data source");
                 var regex = new Regex("^Mar.*");
-                firstNames.Should()
-                    .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
+                firstNames.All(x => regex.IsMatch(x)).ShouldBeTrue("because otherwise an incorrect entry came in");
             }
         }
 
@@ -659,7 +656,7 @@ namespace Test
 
                 });
 
-                numRows.Should().Be(2, "because two rows in the data match the query");
+                numRows.ShouldBe(2, "because two rows in the data match the query");
             }
 
             using(var db = new Database("testN1QLDB")) {
@@ -672,7 +669,7 @@ namespace Test
 
                     });
 
-                    numRows.Should().Be(2, "because two rows in the data match the query");
+                    numRows.ShouldBe(2, "because two rows in the data match the query");
                 }
             }
         }
@@ -699,7 +696,7 @@ namespace Test
                     
                 });
 
-                numRows.Should().Be(2, "because two rows in the data match the query");
+                numRows.ShouldBe(2, "because two rows in the data match the query");
             }
         }
 
@@ -726,15 +723,15 @@ namespace Test
                         }
                     });
 
-                    numRows.Should().Be(100, "because otherwise the wrong number of rows was retrieved");
-                    firstNames.Should().HaveCount(numRows, "because otherwise some rows were null");
+                    numRows.ShouldBe(100, "because otherwise the wrong number of rows was retrieved");
+                    firstNames.Count.ShouldBe(numRows, "because otherwise some rows were null");
                     var firstNamesCopy = new List<object>(firstNames);
                     firstNames.Sort();
                     if (!ascending) {
                         firstNames.Reverse();
                     }
 
-                    firstNames.Should().ContainInOrder(firstNamesCopy, "because otherwise the results were not sorted");
+                    firstNames.ShouldBeEquivalentToFluent(firstNamesCopy, "because otherwise the results were not sorted");
                 }
             }
         }
@@ -801,10 +798,10 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var number = row.GetInt(0);
-                    number.Should().Be(1);
+                    number.ShouldBe(1);
                 });
 
-                numRows.Should().Be(1, "because there is only one distinct row");
+                numRows.ShouldBe(1, "because there is only one distinct row");
             }
         }
 
@@ -814,8 +811,8 @@ namespace Test
             LoadNumbers(100);
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
-                var wa = new WaitAssert();
-                var wa2 = new WaitAssert();
+                using var wa = new WaitAssert();
+                using var wa2 = new WaitAssert();
                 var count = 1;
                 q.AddChangeListener(null, (sender, args) =>
                 {
@@ -858,8 +855,8 @@ namespace Test
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
-                results.Should().HaveCount(1, "because only one document should match 42");
-                results.First().GetInt(0).Should().Be(58,
+                results.Count.ShouldBe(1, "because only one document should match 42");
+                results.First().GetInt(0).ShouldBe(58,
                     "because that was the number stored in 'number2' of the matching doc");
             }
 
@@ -869,8 +866,8 @@ namespace Test
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
-                results.Should().HaveCount(1, "because only one document should match 42");
-                results.First().Keys.FirstOrDefault().Should().Be("main");
+                results.Count.ShouldBe(1, "because only one document should match 42");
+                results.First().Keys.FirstOrDefault().ShouldBe("main");
             }
         }
 
@@ -888,11 +885,11 @@ namespace Test
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
-                results.Should().HaveCount(101);
-                results[41].GetInt(0).Should().Be(58);
-                results[41].GetInt(1).Should().Be(42);
-                results[42].GetInt(0).Should().Be(57);
-                results[42].GetValue(1).Should().BeNull();
+                results.Count.ShouldBe(101);
+                results[41].GetInt(0).ShouldBe(58);
+                results[41].GetInt(1).ShouldBe(42);
+                results[42].GetInt(0).ShouldBe(57);
+                results[42].GetValue(1).ShouldBeNull();
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
@@ -901,11 +898,11 @@ namespace Test
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
-                results.Should().HaveCount(101);
-                results[41].GetInt(0).Should().Be(58);
-                results[41].GetInt(1).Should().Be(42);
-                results[42].GetInt(0).Should().Be(57);
-                results[42].GetValue(1).Should().BeNull();
+                results.Count.ShouldBe(101);
+                results[41].GetInt(0).ShouldBe(58);
+                results[41].GetInt(1).ShouldBe(42);
+                results[42].GetInt(0).ShouldBe(57);
+                results[42].GetValue(1).ShouldBeNull();
             }
         }
 
@@ -931,18 +928,18 @@ namespace Test
                 {
                     var main = r.GetDictionary(0);
                     var secondary = r.GetDictionary(1);
-                    main.Should().NotBeNull("because otherwise main wasn't present in the results");
+                    main.ShouldNotBeNull("because otherwise main wasn't present in the results");
 
                     var number1 = main!.GetInt("number1");
                     if (number1 == 42) {
-                        secondary.Should().NotBeNull("because the JOIN matched");
-                        secondary!.GetInt("theone").Should().Be(number1, "because this is the join entry");
+                        secondary.ShouldNotBeNull("because the JOIN matched");
+                        secondary!.GetInt("theone").ShouldBe(number1, "because this is the join entry");
                     } else {
-                        secondary.Should().BeNull("because the JOIN didn't match");
+                        secondary.ShouldBeNull("because the JOIN didn't match");
                     }
                 });
 
-                numRows.Should().Be(101);
+                numRows.ShouldBe(101);
             }
 
         }
@@ -960,11 +957,11 @@ namespace Test
                 .OrderBy(Ordering.Expression(num2))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
-                    ((row.GetInt(0) - 1) % 10).Should().Be((n - 1) % 10);
-                    row.GetInt(1).Should().Be((n - 1) / 10);
+                    ((row.GetInt(0) - 1) % 10).ShouldBe((n - 1) % 10);
+                    row.GetInt(1).ShouldBe((n - 1) / 10);
                 });
 
-                count.Should().Be(100);
+                count.ShouldBe(100);
             }
         }
 
@@ -982,14 +979,14 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetDouble(0).Should().BeApproximately(50.5, Double.Epsilon);
-                    row.GetInt(1).Should().Be(100);
-                    row.GetInt(2).Should().Be(1);
-                    row.GetInt(3).Should().Be(100);
-                    row.GetInt(4).Should().Be(5050);
+                    row.GetDouble(0).ShouldBe(50.5, Double.Epsilon);
+                    row.GetInt(1).ShouldBe(100);
+                    row.GetInt(2).ShouldBe(1);
+                    row.GetInt(3).ShouldBe(100);
+                    row.GetInt(4).ShouldBe(5050);
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
         }
 
@@ -1020,12 +1017,12 @@ namespace Test
                     var count = row.GetInt(1);
                     var maxZip = row.GetString(2);
                     if (n - 1 < expectedStates.Length) {
-                        state.Should().Be(expectedStates[n - 1]);
-                        count.Should().Be(expectedCounts[n - 1]);
-                        maxZip.Should().Be(expectedZips[n - 1]);
+                        state.ShouldBe(expectedStates[n - 1]);
+                        count.ShouldBe(expectedCounts[n - 1]);
+                        maxZip.ShouldBe(expectedZips[n - 1]);
                     }
                 });
-                numRows.Should().Be(31);
+                numRows.ShouldBe(31);
             }
 
             expectedStates = new[] { "CA", "IA", "IN" };
@@ -1044,12 +1041,12 @@ namespace Test
                     var count = row.GetInt(1);
                     var maxZip = row.GetString(2);
                     if (n - 1 < expectedStates.Length) {
-                        state.Should().Be(expectedStates[n - 1]);
-                        count.Should().Be(expectedCounts[n - 1]);
-                        maxZip.Should().Be(expectedZips[n - 1]);
+                        state.ShouldBe(expectedStates[n - 1]);
+                        count.ShouldBe(expectedCounts[n - 1]);
+                        maxZip.ShouldBe(expectedZips[n - 1]);
                     }
                 });
-                numRows.Should().Be(15);
+                numRows.ShouldBe(15);
             }
         }
 #endif
@@ -1074,10 +1071,10 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var number = row.GetInt(0);
-                    number.Should().Be(expectedNumbers[n - 1]);
+                    number.ShouldBe(expectedNumbers[n - 1]);
                 });
 
-                numRows.Should().Be(4);
+                numRows.ShouldBe(4);
             }
         }
 
@@ -1117,14 +1114,14 @@ namespace Test
                 foreach (var r in res) {
                     totalBooksCnt++;
                     var p = r.GetString("$price")?.Remove(0, 1);
-                    p.Should().NotBeNull("because otherwise the query didn't return correct results");
+                    p.ShouldNotBeNull("because otherwise the query didn't return correct results");
                     if (Convert.ToInt32(p) < 100)
                         bookPriceLessThan100Cnt++;
                 }
             }
 
-            totalBooksCnt.Should().Be(2);
-            bookPriceLessThan100Cnt.Should().Be(1);
+            totalBooksCnt.ShouldBe(2);
+            bookPriceLessThan100Cnt.ShouldBe(1);
         }
 
         [Fact]
@@ -1146,25 +1143,25 @@ namespace Test
                 {
                     var docID = row.GetString(0);
                     var docID2 = row.GetString("id");
-                    docID.Should().Be(docID2, "because these calls are two ways of accessing the same info");
+                    docID.ShouldBe(docID2, "because these calls are two ways of accessing the same info");
                     var seq = row.GetInt(1);
                     var seq2 = row.GetInt("sequence");
-                    seq.Should().Be(seq2, "because these calls are two ways of accessing the same info");
+                    seq.ShouldBe(seq2, "because these calls are two ways of accessing the same info");
                     var revID1 = row.GetString(2);
                     var revID2 = row.GetString("revisionID");
-                    revID1.Should().Be(revID2, "because these calls are two ways of accessing the same info");
+                    revID1.ShouldBe(revID2, "because these calls are two ways of accessing the same info");
                     var number = row.GetInt(3);
 
-                    docID.Should().Be(expectedDocIDs[n - 1]);
-                    seq.Should().Be(expectedSeqs[n - 1]);
+                    docID.ShouldBe(expectedDocIDs[n - 1]);
+                    seq.ShouldBe(expectedSeqs[n - 1]);
                     using (var d = DefaultCollection.GetDocument(docID!)) {
-                        d.Should().NotBeNull("because otherwise the document '{doc}' was missing", docID);
-                        revID1.Should().Be(d!.RevisionID);
+                        d.ShouldNotBeNull($"because otherwise the document '{docID}' was missing");
+                        revID1.ShouldBe(d!.RevisionID);
                     }
-                    number.Should().Be(expectedNumbers[n - 1]);
+                    number.ShouldBe(expectedNumbers[n - 1]);
                 });
 
-                numRows.Should().Be(5);
+                numRows.ShouldBe(5);
             }
         }
 
@@ -1184,10 +1181,10 @@ namespace Test
                 var expectedNumbers = new[] {1, 2, 3, 4, 5};
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                    row.GetInt(0).ShouldBe(expectedNumbers[n - 1]);
                 });
 
-                numRows.Should().Be(5);
+                numRows.ShouldBe(5);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
@@ -1200,10 +1197,10 @@ namespace Test
                 var expectedNumbers = new[] {1, 2, 3};
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                    row.GetInt(0).ShouldBe(expectedNumbers[n - 1]);
                 });
 
-                numRows.Should().Be(3);
+                numRows.ShouldBe(3);
             }
         }
 
@@ -1224,10 +1221,10 @@ namespace Test
                 var expectedNumbers = new[] {4, 5, 6, 7, 8};
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                    row.GetInt(0).ShouldBe(expectedNumbers[n - 1]);
                 });
 
-                numRows.Should().Be(5);
+                numRows.ShouldBe(5);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
@@ -1240,10 +1237,10 @@ namespace Test
                 var expectedNumbers = new[] {6, 7, 8};
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                    row.GetInt(0).ShouldBe(expectedNumbers[n - 1]);
                 });
 
-                numRows.Should().Be(3);
+                numRows.ShouldBe(3);
             }
         }
 
@@ -1267,13 +1264,13 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetValue("firstname").Should().Be(r.GetValue(0));
-                    r.GetValue("lastname").Should().Be(r.GetValue(1));
-                    r.GetValue("gender").Should().Be(r.GetValue(2));
-                    r.GetValue("city").Should().Be(r.GetValue(3));
+                    r.GetValue("firstname").ShouldBe(r.GetValue(0));
+                    r.GetValue("lastname").ShouldBe(r.GetValue(1));
+                    r.GetValue("gender").ShouldBe(r.GetValue(2));
+                    r.GetValue("city").ShouldBe(r.GetValue(3));
                 });
 
-                numRows.Should().Be(100);
+                numRows.ShouldBe(100);
             }
         }
 #endif
@@ -1292,11 +1289,11 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetDouble("$1").Should().Be(r.GetDouble(0));
-                    r.GetInt("$2").Should().Be(r.GetInt(1));
-                    r.GetInt("min").Should().Be(r.GetInt(2));
-                    r.GetInt("$3").Should().Be(r.GetInt(3));
-                    r.GetInt("sum").Should().Be(r.GetInt(4));
+                    r.GetDouble("$1").ShouldBe(r.GetDouble(0));
+                    r.GetInt("$2").ShouldBe(r.GetInt(1));
+                    r.GetInt("min").ShouldBe(r.GetInt(2));
+                    r.GetInt("$3").ShouldBe(r.GetInt(3));
+                    r.GetInt("sum").ShouldBe(r.GetInt(4));
                 });
             }
         }
@@ -1316,10 +1313,10 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetInt(0).Should().Be(2);
+                    r.GetInt(0).ShouldBe(2);
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0001"))),
@@ -1327,11 +1324,11 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetBoolean(0).Should().BeTrue();
-                    r.GetBoolean(1).Should().BeFalse();
+                    r.GetBoolean(0).ShouldBeTrue();
+                    r.GetBoolean(1).ShouldBeFalse();
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
         }
 
@@ -1369,10 +1366,10 @@ namespace Test
                     .From(DataSource.Collection(DefaultCollection))) {
                     var numRows = VerifyQuery(q, (n, r) =>
                     {
-                        r.GetDouble(0).Should().Be(expectedValues[index++]);
+                        r.GetDouble(0).ShouldBe(expectedValues[index++]);
                     });
 
-                    numRows.Should().Be(1);
+                    numRows.ShouldBe(1);
                 }
             }
 
@@ -1381,11 +1378,11 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetDouble(0).Should().Be(Math.E * 2);
-                    r.GetDouble(1).Should().Be(Math.PI * 2);
+                    r.GetDouble(0).ShouldBe(Math.E * 2);
+                    r.GetDouble(1).ShouldBe(Math.PI * 2);
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
         }
 
@@ -1404,21 +1401,21 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetBoolean(0).Should().BeTrue();
-                    r.GetBoolean(1).Should().BeFalse();
+                    r.GetBoolean(0).ShouldBeTrue();
+                    r.GetBoolean(1).ShouldBeFalse();
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Function.Length(prop)))
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetInt(0).Should().Be(str.Length);
+                    r.GetInt(0).ShouldBe(str.Length);
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Function.Lower(prop)),
@@ -1429,14 +1426,14 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetString(0).Should().Be(str.ToLowerInvariant());
-                    r.GetString(1).Should().Be(str.TrimStart());
-                    r.GetString(2).Should().Be(str.TrimEnd());
-                    r.GetString(3).Should().Be(str.Trim());
-                    r.GetString(4).Should().Be(str.ToUpperInvariant());
+                    r.GetString(0).ShouldBe(str.ToLowerInvariant());
+                    r.GetString(1).ShouldBe(str.TrimStart());
+                    r.GetString(2).ShouldBe(str.TrimEnd());
+                    r.GetString(3).ShouldBe(str.Trim());
+                    r.GetString(4).ShouldBe(str.ToUpperInvariant());
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
         }
 
@@ -1453,7 +1450,7 @@ namespace Test
                 var expected = new[] {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id"));
-                received.Should().BeEquivalentTo(expected);
+                received.ShouldBeEquivalentToFluent(expected);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -1462,8 +1459,8 @@ namespace Test
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id")).ToList();
-                received.Count.Should().Be(42, "because empty array results are included");
-                received[0].Should().Be("doc-007");
+                received.Count.ShouldBe(42, "because empty array results are included");
+                received[0].ShouldBe("doc-007");
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -1472,7 +1469,7 @@ namespace Test
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id")).ToList();
-                received.Count.Should().Be(0, "because nobody likes taxes...");
+                received.Count.ShouldBe(0, "because nobody likes taxes...");
             }
         }
 #endif
@@ -1524,8 +1521,8 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(where)) {
                 var expected = new[] { "doc-0", "doc-2" };
-                var numRows = VerifyQuery(q, (n, row) => { row.GetString(0).Should().Be(expected[n - 1]); });
-                numRows.Should().Be(expected.Length);
+                var numRows = VerifyQuery(q, (n, row) => { row.GetString(0).ShouldBe(expected[n - 1]); });
+                numRows.ShouldBe(expected.Length);
             }
         }
 
@@ -1538,13 +1535,13 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     var all = r.GetDictionary(0);
-                    all.Should().NotBeNull("because otherwise the query returned incorrect results");
-                    all!.GetInt("number1").Should().Be(n);
-                    all.GetInt("number2").Should().Be(100 - n);
-                    r.GetInt(1).Should().Be(n);
+                    all.ShouldNotBeNull("because otherwise the query returned incorrect results");
+                    all!.GetInt("number1").ShouldBe(n);
+                    all.GetInt("number2").ShouldBe(100 - n);
+                    r.GetInt(1).ShouldBe(n);
                 });
 
-                numRows.Should().Be(100);
+                numRows.ShouldBe(100);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.All().From("db"), SelectResult.Expression(Expression.Property("number1").From("db")))
@@ -1552,13 +1549,13 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     var all = r.GetDictionary(0);
-                    all.Should().NotBeNull("because otherwise the query returned incorrect results");
-                    all!.GetInt("number1").Should().Be(n);
-                    all.GetInt("number2").Should().Be(100 - n);
-                    r.GetInt(1).Should().Be(n);
+                    all.ShouldNotBeNull("because otherwise the query returned incorrect results");
+                    all!.GetInt("number1").ShouldBe(n);
+                    all.GetInt("number2").ShouldBe(100 - n);
+                    r.GetInt(1).ShouldBe(n);
                 });
 
-                numRows.Should().Be(100);
+                numRows.ShouldBe(100);
             }
         }
         
@@ -1584,38 +1581,38 @@ namespace Test
             asciiNoSensitive.SetOperand(expr);
             locale.SetOperand(expr);
 
-            bothSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object> {
+            bothSensitive.ConvertToJSON().ShouldBeEquivalentToFluent(new object[] { "COLLATE", new Dictionary<string, object> {
                 ["UNICODE"] = true,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            accentSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            accentSensitive.ConvertToJSON().ShouldBeEquivalentToFluent(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["CASE"] = false,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            caseSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            caseSensitive.ConvertToJSON().ShouldBeEquivalentToFluent(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["DIAC"] = false,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            noSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            noSensitive.ConvertToJSON().ShouldBeEquivalentToFluent(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["DIAC"] = false,
                 ["CASE"] = false,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            ascii.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            ascii.ConvertToJSON().ShouldBeEquivalentToFluent(new object[] { "COLLATE", new Dictionary<string, object>
             {
             }, new[] { ".test" }});
-            asciiNoSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            asciiNoSensitive.ConvertToJSON().ShouldBeEquivalentToFluent(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["CASE"] = false
             }, new[] { ".test" }});
 
-            locale.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            locale.ConvertToJSON().ShouldBeEquivalentToFluent(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["LOCALE"] = "ja"
@@ -1638,7 +1635,7 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode())))) {
                 var results = q.Execute();
-                results.Select(x => x.GetString(0)).Should().BeEquivalentTo(new[] {"A", "Å", "B", "Z"},
+                results.Select(x => x.GetString(0)).ShouldBeEquivalentToFluent(new[] {"A", "Å", "B", "Z"},
                     "because by default Å comes between A and B");
             }
 
@@ -1646,7 +1643,7 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode().Locale("se"))))) {
                 var results = q.Execute();
-                results.Select(x => x.GetString(0)).Should().BeEquivalentTo(new[] { "A", "B", "Z", "Å" },
+                results.Select(x => x.GetString(0)).ShouldBeEquivalentToFluent(new[] { "A", "B", "Z", "Å" },
                     "because in Swedish Å comes after Z");
             }
         }
@@ -1737,7 +1734,7 @@ namespace Test
                         .From(DataSource.Collection(DefaultCollection))
                         .Where(comparison)) {
                         var result = q.Execute();
-                        result.Should().HaveCount(1,
+                        result.Count().ShouldBe(1,
                             $"because otherwise the comparison failed for {data.Item1} and {data.Item2} (position {i})");
                     }
 
@@ -1783,7 +1780,7 @@ namespace Test
                     .From(DataSource.Collection(DefaultCollection))
                     .OrderBy(Ordering.Expression(property.Collate(data.Item2)))) {
                     var results = q.Execute();
-                    results.Select(x => x.GetString(0)).Should().ContainInOrder(data.Item3);
+                    results.Select(x => x.GetString(0)).ShouldBeEquivalentToFluent(data.Item3);
                 }
             }
         }
@@ -1798,8 +1795,8 @@ namespace Test
             var cnt = Function.Count(Expression.Property("number1"));
             var rsCnt = SelectResult.Expression(cnt);
             using (var q = QueryBuilder.Select(rsCnt).From(ds)) {
-                var numRows = VerifyQuery(q, (n, row) => { row.GetInt(0).Should().Be(100); });
-                numRows.Should().Be(1);
+                var numRows = VerifyQuery(q, (n, row) => { row.GetInt(0).ShouldBe(100); });
+                numRows.ShouldBe(1);
             }
         }
 
@@ -1876,22 +1873,22 @@ namespace Test
                         counter++;
                     }
 
-                    counter.Should().Be(2);
+                    counter.ShouldBe(2);
 
-                    task1.IsDeleted.Should().BeFalse();
+                    task1.IsDeleted.ShouldBeFalse();
                     DefaultCollection.Delete(task1);
-                    DefaultCollection.Count.Should().Be(1);
-                    DefaultCollection.GetDocument(task1.Id).Should().BeNull();
+                    DefaultCollection.Count.ShouldBe(1UL);
+                    DefaultCollection.GetDocument(task1.Id).ShouldBeNull();
 
                     rs = q.Execute();
                     counter = 0;
                     foreach (var r in rs) {
-                        r.GetString(0).Should().Be(task2.Id);
+                        r.GetString(0).ShouldBe(task2.Id);
                         WriteLine($"Round 2: Result -> {JsonConvert.SerializeObject(r.ToDictionary())}");
                         counter++;
                     }
 
-                    counter.Should().Be(1);
+                    counter.ShouldBe(1);
                 }
             }
         }
@@ -1903,7 +1900,7 @@ namespace Test
             using (var task1 = CreateTaskDocument("Task 1", false))
             using (var task2 = CreateTaskDocument("Task 2", true))
             using (var task3 = CreateTaskDocument("Task 3", true)) {
-                DefaultCollection.Count.Should().Be(3);
+                DefaultCollection.Count.ShouldBe(3UL);
 
                 var exprType = Expression.Property("type");
                 var exprComplete = Expression.Property("complete");
@@ -1915,13 +1912,13 @@ namespace Test
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
                         var dict = row.GetDictionary("_default");
-                        dict.Should().NotBeNull("because otherwise the query returned incorrect data");
-                        dict!.GetBoolean("complete").Should().BeTrue();
-                        dict.GetString("type").Should().Be("task");
-                        dict.GetString("title").Should().StartWith("Task ");
+                        dict.ShouldNotBeNull("because otherwise the query returned incorrect data");
+                        dict!.GetBoolean("complete").ShouldBeTrue();
+                        dict.GetString("type").ShouldBe("task");
+                        dict.GetString("title").ShouldStartWith("Task ");
                     });
 
-                    numRows.Should().Be(2);
+                    numRows.ShouldBe(2);
                 }
 
                 using (var q = QueryBuilder.Select(SelectResult.All())
@@ -1931,13 +1928,13 @@ namespace Test
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
                         var dict = row.GetDictionary("_default");
-                        dict.Should().NotBeNull("because otherwise the query returned incorrect data");
-                        dict!.GetBoolean("complete").Should().BeFalse();
-                        dict.GetString("type").Should().Be("task");
-                        dict.GetString("title").Should().StartWith("Task ");
+                        dict.ShouldNotBeNull("because otherwise the query returned incorrect data");
+                        dict!.GetBoolean("complete").ShouldBeFalse();
+                        dict.GetString("type").ShouldBe("task");
+                        dict.GetString("title").ShouldStartWith("Task ");
                     });
 
-                    numRows.Should().Be(1);
+                    numRows.ShouldBe(1);
                 }
 
                 using (var q = QueryBuilder.Select(srCount)
@@ -1946,10 +1943,10 @@ namespace Test
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        row.GetInt(0).Should().Be(2);
+                        row.GetInt(0).ShouldBe(2);
                     });
 
-                    numRows.Should().Be(1);
+                    numRows.ShouldBe(1);
                 }
 
                 using (var q = QueryBuilder.Select(srCount)
@@ -1958,10 +1955,10 @@ namespace Test
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        row.GetInt(0).Should().Be(1);
+                        row.GetInt(0).ShouldBe(1);
                     });
 
-                    numRows.Should().Be(1);
+                    numRows.ShouldBe(1);
                 }
             }
         }
@@ -2002,15 +1999,15 @@ namespace Test
                     WriteLine($"secondAll1 -> {JsonConvert.SerializeObject(secondAll1)}");
                     WriteLine($"secondAll2 -> {JsonConvert.SerializeObject(secondAll2)}");
 
-                    mainAll1?.GetInt("number1").Should().Be(42);
-                    mainAll2?.GetInt("number1").Should().Be(42);
-                    mainAll1?.GetInt("number2").Should().Be(58);
-                    mainAll1?.GetInt("number2").Should().Be(58);
-                    secondAll1?.GetInt("theone").Should().Be(42);
-                    secondAll2?.GetInt("theone").Should().Be(42);
+                    mainAll1?.GetInt("number1").ShouldBe(42);
+                    mainAll2?.GetInt("number1").ShouldBe(42);
+                    mainAll1?.GetInt("number2").ShouldBe(58);
+                    mainAll1?.GetInt("number2").ShouldBe(58);
+                    secondAll1?.GetInt("theone").ShouldBe(42);
+                    secondAll2?.GetInt("theone").ShouldBe(42);
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
         }
 
@@ -2043,20 +2040,20 @@ namespace Test
                 .Join(join)) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    n.Should().Be(1);
+                    n.ShouldBe(1);
                     var docID = row.GetString("mainDocID");
-                    docID.Should().NotBeNull("because otherwise the query returned incorrect results");
+                    docID.ShouldNotBeNull("because otherwise the query returned incorrect results");
                     using (var doc = DefaultCollection.GetDocument(docID!)) {
-                        doc.Should().NotBeNull("because otherwise the document disappeared from the database");
-                        doc!.GetInt("number1").Should().Be(1);
-                        doc.GetInt("number2").Should().Be(99);
+                        doc.ShouldNotBeNull("because otherwise the document disappeared from the database");
+                        doc!.GetInt("number1").ShouldBe(1);
+                        doc.GetInt("number2").ShouldBe(99);
 
-                        row.GetString("secondaryDocID").Should().Be("joinme");
-                        row.GetInt("theone").Should().Be(42);
+                        row.GetString("secondaryDocID").ShouldBe("joinme");
+                        row.GetInt("theone").ShouldBe(42);
                     }
                 });
 
-                numRows.Should().Be(1);
+                numRows.ShouldBe(1);
             }
         }
 
@@ -2074,20 +2071,20 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 var results = q.Execute();
                 foreach (var result in results) {
-                    result.Count.Should().Be(1);
-                    result.Contains("name").Should().BeFalse();
-                    result.GetString("name").Should().BeNull();
-                    result.GetValue("name").Should().BeNull();
-                    result.GetString(0).Should().BeNull();
-                    result.GetValue(0).Should().BeNull();
-                    result.Contains("nullval").Should().BeTrue();
-                    result.GetString("nullval").Should().BeNull();
-                    result.GetValue("nullval").Should().BeNull();
-                    result.GetString(1).Should().BeNull();
-                    result.GetValue(1).Should().BeNull();
+                    result.Count.ShouldBe(1);
+                    result.Contains("name").ShouldBeFalse();
+                    result.GetString("name").ShouldBeNull();
+                    result.GetValue("name").ShouldBeNull();
+                    result.GetString(0).ShouldBeNull();
+                    result.GetValue(0).ShouldBeNull();
+                    result.Contains("nullval").ShouldBeTrue();
+                    result.GetString("nullval").ShouldBeNull();
+                    result.GetValue("nullval").ShouldBeNull();
+                    result.GetString(1).ShouldBeNull();
+                    result.GetValue(1).ShouldBeNull();
 
-                    result?.ToList<object?>().Should().ContainInOrder(new object?[] { null });
-                    result?.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object?>
+                    result?.ToList<object?>().ShouldBeEquivalentToFluent(new object?[] { null });
+                    result?.ToDictionary().ShouldBeEquivalentToFluent(new Dictionary<string, object?>
                     {
                         ["nullval"] = null
                     });
@@ -2108,12 +2105,14 @@ namespace Test
                 .SetString("name", "Jim");
 
             var parameters = builder;
-            parameters.GetValue("true").As<bool>().Should().BeTrue();
-            parameters.GetValue("now").As<DateTimeOffset>().Should().Be(now);
-            parameters.GetValue("pi").As<double>().Should().Be(Math.PI);
-            parameters.GetValue("simple_pi").As<float>().Should().Be(3.14159f);
-            parameters.GetValue("big_num").As<long>().Should().Be(Int64.MaxValue);
-            parameters.GetValue("name").As<string>().Should().Be("Jim");
+#pragma warning disable CS8605 // Unboxing a possibly null value.
+            ((bool)parameters.GetValue("true")).ShouldBeTrue();
+            ((DateTimeOffset)parameters.GetValue("now")).ShouldBe(now);
+            ((double)parameters.GetValue("pi")).ShouldBe(Math.PI);
+            ((float)parameters.GetValue("simple_pi")).ShouldBe(3.14159f);
+            ((long)parameters.GetValue("big_num")).ShouldBe(Int64.MaxValue);
+            ((string?)parameters.GetValue("name")).ShouldBe("Jim");
+#pragma warning restore CS8605 // Unboxing a possibly null value.
         }
 
         [Fact]
@@ -2141,25 +2140,25 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))) {
                 VerifyQuery(q, (n, row) =>
                 {
-                    row.GetArray(0).Should().ContainInOrder(1L, 2L, 3L);
-                    row.GetArray("array").Should().ContainInOrder(1L, 2L, 3L);
-                    row.GetBlob(1)?.Content.Should().ContainInOrder(blobContent);
-                    row.GetBlob("blob")?.Content.Should().ContainInOrder(blobContent);
-                    row.GetDate(2).Should().Be(now);
-                    row.GetDate("created_at").Should().Be(now);
-                    row.GetFloat(3).Should().Be(3.14159f);
-                    row.GetFloat("simple_pi").Should().Be(3.14159f);
-                    row.GetLong(4).Should().Be(Int64.MaxValue);
-                    row.GetLong("big_num").Should().Be(Int64.MaxValue);
+                    row.GetArray(0).ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                    row.GetArray("array").ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                    row.GetBlob(1)?.Content.ShouldBeEquivalentToFluent(blobContent);
+                    row.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(blobContent);
+                    row.GetDate(2).ShouldBe(now);
+                    row.GetDate("created_at").ShouldBe(now);
+                    row.GetFloat(3).ShouldBe(3.14159f);
+                    row.GetFloat("simple_pi").ShouldBe(3.14159f);
+                    row.GetLong(4).ShouldBe(Int64.MaxValue);
+                    row.GetLong("big_num").ShouldBe(Int64.MaxValue);
 
-                    row[4].Long.Should().Be(Int64.MaxValue);
-                    row["big_num"].Long.Should().Be(Int64.MaxValue);
-                    row.GetBoolean(5).Should().Be(true);
-                    row.GetBoolean("boolean").Should().Be(true);
+                    row[4].Long.ShouldBe(Int64.MaxValue);
+                    row["big_num"].Long.ShouldBe(Int64.MaxValue);
+                    row.GetBoolean(5).ShouldBe(true);
+                    row.GetBoolean("boolean").ShouldBe(true);
 
                     var resultList = row.ToList();
-                    resultList.Count.Should().Be(6);
-                    resultList.ElementAtOrDefault(2).Should().Be(now.ToString("o"));
+                    resultList.Count.ShouldBe(6);
+                    resultList.ElementAtOrDefault(2).ShouldBe(now.ToString("o"));
                 });
             }
         }
@@ -2186,9 +2185,9 @@ namespace Test
                 .Where(FullTextFunction.Match(Expression.FullTextIndex("passageIndex"), "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetString(0).Should().Be($"doc{n}");
+                    row.GetString(0).ShouldBe($"doc{n}");
                 });
-                count.Should().Be(2);
+                count.ShouldBe(2);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -2196,9 +2195,9 @@ namespace Test
                 .Where(FullTextFunction.Match(Expression.FullTextIndex("passageIndexStemless"), "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetString(0).Should().Be($"doc{n}");
+                    row.GetString(0).ShouldBe($"doc{n}");
                 });
-                count.Should().Be(1);
+                count.ShouldBe(1);
             }
         }
 
@@ -2267,10 +2266,10 @@ namespace Test
                 resultsValue = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
             }
 
-            resultsDouble.Length.Should().Be(1);
-            resultsFloat.Length.Should().Be(1);
-            resultsLong.Length.Should().Be(1);
-            resultsValue.Length.Should().Be(1);
+            resultsDouble.Length.ShouldBe(1);
+            resultsFloat.Length.ShouldBe(1);
+            resultsLong.Length.ShouldBe(1);
+            resultsValue.Length.ShouldBe(1);
         }
 
         [Fact]
@@ -2291,7 +2290,7 @@ namespace Test
                 .Select(SelectResult.All())
                 .From(DataSource.Collection(DefaultCollection))) {
                 var l = from.Execute().ToArray();
-                l.Count().Should().Be(1);
+                l.Count().ShouldBe(1);
             }
 ;
             using (var query = QueryBuilder
@@ -2312,8 +2311,8 @@ namespace Test
                 results2 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
             }
 
-            results1.Length.Should().Be(1);
-            results2.Length.Should().Be(1);
+            results1.Length.ShouldBe(1);
+            results2.Length.ShouldBe(1);
         }
 
         [Fact]
@@ -2332,9 +2331,9 @@ namespace Test
                     Expression.Property("timestamp").EqualTo(Expression.Date(dto1))
                 )) {
                 resultset = (QueryResultSet)query.Execute();
-                resultset.Collection.Should().Be(DefaultCollection);
+                resultset.Collection.ShouldBe(DefaultCollection);
                 List<Result> allRes = resultset.AllResults();
-                allRes.Count.Should().Be(1);
+                allRes.Count.ShouldBe(1);
                 var columnName = resultset.ColumnNames;
             }
             resultset.Refresh();
@@ -2392,9 +2391,9 @@ namespace Test
                 results3 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
             }
 
-            results1.Length.Should().Be(1);
-            results2.Length.Should().Be(1);
-            results3.Length.Should().Be(1);
+            results1.Length.ShouldBe(1);
+            results2.Length.ShouldBe(1);
+            results3.Length.ShouldBe(1);
         }
 
         [ForIssue("couchbase-lite-core/497")]
@@ -2426,16 +2425,16 @@ namespace Test
                 {
                     if (n == 41) {
                         WriteLine($"41: {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        row.GetDictionary("main")?.GetInt("number2").Should().Be(59);
-                        row.GetDictionary("secondary").Should().BeNull();
+                        row.GetDictionary("main")?.GetInt("number2").ShouldBe(59);
+                        row.GetDictionary("secondary").ShouldBeNull();
                     } else if (n == 42) {
                         WriteLine($"42: {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        row.GetDictionary("main")?.GetInt("number2").Should().Be(58);
-                        row.GetDictionary("secondary")?.GetInt("theone").Should().Be(42);
+                        row.GetDictionary("main")?.GetInt("number2").ShouldBe(58);
+                        row.GetDictionary("secondary")?.GetInt("theone").ShouldBe(42);
                     }
                 });
 
-                numRows.Should().Be(101);
+                numRows.ShouldBe(101);
             }
         }
 
@@ -2476,12 +2475,12 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Property("local").Ascending())) {
                 foreach (var result in q.Execute()) {
-                    result.GetLong(0).Should().Be(expectedLocal[i]);
-                    result.GetLong(1).Should().Be(expectedJST[i]);
-                    result.GetLong(2).Should().Be(expectedJST[i]);
-                    result.GetLong(3).Should().Be(expectedPST[i]);
-                    result.GetLong(4).Should().Be(expectedPST[i]);
-                    result.GetLong(5).Should().Be(expectedUTC[i]);
+                    result.GetLong(0).ShouldBe(expectedLocal[i]);
+                    result.GetLong(1).ShouldBe(expectedJST[i]);
+                    result.GetLong(2).ShouldBe(expectedJST[i]);
+                    result.GetLong(3).ShouldBe(expectedPST[i]);
+                    result.GetLong(4).ShouldBe(expectedPST[i]);
+                    result.GetLong(5).ShouldBe(expectedUTC[i]);
                     i++;
                 }
             }
@@ -2519,12 +2518,12 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Property("local").Ascending())) {
                 foreach (var result in q.Execute()) {
-                    result.GetString(0).Should().Be(expectedLocal.ElementAt(i));
-                    result.GetString(1).Should().Be(expectedJST[i]);
-                    result.GetString(2).Should().Be(expectedJST[i]);
-                    result.GetString(3).Should().Be(expectedPST[i]);
-                    result.GetString(4).Should().Be(expectedPST[i]);
-                    result.GetString(5).Should().Be(expectedUTC[i]);
+                    result.GetString(0).ShouldBe(expectedLocal.ElementAt(i));
+                    result.GetString(1).ShouldBe(expectedJST[i]);
+                    result.GetString(2).ShouldBe(expectedJST[i]);
+                    result.GetString(3).ShouldBe(expectedPST[i]);
+                    result.GetString(4).ShouldBe(expectedPST[i]);
+                    result.GetString(5).ShouldBe(expectedUTC[i]);
                     i++;
                 }
             }
@@ -2570,8 +2569,8 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Property("timestamp").Ascending())) {
                 foreach (var result in q.Execute()) {
-                    result.GetString(0).Should().Be(expectedLocal.ElementAt(i));
-                    result.GetString(1).Should().Be(expectedUTC[i]);
+                    result.GetString(0).ShouldBe(expectedLocal.ElementAt(i));
+                    result.GetString(1).ShouldBe(expectedUTC[i]);
                     i++;
                 }
             }
@@ -2585,8 +2584,8 @@ namespace Test
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
                 var res = q.Execute();
                 foreach(var result in res) {
-                    result.Keys.ElementAt(0).Should().Be("_id");
-                    result.Keys.ElementAt(1).Should().Be("_sequence");
+                    result.Keys.ElementAt(0).ShouldBe("_id");
+                    result.Keys.ElementAt(1).ShouldBe("_sequence");
                 }
             }
         }
@@ -2638,7 +2637,7 @@ namespace Test
                 `13`,`14`,`15`,`16`,`17`,`18`,`19`,`20`,`21`,`22`,`23`,`24`,
                 `25`,`26`,`27`,`28`,`29`,`30`,`31`,`32`, `key` from _ limit 1")) {
                 //ColumnNames is an internal property.
-                ((QueryBase)q).ColumnNames.Count.Should().BeGreaterOrEqualTo(32);
+                ((QueryBase)q).ColumnNames.Count.ShouldBeGreaterThanOrEqualTo(32);
             }
         }
 
@@ -2670,9 +2669,9 @@ namespace Test
                 .Where(FullTextFunction.Match(plainIndex, "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetString(0).Should().Be($"doc{n}");
+                    row.GetString(0).ShouldBe($"doc{n}");
                 });
-                count.Should().Be(2);
+                count.ShouldBe(2);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -2680,9 +2679,9 @@ namespace Test
                 .Where(FullTextFunction.Match(qualifiedIndex, "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetString(0).Should().Be($"doc{n}");
+                    row.GetString(0).ShouldBe($"doc{n}");
                 });
-                count.Should().Be(2);
+                count.ShouldBe(2);
             }
         }
 
@@ -2720,7 +2719,7 @@ namespace Test
             //    {
             //        row.GetString(0).Should().StartWith("doc");
             //    });
-            //    count.Should().Be(4);
+            //    count.ShouldBe(4);
             //}
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID.From("main")))
@@ -2731,9 +2730,9 @@ namespace Test
                 .OrderBy(Ordering.Expression(Meta.ID.From("main")))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
-                    row.GetString(0).Should().StartWith("doc");
+                    row.GetString(0).ShouldStartWith("doc");
                 });
-                count.Should().Be(4);
+                count.ShouldBe(4);
             }
         }
 
@@ -2775,13 +2774,13 @@ namespace Test
             foreach (var pair in sqlInputAndResult) {
                 using var q = Db.CreateQuery($"SELECT * FROM {pair.queryID}");
                 var results = q.Execute();
-                results.First()[pair.resultName].Exists.Should().BeTrue($"because otherwise the result column name {pair.resultName} was not present");
+                results.First()[pair.resultName].Exists.ShouldBeTrue($"because otherwise the result column name {pair.resultName} was not present");
             }
 
             foreach (var pair in queryBuilderInputAndResult) {
                 using var q = QueryBuilder.Select(SelectResult.All()).From(pair.querySource);
                 var results = q.Execute();
-                results.First()[pair.resultName].Exists.Should().BeTrue($"because otherwise the result column name {pair.resultName} was not present");
+                results.First()[pair.resultName].Exists.ShouldBeTrue($"because otherwise the result column name {pair.resultName} was not present");
             }
         }
 
@@ -2806,21 +2805,21 @@ namespace Test
             var rs = query.Execute();
             var r = rs.First();
             var arr1 = r.GetArray("arr");
-            arr1.Should().NotBeNull("because otherwise the query didn't contain 'arr'");
+            arr1.ShouldNotBeNull("because otherwise the query didn't contain 'arr'");
             var dict1 = r.GetDictionary("dict");
-            dict1.Should().NotBeNull("because otherwise the query didn't contain 'dict'");
+            dict1.ShouldNotBeNull("because otherwise the query didn't contain 'dict'");
 
             rs.Dispose();
 
-            FluentActions.Invoking(() => r.GetArray("arr")).Should().Throw<ObjectDisposedException>();
-            FluentActions.Invoking(() => r.GetDictionary("dict")).Should().Throw<ObjectDisposedException>();
-            FluentActions.Invoking(() => r.GetBlob("blob")).Should().Throw<ObjectDisposedException>();
-            r.GetInt("int").Should().Be(42);
+            Should.Throw<ObjectDisposedException>(() => r.GetArray("arr"));
+            Should.Throw<ObjectDisposedException>(() => r.GetDictionary("dict"));
+            Should.Throw<ObjectDisposedException>(() => r.GetBlob("blob"));
+            r.GetInt("int").ShouldBe(42);
 
-            FluentActions.Invoking(() => arr1!.GetValue(0)).Should().Throw<ObjectDisposedException>();
-            FluentActions.Invoking(() => dict1!.GetValue("foo")).Should().Throw<ObjectDisposedException>();
-            arr.GetInt(0).Should().Be(1);
-            dict.GetString("foo").Should().Be("bar");
+            Should.Throw<ObjectDisposedException>(() => arr1!.GetValue(0));
+            Should.Throw<ObjectDisposedException>(() => dict1!.GetValue("foo"));
+            arr.GetInt(0).ShouldBe(1);
+            dict.GetString("foo").ShouldBe("bar");
         }
 
         [Fact]
@@ -2828,9 +2827,10 @@ namespace Test
         public void TestColumnNamesAfterDispose()
         {
             var q = Db.CreateQuery(@"select foo from _") as QueryBase;
-            q.ColumnNames.Should().HaveCount(1, "because there is one column");
+            q.ShouldNotBeNull();
+            q.ColumnNames.Count.ShouldBe(1, "because there is one column");
             q.Dispose();
-            FluentActions.Invoking(() => q.ColumnNames).Should().Throw<ObjectDisposedException>("because the object was disposed");
+            Should.Throw<ObjectDisposedException>(() => q.ColumnNames, "because the object was disposed");
         }
 
         private void CreateDateDocs()
@@ -2881,7 +2881,7 @@ namespace Test
                 {
                     if (consumeAll) {
                         var rs = args.Results;
-                        rs.ToArray().Should().NotBeNull(); // No-op
+                        rs.ToArray().ShouldNotBeNull(); // No-op
                     }
 
                     are.Set();
@@ -2893,9 +2893,9 @@ namespace Test
                     // This change will not affect the query results because 'number1 < 10' 
                     // is not true
                     CreateDocInSeries(111, 100);
-                    are.WaitOne(5000).Should()
-                        .BeTrue("because the Changed event should fire once for the initial results");
-                    are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
+                    are.WaitOne(5000)
+                        .ShouldBeTrue("because the Changed event should fire once for the initial results");
+                    are.WaitOne(5000).ShouldBeFalse("because the Changed event should not fire needlessly");
                 } finally {
                     token.Remove();
                 }
@@ -2941,16 +2941,16 @@ namespace Test
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {
-                        row.GetString(0).Should().NotBeNull("because otherwise the query returned incorrect information");
+                        row.GetString(0).ShouldNotBeNull("because otherwise the query returned incorrect information");
                         var doc = DefaultCollection.GetDocument(row.GetString(0)!);
-                        doc.Should().NotBeNull("because otherwise document '{doc}' didn't exist", row.GetString(0));
+                        doc.ShouldNotBeNull($"because otherwise document '{row.GetString(0)}' didn't exist");
                         var props = doc!.ToDictionary();
-                        c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
+                        c.Item2(props, c.Item3).ShouldBeTrue("because otherwise the row failed validation");
                         lastN = n;
                     });
 
-                    lastN.Should()
-                        .Be(expectedResultCount[index++], "because otherwise there was an incorrect number of rows");
+                    lastN
+                        .ShouldBe(expectedResultCount[index++], "because otherwise there was an incorrect number of rows");
                 }
             }
         }

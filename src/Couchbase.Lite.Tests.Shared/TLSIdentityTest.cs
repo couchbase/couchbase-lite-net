@@ -34,7 +34,7 @@ using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Query;
 
-using FluentAssertions;
+using Shouldly;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -91,11 +91,11 @@ namespace Test
                 ClientCertLabel,
                 null);
 
-            identity.Should().NotBeNull();
+            identity.ShouldNotBeNull();
             var certs = identity!.Certs;
 
             id = TLSIdentity.GetIdentity(certs);
-            id.Should().NotBeNull();
+            id.ShouldNotBeNull();
 
             // Delete
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
@@ -114,11 +114,11 @@ namespace Test
                 ClientCertLabel,
                 null);
 
-            identity.Should().NotBeNull();
+            identity.ShouldNotBeNull();
             var certs = identity!.Certs;
 
             id = TLSIdentity.GetIdentity(certs);
-            id.Should().NotBeNull();
+            id.ShouldNotBeNull();
 
             // Delete
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
@@ -141,13 +141,13 @@ namespace Test
 
             // Import
             id = TLSIdentity.ImportIdentity(_store, data, "123", ServerCertLabel, null);
-            id.Should().NotBeNull();
-            id!.Certs.Count.Should().Be(2);
-            ValidateCertsInStore(id.Certs, _store).Should().BeTrue();
+            id.ShouldNotBeNull();
+            id!.Certs.Count.ShouldBe(2);
+            ValidateCertsInStore(id.Certs, _store).ShouldBeTrue();
 
             // Get
             id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
-            id.Should().NotBeNull();
+            id.ShouldNotBeNull();
         }
 
         [Fact]
@@ -158,7 +158,7 @@ namespace Test
 
             //Get
             var id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
-            id.Should().BeNull();
+            id.ShouldBeNull();
 
             // Create id with empty Attributes
             Action badAction = (() => TLSIdentity.CreateIdentity(KeyUsages.ServerAuth,
@@ -167,7 +167,8 @@ namespace Test
                 _store,
                 ServerCertLabel,
                 null));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
+            Should.Throw<CouchbaseLiteException>(badAction)
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
         }
 
         [Fact]
@@ -180,7 +181,7 @@ namespace Test
 
             //Get
             id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
-            id.Should().BeNull();
+            id.ShouldBeNull();
 
             var fiveMinToExpireCert = DateTimeOffset.UtcNow.AddMinutes(5);
             id = TLSIdentity.CreateIdentity(KeyUsages.ServerAuth,
@@ -190,9 +191,9 @@ namespace Test
                 ServerCertLabel,
                 null);
 
-            id.Should().NotBeNull();
-            (id!.Expiration - DateTimeOffset.UtcNow).Should().BeGreaterThan(TimeSpan.MinValue);
-            (id.Expiration - DateTimeOffset.UtcNow).Should().BeLessOrEqualTo(TimeSpan.FromMinutes(5));
+            id.ShouldNotBeNull();
+            (id!.Expiration - DateTimeOffset.UtcNow).ShouldBeGreaterThan(TimeSpan.MinValue);
+            (id.Expiration - DateTimeOffset.UtcNow).ShouldBeLessThanOrEqualTo(TimeSpan.FromMinutes(5));
 
             // Delete 
             TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
@@ -231,7 +232,7 @@ namespace Test
 
             //Get
             id = TLSIdentity.GetIdentity(_store, label, null);
-            id.Should().BeNull();
+            id.ShouldBeNull();
 
             // Create
             id = TLSIdentity.CreateIdentity(keyUsages,
@@ -240,22 +241,22 @@ namespace Test
                 _store,
                 label,
                 null);
-            id.Should().NotBeNull();
-            id!.Certs.Count.Should().Be(1);
-            ValidateCertsInStore(id.Certs, _store).Should().BeTrue();
+            id.ShouldNotBeNull();
+            id!.Certs.Count.ShouldBe(1);
+            ValidateCertsInStore(id.Certs, _store).ShouldBeTrue();
 
             // Get
             id = TLSIdentity.GetIdentity(_store, label, null);
-            id.Should().NotBeNull();
-            id!.Certs.Count.Should().Be(1);
-            ValidateCertsInStore(id.Certs, _store).Should().BeTrue();
+            id.ShouldNotBeNull();
+            id!.Certs.Count.ShouldBe(1);
+            ValidateCertsInStore(id.Certs, _store).ShouldBeTrue();
 
             // Delete
             TLSIdentity.DeleteIdentity(_store, label, null);
 
             // Get
             id = TLSIdentity.GetIdentity(_store, label, null);
-            id.Should().BeNull();
+            id.ShouldBeNull();
         }
 
         private void CreateDuplicateServerIdentity(KeyUsages keyUsages)
@@ -275,12 +276,12 @@ namespace Test
                 _store,
                 label,
                 null);
-            id.Should().NotBeNull();
-            id!.Certs.Count.Should().Be(1);
+            id.ShouldNotBeNull();
+            id!.Certs.Count.ShouldBe(1);
 
             //Get - Need to check why CryptographicException: Invalid provider type specified
             //id = TLSIdentity.GetIdentity(_store, label, null);
-            //id.Should().NotBeNull();
+            //id.ShouldNotBeNull();
 
             // Create again with the same label
             Action badAction = (() => TLSIdentity.CreateIdentity(keyUsages,
@@ -289,7 +290,8 @@ namespace Test
                 _store,
                 label,
                 null));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.DuplicateCertificate);
+            Should.Throw<CouchbaseLiteException>(badAction)
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DuplicateCertificate);
         }
 
         protected override void Dispose(bool disposing)

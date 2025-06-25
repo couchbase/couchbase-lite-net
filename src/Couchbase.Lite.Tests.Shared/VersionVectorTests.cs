@@ -17,7 +17,7 @@
 // 
 
 using Couchbase.Lite;
-using FluentAssertions;
+using Shouldly;
 using LiteCore.Interop;
 using System.Xml.Linq;
 using Xunit;
@@ -48,16 +48,16 @@ public sealed class VersionVectorTest : TestCase
     ///     5. Get the document id = "doc1" from the database.
     ///     6. Get document's timestamp and check that the timestamp is the same as the timestamp from step 4.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "Version vectors not turned on yet")]
     public void TestDocumentTimestamp()
     {
         using var doc = new MutableDocument("doc1");
-        doc.Timestamp.Should().BeNull("because the doc has not been saved yet");
+        doc.Timestamp.ShouldBeNull("because the doc has not been saved yet");
         DefaultCollection.Save(doc);
-        doc.Timestamp.Should().NotBeNull("because the doc is now saved");
+        doc.Timestamp.ShouldNotBeNull("because the doc is now saved");
         using var savedDoc = DefaultCollection.GetDocument("doc1");
-        savedDoc.Should().NotBeNull("because the document was just saved");
-        savedDoc!.Timestamp.Should().Be(doc.Timestamp, "because the timestamp should not change just from a read");
+        savedDoc.ShouldNotBeNull("because the document was just saved");
+        savedDoc!.Timestamp.ShouldBe(doc.Timestamp, "because the timestamp should not change just from a read");
     }
 
     /// <summary>
@@ -72,17 +72,17 @@ public sealed class VersionVectorTest : TestCase
     ///     5. Get the document id = "doc1" from the database.
     ///     6. Get document's _revisionIDs and check that the value returned is not null
     /// </summary>
-    [Fact]
+    [Fact(Skip = "Version vectors not turned on yet")]
     public void TestDocumentRevisionHistory()
     {
         using var doc = new MutableDocument("doc1");
-        doc.RevisionIDs().Should().BeNull("because the document has not been saved yet");
+        doc.RevisionIDs().ShouldBeNull("because the document has not been saved yet");
         DefaultCollection.Save(doc);
-        doc.RevisionIDs().Should().NotBeNull("because now the document has been saved");
+        doc.RevisionIDs().ShouldNotBeNull("because now the document has been saved");
         using var savedDoc = DefaultCollection.GetDocument("doc1");
-        savedDoc.Should().NotBeNull("because the document was just saved");
+        savedDoc.ShouldNotBeNull("because the document was just saved");
 
-        savedDoc!.RevisionIDs().Should().NotBeNull("because the saved document should contain at least one revision ID");
+        savedDoc!.RevisionIDs().ShouldNotBeNull("because the saved document should contain at least one revision ID");
     }
 
     public enum DefaultConflictLWWMode
@@ -110,7 +110,7 @@ public sealed class VersionVectorTest : TestCase
     ///     6.Start a single shot pull replicator to pull documents from "db2" to "db1".
     ///     7. Get the document "doc2" from "db1" and check that the content is {"key": "value2"}.
     /// </summary>
-    [Theory]
+    [Theory(Skip = "Version vectors not turned on yet")]
     [InlineData(DefaultConflictLWWMode.SaveDB2First)]
     [InlineData(DefaultConflictLWWMode.SaveDB1First)]
     public void TestDefaultConflictResolver(DefaultConflictLWWMode lwwMode)
@@ -147,8 +147,8 @@ public sealed class VersionVectorTest : TestCase
         }
 
         using var doc = db1.GetDefaultCollection().GetDocument("doc1");
-        doc.Should().NotBeNull("because it was just saved");
-        doc!["key"].Value.Should().Be(expectedValue, "because otherwise the conflict resolver behaved unexpectedly");
+        doc.ShouldNotBeNull("because it was just saved");
+        doc!["key"].Value.ShouldBe(expectedValue, "because otherwise the conflict resolver behaved unexpectedly");
     }
 
     /// <summary>
@@ -168,7 +168,7 @@ public sealed class VersionVectorTest : TestCase
     ///     4.Start a single shot pull replicator to pull documents from "db2" to "db1".
     ///     5. Get the document "doc1" from "db1" and check that the returned document is null.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "Version vectors not turned on yet")]
     public void TestDefaultConflictResolverDeleteWins()
     {
         Database.Delete("db1", null);
@@ -199,6 +199,6 @@ public sealed class VersionVectorTest : TestCase
         }
 
         using var finalDoc = db1.GetDefaultCollection().GetDocument("doc1");
-        finalDoc.Should().BeNull("because the deletion should win the conflict");
+        finalDoc.ShouldBeNull("because the deletion should win the conflict");
     }
 }

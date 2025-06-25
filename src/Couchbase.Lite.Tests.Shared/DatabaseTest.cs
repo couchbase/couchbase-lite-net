@@ -1499,7 +1499,7 @@ namespace Test
             using (var otherDb = new Database("closeDB", Db.Config)) {
                 var otherDefaultColl = otherDb.GetDefaultCollection();
                 var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(otherDefaultColl));
-                var doc1Listener = new WaitAssert();
+                using var doc1Listener = new WaitAssert();
                 var token = query.AddChangeListener(null, (sender, args) => {
                     foreach (var row in args.Results) {
                         if (row.GetString("id") == "doc1") {

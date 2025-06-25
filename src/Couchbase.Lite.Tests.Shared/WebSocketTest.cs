@@ -18,7 +18,7 @@
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
-using FluentAssertions;
+using Shouldly;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -79,7 +79,7 @@ namespace Test
             var method = WebSocketWrapperType.GetMethod("Base64Digest", BindingFlags.NonPublic | BindingFlags.Static);
             var res = method!.Invoke(null, new object[1] { input });
 
-            res.Should().Be("/EOfaNlb2IwudhJuOmFE3Ps9D38=");
+            res.ShouldBe("/EOfaNlb2IwudhJuOmFE3Ps9D38=");
         }
 
         [Fact]
@@ -98,7 +98,7 @@ namespace Test
             var method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
             var res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
-            res.Should().Be(false);
+            res.ShouldBe(false);
 
             parser = new HttpMessageParser("HTTP/1.1 101 Switching Protocols");
             parser.Append("Upgrade: websocket");
@@ -113,7 +113,7 @@ namespace Test
             method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
             res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
-            res.Should().Be(true);
+            res.ShouldBe(true);
 
             key = "Upgrade";
             expectedValue = "websocket";
@@ -122,7 +122,7 @@ namespace Test
             method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
             res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
-            res.Should().Be(true);
+            res.ShouldBe(true);
 
             key = "Sec-WebSocket-Accept";
             expectedValue = "R3ztu/aZLI+izEEtS3Ao1kzub4s=";
@@ -131,7 +131,7 @@ namespace Test
             method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
             res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
 
-            res.Should().Be(true);
+            res.ShouldBe(true);
         }
     }
 }

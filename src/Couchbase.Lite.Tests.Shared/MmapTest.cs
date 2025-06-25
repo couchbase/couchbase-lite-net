@@ -17,7 +17,7 @@
 //
 
 using Couchbase.Lite;
-using FluentAssertions;
+using Shouldly;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
 using Xunit;
@@ -56,14 +56,14 @@ namespace Test
             throw new SkipException("Not supported on Mac Catalyst");
 #else
             var config = new DatabaseConfiguration();
-            config.MmapEnabled.Should().BeTrue();
-            config.MmapEnabled.Should().BeTrue("because the default should be true");
+            config.MmapEnabled.ShouldBeTrue();
+            config.MmapEnabled.ShouldBeTrue("because the default should be true");
 
             config.MmapEnabled = false;
-            config.MmapEnabled.Should().BeFalse("because C# properties should work...");
+            config.MmapEnabled.ShouldBeFalse("because C# properties should work...");
 
             config.MmapEnabled = true;
-            config.MmapEnabled.Should().BeTrue("because C# properties should work...");
+            config.MmapEnabled.ShouldBeTrue("because C# properties should work...");
 #endif
         }
 
@@ -98,12 +98,12 @@ namespace Test
 
             Database.Delete("test", null);
             using var db = new Database("test", config);
-            db.Config.MmapEnabled.Should().Be(useMmap, "because otherwise MmapEnabled was not saved to the db's config");
+            db.Config.MmapEnabled.ShouldBe(useMmap, "because otherwise MmapEnabled was not saved to the db's config");
             var c4db = db.c4db;
-            c4db.Should().NotBeNull();
+            c4db.ShouldNotBeNull();
             var nativeConfig = TestNative.c4db_getConfig2(c4db!.RawDatabase);
             var hasFlag = (nativeConfig->flags & C4DatabaseFlags.MmapDisabled) == C4DatabaseFlags.MmapDisabled;
-            hasFlag.Should().Be(!useMmap, "because the flag in LiteCore should match MmapEnabled (but flipped)");
+            hasFlag.ShouldBe(!useMmap, "because the flag in LiteCore should match MmapEnabled (but flipped)");
         }
 #endif
     }

@@ -17,7 +17,7 @@
 //
 
 using Couchbase.Lite;
-using FluentAssertions;
+using Shouldly;
 using LiteCore;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
@@ -52,13 +52,13 @@ namespace Test
         public unsafe void TestSQLiteFullSyncConfig()
         {
             var config = new DatabaseConfiguration();
-            config.FullSync.Should().BeFalse("because the default should be false");
+            config.FullSync.ShouldBeFalse("because the default should be false");
 
             config.FullSync = true;
-            config.FullSync.Should().BeTrue("because C# properties should work...");
+            config.FullSync.ShouldBeTrue("because C# properties should work...");
 
             config.FullSync = false;
-            config.FullSync.Should().BeFalse("because C# properties should work...");
+            config.FullSync.ShouldBeFalse("because C# properties should work...");
         }
 
         /// <summary>
@@ -88,10 +88,10 @@ namespace Test
             Database.Delete("test", null);
             using var db = new Database("test", config);
             var c4db = db.c4db;
-            c4db.Should().NotBeNull("because the database is in use");
+            c4db.ShouldNotBeNull("because the database is in use");
             var nativeConfig = TestNative.c4db_getConfig2(c4db!.RawDatabase);
             var hasFlag = (nativeConfig->flags & C4DatabaseFlags.DiskSyncFull) == C4DatabaseFlags.DiskSyncFull;
-            hasFlag.Should().Be(useFullSync, "because the flag in LiteCore should match FullSync");
+            hasFlag.ShouldBe(useFullSync, "because the flag in LiteCore should match FullSync");
         }
     }
 

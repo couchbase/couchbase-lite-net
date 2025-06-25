@@ -24,7 +24,7 @@ using System.Text.RegularExpressions;
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -119,12 +119,12 @@ namespace Test
                     var count = row.GetInt(1);
                     var maxZip = row.GetString(2);
                     if (n - 1 < expectedStates.Length) {
-                        state.Should().Be(expectedStates[n - 1]);
-                        count.Should().Be(expectedCounts[n - 1]);
-                        maxZip.Should().Be(expectedZips[n - 1]);
+                        state.ShouldBe(expectedStates[n - 1]);
+                        count.ShouldBe(expectedCounts[n - 1]);
+                        maxZip.ShouldBe(expectedZips[n - 1]);
                     }
                 });
-                numRows.Should().Be(31);
+                numRows.ShouldBe(31);
             }
 
             expectedStates = new[] { "CA", "IA", "IN" };
@@ -143,12 +143,12 @@ namespace Test
                     var count = row.GetInt(1);
                     var maxZip = row.GetString(2);
                     if (n - 1 < expectedStates.Length) {
-                        state.Should().Be(expectedStates[n - 1]);
-                        count.Should().Be(expectedCounts[n - 1]);
-                        maxZip.Should().Be(expectedZips[n - 1]);
+                        state.ShouldBe(expectedStates[n - 1]);
+                        count.ShouldBe(expectedCounts[n - 1]);
+                        maxZip.ShouldBe(expectedZips[n - 1]);
                     }
                 });
-                numRows.Should().Be(15);
+                numRows.ShouldBe(15);
             }
         }
 
@@ -161,16 +161,16 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
-                    row.GetString(0).Should().Be(expectedID, "because otherwise the IDs were out of order");
-                    row.GetLong(1).Should().Be(n, "because otherwise the sequences were out of order");
+                    row.GetString(0).ShouldBe(expectedID, "because otherwise the IDs were out of order");
+                    row.GetLong(1).ShouldBe(n, "because otherwise the sequences were out of order");
 
                     var doc = CollA.GetDocument(row.GetString(0)!);
-                    doc?.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
-                    doc?.Sequence.Should()
-                        .Be((ulong)n, "because the sequence on the row should match the document");
+                    doc?.Id.ShouldBe(expectedID, "because the document ID on the row should match the document");
+                    doc?.Sequence
+                        .ShouldBe((ulong)n, "because the sequence on the row should match the document");
                 });
 
-                numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
+                numRows.ShouldBe(100, "because otherwise the incorrect number of rows was returned");
             }
         }
 
@@ -199,15 +199,15 @@ namespace Test
                         }
                     });
 
-                    numRows.Should().Be(100, "because otherwise the wrong number of rows was retrieved");
-                    firstNames.Should().HaveCount(numRows, "because otherwise some rows were null");
+                    numRows.ShouldBe(100, "because otherwise the wrong number of rows was retrieved");
+                    firstNames.Count.ShouldBe(numRows, "because otherwise some rows were null");
                     var firstNamesCopy = new List<object>(firstNames);
                     firstNames.Sort();
                     if (!ascending) {
                         firstNames.Reverse();
                     }
 
-                    firstNames.Should().ContainInOrder(firstNamesCopy, "because otherwise the results were not sorted");
+                    firstNames.ShouldBeEquivalentToFluent(firstNamesCopy, "because otherwise the results were not sorted");
                 }
             }
         }
@@ -225,7 +225,7 @@ namespace Test
                 var expected = new[] { "doc-017", "doc-021", "doc-023", "doc-045", "doc-060" };
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id"));
-                received.Should().BeEquivalentTo(expected);
+                received.ShouldBeEquivalentToFluent(expected);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -234,8 +234,8 @@ namespace Test
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id")).ToList();
-                received.Count.Should().Be(42, "because empty array results are included");
-                received[0].Should().Be("doc-007");
+                received.Count.ShouldBe(42, "because empty array results are included");
+                received[0].ShouldBe("doc-007");
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -244,7 +244,7 @@ namespace Test
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id")).ToList();
-                received.Count.Should().Be(0, "because nobody likes taxes...");
+                received.Count.ShouldBe(0, "because nobody likes taxes...");
             }
         }
 
@@ -268,13 +268,13 @@ namespace Test
                 .From(DataSource.Collection(CollA))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetValue("firstname").Should().Be(r.GetValue(0));
-                    r.GetValue("lastname").Should().Be(r.GetValue(1));
-                    r.GetValue("gender").Should().Be(r.GetValue(2));
-                    r.GetValue("city").Should().Be(r.GetValue(3));
+                    r.GetValue("firstname").ShouldBe(r.GetValue(0));
+                    r.GetValue("lastname").ShouldBe(r.GetValue(1));
+                    r.GetValue("gender").ShouldBe(r.GetValue(2));
+                    r.GetValue("city").ShouldBe(r.GetValue(3));
                 });
 
-                numRows.Should().Be(100);
+                numRows.ShouldBe(100);
             }
         }
 
@@ -295,10 +295,10 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var name = row.GetString(0);
-                    name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
+                    name.ShouldBe(expected[n - 1], "because otherwise incorrect rows were returned");
                 });
 
-                numRows.Should().Be(expected.Length, "because otherwise an incorrect number of rows were returned");
+                numRows.ShouldBe(expected.Length, "because otherwise an incorrect number of rows were returned");
             }
         }
 
@@ -322,9 +322,8 @@ namespace Test
                     }
                 });
 
-                numRows.Should().Be(5, "because there are 5 rows like that in the data source");
-                firstNames.Should()
-                    .OnlyContain(str => str.Contains("Mar"), "because otherwise an incorrect entry came in");
+                numRows.ShouldBe(5, "because there are 5 rows like that in the data source");
+                firstNames.All(x => x.Contains("Mar")).ShouldBeTrue("because otherwise an incorrect entry came in");
             }
         }
 
@@ -348,10 +347,9 @@ namespace Test
                     }
                 });
 
-                numRows.Should().Be(5, "because there are 5 rows like that in the data source");
+                numRows.ShouldBe(5, "because there are 5 rows like that in the data source");
                 var regex = new Regex("^Mar.*");
-                firstNames.Should()
-                    .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
+                firstNames.All(x => regex.IsMatch(x)).ShouldBeTrue("because otherwise an incorrect entry came in");
             }
         }
 
@@ -372,8 +370,8 @@ namespace Test
             foreach (var qExp in listQueries) {
                 using (var q = DefaultCollection.CreateQuery(qExp)) {
                     var res = q.Execute().ToList();
-                    res.Count().Should().Be(1);
-                    res[0].GetString("first").Should().Be("Abe");
+                    res.Count().ShouldBe(1);
+                    res[0].GetString("first").ShouldBe("Abe");
                 }
             }
         }
@@ -393,8 +391,8 @@ namespace Test
                 foreach (var qExp in listQueries) {
                     using (var q = collWithDefaultScope.CreateQuery(qExp)) {
                         var res = q.Execute().ToList();
-                        res.Count().Should().Be(1);
-                        res[0].GetString("first").Should().Be("Abe");
+                        res.Count().ShouldBe(1);
+                        res[0].GetString("first").ShouldBe("Abe");
                     }
                 }
             }
@@ -408,8 +406,8 @@ namespace Test
                 LoadJSONResource("names_100", coll: coll);
                 using (var q = coll.CreateQuery("SELECT name.first FROM people.names ORDER BY name.first limit 1")) {
                     var res = q.Execute().ToList();
-                    res.Count().Should().Be(1);
-                    res[0].GetString("first").Should().Be("Abe");
+                    res.Count().ShouldBe(1);
+                    res[0].GetString("first").ShouldBe("Abe");
                 }
             }
         }
@@ -421,8 +419,8 @@ namespace Test
             using (var coll = Db.CreateCollection("names", "people")) {
                 LoadJSONResource("names_100", coll: coll);
                 Action badAction = (() => coll.CreateQuery("SELECT name.first FROM person.names ORDER BY name.first limit 1"));
-                badAction.Should().Throw<CouchbaseLiteException>()
-                    .WithMessage("CouchbaseLiteException (LiteCoreDomain / 23): no such collection \"person.names\".");
+                Should.Throw<CouchbaseLiteException>(badAction)
+                    .Message.ShouldBe("CouchbaseLiteException (LiteCoreDomain / 23): no such collection \"person.names\".");
             }
         }
         
@@ -467,11 +465,11 @@ namespace Test
 
                 using (var q = Db.CreateQuery("SELECT a.name, b.color FROM test.flowers a JOIN test.colors b ON a.cid = b.cid ORDER BY a.name")) {
                     var res = q.Execute().ToList();
-                    res.Count().Should().Be(2);
-                    res[0].GetString("name").Should().Be("hydrangea");
-                    res[0].GetString("color").Should().Be("blue");
-                    res[1].GetString("name").Should().Be("rose");
-                    res[1].GetString("color").Should().Be("red");
+                    res.Count().ShouldBe(2);
+                    res[0].GetString("name").ShouldBe("hydrangea");
+                    res[0].GetString("color").ShouldBe("blue");
+                    res[1].GetString("name").ShouldBe("rose");
+                    res[1].GetString("color").ShouldBe("red");
                 }
             }
         }
@@ -490,8 +488,8 @@ namespace Test
                 .OrderBy(Ordering.Property("name.first"))
                 .Limit(Expression.Int(1))) {
                 var res = q.Execute().ToList();
-                res.Count().Should().Be(1);
-                res[0].GetString("first").Should().Be("Abe");
+                res.Count().ShouldBe(1);
+                res[0].GetString("first").ShouldBe("Abe");
             }
         }
 
@@ -507,8 +505,8 @@ namespace Test
                     .OrderBy(Ordering.Property("name.first"))
                     .Limit(Expression.Int(1))) {
                     var res = q.Execute().ToList();
-                    res.Count().Should().Be(1);
-                    res[0].GetString("first").Should().Be("Abe");
+                    res.Count().ShouldBe(1);
+                    res[0].GetString("first").ShouldBe("Abe");
                 }
             }
         }

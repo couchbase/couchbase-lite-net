@@ -19,42 +19,47 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public sealed class WaitAssert
+    public sealed class WaitAssert : IDisposable
     {
-        private ManualResetEvent _mre = new ManualResetEvent(false);
+        private ManualResetEventSlim _mre = new ManualResetEventSlim();
         private Exception _caughtException;
 
         public IList<Exception> CaughtExceptions { get; } = new List<Exception>();
 
-        public static void WaitFor(TimeSpan timeout, params WaitAssert[] asserts)
+        public static bool WaitAll(IEnumerable<ManualResetEventSlim> handles, TimeSpan timeout)
         {
-            // .NET 4.6.2 has issues with WaitHandle.WaitAll, so sort of simulate it
-            // by giving the first wait handle the full wait time and then subtracting
-            // the runtime and giving the remainder to the next, etc
-            var handles = asserts.Select(x => x._mre).ToArray();
-            if (handles.Length == 0) {
-                return;
+            bool allSignaled = false;
+            if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) {
+                // STA thread workaround
+                var startTime = DateTime.Now;
+                while (DateTime.Now - startTime < timeout) {
+                    if(handles.All(h => h.IsSet)) { 
+                        allSignaled = true;
+                        break;
+                    }
+                    Thread.Sleep(100);
+                }
+            } else {
+                // MTA thread can use WaitAll directly
+                allSignaled = WaitHandle.WaitAll(
+                    handles.Select(x => x.WaitHandle).ToArray(),
+                    timeout
+                );
             }
 
-            var timeLeft = timeout;
-            foreach (var handle in handles) {
-                if (timeLeft <= TimeSpan.Zero) {
-                    throw new TimeoutException("Timeout waiting for array of WaitAsserts");
-                }
+            return allSignaled;
+        }
 
-                var sw = Stopwatch.StartNew();
-                if (!handle.WaitOne(timeLeft)) {
-                    throw new TimeoutException("Timeout waiting for array of WaitAsserts");
-                }
-                sw.Stop();
-                timeLeft -= sw.Elapsed;
+        public static void WaitFor(TimeSpan timeout, params WaitAssert[] asserts)
+        {
+            if(!WaitAll(asserts.Select(x => x._mre), timeout)) {
+                throw new TimeoutException("Timeout waiting for array of WaitAsserts");
             }
         }
 
@@ -115,13 +120,18 @@ namespace Couchbase.Lite
 
         public void WaitForResult(TimeSpan timeout)
         {
-            if (!_mre.WaitOne(timeout)) {
+            if (!_mre.Wait(timeout)) {
                 throw new TimeoutException("Timeout waiting for WaitAssert");
             }
 
             if (_caughtException != null) {
                 throw _caughtException;
             }
+        }
+
+        public void Dispose()
+        {
+            _mre.Dispose();
         }
     }
 }

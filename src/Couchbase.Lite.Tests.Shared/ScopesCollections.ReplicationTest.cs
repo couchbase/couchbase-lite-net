@@ -32,7 +32,7 @@ using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Query;
 
-using FluentAssertions;
+using Shouldly;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -70,17 +70,17 @@ namespace Test
         public void TestCreateConfigWithDatabase()
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
-            config.Collections.Should().Contain(Db.GetDefaultCollection(), "Because Default collection configuration with default collection is created with ReplicatorConfiguration init.");
+            config.Collections.ShouldContain(Db.GetDefaultCollection(), "Because Default collection configuration with default collection is created with ReplicatorConfiguration init.");
             var collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            collConfig.Should().NotBeNull("because it was just set");
-            collConfig!.GetType().Should().Be(typeof(CollectionConfiguration));
-            collConfig.Equals(config.DefaultCollectionConfig).Should().BeTrue();
-            collConfig.ConflictResolver.Should().Be(ConflictResolver.Default);
-            collConfig.PushFilter.Should().BeNull();
-            collConfig.PullFilter.Should().BeNull();
-            collConfig.Channels.Should().BeNull();
-            collConfig.DocumentIDs.Should().BeNull();
-            config.Database.Should().Be(Db);
+            collConfig.ShouldNotBeNull("because it was just set");
+            collConfig!.GetType().ShouldBe(typeof(CollectionConfiguration));
+            collConfig.Equals(config.DefaultCollectionConfig).ShouldBeTrue();
+            collConfig.ConflictResolver.ShouldBe(ConflictResolver.Default);
+            collConfig.PushFilter.ShouldBeNull();
+            collConfig.PullFilter.ShouldBeNull();
+            collConfig.Channels.ShouldBeNull();
+            collConfig.DocumentIDs.ShouldBeNull();
+            config.Database.ShouldBe(Db);
         }
 
         [Fact]
@@ -94,7 +94,7 @@ namespace Test
             });
 
             var collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            collConfig?.ConflictResolver.Should().Be(config.ConflictResolver);
+            collConfig?.ConflictResolver.ShouldBe(config.ConflictResolver);
         }
 
         [Fact]
@@ -103,16 +103,16 @@ namespace Test
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { ConflictResolver = new FakeConflictResolver() };
             var collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            collConfig.Should().NotBeNull("because it was just set");
-            collConfig!.ConflictResolver.Should().Be(config.ConflictResolver);
+            collConfig.ShouldNotBeNull("because it was just set");
+            collConfig!.ConflictResolver.ShouldBe(config.ConflictResolver);
             config.ConflictResolver = new TestConflictResolver((conflict) => { return conflict.LocalDocument; });
             collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            collConfig.Should().NotBeNull("because it was just set");
-            collConfig!.ConflictResolver.Should().Be(config.ConflictResolver);
+            collConfig.ShouldNotBeNull("because it was just set");
+            collConfig!.ConflictResolver.ShouldBe(config.ConflictResolver);
             collConfig.ConflictResolver = new FakeConflictResolver();
             config.AddCollection(Db.GetDefaultCollection(), collConfig);
             collConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            collConfig?.ConflictResolver.Should().Be(config.ConflictResolver);
+            collConfig?.ConflictResolver.ShouldBe(config.ConflictResolver);
         }
 
         [Fact]
@@ -129,12 +129,12 @@ namespace Test
             };
 
             var defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            defaultCollConfig.Should().NotBeNull("because the default collection should be present by default");
-            defaultCollConfig!.Channels.Should().BeSameAs(config.Channels);
-            defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
-            defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
-            defaultCollConfig.PullFilter.Should().BeSameAs(config.PullFilter);
-            defaultCollConfig.PushFilter.Should().BeSameAs(config.PushFilter);
+            defaultCollConfig.ShouldNotBeNull("because the default collection should be present by default");
+            defaultCollConfig!.Channels.ShouldBeSameAs(config.Channels);
+            defaultCollConfig.DocumentIDs.ShouldBeSameAs(config.DocumentIDs);
+            defaultCollConfig.ConflictResolver.ShouldBeSameAs(config.ConflictResolver);
+            defaultCollConfig.PullFilter.ShouldBeSameAs(config.PullFilter);
+            defaultCollConfig.PushFilter.ShouldBeSameAs(config.PushFilter);
         }
 
         [Fact]
@@ -151,12 +151,12 @@ namespace Test
             };
 
             var defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            defaultCollConfig.Should().NotBeNull("because the default collection should be present by default");
-            defaultCollConfig!.Channels.Should().BeSameAs(config.Channels);
-            defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
-            defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
-            defaultCollConfig.PullFilter.Should().BeSameAs(config.PullFilter);
-            defaultCollConfig.PushFilter.Should().BeSameAs(config.PushFilter);
+            defaultCollConfig.ShouldNotBeNull("because the default collection should be present by default");
+            defaultCollConfig!.Channels.ShouldBeSameAs(config.Channels);
+            defaultCollConfig.DocumentIDs.ShouldBeSameAs(config.DocumentIDs);
+            defaultCollConfig.ConflictResolver.ShouldBeSameAs(config.ConflictResolver);
+            defaultCollConfig.PullFilter.ShouldBeSameAs(config.PullFilter);
+            defaultCollConfig.PushFilter.ShouldBeSameAs(config.PushFilter);
 
             config.Channels = new List<string> { "channelA1", "channelB1" };
             config.DocumentIDs = new List<string> { "doc1a", "doc2a" };
@@ -165,12 +165,12 @@ namespace Test
             config.PushFilter = _replicator__filterCallbackFalse;
 
             defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            defaultCollConfig.Should().NotBeNull("because the default collection should be present by default");
-            defaultCollConfig!.Channels.Should().BeSameAs(config.Channels);
-            defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
-            defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
-            defaultCollConfig.PullFilter.Should().BeSameAs(config.PullFilter);
-            defaultCollConfig.PushFilter.Should().BeSameAs(config.PushFilter);
+            defaultCollConfig.ShouldNotBeNull("because the default collection should be present by default");
+            defaultCollConfig!.Channels.ShouldBeSameAs(config.Channels);
+            defaultCollConfig.DocumentIDs.ShouldBeSameAs(config.DocumentIDs);
+            defaultCollConfig.ConflictResolver.ShouldBeSameAs(config.ConflictResolver);
+            defaultCollConfig.PullFilter.ShouldBeSameAs(config.PullFilter);
+            defaultCollConfig.PushFilter.ShouldBeSameAs(config.PushFilter);
 
             defaultCollConfig.Channels = new List<string> { "channelA", "channelB" };
             defaultCollConfig.DocumentIDs = new List<string> { "doc1", "doc2" };
@@ -181,12 +181,12 @@ namespace Test
             config.AddCollection(Db.GetDefaultCollection(), defaultCollConfig);
 
             defaultCollConfig = config.GetCollectionConfig(Db.GetDefaultCollection());
-            defaultCollConfig.Should().NotBeNull("because the default collection should be present by default");
-            defaultCollConfig!.Channels.Should().BeSameAs(config.Channels);
-            defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
-            defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
-            defaultCollConfig.PullFilter.Should().BeSameAs(config.PullFilter);
-            defaultCollConfig.PushFilter.Should().BeSameAs(config.PushFilter);
+            defaultCollConfig.ShouldNotBeNull("because the default collection should be present by default");
+            defaultCollConfig!.Channels.ShouldBeSameAs(config.Channels);
+            defaultCollConfig.DocumentIDs.ShouldBeSameAs(config.DocumentIDs);
+            defaultCollConfig.ConflictResolver.ShouldBeSameAs(config.ConflictResolver);
+            defaultCollConfig.PullFilter.ShouldBeSameAs(config.PullFilter);
+            defaultCollConfig.PushFilter.ShouldBeSameAs(config.PushFilter);
         }
 
         [Fact]
@@ -194,8 +194,8 @@ namespace Test
         public void TestCreateConfigWithEndpointOnly()
         {
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
-            config.Collections.Should().BeEmpty("Because no collection was added via AddCollection or AddCollections");
-            config.Invoking(c => c.Database).Should().Throw<CouchbaseLiteException>("Because there is no Database atm since neither AddCollection nor AddCollections were called.");
+            config.Collections.ShouldBeEmpty("Because no collection was added via AddCollection or AddCollections");
+            Should.Throw<CouchbaseLiteException>(() => config.Database, "Because there is no Database atm since neither AddCollection nor AddCollections were called.");
         }
 
         [Fact]
@@ -206,19 +206,19 @@ namespace Test
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
             config.AddCollection(colA);
             config.AddCollection(colB);
-            config.Collections.Contains(colA).Should().BeTrue("Because collection colA just added via AddCollection method");
-            config.Collections.Contains(colB).Should().BeTrue("Because collection colB just added via AddCollection method");
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
+            config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
             var colAConfig = config.GetCollectionConfig(colA);
             var colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.Should().NotBeNull("because it was just set");
-            colBConfig.Should().NotBeNull("because it was just set");
-            colAConfig.Should().NotBeSameAs(colBConfig, "Because the returned configs should be different instances.");
-            colAConfig!.ConflictResolver.Should().Be(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
-            colAConfig.PushFilter.Should().BeNull("Property was never assigned and default value was null.");
-            colAConfig.PullFilter.Should().BeNull("Property was never assigned and default value was null.");
-            colBConfig!.ConflictResolver.Should().Be(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
-            colBConfig.PushFilter.Should().BeNull("Property was never assigned and default value was null.");
-            colBConfig.PullFilter.Should().BeNull("Property was never assigned and default value was null.");
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig.ShouldNotBeSameAs(colBConfig, "Because the returned configs should be different instances.");
+            colAConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
+            colAConfig.PushFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colAConfig.PullFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colBConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
+            colBConfig.PushFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colBConfig.PullFilter.ShouldBeNull("Property was never assigned and default value was null.");
         }
 
         [Fact]
@@ -235,16 +235,16 @@ namespace Test
             };
             config.AddCollection(colA, colConfig);
             config.AddCollection(colB, colConfig);
-            config.Collections.Contains(colA).Should().BeTrue("Because collection colA just added via AddCollection method");
-            config.Collections.Contains(colB).Should().BeTrue("Because collection colB just added via AddCollection method");
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
+            config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
             var colAConfig = config.GetCollectionConfig(colA);
             var colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.Should().NotBeNull("because it was just set");
-            colBConfig.Should().NotBeNull("because it was just set");
-            colAConfig.Should().NotBe(colBConfig, "Because the returned configs should be different instances.");
-            colAConfig!.ConflictResolver.Should().Be(colBConfig!.ConflictResolver, "Both properties were assigned with same value.");
-            colAConfig.PushFilter.Should().Be(colBConfig.PushFilter, "Both properties were assigned with same value.");
-            colAConfig.PullFilter.Should().Be(colBConfig.PullFilter, "Both properties were assigned with same value.");
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig.ShouldNotBe(colBConfig, "Because the returned configs should be different instances.");
+            colAConfig!.ConflictResolver.ShouldBe(colBConfig!.ConflictResolver, "Both properties were assigned with same value.");
+            colAConfig.PushFilter.ShouldBe(colBConfig.PushFilter, "Both properties were assigned with same value.");
+            colAConfig.PullFilter.ShouldBe(colBConfig.PullFilter, "Both properties were assigned with same value.");
         }
 
         [Fact]
@@ -261,18 +261,18 @@ namespace Test
                 PushFilter = _replicator__filterCallbackTrue
             };
             config.AddCollection(colB, colConfig);
-            config.Collections.Contains(colA).Should().BeTrue("Because collection colA just added via AddCollection method");
-            config.Collections.Contains(colB).Should().BeTrue("Because collection colB just added via AddCollection method");
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
+            config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
             var colAConfig = config.GetCollectionConfig(colA);
             var colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.Should().NotBeNull("because it was just set");
-            colBConfig.Should().NotBeNull("because it was just set");
-            colAConfig!.ConflictResolver.Should().Be(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
-            colAConfig.PushFilter.Should().BeNull("Property was never assigned and default value was null.");
-            colAConfig.PullFilter.Should().BeNull("Property was never assigned and default value was null.");
-            colBConfig!.ConflictResolver.Should().Be(colConfig.ConflictResolver, "Property was just updated via AddCollection.");
-            colBConfig.PushFilter.Should().Be(colConfig.PushFilter, "Property was just updated via AddCollection.");
-            colBConfig.PullFilter.Should().Be(colConfig.PullFilter, "Property was just updated via AddCollection.");
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
+            colAConfig.PushFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colAConfig.PullFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colBConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver, "Property was just updated via AddCollection.");
+            colBConfig.PushFilter.ShouldBe(colConfig.PushFilter, "Property was just updated via AddCollection.");
+            colBConfig.PullFilter.ShouldBe(colConfig.PullFilter, "Property was just updated via AddCollection.");
         }
 
         [Fact]
@@ -289,19 +289,19 @@ namespace Test
             };
             config.AddCollection(colA, colConfig);
             config.AddCollection(colB, colConfig);
-            config.Collections.Contains(colA).Should().BeTrue("Because collection colA just added via AddCollection method");
-            config.Collections.Contains(colB).Should().BeTrue("Because collection colB just added via AddCollection method");
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
+            config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
 
             var colAConfig = config.GetCollectionConfig(colA);
             var colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.Should().NotBeNull("because it was just set");
-            colBConfig.Should().NotBeNull("because it was just set");
-            colAConfig!.ConflictResolver.Should().Be(colConfig.ConflictResolver);
-            colBConfig!.ConflictResolver.Should().Be(colConfig.ConflictResolver);
-            colAConfig.PullFilter.Should().Be(colConfig.PullFilter);
-            colBConfig.PullFilter.Should().Be(colConfig.PullFilter);
-            colAConfig.PushFilter.Should().Be(colConfig.PushFilter);
-            colBConfig.PushFilter.Should().Be(colConfig.PushFilter);
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colBConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colAConfig.PullFilter.ShouldBe(colConfig.PullFilter);
+            colBConfig.PullFilter.ShouldBe(colConfig.PullFilter);
+            colAConfig.PushFilter.ShouldBe(colConfig.PushFilter);
+            colBConfig.PushFilter.ShouldBe(colConfig.PushFilter);
 
             config.AddCollection(colA);
             colConfig = new CollectionConfiguration()
@@ -314,14 +314,14 @@ namespace Test
 
             colAConfig = config.GetCollectionConfig(colA);
             colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.Should().NotBeNull("because it was just set");
-            colBConfig.Should().NotBeNull("because it was just set");
-            colAConfig!.ConflictResolver.Should().Be(ConflictResolver.Default);
-            colBConfig!.ConflictResolver.Should().Be(colConfig.ConflictResolver);
-            colAConfig.PullFilter.Should().Be(null);
-            colBConfig.PullFilter.Should().Be(colConfig.PullFilter);
-            colAConfig.PushFilter.Should().Be(null);
-            colBConfig.PushFilter.Should().Be(colConfig.PushFilter);
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default);
+            colBConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colAConfig.PullFilter.ShouldBe(null);
+            colBConfig.PullFilter.ShouldBe(colConfig.PullFilter);
+            colAConfig.PushFilter.ShouldBe(null);
+            colBConfig.PushFilter.ShouldBe(colConfig.PushFilter);
         }
 
         [Fact]
@@ -338,26 +338,26 @@ namespace Test
             };
             config.AddCollection(colA, colConfig);
             config.AddCollection(colB, colConfig);
-            config.Collections.Contains(colA).Should().BeTrue("Because collection colA just added via AddCollection method");
-            config.Collections.Contains(colB).Should().BeTrue("Because collection colB just added via AddCollection method");
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
+            config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
 
             var colAConfig = config.GetCollectionConfig(colA);
             var colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.Should().NotBeNull("because it was just set");
-            colBConfig.Should().NotBeNull("because it was just set");
-            colAConfig!.ConflictResolver.Should().Be(colConfig.ConflictResolver);
-            colBConfig!.ConflictResolver.Should().Be(colConfig.ConflictResolver);
-            colAConfig.PullFilter.Should().Be(colConfig.PullFilter);
-            colBConfig.PullFilter.Should().Be(colConfig.PullFilter);
-            colAConfig.PushFilter.Should().Be(colConfig.PushFilter);
-            colBConfig.PushFilter.Should().Be(colConfig.PushFilter);
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colBConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colAConfig.PullFilter.ShouldBe(colConfig.PullFilter);
+            colBConfig.PullFilter.ShouldBe(colConfig.PullFilter);
+            colAConfig.PushFilter.ShouldBe(colConfig.PushFilter);
+            colBConfig.PushFilter.ShouldBe(colConfig.PushFilter);
 
             config.RemoveCollection(colB);
-            config.Collections.Contains(colA).Should().BeTrue("Because collection colA should still be there");
-            config.Collections.Contains(colB).Should().BeFalse("Because collection colB just removed via RemoveCollection method");
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA should still be there");
+            config.Collections.Contains(colB).ShouldBeFalse("Because collection colB just removed via RemoveCollection method");
 
-            config.GetCollectionConfig(colA).Should().NotBeNull("Because collection colA should still be there, thus it's config should also exist as well.");
-            config.GetCollectionConfig(colB).Should().BeNull("Because collection colB just removed via RemoveCollection method, thus it's config should also be null.");
+            config.GetCollectionConfig(colA).ShouldNotBeNull("Because collection colA should still be there, thus it's config should also exist as well.");
+            config.GetCollectionConfig(colB).ShouldBeNull("Because collection colB just removed via RemoveCollection method, thus it's config should also be null.");
         }
 
         [Fact]
@@ -367,10 +367,10 @@ namespace Test
             var colB = OtherDb.CreateCollection("colB", "scopeA");
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
             config.AddCollection(colA);
-            config.Collections.Contains(colA).Should().BeTrue();
-            config.Invoking(c => c.AddCollection(colB)).Should().Throw<CouchbaseLiteException>().Where(
-                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
-                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
+            config.Collections.Contains(colA).ShouldBeTrue();
+            var ex = Should.Throw<CouchbaseLiteException>(() => config.AddCollection(colB));
+            ex.Error.ShouldBe(CouchbaseLiteError.InvalidParameter);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         [Fact]
@@ -381,10 +381,10 @@ namespace Test
             OtherDb.DeleteCollection("colB", "scopeA");
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
             config.AddCollection(colA);
-            config.Collections.Contains(colA).Should().BeTrue();
-            config.Invoking(c=>c.AddCollection(colB)).Should().Throw<CouchbaseLiteException>().Where(
-                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
-                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
+            config.Collections.Contains(colA).ShouldBeTrue();
+            var ex = Should.Throw<CouchbaseLiteException>(() => config.AddCollection(colB));
+            ex.Error.ShouldBe(CouchbaseLiteError.InvalidParameter);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         #endregion
@@ -401,16 +401,16 @@ namespace Test
             // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colBInOtherDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInOtherDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colBInOtherDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -424,16 +424,16 @@ namespace Test
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colBInDb.Should().NotBeNull("because it was just created");
-                colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colBInDb.ShouldNotBeNull("because it was just created");
+                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -448,42 +448,42 @@ namespace Test
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colBInDb.Should().NotBeNull("because it was just created");
-                colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colBInDb.ShouldNotBeNull("because it was just created");
+                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
 
             // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colBInOtherDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInOtherDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colBInOtherDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
 
             //Test Update doc in replication
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb.Should().NotBeNull("because it was just created");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
                 using (var doc = colAInDb!.GetDocument("doc4"))
                 using (var mdoc = doc?.ToMutable()) {
-                    doc?.GetString("str4").Should().Be("string4");
-                    colAInOtherDb!.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
+                    doc?.GetString("str4").ShouldBe("string4");
+                    colAInOtherDb!.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
                     mdoc!.SetString("str4", "string4 update");
                     colAInDb.Save(mdoc);
                 }
@@ -492,19 +492,19 @@ namespace Test
             RunReplication(config, 0, 0);
 
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA")) {
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb!.GetDocument("doc4")?.GetString("str4").Should().Be("string4 update");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb!.GetDocument("doc4")?.GetString("str4").ShouldBe("string4 update");
             }
 
             //Test Delete doc in replication
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb.Should().NotBeNull("because it was just created");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
 
                 using (var doc = colAInDb!.GetDocument("doc4")) {
-                    doc?.GetString("str4").Should().Be("string4 update");
-                    colAInOtherDb!.GetDocument("doc4")?.GetString("str4").Should().Be("string4 update");
+                    doc?.GetString("str4").ShouldBe("string4 update");
+                    colAInOtherDb!.GetDocument("doc4")?.GetString("str4").ShouldBe("string4 update");
                     colAInDb.Delete(doc!);
                 }
             }
@@ -512,8 +512,8 @@ namespace Test
             RunReplication(config, 0, 0);
 
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA")) {
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb!.GetDocument("doc4").Should().BeNull();
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb!.GetDocument("doc4").ShouldBeNull();
             }
         }
 
@@ -527,16 +527,16 @@ namespace Test
             // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colBInOtherDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInOtherDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colBInOtherDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -550,16 +550,16 @@ namespace Test
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colBInDb.Should().NotBeNull("because it was just created");
-                colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colBInDb.ShouldNotBeNull("because it was just created");
+                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -574,31 +574,31 @@ namespace Test
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colBInDb.Should().NotBeNull("because it was just created");
-                colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colBInDb.ShouldNotBeNull("because it was just created");
+                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
 
             // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colBInOtherDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInOtherDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colBInOtherDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -613,50 +613,50 @@ namespace Test
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) 
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colBInDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colBInOtherDb.Should().NotBeNull("because it was just created");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colBInDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colBInOtherDb.ShouldNotBeNull("because it was just created");
 
                 // Check docs in Db
-                colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
+                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
                 var doc4 = colAInDb.GetDocument("doc4");
-                doc4?.GetString("str4").Should().Be("string4");
+                doc4?.GetString("str4").ShouldBe("string4");
                 var doc5 = colAInDb.GetDocument("doc5");
-                doc5?.GetString("str5").Should().Be("string5");
-                colBInDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                doc5?.GetString("str5").ShouldBe("string5");
+                colBInDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
 
                 // Purge all docs in colA in Db
                 colAInDb.Purge(doc4!);
                 colAInDb.Purge(doc5!);
 
                 // docs in colA in Db are now purged
-                colAInDb.GetDocument("doc4").Should().BeNull();
-                colAInDb.GetDocument("doc5").Should().BeNull();
+                colAInDb.GetDocument("doc4").ShouldBeNull();
+                colAInDb.GetDocument("doc5").ShouldBeNull();
             }
 
             RunReplication(config, 0, 0);
 
             using (var colAInDb = Db.GetCollection("colA", "scopeA")) {
-                colAInDb.Should().NotBeNull();
+                colAInDb.ShouldNotBeNull();
 
                 // docs in colA in Db are still gone
-                colAInDb!.GetDocument("doc4").Should().BeNull();
-                colAInDb.GetDocument("doc5").Should().BeNull();
+                colAInDb!.GetDocument("doc4").ShouldBeNull();
+                colAInDb.GetDocument("doc5").ShouldBeNull();
             }
 
             RunReplication(config, 0, 0, true);
 
             using (var colAInDb = Db.GetCollection("colA", "scopeA")) {
-                colAInDb.Should().NotBeNull();
+                colAInDb.ShouldNotBeNull();
 
                 // After reset in replication, colA in Db are pulled from otherDb again
-                colAInDb!.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
+                colAInDb!.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
             }
         }
 
@@ -681,10 +681,10 @@ namespace Test
             using (var colBInDb = Db.GetCollection("colB", "scopeA"))
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colBInDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colBInOtherDb.Should().NotBeNull("because it was just created");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colBInDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colBInOtherDb.ShouldNotBeNull("because it was just created");
 
                 using (var docInColAInDb = colAInDb!.GetDocument("doc"))
                 using (var doc2InColBDb = colBInDb!.GetDocument("doc2"))
@@ -727,33 +727,33 @@ namespace Test
             RunReplication(config, 0, 0);
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb.Should().NotBeNull("because it was just created");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
                 using (var doc = colAInDb!.GetDocument("doc1"))
                 using (var mdoc = doc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because it was just saved");
+                    mdoc.ShouldNotBeNull("because it was just saved");
                     mdoc!.SetString("str1", "string1 update");
                     colAInDb.Save(mdoc);
                 }
 
                 using (var doc = colAInOtherDb!.GetDocument("doc1"))
                 using (var mdoc = doc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because it was just saved");
+                    mdoc.ShouldNotBeNull("because it was just saved");
                     mdoc!.SetString("str1", "string1 update1");
                     colAInOtherDb.Save(mdoc);
                 }
 
                 using (var doc = colAInOtherDb.GetDocument("doc1"))
                 using (var mdoc = doc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because it was just saved");
+                    mdoc.ShouldNotBeNull("because it was just saved");
                     mdoc!.SetString("str1", "string1 update again");
                     colAInOtherDb.Save(mdoc);
                 }
 
                 RunReplication(config, 0, 0);
 
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1 update again");
-                colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1 update again"); 
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1 update again");
+                colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1 update again"); 
             }
         }
 
@@ -767,10 +767,10 @@ namespace Test
             using (var colBInDb = Db.GetCollection("colB", "scopeA"))
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInDb.Should().NotBeNull("because it was just created");
-                colBInDb.Should().NotBeNull("because it was just created");
-                colAInOtherDb.Should().NotBeNull("because it was just created");
-                colBInOtherDb.Should().NotBeNull("because it was just created");
+                colAInDb.ShouldNotBeNull("because it was just created");
+                colBInDb.ShouldNotBeNull("because it was just created");
+                colAInOtherDb.ShouldNotBeNull("because it was just created");
+                colBInOtherDb.ShouldNotBeNull("because it was just created");
 
                 var cllConfigADb = config.GetCollectionConfig(colAInDb!);
                 cllConfigADb!.ConflictResolver = new TestConflictResolver((conflict) => {
@@ -784,36 +784,36 @@ namespace Test
 
                 using (var doc = colAInDb!.GetDocument("doc1"))
                 using (var mdoc = doc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because it was just saved");
+                    mdoc.ShouldNotBeNull("because it was just saved");
                     mdoc!.SetString("str1", "string1 update");
                     colAInDb.Save(mdoc);
                 }
 
                 using (var doc = colBInDb!.GetDocument("doc3"))
                 using (var mdoc = doc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because it was just saved");
+                    mdoc.ShouldNotBeNull("because it was just saved");
                     mdoc!.SetString("str3", "string3 update");
                     colBInDb.Save(mdoc);
                 }
 
                 using (var doc = colAInOtherDb!.GetDocument("doc1"))
                 using (var mdoc = doc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because it was just saved");
+                    mdoc.ShouldNotBeNull("because it was just saved");
                     mdoc!.SetString("str1", "string1 update1");
                     colAInOtherDb.Save(mdoc);
                 }
 
                 using (var doc = colBInOtherDb!.GetDocument("doc3"))
                 using (var mdoc = doc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because it was just saved");
+                    mdoc.ShouldNotBeNull("because it was just saved");
                     mdoc!.SetString("str3", "string3 update1");
                     colBInOtherDb.Save(mdoc);
                 }
 
                 RunReplication(config, 0, 0);
 
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1 update");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3 update1");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1 update");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3 update1");
             }
         }
 
@@ -832,14 +832,14 @@ namespace Test
                 // Check docs in OtherDb - make sure docs with odd doc ids are pushed to the OtherDb from the Db
                 using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
                 using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                    colAInOtherDb!.GetDocument("doc").Should().BeNull();
-                    colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                    colBInOtherDb!.GetDocument("doc2")?.Should().BeNull();
-                    colBInOtherDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                    colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                    colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                    colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                    colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                    colAInOtherDb!.GetDocument("doc").ShouldBeNull();
+                    colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                    colBInOtherDb!.GetDocument("doc2")?.ShouldBeNull();
+                    colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                    colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                    colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                    colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                    colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
                 }
             }
         }
@@ -857,14 +857,14 @@ namespace Test
                 RunReplication(config, 0, 0);
 
                 // Check docs in Db - make sure all docs with odd doc ids are pulled from the OtherDb to the Db
-                colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInDb.GetDocument("doc4")?.Should().BeNull();
-                colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInDb.GetDocument("doc6")?.Should().BeNull();
-                colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInDb.GetDocument("doc4")?.ShouldBeNull();
+                colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInDb.GetDocument("doc6")?.ShouldBeNull();
+                colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -886,14 +886,14 @@ namespace Test
             // Check docs in OtherDb - make sure docs with odd doc ids are pushed to the OtherDb from the Db
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA"))
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
-                colAInOtherDb!.GetDocument("doc").Should().BeNull();
-                colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInOtherDb!.GetDocument("doc2").Should().BeNull();
-                colBInOtherDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-                colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-                colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInOtherDb!.GetDocument("doc").ShouldBeNull();
+                colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInOtherDb!.GetDocument("doc2").ShouldBeNull();
+                colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+                colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+                colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -913,14 +913,14 @@ namespace Test
             // Check docs in Db - make sure all docs with odd doc ids are pulled from the OtherDb to the Db
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
-                colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-                colAInDb.GetDocument("doc4").Should().BeNull();
-                colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-                colBInDb.GetDocument("doc6").Should().BeNull();
-                colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                colAInDb.GetDocument("doc4").ShouldBeNull();
+                colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+                colBInDb.GetDocument("doc6").ShouldBeNull();
+                colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
             }
         }
 
@@ -960,7 +960,7 @@ namespace Test
             var config = CreateConfig(ReplicatorType.PushAndPull);
             config.AddCollections(new List<Collection>());
             Action badAction = (() => new Replicator(config));
-            badAction.Should().Throw<CouchbaseLiteException>("Replicator Configuration must contain at least one collection.");
+            Should.Throw<CouchbaseLiteException>(badAction, "Replicator Configuration must contain at least one collection.");
         }
 
         [Fact]
@@ -975,26 +975,26 @@ namespace Test
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
             var colAInDb = Db.GetCollection("colA", "scopeA");
             var colBInDb = Db.GetCollection("colB", "scopeA");
-            colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-            colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-            colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-            colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-            colAInDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-            colAInDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-            colBInDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-            colBInDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+            colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+            colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+            colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+            colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+            colAInDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+            colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+            colBInDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+            colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
 
             // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
             var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA");
             var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA");
-            colAInOtherDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-            colAInOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-            colBInOtherDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-            colBInOtherDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-            colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-            colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-            colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-            colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+            colAInOtherDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+            colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+            colBInOtherDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+            colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+            colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+            colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+            colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+            colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
         }
 
         [Fact]
@@ -1021,11 +1021,11 @@ namespace Test
             config.PushFilter = _replicator__filterCallbackTrue;
 
             var defaultCollConfig = config.GetCollectionConfig(defaultCollection);
-            defaultCollConfig!.Channels.Should().BeSameAs(config.Channels);
-            defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
-            defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
-            defaultCollConfig.PullFilter.Should().BeSameAs(config.PullFilter);
-            defaultCollConfig.PushFilter.Should().BeSameAs(config.PushFilter);
+            defaultCollConfig!.Channels.ShouldBeSameAs(config.Channels);
+            defaultCollConfig.DocumentIDs.ShouldBeSameAs(config.DocumentIDs);
+            defaultCollConfig.ConflictResolver.ShouldBeSameAs(config.ConflictResolver);
+            defaultCollConfig.PullFilter.ShouldBeSameAs(config.PullFilter);
+            defaultCollConfig.PushFilter.ShouldBeSameAs(config.PushFilter);
         }
 
         [Fact]
@@ -1048,24 +1048,24 @@ namespace Test
             replConfig.AddCollections(new List<Collection>() { defaultCollection, colA }, collConfig);
 
             collConfig = replConfig.GetCollectionConfig(defaultCollection);
-            collConfig!.PullFilter.Should().NotBeNull("Because defaultCollection's collConfig PullFilter is assigned");
-            collConfig.PushFilter.Should().BeNull("Because no PushFilter is assigned in defaultCollection's collConfig");
+            collConfig!.PullFilter.ShouldNotBeNull("Because defaultCollection's collConfig PullFilter is assigned");
+            collConfig.PushFilter.ShouldBeNull("Because no PushFilter is assigned in defaultCollection's collConfig");
 
             collConfig = replConfig.GetCollectionConfig(colA);
-            collConfig!.PullFilter.Should().NotBeNull("Because colA's collConfig PullFilter is assigned");
-            collConfig.PushFilter.Should().BeNull("Because no PushFilter is assigned in colA's collConfig");
+            collConfig!.PullFilter.ShouldNotBeNull("Because colA's collConfig PullFilter is assigned");
+            collConfig.PushFilter.ShouldBeNull("Because no PushFilter is assigned in colA's collConfig");
 
             // Set ReplicationFilter as the push filter using the deprecated ReplicatorConfiguration.setPushFilter method.
             replConfig.PushFilter = _replicator__filterCallbackTrue;
 
             collConfig = replConfig.GetCollectionConfig(defaultCollection);
-            collConfig!.PullFilter.Should().NotBeNull("Because defaultCollection's collConfig PullFilter is assigned");
-            collConfig.PushFilter.Should().NotBeNull("Because defaultCollection's collConfig PushFilter is assigned");
+            collConfig!.PullFilter.ShouldNotBeNull("Because defaultCollection's collConfig PullFilter is assigned");
+            collConfig.PushFilter.ShouldNotBeNull("Because defaultCollection's collConfig PushFilter is assigned");
 
             // Verify that the only thing that has changed is the default collection's push filter.
             collConfig = replConfig.GetCollectionConfig(colA);
-            collConfig!.PullFilter.Should().NotBeNull("Because colA's collConfig PullFilter is assigned");
-            collConfig.PushFilter.Should().BeNull("Because no PushFilter is assigned in colA's collConfig");
+            collConfig!.PullFilter.ShouldNotBeNull("Because colA's collConfig PullFilter is assigned");
+            collConfig.PushFilter.ShouldBeNull("Because no PushFilter is assigned in colA's collConfig");
         }
 
         #endregion
@@ -1134,10 +1134,10 @@ namespace Test
                         {
                             if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
                                 pendingDocIds = replicator.GetPendingDocumentIDs(colAInDb!);
-                                pendingDocIds.Count.Should().Be(0);
+                                pendingDocIds.Count.ShouldBe(0);
 
                                 pendingDocIds = replicator.GetPendingDocumentIDs(colBInDb!);
-                                pendingDocIds.Count.Should().Be(0);
+                                pendingDocIds.Count.ShouldBe(0);
                             }
 
                             return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -1147,20 +1147,20 @@ namespace Test
                     pendingDocIds = replicator.GetPendingDocumentIDs(colAInDb!);
                     var pendingDocIds1 = replicator.GetPendingDocumentIDs(colBInDb!);
                     if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                        pendingDocIds.Count.Should().Be(1);
-                        pendingDocIds.ElementAt(0).Should().Be(colADocId);
-                        pendingDocIds1.Count.Should().Be(1);
-                        pendingDocIds1.ElementAt(0).Should().Be(colBDocId);
+                        pendingDocIds.Count.ShouldBe(1);
+                        pendingDocIds.ElementAt(0).ShouldBe(colADocId);
+                        pendingDocIds1.Count.ShouldBe(1);
+                        pendingDocIds1.ElementAt(0).ShouldBe(colBDocId);
                     } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
-                        pendingDocIds.Contains("doc").Should().BeFalse();
-                        pendingDocIds.Contains("doc1").Should().BeTrue();
-                        pendingDocIds1.Contains("doc2").Should().BeFalse();
-                        pendingDocIds1.Contains("doc3").Should().BeTrue();
+                        pendingDocIds.Contains("doc").ShouldBeFalse();
+                        pendingDocIds.Contains("doc1").ShouldBeTrue();
+                        pendingDocIds1.Contains("doc2").ShouldBeFalse();
+                        pendingDocIds1.Contains("doc3").ShouldBeTrue();
                     } else {
-                        pendingDocIds.Contains("doc").Should().BeTrue();
-                        pendingDocIds.Contains("doc1").Should().BeTrue();
-                        pendingDocIds1.Contains("doc2").Should().BeTrue();
-                        pendingDocIds1.Contains("doc3").Should().BeTrue();
+                        pendingDocIds.Contains("doc").ShouldBeTrue();
+                        pendingDocIds.Contains("doc1").ShouldBeTrue();
+                        pendingDocIds1.Contains("doc2").ShouldBeTrue();
+                        pendingDocIds1.Contains("doc3").ShouldBeTrue();
                     }
 
                     replicator.Start();
@@ -1170,10 +1170,10 @@ namespace Test
                     Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
                         .Times(5)
                         .Delay(TimeSpan.FromMilliseconds(500))
-                        .Go().Should().BeTrue();
+                        .Go().ShouldBeTrue();
 
-                    replicator.GetPendingDocumentIDs(colAInDb!).Count.Should().Be(0);
-                    replicator.GetPendingDocumentIDs(colBInDb!).Count.Should().Be(0);
+                    replicator.GetPendingDocumentIDs(colAInDb!).Count.ShouldBe(0);
+                    replicator.GetPendingDocumentIDs(colBInDb!).Count.ShouldBe(0);
                     token.Remove();
                 }
             }
@@ -1242,9 +1242,9 @@ namespace Test
                     {
                         if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
                             docIdIsPending = replicator.IsDocumentPending(colADocId, colAInDb!);
-                            docIdIsPending.Should().BeFalse();
+                            docIdIsPending.ShouldBeFalse();
                             docIdIsPending = replicator.IsDocumentPending(colBDocId, colBInDb!);
-                            docIdIsPending.Should().BeFalse();
+                            docIdIsPending.ShouldBeFalse();
                         }
 
                         wa.RunConditionalAssert(() =>
@@ -1257,22 +1257,22 @@ namespace Test
                     var docIdIsPending1 = replicator.IsDocumentPending(colBDocId, colBInDb!);
                     if (selection == PENDING_DOC_ID_SEL.CREATE || selection == PENDING_DOC_ID_SEL.UPDATE
                         || selection == PENDING_DOC_ID_SEL.DELETE) {
-                        docIdIsPending.Should().BeTrue();
+                        docIdIsPending.ShouldBeTrue();
                         docIdIsPending = replicator.IsDocumentPending("IdNotThere", colAInDb!);
-                        docIdIsPending.Should().BeFalse();
-                        docIdIsPending1.Should().BeTrue();
+                        docIdIsPending.ShouldBeFalse();
+                        docIdIsPending1.ShouldBeTrue();
                         docIdIsPending1 = replicator.IsDocumentPending("IdNotThere", colBInDb!);
-                        docIdIsPending1.Should().BeFalse();
+                        docIdIsPending1.ShouldBeFalse();
                     } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                        docIdIsPending.Should().BeTrue();
+                        docIdIsPending.ShouldBeTrue();
                         docIdIsPending = replicator.IsDocumentPending("doc1", colAInDb!);
-                        docIdIsPending.Should().BeFalse();
-                        docIdIsPending1.Should().BeTrue();
+                        docIdIsPending.ShouldBeFalse();
+                        docIdIsPending1.ShouldBeTrue();
                         docIdIsPending1 = replicator.IsDocumentPending("doc3", colBInDb!);
-                        docIdIsPending1.Should().BeFalse();
+                        docIdIsPending1.ShouldBeFalse();
                     } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
-                        docIdIsPending.Should().BeFalse();
-                        docIdIsPending1.Should().BeFalse();
+                        docIdIsPending.ShouldBeFalse();
+                        docIdIsPending1.ShouldBeFalse();
                     }
 
                     replicator.Start();
@@ -1282,10 +1282,10 @@ namespace Test
                     Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
                         .Times(5)
                         .Delay(TimeSpan.FromMilliseconds(500))
-                        .Go().Should().BeTrue();
+                        .Go().ShouldBeTrue();
 
-                    replicator.IsDocumentPending(colADocId, colAInDb!).Should().BeFalse();
-                    replicator.IsDocumentPending(colBDocId, colBInDb!).Should().BeFalse();
+                    replicator.IsDocumentPending(colADocId, colAInDb!).ShouldBeFalse();
+                    replicator.IsDocumentPending(colBDocId, colBInDb!).ShouldBeFalse();
                     token.Remove();
                 }
             }
@@ -1334,26 +1334,26 @@ namespace Test
             // Check docs in Db - before replication
             var colAInDb = Db.GetCollection("colA", "scopeA");
             var colBInDb = Db.GetCollection("colB", "scopeA");
-            colAInDb!.GetDocument("doc")?.GetString("str").Should().Be("string");
-            colAInDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-            colBInDb!.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-            colBInDb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
-            colAInDb.GetDocument("doc4").Should().BeNull("Because doc4 is not created in colA in Db");
-            colAInDb.GetDocument("doc5").Should().BeNull("Because doc5 is not created in colA in Db");
-            colBInDb.GetDocument("doc6").Should().BeNull("Because doc6 is not created in colB in Db");
-            colBInDb.GetDocument("doc7").Should().BeNull("Because doc7 is not created in colB in Db");
+            colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+            colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+            colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+            colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+            colAInDb.GetDocument("doc4").ShouldBeNull("Because doc4 is not created in colA in Db");
+            colAInDb.GetDocument("doc5").ShouldBeNull("Because doc5 is not created in colA in Db");
+            colBInDb.GetDocument("doc6").ShouldBeNull("Because doc6 is not created in colB in Db");
+            colBInDb.GetDocument("doc7").ShouldBeNull("Because doc7 is not created in colB in Db");
 
             // Check docs in OtherDb - before replication
             var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA");
             var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA");
-            colAInOtherDb!.GetDocument("doc").Should().BeNull("Because doc is not created in colA in OtherDb");
-            colAInOtherDb.GetDocument("doc1").Should().BeNull("Because doc1 is not created in colA in OtherDb");
-            colBInOtherDb!.GetDocument("doc2").Should().BeNull("Because doc2 is not created in colA in OtherDb");
-            colBInOtherDb.GetDocument("doc3").Should().BeNull("Because doc3 is not created in colA in OtherDb");
-            colAInOtherDb.GetDocument("doc4")?.GetString("str4").Should().Be("string4");
-            colAInOtherDb.GetDocument("doc5")?.GetString("str5").Should().Be("string5");
-            colBInOtherDb.GetDocument("doc6")?.GetString("str6").Should().Be("string6");
-            colBInOtherDb.GetDocument("doc7")?.GetString("str7").Should().Be("string7");
+            colAInOtherDb!.GetDocument("doc").ShouldBeNull("Because doc is not created in colA in OtherDb");
+            colAInOtherDb.GetDocument("doc1").ShouldBeNull("Because doc1 is not created in colA in OtherDb");
+            colBInOtherDb!.GetDocument("doc2").ShouldBeNull("Because doc2 is not created in colA in OtherDb");
+            colBInOtherDb.GetDocument("doc3").ShouldBeNull("Because doc3 is not created in colA in OtherDb");
+            colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
+            colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
+            colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
+            colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
 
             config.AddCollection(colA);
             config.AddCollection(colB);
@@ -1374,7 +1374,7 @@ namespace Test
 
         private bool _replicator__filterAllowsOddDocIdsCallback(Document document, DocumentFlags flags)
         {
-            document.RevisionID.Should().NotBeNull();
+            document.RevisionID.ShouldNotBeNull();
             if (allowOddIds.Any(id => id == document.Id))
                 return true;
 
