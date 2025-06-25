@@ -36,7 +36,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.P2P;
 using Couchbase.Lite.Sync;
 
-using FluentAssertions;
+using Shouldly;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
 
@@ -107,11 +107,11 @@ namespace Test
             //init and start a listener
             _listener = CreateListener(false);
             //In order to get the test to pass on Linux, temp modify to this:
-            _listener.Port.Should().BeGreaterThan(0);
-            //_listener.Port.Should().Be(WsPort);
+            _listener.Port.ShouldBeGreaterThan((ushort)0);
+            //_listener.Port.ShouldBe(WsPort);
             //stop the listener
             _listener.Stop();
-            _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
+            _listener.Port.ShouldBe((ushort)0, "Listener's port should be 0 because the listener is stopped.");
         }
 
         [Fact]
@@ -121,11 +121,11 @@ namespace Test
             var config = CreateListenerConfig(false);
             _listener = Listen(config, 0, 0);
 
-            _listener.Port.Should().NotBe(0, "Because the port is dynamically assigned.");
+            _listener.Port.ShouldNotBe((ushort)0, "Because the port is dynamically assigned.");
 
             //stop the listener
             _listener.Stop();
-            _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
+            _listener.Port.ShouldBe((ushort)0, "Listener's port should be 0 because the listener is stopped.");
         }
 
         [Fact]
@@ -146,15 +146,15 @@ namespace Test
         {
             // TLS is disabled
             _listener = CreateListener(false);
-            _listener.TlsIdentity.Should().BeNull();
+            _listener.TlsIdentity.ShouldBeNull();
             _listener.Stop();
-            _listener.TlsIdentity.Should().BeNull();
+            _listener.TlsIdentity.ShouldBeNull();
 
             // Anonymous Identity
             _listener = CreateListener(true);
-            _listener.TlsIdentity.Should().NotBeNull();
+            _listener.TlsIdentity.ShouldNotBeNull();
             _listener.Stop();
-            _listener.TlsIdentity.Should().BeNull();
+            _listener.TlsIdentity.ShouldBeNull();
 
             // User Identity
             TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
@@ -166,12 +166,12 @@ namespace Test
                 null);
             var config = CreateListenerConfig(true, true, null, id);
             _listener = new URLEndpointListener(config);
-            _listener.TlsIdentity.Should().BeNull();
+            _listener.TlsIdentity.ShouldBeNull();
             _listener.Start();
-            _listener.TlsIdentity.Should().NotBeNull();
-            _listener.TlsIdentity.Should().BeEquivalentTo(config.TlsIdentity);
+            _listener.TlsIdentity.ShouldNotBeNull();
+            _listener.TlsIdentity.ShouldBeEquivalentTo(config.TlsIdentity);
             _listener.Stop();
-            _listener.TlsIdentity.Should().BeNull();
+            _listener.TlsIdentity.ShouldBeNull();
         }
 
         [Fact]
@@ -179,9 +179,10 @@ namespace Test
         {
             _listener = CreateListener(false);
 
-            _listener.Urls.Should().HaveCountGreaterThan(0);
+            _listener.Urls.ShouldNotBeNull();
+            _listener.Urls.Count.ShouldBeGreaterThan(0);
             _listener.Stop();
-            _listener.Urls.Should().HaveCount(0);
+            _listener.Urls.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -194,8 +195,8 @@ namespace Test
             _listener = CreateListener(false);
 
             //listener is started at this point
-            _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because no client connection has been established.");
-            _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because no client connection has been established.");
+            _listener.Status.ConnectionCount.ShouldBe(0UL, "Listener's connection count should be 0 because no client connection has been established.");
+            _listener.Status.ActiveConnectionCount.ShouldBe(0UL, "Listener's active connection count should be 0 because no client connection has been established.");
 
             using (var doc1 = new MutableDocument())
             using (var doc2 = new MutableDocument()) {
@@ -241,13 +242,13 @@ namespace Test
                 }
             }
 
-            maxConnectionCount.Should().Be(1);
-            maxActiveCount.Should().Be(1);
+            maxConnectionCount.ShouldBe(1UL);
+            maxActiveCount.ShouldBe(1UL);
 
             //stop the listener
             _listener.Stop();
-            _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because the connection is stopped.");
-            _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because the connection is stopped.");
+            _listener.Status.ConnectionCount.ShouldBe(0UL, "Listener's connection count should be 0 because the connection is stopped.");
+            _listener.Status.ActiveConnectionCount.ShouldBe(0UL, "Listener's active connection count should be 0 because the connection is stopped.");
         }
 
         [Fact]
@@ -320,7 +321,7 @@ namespace Test
                 _store,
                 ClientCertLabel,
                 null);
-            id.Should().NotBeNull();
+            id.ShouldNotBeNull();
 
             RunReplication(
                 _listener.LocalEndpoint(),
@@ -382,7 +383,7 @@ namespace Test
                 ClientCertLabel,
                 null);
 
-            id.Should().NotBeNull();
+            id.ShouldNotBeNull();
             RunReplication(
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
@@ -458,14 +459,14 @@ namespace Test
             var config = CreateListenerConfig(true, true, null, id);
             _listener = Listen(config);
 
-            _listener.TlsIdentity.Should().NotBeNull();
+            _listener.TlsIdentity.ShouldNotBeNull();
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Sam");
                 DefaultCollection.Save(doc1);
             }
 
-            OtherDefaultCollection.Count.Should().Be(0);
+            OtherDefaultCollection.Count.ShouldBe(0UL);
 
             RunReplication(
                 _listener.LocalEndpoint(),
@@ -478,7 +479,7 @@ namespace Test
                 0
             );
 
-            OtherDefaultCollection.Count.Should().Be(1);
+            OtherDefaultCollection.Count.ShouldBe(1UL);
 
             _listener.Stop();
         }
@@ -487,9 +488,9 @@ namespace Test
         public void TestAcceptSelfSignedCertWithPinnedCertificate()
         {
             _listener = CreateListener();
-            _listener.TlsIdentity.Should()
-                .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity!.Certs.Should().HaveCount(1,
+            _listener.TlsIdentity
+                .ShouldNotBeNull("because otherwise the TLS identity was not created for the listener");
+            _listener.TlsIdentity!.Certs.Count.ShouldBe(1,
                 "because otherwise bogus certs were used");
 
             // listener = cert1; replicator.pin = cert2; acceptSelfSigned = true => fail
@@ -523,9 +524,9 @@ namespace Test
         public void TestAcceptOnlySelfSignedCertMode()
         {
             _listener = CreateListener();
-            _listener.TlsIdentity.Should()
-                .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity!.Certs.Count.Should().Be(1,
+            _listener.TlsIdentity
+                .ShouldNotBeNull("because otherwise the TLS identity was not created for the listener");
+            _listener.TlsIdentity!.Certs.Count.ShouldBe(1,
                 "because otherwise bogus certs were used");
 
             DisableDefaultServerCertPinning = true;
@@ -560,9 +561,9 @@ namespace Test
         public void TestDoNotAcceptSelfSignedMode() //aka testPinnedServerCertificate in iOS
         {
             _listener = CreateListener();
-            _listener.TlsIdentity.Should()
-                .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity!.Certs.Count.Should().Be(1,
+            _listener.TlsIdentity
+                .ShouldNotBeNull("because otherwise the TLS identity was not created for the listener");
+            _listener.TlsIdentity!.Certs.Count.ShouldBe(1,
                 "because otherwise bogus certs were used");
 
             DisableDefaultServerCertPinning = true;
@@ -662,7 +663,7 @@ namespace Test
             );
 
             listener2.Stop();
-            OtherDefaultCollection.Count.Should().Be(2);
+            OtherDefaultCollection.Count.ShouldBe(2UL);
         }
 
 #if !SANITY_ONLY
@@ -718,15 +719,15 @@ namespace Test
 
             repl1.Start();
             repl2.Start();
-            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(20))
-                .Should().BeTrue();
+            WaitAssert.WaitAll([wait1, wait2], TimeSpan.FromSeconds(20))
+                .ShouldBeTrue();
 
             token1.Remove();
             token2.Remove();
 
-            DefaultCollection.Count.Should().Be(3, "because otherwise not all docs were received into Db");
-            OtherDefaultCollection.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
-            urlepTestDb.GetDefaultCollection().Count.Should().Be(3, "because otherwise not all docs were received into urlepTestDb");
+            DefaultCollection.Count.ShouldBe(3UL, "because otherwise not all docs were received into Db");
+            OtherDefaultCollection.Count.ShouldBe(3UL, "because otherwise not all docs were received into OtherDb");
+            urlepTestDb.GetDefaultCollection().Count.ShouldBe(3UL, "because otherwise not all docs were received into urlepTestDb");
             
             repl1.Dispose();
             repl2.Dispose();
@@ -766,8 +767,8 @@ namespace Test
         {
             Listen(CreateListenerConfig(false));
             OtherDb.Close();
-            _listener.Port.Should().Be(0);
-            _listener.Urls.Should().BeEmpty();
+            _listener.Port.ShouldBe((ushort)0);
+            _listener.Urls.ShouldBeEmpty();
         }
 
         [Fact]
@@ -858,14 +859,15 @@ namespace Test
                 repl.Start();
 
                 // Wait until idle then stop the listener
-                waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
+                waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).ShouldBeTrue();
 
                 // Wait for the replicator to be stopped
-                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).ShouldBeTrue();
 
                 // Check error
-                var error = repl.Status.Error.As<CouchbaseWebsocketException>();
-                ((int)error.Error).Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+                var error = repl.Status.Error as CouchbaseWebsocketException;
+                error.ShouldNotBeNull();
+                ((int)error.Error).ShouldBe((int)CouchbaseLiteError.WebSocketGoingAway);
             }
         }
         
@@ -918,7 +920,7 @@ namespace Test
                 Port = 0,
                 DisableTLS = true
             };
-            badAct.Should().Throw<CouchbaseLiteException>().WithMessage("The given collections must not be null or empty.");
+            Should.Throw<CouchbaseLiteException>(badAct).Message.ShouldBe("The given collections must not be null or empty.");
         }
 
         #endregion
@@ -967,10 +969,10 @@ namespace Test
                 RunReplication(replConfig, 0, 0);
 
                 // Check docs are replicated between collections colADb & colAOtherDb
-                colAOtherDb.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colADb.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colADb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
+                colAOtherDb.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colADb.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colADb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
                 
                 listener.Stop();
             }
@@ -1010,8 +1012,8 @@ namespace Test
             _listener = CreateListener(false);
             var listener2 = CreateNewListener();
 
-            _listener.Config.Collections[0].Database.ActiveStoppables.Count.Should().Be(2);
-            listener2.Config.Collections[0].Database.ActiveStoppables.Count.Should().Be(2);
+            _listener.Config.Collections[0].Database.ActiveStoppables.Count.ShouldBe(2);
+            listener2.Config.Collections[0].Database.ActiveStoppables.Count.ShouldBe(2);
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
@@ -1037,7 +1039,7 @@ namespace Test
             repl1.Start();
 
             waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
-            OtherDb.ActiveStoppables.Count.Should().Be(3);
+            OtherDb.ActiveStoppables.Count.ShouldBe(3);
 
             if (isCloseNotDelete) {
                 OtherDb.Close();
@@ -1045,8 +1047,8 @@ namespace Test
                 OtherDb.Delete();
             }
 
-            OtherDb.ActiveStoppables.Count.Should().Be(0);
-            OtherDb.IsClosedLocked.Should().Be(true);
+            OtherDb.ActiveStoppables.Count.ShouldBe(0);
+            OtherDb.IsClosedLocked.ShouldBe(true);
 
             waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
         }
@@ -1063,7 +1065,7 @@ namespace Test
             }
 
             _listener = CreateListener();
-            _listener.Config.Collections[0].Database.ActiveStoppables.Count.Should().Be(1);
+            _listener.Config.Collections[0].Database.ActiveStoppables.Count.ShouldBe(1);
 
             using (var doc1 = new MutableDocument()) {
                 DefaultCollection.Save(doc1);
@@ -1106,11 +1108,11 @@ namespace Test
             repl1.Start();
             repl2.Start();
 
-            WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
-                .Should().BeTrue();
+            WaitAssert.WaitAll([waitIdleAssert1, waitIdleAssert2], _timeout)
+                .ShouldBeTrue();
 
-            OtherDb.ActiveStoppables.Count.Should().Be(2);
-            urlepTestDb.ActiveStoppables.Count.Should().Be(1);
+            OtherDb.ActiveStoppables.Count.ShouldBe(2);
+            urlepTestDb.ActiveStoppables.Count.ShouldBe(1);
 
             if (isCloseNotDelete) {
                 urlepTestDb.Close();
@@ -1120,13 +1122,13 @@ namespace Test
                 OtherDb.Delete();
             }
 
-            OtherDb.ActiveStoppables.Count.Should().Be(0, "because OtherDb's active items should all be stopped");
-            urlepTestDb.ActiveStoppables.Count.Should().Be(0, "because urlepTestDb's active items should all be stopped");
-            OtherDb.IsClosedLocked.Should().Be(true);
-            urlepTestDb.IsClosedLocked.Should().Be(true);
+            OtherDb.ActiveStoppables.Count.ShouldBe(0, "because OtherDb's active items should all be stopped");
+            urlepTestDb.ActiveStoppables.Count.ShouldBe(0, "because urlepTestDb's active items should all be stopped");
+            OtherDb.IsClosedLocked.ShouldBe(true);
+            urlepTestDb.IsClosedLocked.ShouldBe(true);
 
-            WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
-                .Should().BeTrue();
+            WaitAssert.WaitAll([waitStoppedAssert1, waitStoppedAssert2], TimeSpan.FromSeconds(20))
+                .ShouldBeTrue();
 
             waitIdleAssert1.Dispose();
             waitIdleAssert2.Dispose();
@@ -1145,9 +1147,9 @@ namespace Test
             // this show an active count of zero.
             ulong maxConnectionCount = 0UL;
 
-            _listener.Should().NotBeNull();
+            _listener.ShouldNotBeNull();
             var existingDocsInListener = _listener!.Config.Collections[0].Count;
-            existingDocsInListener.Should().Be(1);
+            existingDocsInListener.ShouldBe(1UL);
 
             using (var doc1 = new MutableDocument()) {
                 DefaultCollection.Save(doc1);
@@ -1175,8 +1177,8 @@ namespace Test
             using var stopped2 = new ManualResetEventSlim();
 
             // Grab these now to avoid a race condition between Set() and WaitHandle side effect
-            var busyHandles = new[] { busy1.WaitHandle, busy2.WaitHandle };
-            var stoppedHandles = new[] { stopped1.WaitHandle, stopped2.WaitHandle };
+            var busyHandles = new[] { busy1, busy2 };
+            var stoppedHandles = new[] { stopped1, stopped2 };
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
             {
                 var senderIsRepl1 = sender == repl1;
@@ -1221,26 +1223,26 @@ namespace Test
             repl1.Start();
             repl2.Start();
 
-            WaitHandle.WaitAll(busyHandles, TimeSpan.FromSeconds(5))
-                .Should().BeTrue("because otherwise one of the replicators never became busy");
+            WaitAssert.WaitAll(busyHandles, TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise one of the replicators never became busy");
 
-            WaitHandle.WaitAll(stoppedHandles, TimeSpan.FromSeconds(30))
-                .Should().BeTrue("because otherwise one of the replicators never stopped");
+            WaitAssert.WaitAll(stoppedHandles, TimeSpan.FromSeconds(30))
+                .ShouldBeTrue("because otherwise one of the replicators never stopped");
 
             // Depending on the whim of the divine entity, there are a number of ways in which the connections
             // can happen.  Commonly they run concurrently which results in a max connection count of 2.
             // However they can also run sequentially which means only a count of 1.
-            maxConnectionCount.Should().BeGreaterThan(0);
+            maxConnectionCount.ShouldBeGreaterThan(0UL);
 
             // all data are transferred to/from
             if (replicatorType == ReplicatorType.PushAndPull) {
-                _listener.Config.Collections[0].Count.Should().Be(existingDocsInListener + 2UL);
-                DefaultCollection.Count.Should().Be(existingDocsInListener + 2UL);
-                urlepTestDb.GetDefaultCollection().Count.Should().Be(existingDocsInListener + 2UL);
+                _listener.Config.Collections[0].Count.ShouldBe(existingDocsInListener + 2UL);
+                DefaultCollection.Count.ShouldBe(existingDocsInListener + 2UL);
+                urlepTestDb.GetDefaultCollection().Count.ShouldBe(existingDocsInListener + 2UL);
             } else if(replicatorType == ReplicatorType.Pull) {
-                _listener.Config.Collections[0].Count.Should().Be(1);
-                DefaultCollection.Count.Should().Be(existingDocsInListener + 1UL);
-                urlepTestDb.GetDefaultCollection().Count.Should().Be(existingDocsInListener + 1UL);
+                _listener.Config.Collections[0].Count.ShouldBe(1UL);
+                DefaultCollection.Count.ShouldBe(existingDocsInListener + 1UL);
+                urlepTestDb.GetDefaultCollection().Count.ShouldBe(existingDocsInListener + 1UL);
             }
 
             token1.Remove();
@@ -1268,25 +1270,25 @@ namespace Test
                     }
                 });
 
-                repl.ServerCertificate.Should().BeNull();
+                repl.ServerCertificate.ShouldBeNull();
                 repl.Start();
 
                 if (hasIdle) {
-                    waitIdle.Wait(_timeout).Should().BeTrue();
+                    waitIdle.Wait(_timeout).ShouldBeTrue();
                     if (serverCert == null) {
-                        repl.ServerCertificate.Should().BeNull();
+                        repl.ServerCertificate.ShouldBeNull();
                     } else {
-                        serverCert.Thumbprint.Should().Be(repl.ServerCertificate?.Thumbprint);
+                        serverCert.Thumbprint.ShouldBe(repl.ServerCertificate?.Thumbprint);
                     }
 
                     repl.Stop();
                 }
 
-                waitStopped.Wait(_timeout).Should().BeTrue();
+                waitStopped.Wait(_timeout).ShouldBeTrue();
                 if (serverCert == null) {
-                    repl.ServerCertificate.Should().BeNull();
+                    repl.ServerCertificate.ShouldBeNull();
                 } else {
-                    serverCert.Thumbprint.Should().Be(repl.ServerCertificate?.Thumbprint);
+                    serverCert.Thumbprint.ShouldBe(repl.ServerCertificate?.Thumbprint);
                 }
             }
         }
@@ -1365,11 +1367,12 @@ namespace Test
 
             _listener = new URLEndpointListener(config);
 
-            _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener has not yet started.");
-            _listener.Urls.Should().HaveCount(0, "Listener's Urls count should be 0 because the listener has not yet started.");
-            _listener.TlsIdentity.Should().BeNull("Listener's TlsIdentity should be null because the listener has not yet started.");
-            _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because the listener has not yet started.");
-            _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because the listener has not yet started.");
+            _listener.Port.ShouldBe((ushort)0, "Listener's port should be 0 because the listener has not yet started.");
+            _listener.Urls.ShouldNotBeNull();
+            _listener.Urls.Count.ShouldBe(0, "Listener's Urls count should be 0 because the listener has not yet started.");
+            _listener.TlsIdentity.ShouldBeNull("Listener's TlsIdentity should be null because the listener has not yet started.");
+            _listener.Status.ConnectionCount.ShouldBe(0UL, "Listener's connection count should be 0 because the listener has not yet started.");
+            _listener.Status.ActiveConnectionCount.ShouldBe(0UL, "Listener's active connection count should be 0 because the listener has not yet started.");
 
             try {
                 _listener.Start();
@@ -1378,22 +1381,22 @@ namespace Test
                     throw;
                 }
 
-                e.Domain.Should().Be(expectedErrDomain);
-                ((int)e.Error).Should().Be(expectedErrCode); 
+                e.Domain.ShouldBe(expectedErrDomain);
+                ((int)e.Error).ShouldBe(expectedErrCode); 
             } catch (CouchbaseNetworkException ne) {
                 if (expectedErrCode == 0) {
                     throw;
                 }
 
-                ne.Domain.Should().Be(expectedErrDomain);
-                ((int)ne.Error).Should().Be(expectedErrCode);
+                ne.Domain.ShouldBe(expectedErrDomain);
+                ((int)ne.Error).ShouldBe(expectedErrCode);
             } catch (CouchbasePosixException pe) {
                 if (expectedErrCode == 0) {
                     throw;
                 }
 
-                pe.Domain.Should().Be(expectedErrDomain);
-                pe.Error.Should().Be(expectedErrCode);
+                pe.Domain.ShouldBe(expectedErrDomain);
+                pe.Error.ShouldBe(expectedErrCode);
             }
 
             return _listener;

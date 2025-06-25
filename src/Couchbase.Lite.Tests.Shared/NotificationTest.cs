@@ -20,7 +20,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite;
-using FluentAssertions;
+using Shouldly;
 
 using Newtonsoft.Json;
 using Xunit;
@@ -40,17 +40,24 @@ namespace Test
 
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            _wa?.Dispose();
+        }
+
         [Fact]
         public void TestDatabaseChange()
         {
-            var wa = new WaitAssert();
+            using var wa = new WaitAssert();
             DefaultCollection.AddChangeListener(null, (sender, args) =>
             {
                 var docIDs = args.DocumentIDs;
                 wa.RunAssert(() =>
                 {
-                    args.Database.Should().Be(Db);
-                    docIDs.Should().HaveCount(10, "because that is the number of expected rows");
+                    args.Database.ShouldBe(Db);
+                    docIDs.Count.ShouldBe(10, "because that is the number of expected rows");
                 });
             });
 
@@ -69,7 +76,7 @@ namespace Test
         [Fact]
         public void TestCollectionChange()
         {
-            var wa = new WaitAssert();
+            using var wa = new WaitAssert();
             var colA = Db.CreateCollection("colA", "scopeA");
 
             colA.AddChangeListener(null, (sender, args) =>
@@ -77,8 +84,8 @@ namespace Test
                 var docIDs = args.DocumentIDs;
                 wa.RunAssert(() =>
                 {
-                    args.Collection.Should().Be(colA);
-                    docIDs.Should().HaveCount(10, "because that is the number of expected rows");
+                    args.Collection.ShouldBe(colA);
+                    docIDs.Count.ShouldBe(10, "because that is the number of expected rows");
                 });
             });
 
@@ -158,7 +165,7 @@ namespace Test
                 colB.Save(doc4);
 
                 _wa.WaitForResult(TimeSpan.FromSeconds(5));
-                _expectedDocumentChanges.Count.Should().Be(0);
+                _expectedDocumentChanges.Count.ShouldBe(0);
                 
                 _wa = new WaitAssert();
 
@@ -170,7 +177,7 @@ namespace Test
                 colB.Save(doc4);
 
                 _wa.WaitForResult(TimeSpan.FromSeconds(5));
-                _expectedDocumentChanges.Count.Should().Be(0);
+                _expectedDocumentChanges.Count.ShouldBe(0);
 
                 _wa = new WaitAssert();
 
@@ -178,7 +185,7 @@ namespace Test
                 colA.Delete(doc2);
 
                 _wa.WaitForResult(TimeSpan.FromSeconds(5));
-                _expectedDocumentChanges.Count.Should().Be(0);
+                _expectedDocumentChanges.Count.ShouldBe(0);
 
                 _expectedDocumentChanges.Add("doc3");
                 var doc3 = new MutableDocument("doc3");
@@ -187,8 +194,8 @@ namespace Test
 
                 Thread.Sleep(1000);
 
-                _expectedDocumentChanges.Count.Should().Be(1, "Because there is no listener to observe doc3 change.");
-                _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+                _expectedDocumentChanges.Count.ShouldBe(1, "Because there is no listener to observe doc3 change.");
+                _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
                 _expectedDocumentChanges.Clear();
             }
         }
@@ -215,7 +222,7 @@ namespace Test
             DefaultCollection.Save(doc1);
 
             await Task.Delay(500);
-            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+            _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
         }
 
         [Fact]
@@ -241,7 +248,7 @@ namespace Test
             colA.Save(doc1);
 
             await Task.Delay(500);
-            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+            _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
         }
 
         [Fact]
@@ -269,7 +276,7 @@ namespace Test
             DefaultCollection.Save(doc1);
 
             await Task.Delay(500);
-            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+            _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
 
             // Remove again
             DefaultCollection.RemoveChangeListener(token);
@@ -301,7 +308,7 @@ namespace Test
             colA.Save(doc1);
 
             await Task.Delay(500);
-            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+            _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
 
             // Remove again
             token.Remove();
@@ -314,21 +321,21 @@ namespace Test
                 var countdownDB = new CountdownEvent(1);
                 db2.GetDefaultCollection().AddChangeListener((sender, args) =>
                 {
-                    args.Should().NotBeNull();
-                    args.DocumentIDs.Count.Should().Be(10);
-                    countdownDB.CurrentCount.Should().Be(1);
+                    args.ShouldNotBeNull();
+                    args.DocumentIDs.Count.ShouldBe(10);
+                    countdownDB.CurrentCount.ShouldBe(1);
                     countdownDB.Signal();
                 });
 
                 var countdownDoc = new CountdownEvent(1);
                 db2.GetDefaultCollection().AddDocumentChangeListener("doc-6", (sender, args) =>
                 {
-                    args.Should().NotBeNull();
-                    args.DocumentID.Should().Be("doc-6");
+                    args.ShouldNotBeNull();
+                    args.DocumentID.ShouldBe("doc-6");
                     using (var doc = db2.GetDefaultCollection().GetDocument(args.DocumentID)) {
-                        doc.Should().NotBeNull("because otherwise the save of '{doc}' failed", args.DocumentID);
-                        doc!.GetString("type").Should().Be("demo");
-                        countdownDoc.CurrentCount.Should().Be(1);
+                        doc.ShouldNotBeNull($"because otherwise the save of '{args.DocumentID}' failed");
+                        doc!.GetString("type").ShouldBe("demo");
+                        countdownDoc.CurrentCount.ShouldBe(1);
                         countdownDoc.Signal();
                     }
                 });
@@ -343,8 +350,8 @@ namespace Test
                     }
                 });
 
-                countdownDB.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
-                countdownDoc.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+                countdownDB.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+                countdownDoc.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
             }
         }
 
@@ -356,21 +363,21 @@ namespace Test
                 var countdownDB = new CountdownEvent(1);
                 colB.AddChangeListener((sender, args) =>
                 {
-                    args.Should().NotBeNull();
-                    args.DocumentIDs.Count.Should().Be(10);
-                    countdownDB.CurrentCount.Should().Be(1);
+                    args.ShouldNotBeNull();
+                    args.DocumentIDs.Count.ShouldBe(10);
+                    countdownDB.CurrentCount.ShouldBe(1);
                     countdownDB.Signal();
                 });
 
                 var countdownDoc = new CountdownEvent(1);
                 colB.AddDocumentChangeListener("doc-6", (sender, args) =>
                 {
-                    args.Should().NotBeNull();
-                    args.DocumentID.Should().Be("doc-6");
+                    args.ShouldNotBeNull();
+                    args.DocumentID.ShouldBe("doc-6");
                     using (var doc = colB.GetDocument(args.DocumentID)) {
-                        doc.Should().NotBeNull("because otherwise the save of '{doc}' failed", args.DocumentID);
-                        doc!.GetString("type").Should().Be("demo");
-                        countdownDoc.CurrentCount.Should().Be(1);
+                        doc.ShouldNotBeNull($"because otherwise the save of '{args.DocumentID}' failed");
+                        doc!.GetString("type").ShouldBe("demo");
+                        countdownDoc.CurrentCount.ShouldBe(1);
                         countdownDoc.Signal();
                     }
                 });
@@ -385,8 +392,8 @@ namespace Test
                     }
                 });
 
-                countdownDB.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
-                countdownDoc.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+                countdownDB.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+                countdownDoc.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
             }
         }
 
@@ -434,8 +441,8 @@ namespace Test
                 colB.Save(doc3b);
 
                 await Task.Delay(800);
-                _expectedDocumentChanges.Count.Should().Be(0);
-                _unexpectedDocumentChanges.Count.Should().Be(3);
+                _expectedDocumentChanges.Count.ShouldBe(0);
+                _unexpectedDocumentChanges.Count.ShouldBe(3);
 
                 //will notify 2 times since there are 2 observers
                 _expectedDocumentChanges.Add("doc6"); 
@@ -444,7 +451,7 @@ namespace Test
                 doc6.SetString("name", "Jack");
                 colA.Save(doc6);
                 await Task.Delay(500);
-                _expectedDocumentChanges.Count.Should().Be(0);
+                _expectedDocumentChanges.Count.ShouldBe(0);
 
                 t1.Remove();
 
@@ -454,7 +461,7 @@ namespace Test
                 doc4.SetString("name", "Jack");
                 colA.Save(doc4);
                 await Task.Delay(500);
-                _expectedDocumentChanges.Count.Should().Be(0);
+                _expectedDocumentChanges.Count.ShouldBe(0);
 
                 t2.Remove();
 
@@ -465,9 +472,9 @@ namespace Test
                 colA.Save(doc5);
                 await Task.Delay(500);
 
-                _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
-                _expectedDocumentChanges.Count.Should().Be(1);
-                _unexpectedDocumentChanges.Count.Should().Be(3);
+                _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
+                _expectedDocumentChanges.Count.ShouldBe(1);
+                _unexpectedDocumentChanges.Count.ShouldBe(3);
             }
         }
 #endif
@@ -482,10 +489,10 @@ namespace Test
                 {
                     lock (_expectedDocumentChanges!) {
                         foreach (var docId in args.DocumentIDs) {
-                            _expectedDocumentChanges.Should()
-                                .Contain(docId, "because otherwise a rogue notification came");
-                            _unexpectedDocumentChanges.Should()
-                                .NotContain(docId, "because otherwise a rogue notification came");
+                            _expectedDocumentChanges
+                                .ShouldContain(docId, "because otherwise a rogue notification came");
+                            _unexpectedDocumentChanges!
+                                .ShouldNotContain(docId, "because otherwise a rogue notification came");
                             _expectedDocumentChanges.Remove(docId);
                         }
 
@@ -506,8 +513,8 @@ namespace Test
                 _wa!.RunConditionalAssert(() =>
                 {
                     lock (_expectedDocumentChanges!) {
-                        _expectedDocumentChanges.Should()
-                            .Contain(args.DocumentID, "because otherwise a rogue notification came");
+                        _expectedDocumentChanges
+                            .ShouldContain(args.DocumentID, "because otherwise a rogue notification came");
                         _expectedDocumentChanges.Remove(args.DocumentID);
 
                         WriteLine(

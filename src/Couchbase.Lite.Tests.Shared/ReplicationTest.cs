@@ -33,7 +33,7 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Query;
 using Constants = Couchbase.Lite.Info.Constants;
 
-using FluentAssertions;
+using Shouldly;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -212,21 +212,22 @@ namespace Test
             WriteLine($"---Status: {s.Activity} ({s.Progress.Completed} / {s.Progress.Total}), lastError = {s.Error}");
             if (s.Activity == ReplicatorActivityLevel.Stopped) {
                 if (errorCode != 0) {
-                    s.Error.Should().NotBeNull();
-                    s.Error.Should().BeAssignableTo<CouchbaseException>();
-                    var error = s.Error.As<CouchbaseException>();
-                    error.Error.Should().Be(errorCode);
-                    if ((int)domain != 0) {
-                        error.Domain.As<CouchbaseLiteErrorType>().Should().Be(domain);
+                    s.Error.ShouldNotBeNull();
+                    s.Error.ShouldBeAssignableTo<CouchbaseException>();
+                    var error = (s.Error as CouchbaseException);
+                    error?.Error.ShouldBe(errorCode);
+                    if (domain != 0) {
+                        error?.Domain.ShouldBe(domain);
                     }
                 } else {
-                    s.Error.Should().BeNull("because otherwise an unexpected error occurred");
+                    s.Error.ShouldBeNull("because otherwise an unexpected error occurred");
                 }
             }
         }
 
         protected override void Dispose(bool disposing)
         {
+            _waitAssert?.Dispose();
             Exception? ex = null;
             var name = OtherDb.Name;
             OtherDb.Close();
@@ -271,29 +272,29 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 badAction = (() => repl.Config.Heartbeat = TimeSpan.FromSeconds(2));
-                badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (Heartbeat) that is in use.");
+                Should.Throw < InvalidOperationException>(badAction, "Cannot modify a ReplicatorConfiguration (Heartbeat) that is in use.");
 
-                repl.Config.Heartbeat.Should().Be(Constants.DefaultReplicatorHeartbeat, $"Because default Heartbeat Interval is 300 sec and {Constants.DefaultReplicatorHeartbeat} is returned.");
+                repl.Config.Heartbeat.ShouldBe(Constants.DefaultReplicatorHeartbeat, $"Because default Heartbeat Interval is 300 sec and {Constants.DefaultReplicatorHeartbeat} is returned.");
             }
 
             config.Heartbeat = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config)) {
-                repl.Config.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.Heartbeat.ShouldBe(TimeSpan.FromSeconds(60));
             }
 
             config.Heartbeat = null;
             using (var repl = new Replicator(config)) {
-                repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
+                repl.Config.Heartbeat.ShouldBe(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
             badAction = (() => config.Heartbeat = TimeSpan.FromSeconds(0));
-            badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value (<= 0).");
+            Should.Throw<ArgumentException>(badAction, "Assigning Heartbeat to an invalid value (<= 0).");
 
             badAction = (() => config.Heartbeat = TimeSpan.FromMilliseconds(800));
-            badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
+            Should.Throw<ArgumentException>(badAction, "Assigning Heartbeat to an invalid value.");
 
             using (var repl = new Replicator(config)) {
-                repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
+                repl.Config.Heartbeat.ShouldBe(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
         }
 
@@ -304,29 +305,29 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 badAction = (() => repl.Config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(2));
-                badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttemptsWaitTime) that is in use.");
+                Should.Throw<InvalidOperationException>(badAction, "Cannot modify a ReplicatorConfiguration (MaxAttemptsWaitTime) that is in use.");
 
-                repl.Config.MaxAttemptsWaitTime.Should().Be(Constants.DefaultReplicatorMaxAttemptsWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+                repl.Config.MaxAttemptsWaitTime.ShouldBe(Constants.DefaultReplicatorMaxAttemptsWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.MaxAttemptsWaitTime.ShouldBe(TimeSpan.FromSeconds(60));
             }
 
             config.MaxAttemptsWaitTime = null;
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+                repl.Config.MaxAttemptsWaitTime.ShouldBe(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
             badAction = (() => config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(0));
-            badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value (<= 0).");
+            Should.Throw<ArgumentException>(badAction, "Assigning Max Retry Wait Time to an invalid value (<= 0).");
 
             badAction = (() => config.MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800));
-            badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value.");
+            Should.Throw<ArgumentException>(badAction, "Assigning Max Retry Wait Time to an invalid value");
 
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+                repl.Config.MaxAttemptsWaitTime.ShouldBe(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
         }
 
@@ -337,41 +338,41 @@ namespace Test
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
             config.AddCollection(DefaultCollection);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
+                repl.Config.MaxAttempts.ShouldBe(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
 
                 badAction = (() => repl.Config.MaxAttempts = 2);
-                badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttempts) that is in use.");
+                Should.Throw<InvalidOperationException>(badAction, "Cannot modify a ReplicatorConfiguration (MaxAttempts) that is in use.");
             }
 
             config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb)) { Continuous = true };
             config.AddCollection(DefaultCollection);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(Constants.DefaultReplicatorMaxAttemptsContinuous, $"Because default Max Attempts is Max int times for a Continuous Replicator and {Constants.DefaultReplicatorMaxAttemptsContinuous} is returned.");
+                repl.Config.MaxAttempts.ShouldBe(Constants.DefaultReplicatorMaxAttemptsContinuous, $"Because default Max Attempts is Max int times for a Continuous Replicator and {Constants.DefaultReplicatorMaxAttemptsContinuous} is returned.");
             }
             
             var attempts = 5;
             config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts };
             config.AddCollection(DefaultCollection);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
+                repl.Config.MaxAttempts.ShouldBe(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
 
             config.MaxAttempts = 0;
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
+                repl.Config.MaxAttempts.ShouldBe(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
             }
 
             config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts, Continuous = true };
             config.AddCollection(DefaultCollection);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
+                repl.Config.MaxAttempts.ShouldBe(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
 
             badAction = (() => config.MaxAttempts = -1);
-            badAction.Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
+            Should.Throw<ArgumentException>(badAction, "Assigning Max Retries to an invalid value (< 0).");
 
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts}  is the value set for MaxAttempts.");
+                repl.Config.MaxAttempts.ShouldBe(attempts, $"Because {attempts}  is the value set for MaxAttempts.");
             }
         }
 
@@ -389,8 +390,8 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 config = repl.Config;
-                config.Invoking(c => c.ReplicatorType = ReplicatorType.PushAndPull)
-                    .Should().Throw<InvalidOperationException>("because the configuration from a replicator should be read only");
+                Should.Throw<InvalidOperationException>(() => config.ReplicatorType = ReplicatorType.PushAndPull, 
+                    "because the configuration from a replicator should be read only");
             }
         }
 
@@ -429,8 +430,8 @@ namespace Test
 
             for (int i = 0; i < 2; i++) {
                 RunReplication(config, 0, 0);
-                DefaultCollection.Count.Should().Be(1, "because the pull should have rejected the other document");
-                OtherDefaultCollection.Count.Should().Be(1, "because the push should have rejected the local document");
+                DefaultCollection.Count.ShouldBe(1UL, "because the pull should have rejected the other document");
+                OtherDefaultCollection.Count.ShouldBe(1UL, "because the push should have rejected the local document");
             }
         }
 
@@ -453,23 +454,23 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when there are docs to be pushed to the other db.");
-            OtherDefaultCollection.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
-            OtherDefaultCollection.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when there are docs to be pushed to the other db.");
+            OtherDefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1 passes the filter");
+            OtherDefaultCollection.GetDocument("pass").ShouldNotBeNull("because the next document passes the filter");
             _isFilteredCallback = false;
 
             using (var doc1 = DefaultCollection.GetDocument("doc1"))
             using (var doc2 = DefaultCollection.GetDocument("pass")) {
-                doc1.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc2.Should().NotBeNull("because otherwise the database was missing 'pass'");
+                doc1.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc2.ShouldNotBeNull("because otherwise the database was missing 'pass'");
                 DefaultCollection.Delete(doc1!);
                 DefaultCollection.Delete(doc2!);
             }
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when the docs are deleted.");
-            OtherDefaultCollection.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
-            OtherDefaultCollection.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
+            _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when the docs are deleted.");
+            OtherDefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1's deletion should be rejected");
+            OtherDefaultCollection.GetDocument("pass").ShouldBeNull("because the next document's deletion is not rejected");
             _isFilteredCallback = false;
         }
 
@@ -488,11 +489,11 @@ namespace Test
             var exceptions = new List<Exception>();
             Func<Document, DocumentFlags, bool> pullFilter = (doc, isPush) => {
                 try {
-                    doc.GetInt("Two").Should().Be(2);
-                    doc.RevisionID.Should().NotBeNull();
+                    doc.GetInt("Two").ShouldBe(2);
+                    doc.RevisionID.ShouldNotBeNull();
                     Action act = () => doc.ToMutable();
-                    act.Should().Throw<InvalidOperationException>()
-                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                    Should.Throw<InvalidOperationException>(act).Message
+                        .ShouldBe(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
@@ -502,11 +503,11 @@ namespace Test
 
             Func<Document, DocumentFlags, bool> pushFilter = (doc, isPush) => {
                 try {
-                    doc.GetInt("One").Should().Be(1);
-                    doc.RevisionID.Should().NotBeNull();
+                    doc.GetInt("One").ShouldBe(1);
+                    doc.RevisionID.ShouldNotBeNull();
                     Action act = () => doc.ToMutable();
-                    act.Should().Throw<InvalidOperationException>()
-                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                    Should.Throw<InvalidOperationException>(act).Message
+                        .ShouldBe(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
 
                 } catch (Exception e) {
                     exceptions.Add(e);
@@ -522,7 +523,7 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            exceptions.Count.Should().Be(0);
+            exceptions.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -548,10 +549,10 @@ namespace Test
             Func<Document, DocumentFlags, bool> pullFilter = (doc, isPush) => {
                 try {
                     var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
-                    nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
+                    nestedBlob.ShouldNotBeNull("because the actual blob object should be intact");
                     var gotContent = nestedBlob!.Content;
-                    gotContent.Should().BeNull("because the blob is not yet available");
-                    doc.RevisionID.Should().NotBeNull();
+                    gotContent.ShouldBeNull("because the blob is not yet available");
+                    doc.RevisionID.ShouldNotBeNull();
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
@@ -562,9 +563,9 @@ namespace Test
             Func<Document, DocumentFlags, bool> pushFilter = (doc, isPush) => {
                 try {
                     var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
-                    gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
-                    gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
-                    doc.RevisionID.Should().NotBeNull();
+                    gotContent.ShouldNotBeNull("because the nested blob should be intact in the push");
+                    gotContent.ShouldBeEquivalentToFluent(content1, "because the nested blob should be intact in the push");
+                    doc.RevisionID.ShouldNotBeNull();
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
@@ -578,7 +579,7 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            exceptions.Should().BeEmpty("because there should be no errors");
+            exceptions.ShouldBeEmpty("because there should be no errors");
         }
 
         [Fact]
@@ -588,7 +589,7 @@ namespace Test
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Tiger");
                 DefaultCollection.Save(doc1);
-                DefaultCollection.Count.Should().Be(1UL);
+                DefaultCollection.Count.ShouldBe(1UL);
 
                 doc2.SetString("name", "Cat");
                 OtherDefaultCollection.Save(doc2);
@@ -596,12 +597,12 @@ namespace Test
 
             var config = CreateConfig(true, false, false);
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeFalse();
+            _isFilteredCallback.ShouldBeFalse();
 
-            OtherDefaultCollection.Count.Should().Be(2UL);
+            OtherDefaultCollection.Count.ShouldBe(2UL);
             using (var savedDoc1 = OtherDefaultCollection.GetDocument("doc1")) {
-                savedDoc1.Should().NotBeNull("because otherwise 'doc1' was missing");
-                savedDoc1!.GetString("name").Should().Be("Tiger");
+                savedDoc1.ShouldNotBeNull("because otherwise 'doc1' was missing");
+                savedDoc1!.GetString("name").ShouldBe("Tiger");
             }
         }
 
@@ -612,7 +613,7 @@ namespace Test
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Tiger");
                 DefaultCollection.Save(doc1);
-                DefaultCollection.Count.Should().Be(1UL);
+                DefaultCollection.Count.ShouldBe(1UL);
 
                 doc2.SetString("name", "Cat");
                 OtherDefaultCollection.Save(doc2);
@@ -622,10 +623,10 @@ namespace Test
             config.CheckpointInterval = TimeSpan.FromSeconds(1);
             RunReplication(config, 0, 0);
 
-            OtherDefaultCollection.Count.Should().Be(2UL);
+            OtherDefaultCollection.Count.ShouldBe(2UL);
             using (var savedDoc1 = OtherDefaultCollection.GetDocument("doc1")) {
-                savedDoc1.Should().NotBeNull("because otherwise 'doc1' was missing");
-                savedDoc1!.GetString("name").Should().Be("Tiger");
+                savedDoc1.ShouldNotBeNull("because otherwise 'doc1' was missing");
+                savedDoc1!.GetString("name").ShouldBe("Tiger");
             }
         }
 
@@ -648,9 +649,9 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
-            DefaultCollection.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-            DefaultCollection.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback.ShouldBeTrue();
+            DefaultCollection.GetDocument("doc1").ShouldBeNull("because doc1 is filtered out in the callback");
+            DefaultCollection.GetDocument("doc2").ShouldNotBeNull("because doc2 is filtered in in the callback");
             _isFilteredCallback = false;
         }
 
@@ -673,23 +674,23 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
-            DefaultCollection.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
-            DefaultCollection.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
+            DefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1 passes the filter");
+            DefaultCollection.GetDocument("pass").ShouldNotBeNull("because the next document passes the filter");
             _isFilteredCallback = false;
 
             using (var doc1 = OtherDefaultCollection.GetDocument("doc1"))
             using (var doc2 = OtherDefaultCollection.GetDocument("pass")) {
-                doc1.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc2.Should().NotBeNull("because otherwise the database was missing 'pass'");
+                doc1.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc2.ShouldNotBeNull("because otherwise the database was missing 'pass'");
                 OtherDefaultCollection.Delete(doc1!);
                 OtherDefaultCollection.Delete(doc2!);
             }
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when the docs on the other db are deleted.");
-            DefaultCollection.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
-            DefaultCollection.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
+            _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when the docs on the other db are deleted.");
+            DefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1's deletion should be rejected");
+            DefaultCollection.GetDocument("pass").ShouldBeNull("because the next document's deletion is not rejected");
             _isFilteredCallback = false;
         }
 
@@ -712,17 +713,17 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
-            DefaultCollection.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
-            DefaultCollection.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
+            DefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1 passes the filter");
+            DefaultCollection.GetDocument("pass").ShouldNotBeNull("because the next document passes the filter");
             _isFilteredCallback = false;
 
             using (var doc1 = OtherDefaultCollection.GetDocument("doc1"))
             using (var doc2 = OtherDefaultCollection.GetDocument("pass"))
             using (var doc1Mutable = doc1?.ToMutable())
             using (var doc2Mutable = doc2?.ToMutable()) {
-                doc1Mutable.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc2Mutable.Should().NotBeNull("because otherwise the database was missing 'pass'");
+                doc1Mutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc2Mutable.ShouldNotBeNull("because otherwise the database was missing 'pass'");
                 doc1Mutable!.SetData(new Dictionary<string, object?> { ["_removed"] = true });
                 doc2Mutable!.SetData(new Dictionary<string, object?> { ["_removed"] = true });
                 OtherDefaultCollection.Save(doc1Mutable);
@@ -730,9 +731,9 @@ namespace Test
             }
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when the docs on the other db are removed.");
-            DefaultCollection.GetDocument("doc1").Should().NotBeNull("because doc1's removal should be rejected");
-            DefaultCollection.GetDocument("pass").Should().BeNull("because the next document's removal is not rejected");
+            _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when the docs on the other db are removed.");
+            DefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1's removal should be rejected");
+            DefaultCollection.GetDocument("pass").ShouldBeNull("because the next document's removal is not rejected");
             _isFilteredCallback = false;
         }
 
@@ -743,7 +744,7 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 DefaultCollection.Save(doc1);
-                DefaultCollection.Count.Should().Be(1, "because only one document was saved so far");
+                DefaultCollection.Count.ShouldBe(1UL, "because only one document was saved so far");
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
@@ -753,12 +754,12 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeFalse();
+            _isFilteredCallback.ShouldBeFalse();
 
-            DefaultCollection.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
+            DefaultCollection.Count.ShouldBe(2UL, "because the replicator should have pulled doc2 from the other DB");
             using (var doc2 = DefaultCollection.GetDocument("doc2")) {
-                doc2.Should().NotBeNull("because otherwise the database was missing 'doc2'");
-                doc2!.GetString("name").Should().Be("Cat");
+                doc2.ShouldNotBeNull("because otherwise the database was missing 'doc2'");
+                doc2!.GetString("name").ShouldBe("Cat");
             }
         }
 
@@ -769,7 +770,7 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 DefaultCollection.Save(doc1);
-                DefaultCollection.Count.Should().Be(1, "because only one document was saved so far");
+                DefaultCollection.Count.ShouldBe(1UL, "because only one document was saved so far");
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
@@ -781,10 +782,10 @@ namespace Test
             config.CheckpointInterval = TimeSpan.FromSeconds(1);
             RunReplication(config, 0, 0);
 
-            DefaultCollection.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
+            DefaultCollection.Count.ShouldBe(2UL, "because the replicator should have pulled doc2 from the other DB");
             using (var doc2 = DefaultCollection.GetDocument("doc2")) {
-                doc2.Should().NotBeNull("because otherwise the database was missing 'doc2'");
-                doc2!.GetString("name").Should().Be("Cat");
+                doc2.ShouldNotBeNull("because otherwise the database was missing 'doc2'");
+                doc2!.GetString("name").ShouldBe("Cat");
             }
         }
 
@@ -822,10 +823,10 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            DefaultCollection.Count.Should().Be(3, "because only one document should have been pulled");
-            DefaultCollection.GetDocument("doc3").Should().NotBeNull();
-            OtherDefaultCollection.Count.Should().Be(3, "because only one document should have been pushed");
-            OtherDefaultCollection.GetDocument("doc1").Should().NotBeNull();
+            DefaultCollection.Count.ShouldBe(3UL, "because only one document should have been pulled");
+            DefaultCollection.GetDocument("doc3").ShouldNotBeNull();
+            OtherDefaultCollection.Count.ShouldBe(3UL, "because only one document should have been pushed");
+            OtherDefaultCollection.GetDocument("doc1").ShouldNotBeNull();
         }
 
 #if !SANITY_ONLY
@@ -936,11 +937,11 @@ namespace Test
                 token1.Remove();
             }
 
-            _replicationEvents.Should().HaveCount(2);
+            _replicationEvents.Count.ShouldBe(2);
             var push = _replicationEvents.FirstOrDefault(g => g.IsPush);
-            push?.Documents.First().Id.Should().Be("doc1");
+            push?.Documents.First().Id.ShouldBe("doc1");
             var pull = _replicationEvents.FirstOrDefault(g => !g.IsPush);
-            pull?.Documents.First().Id.Should().Be("doc2");
+            pull?.Documents.First().Id.ShouldBe("doc2");
         }
 
         [Fact]
@@ -962,27 +963,27 @@ namespace Test
             // Force a conflict
             using (var doc1a = DefaultCollection.GetDocument("doc1"))
             using (var doc1aMutable = doc1a?.ToMutable()) {
-                doc1aMutable.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc1aMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc1aMutable!.SetString("name", "Liger");
                 DefaultCollection.Save(doc1aMutable);
             }
 
             using (var doc1b = OtherDefaultCollection.GetDocument("doc1"))
             using (var doc1bMutable = doc1b?.ToMutable()) {
-                doc1bMutable.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc1bMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc1bMutable!.SetString("name", "Lion");
                 OtherDefaultCollection.Save(doc1bMutable);
             }
 
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                var wa = new WaitAssert();
+                using var wa = new WaitAssert();
                 repl.AddDocumentReplicationListener((sender, args) => {
                     if (args.Documents[0].Id == "doc1") {
                         wa.RunAssert(() => {
-                            args.Documents[0].Error.Should().NotBeNull();
-                            args.Documents[0].Error!.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-                            args.Documents[0].Error!.Error.Should().Be((int)CouchbaseLiteError.HTTPConflict);
+                            args.Documents[0].Error.ShouldNotBeNull();
+                            args.Documents[0].Error!.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
+                            args.Documents[0].Error!.Error.ShouldBe((int)CouchbaseLiteError.HTTPConflict);
                         });
                     }
                 });
@@ -994,7 +995,7 @@ namespace Test
                 Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
                     .Times(5)
                     .Delay(TimeSpan.FromMilliseconds(500))
-                    .Go().Should().BeTrue();
+                    .Go().ShouldBeTrue();
             }
         }
 
@@ -1014,8 +1015,8 @@ namespace Test
             }
 
             var config = CreateConfig(true, true, false);
-            var pullWait = new WaitAssert();
-            var pushWait = new WaitAssert();
+            using var pullWait = new WaitAssert();
+            using var pushWait = new WaitAssert();
             RunReplication(config, 0, 0, onReplicatorReady: (r) =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1042,7 +1043,7 @@ namespace Test
             }
 
             var config = CreateConfig(true, true, false);
-            var pullWait = new WaitAssert();
+            using var pullWait = new WaitAssert();
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1078,11 +1079,11 @@ namespace Test
 
             RunReplication(config, 0, 0);
 
-            OtherDefaultCollection.Count.Should().Be(1UL);
+            OtherDefaultCollection.Count.ShouldBe(1UL);
             using (var doc1 = OtherDefaultCollection.GetDocument("doc1")) {
-                doc1.Should().NotBeNull();
-                doc1!.GetString("species").Should().Be("Tiger");
-                doc1.GetString("name").Should().Be("Hobbes");
+                doc1.ShouldNotBeNull();
+                doc1!.GetString("species").ShouldBe("Tiger");
+                doc1.GetString("name").ShouldBe("Hobbes");
             }
         }
 
@@ -1107,21 +1108,21 @@ namespace Test
             config = CreateConfig(false, true, false);
             RunReplication(config, 0, 0);
 
-            OtherDefaultCollection.Count.Should().Be(2UL);
+            OtherDefaultCollection.Count.ShouldBe(2UL);
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 DefaultCollection.Purge(doc!);
             }
 
             DefaultCollection.Purge("doc2");
 
-            DefaultCollection.Count.Should().Be(0UL, "because the documents were purged");
+            DefaultCollection.Count.ShouldBe(0UL, "because the documents were purged");
             RunReplication(config, 0, 0);
 
-            DefaultCollection.Count.Should().Be(0UL, "because the documents were purged and the replicator is already past them");
+            DefaultCollection.Count.ShouldBe(0UL, "because the documents were purged and the replicator is already past them");
             RunReplication(config, 0, 0, true);
 
-            DefaultCollection.Count.Should().Be(2UL, "because the replicator was reset");
+            DefaultCollection.Count.ShouldBe(2UL, "because the replicator was reset");
         }
 
         [Fact]
@@ -1146,8 +1147,8 @@ namespace Test
             });
 
             var success = Try.Condition(() => DefaultCollection.Count == 0).Times(5).Go();
-            success.Should().BeTrue("because push and forget should purge docs");
-            OtherDefaultCollection.Count.Should().Be(10, "because the documents should have been pushed");
+            success.ShouldBeTrue("because push and forget should purge docs");
+            OtherDefaultCollection.Count.ShouldBe(10UL, "because the documents should have been pushed");
         }
 
         [Fact]
@@ -1166,9 +1167,9 @@ namespace Test
             {
                 r.AddDocumentReplicationListener((status, args) => { callbackCount++; });
             });
-            OtherDefaultCollection.Count.Should().Be(0);
-            callbackCount.Should().Be(0);
-            _repl.Status.Progress.Total.Should().Be(0UL);
+            OtherDefaultCollection.Count.ShouldBe(0UL);
+            callbackCount.ShouldBe(0);
+            _repl.Status.Progress.Total.ShouldBe(0UL);
         }
 
         //conflict resolving tests
@@ -1189,19 +1190,19 @@ namespace Test
 
             // Force a conflict
             using (var doc1a = DefaultCollection.GetDocument("doc1")?.ToMutable()) {
-                doc1a.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc1a.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc1a!.SetString("name", "Cat");
                 DefaultCollection.Save(doc1a);
             }
 
-            DefaultCollection.Count.Should().Be(1);
+            DefaultCollection.Count.ShouldBe(1UL);
 
             OtherDefaultCollection.Delete(OtherDefaultCollection.GetDocument("doc1")!);
 
             var config = CreateConfig(false, true, false);
             var resolver = new TestConflictResolver((conflict) => {
                 using (var doc1 = DefaultCollection.GetDocument("doc1")) {
-                    doc1.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                    doc1.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     DefaultCollection.Delete(doc1!);
                 }
                 resolveCnt++;
@@ -1214,8 +1215,8 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            resolveCnt.Should().Be(1);
-            DefaultCollection.Count.Should().Be(0);
+            resolveCnt.ShouldBe(1);
+            DefaultCollection.Count.ShouldBe(0UL);
         }
 
         [Fact]
@@ -1237,7 +1238,7 @@ namespace Test
                 Action badAction = (() => {
                     replicator.Config.GetCollectionConfig(DefaultCollection)!.ConflictResolver = new FakeConflictResolver();
                 });
-                badAction.Should().Throw<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
+                Should.Throw<InvalidOperationException>(badAction, "Attempt to modify a frozen object is prohibited.");
             }
         }
 
@@ -1267,8 +1268,8 @@ namespace Test
             var resolver = new TestConflictResolver((conflict) => {
                 var localDoc = conflict.LocalDocument;
                 var remoteDoc = conflict.RemoteDocument;
-                localDoc.Should().NotBeNull();
-                remoteDoc.Should().NotBeNull();
+                localDoc.ShouldNotBeNull();
+                remoteDoc.ShouldNotBeNull();
 
                 var updateDocDict = localDoc!.ToDictionary();
                 var curDocDict = remoteDoc!.ToDictionary();
@@ -1297,7 +1298,7 @@ namespace Test
 
             using (var doc1a = DefaultCollection.GetDocument("doc1"))
             using (var doc1aMutable = doc1a?.ToMutable()) {
-                doc1aMutable.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc1aMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc1aMutable!.SetString("name", "Jim");
                 doc1aMutable.SetString("language", "English");
                 DefaultCollection.Save(doc1aMutable);
@@ -1305,7 +1306,7 @@ namespace Test
 
             using (var doc1a = OtherDefaultCollection.GetDocument("doc1"))
             using (var doc1aMutable = doc1a?.ToMutable()) {
-                doc1aMutable.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc1aMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc1aMutable!.SetString("name", "Jim");
                 doc1aMutable.SetString("language", "C#");
                 OtherDefaultCollection.Save(doc1aMutable);
@@ -1314,23 +1315,23 @@ namespace Test
             RunReplication(config, 0, 0);
 
             using (var doc1 = DefaultCollection.GetDocument("doc1")) {
-                doc1.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc1!.GetString("name").Should().Be("Jim");
+                doc1.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc1!.GetString("name").ShouldBe("Jim");
                 var lanStr = doc1.GetString("language");
-                lanStr.Should().Contain("English");
-                lanStr.Should().Contain("C#");
-                doc1.GetString("location").Should().Be("Japan");
+                lanStr?.Contains("English").ShouldBeTrue();
+                lanStr?.Contains("C#").ShouldBeTrue();
+                doc1.GetString("location").ShouldBe("Japan");
             }
 
             RunReplication(config, 0, 0);
 
             using (var doc1 = OtherDefaultCollection.GetDocument("doc1")) {
-                doc1.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc1!.GetString("name").Should().Be("Jim");
+                doc1.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc1!.GetString("name").ShouldBe("Jim");
                 var lanStr = doc1.GetString("language");
-                lanStr.Should().Contain("English");
-                lanStr.Should().Contain("C#");
-                doc1.GetString("location").Should().Be("Japan");
+                lanStr?.Contains("English").ShouldBeTrue();
+                lanStr?.Contains("C#").ShouldBeTrue();
+                doc1.GetString("location").ShouldBe("Japan");
             }
         }
 
@@ -1356,12 +1357,12 @@ namespace Test
             {
                 r.AddDocumentReplicationListener((sender, args) =>
                 {
-                    conflictResolved.Should().Be(true,
+                    conflictResolved.ShouldBe(true,
                         "Because the DocumentReplicationEvent be notified after the conflict has being resolved.");
                 });
             });
 
-            DefaultCollection.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
+            DefaultCollection.GetDocument("doc1").ShouldBeNull(); //Because conflict resolver returns null means return a deleted document.
         }
 
         [Fact]
@@ -1381,10 +1382,10 @@ namespace Test
 
             DefaultCollection.Delete(DefaultCollection.GetDocument("doc1")!);
 
-            DefaultCollection.Count.Should().Be(0);
+            DefaultCollection.Count.ShouldBe(0UL);
 
             using (var doc1 = OtherDefaultCollection.GetDocument("doc1")?.ToMutable()) {
-                doc1.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc1.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc1!.SetString("name", "Lion");
                 OtherDefaultCollection.Save(doc1);
             }
@@ -1403,10 +1404,10 @@ namespace Test
 
             RunReplication(config, 0, 0);
 
-            localDoc.Should().BeNull();
-            remoteDoc.Should().NotBeNull();
+            localDoc.ShouldBeNull();
+            remoteDoc.ShouldNotBeNull();
 
-            DefaultCollection.Count.Should().Be(0);
+            DefaultCollection.Count.ShouldBe(0UL);
         }
 
         [Fact]
@@ -1425,12 +1426,12 @@ namespace Test
 
             // Force a conflict
             using (var doc1a = DefaultCollection.GetDocument("doc1")?.ToMutable()) {
-                doc1a.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                doc1a.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc1a!.SetString("name", "Cat");
                 DefaultCollection.Save(doc1a);
             }
 
-            DefaultCollection.Count.Should().Be(1);
+            DefaultCollection.Count.ShouldBe(1UL);
 
             OtherDefaultCollection.Delete(OtherDefaultCollection.GetDocument("doc1")!);
 
@@ -1447,9 +1448,9 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            remoteDoc.Should().BeNull();
-            localDoc.Should().NotBeNull();
-            DefaultCollection.Count.Should().Be(0);
+            remoteDoc.ShouldBeNull();
+            localDoc.ShouldNotBeNull();
+            DefaultCollection.Count.ShouldBe(0UL);
         }
 
         [Fact]
@@ -1472,8 +1473,8 @@ namespace Test
             RunReplication(config, 0, 0);
 
             using (var db = DefaultCollection.GetDocument("doc1")) {
-                db.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                db!.GetString("wrong_id_key").Should().Be("wrong_id_value");
+                db.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                db!.GetString("wrong_id_key").ShouldBe("wrong_id_value");
             }
         }
 
@@ -1489,7 +1490,7 @@ namespace Test
                 if (resolveCnt == 0) {
                     using (var d = DefaultCollection.GetDocument("doc1"))
                     using (var doc = d?.ToMutable()) {
-                        doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                        doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                         doc!.SetString("name", "Cougar");
                         DefaultCollection.Save(doc);
                     }
@@ -1514,10 +1515,10 @@ namespace Test
                 repl.Stop();
             }
 
-            resolveCnt.Should().Be(2);
+            resolveCnt.ShouldBe(2);
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc!.GetString("name").Should().Be("Cougar");
+                doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc!.GetString("name").ShouldBe("Cougar");
             }
         }
 
@@ -1531,13 +1532,13 @@ namespace Test
                 if (resolveCnt == 0) {
                     using (var d = DefaultCollection.GetDocument("doc1"))
                     using (var doc = d?.ToMutable()) {
-                        doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                        d!.GetString("name").Should().Be("Cat");
+                        doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                        d!.GetString("name").ShouldBe("Cat");
                         doc!.SetString("name", "Cougar");
                         DefaultCollection.Save(doc);
                         using (var docCheck = DefaultCollection.GetDocument("doc1")) {
-                            docCheck.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                            docCheck!.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                            docCheck.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                            docCheck!.GetString("name").ShouldBe("Cougar", "Because database save operation was not blocked");
                         }
                     }
                 }
@@ -1554,10 +1555,10 @@ namespace Test
             RunReplication(config, 0, 0);
 
             // This will be 0 if the test resolver threw an exception
-            resolveCnt.Should().NotBe(0, "because otherwise the conflict resolver didn't complete");
+            resolveCnt.ShouldNotBe(0, "because otherwise the conflict resolver didn't complete");
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Should().BeNull();
+                doc.ShouldBeNull();
             }
         }
 
@@ -1569,7 +1570,7 @@ namespace Test
             var config = CreateConfig(false, true, false);
             ManualResetEvent manualResetEvent = new ManualResetEvent(false);
             Queue<string> q = new Queue<string>();
-            var wa = new WaitAssert();
+            using var wa = new WaitAssert();
             var resolver = new TestConflictResolver((conflict) => {
                 var cnt = 0;
                 lock (q) {
@@ -1602,8 +1603,8 @@ namespace Test
 
             // make sure, first doc starts resolution but finishes last.
             // in between second doc starts and finishes it.
-            q.ElementAt(0).Should().Be(q.ElementAt(3));
-            q.ElementAt(1).Should().Be(q.ElementAt(2));
+            q.ElementAt(0).ShouldBe(q.ElementAt(3));
+            q.ElementAt(1).ShouldBe(q.ElementAt(2));
 
             q.Clear();
         }
@@ -1693,8 +1694,8 @@ namespace Test
             }
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc!.GetBlob("blob")?.Content.Should().Contain(new byte[] { 7, 7, 7 });
+                doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc!.GetBlob("blob")?.Content?.ShouldBeEquivalentToFluent(new byte[] { 7, 7, 7 });
             }
         }
 #endif
@@ -1725,8 +1726,8 @@ namespace Test
                 r.AddDocumentReplicationListener((sender, args) =>
                 {
                     if (!args.IsPush) {
-                        args.Documents[0].Error.Should().NotBeNull();
-                        args.Documents[0].Error!.Error.Should().Be((int) CouchbaseLiteError.NotFound);
+                        args.Documents[0].Error.ShouldNotBeNull();
+                        args.Documents[0].Error!.Error.ShouldBe((int) CouchbaseLiteError.NotFound);
                     }
                 });
             });
@@ -1744,7 +1745,7 @@ namespace Test
                 var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
 
                 TestConflictResolverExceptionThrown(differentDbResolver, true);
-                DefaultCollection.GetDocument("doc1")?.GetString("name").Should().Be("Human");
+                DefaultCollection.GetDocument("doc1")?.GetString("name").ShouldBe("Human");
 
                 thirdDb.Delete();
             }
@@ -1789,8 +1790,8 @@ namespace Test
             RunReplication(config, 0, 0);
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc!.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 8, 8, 8 });
+                doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc!.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(new byte[] { 8, 8, 8 });
             }
         }
 
@@ -1803,35 +1804,35 @@ namespace Test
                 using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("name", "Tiger");
                     DefaultCollection.Save(doc1);
-                    doc1.c4Doc.Should().NotBeNull("because otherwise there is a serious internal bug");
+                    doc1.c4Doc.ShouldNotBeNull("because otherwise there is a serious internal bug");
                     flags = doc1.c4Doc!.RawDoc->flags;
-                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
                 using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("name", "Tiger");
                     OtherDefaultCollection.Save(doc1);
                     flags = doc1.c4Doc!.RawDoc->flags;
-                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
                 // Force a conflict
                 using (var doc1a = DefaultCollection.GetDocument("doc1"))
                 using (var doc1aMutable = doc1a?.ToMutable()) {
-                    doc1aMutable.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                    doc1aMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     doc1aMutable!.SetString("name", "Cat");
                     DefaultCollection.Save(doc1aMutable);
                     flags = doc1aMutable.c4Doc!.RawDoc->flags;
-                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
                 using (var doc1a = OtherDefaultCollection.GetDocument("doc1"))
                 using (var doc1aMutable = doc1a?.ToMutable()) {
-                    doc1aMutable.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                    doc1aMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     doc1aMutable!.SetString("name", "Lion");
                     OtherDefaultCollection.Save(doc1aMutable);
                     flags = doc1aMutable.c4Doc!.RawDoc->flags;
-                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
 
@@ -1845,7 +1846,7 @@ namespace Test
                     var doc = new MutableDocument();
                     doc.SetValue("nestedBlob", dict);
                     flags = conflict.LocalDocument!.c4Doc!.RawDoc->flags;
-                    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocConflicted).ShouldBeTrue();
 
                     return doc;
                 });
@@ -1858,11 +1859,11 @@ namespace Test
                 RunReplication(config, 0, 0);
 
                 using (var doc = DefaultCollection.GetDocument("doc1")) {
-                    doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                    doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     var dict = doc!.GetValue("nestedBlob");
-                    ((DictionaryObject?)dict)!.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+                    ((DictionaryObject?)dict)!.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(new byte[] { 6, 6, 6 });
                     flags = doc.c4Doc!.RawDoc->flags;
-                    flags.HasFlag(C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                 }
             }
         }
@@ -1874,7 +1875,7 @@ namespace Test
             var blobFromOtherDbResolver = new TestConflictResolver((conflict) => {
                 var md = conflict.LocalDocument!.ToMutable();
                 using (var otherDbDoc = OtherDefaultCollection.GetDocument("doc1")) {
-                    otherDbDoc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
+                    otherDbDoc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     md.SetBlob("blob", otherDbDoc!.GetBlob("blob"));
                 }
 
@@ -1898,8 +1899,8 @@ namespace Test
             var resolver = new TestConflictResolver((conflict) => {
                 unsafe {
                     flags = conflict.LocalDocument!.c4Doc!.RawDoc->flags;
-                    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
-                    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocConflicted).ShouldBeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     return conflict.LocalDocument;
                 }
             });
@@ -1912,15 +1913,15 @@ namespace Test
             RunReplication(config, 0, 0);
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Should().NotBeNull("because otherwise the database was missing 'doc1'");
-                doc!.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+                doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
+                doc!.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(new byte[] { 6, 6, 6 });
                 unsafe {
                     flags = doc.c4Doc!.RawDoc->flags;
                 }
             }
 
-            flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeFalse();
-            flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+            flags.HasFlag(C4DocumentFlags.DocConflicted).ShouldBeFalse();
+            flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
         }
 
         //end conflict resolveing tests
@@ -1952,14 +1953,14 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
             using (var replicator = new Replicator(config)) {
-                var wa = new WaitAssert();
+                using var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
                     wa.RunConditionalAssert(() =>
                     {
                         if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
                             Action badAct = () => ((Replicator?) sender)!.GetPendingDocumentIDs(DefaultCollection);
-                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                            Should.Throw<CouchbaseLiteException>(badAct).Message.ShouldBe(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
                         }
 
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -1970,7 +1971,7 @@ namespace Test
 
                 try {
                     wa.WaitForResult(TimeSpan.FromSeconds(10));
-                    replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                    replicator.Status.Activity.ShouldBe(ReplicatorActivityLevel.Stopped);
                 } finally {
                     token.Remove();
                 }
@@ -2004,14 +2005,14 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
             using (var replicator = new Replicator(config)) {
-                var wa = new WaitAssert();
+                using var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
                     wa.RunConditionalAssert(() =>
                     {
                         if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
                             Action badAct = () => ((Replicator?) sender)!.IsDocumentPending("doc-001", DefaultCollection);
-                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                            Should.Throw<CouchbaseLiteException>(badAct).Message.ShouldBe(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
                         }
 
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -2023,7 +2024,7 @@ namespace Test
 
                 try {
                     wa.WaitForResult(TimeSpan.FromSeconds(100));
-                    replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                    replicator.Status.Activity.ShouldBe(ReplicatorActivityLevel.Stopped);
                 } finally {
                     token.Remove();
                 }
@@ -2054,14 +2055,14 @@ namespace Test
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 Action badAct = () => replicator.GetPendingDocumentIDs(DefaultCollection);
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<InvalidOperationException>(badAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
 
             ReopenDB();
             using (var replicator = new Replicator(config)) {
                 OtherDb.Close();
                 Action badAct = () => replicator.GetPendingDocumentIDs(DefaultCollection);
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<InvalidOperationException>(badAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
         }
 
@@ -2072,14 +2073,14 @@ namespace Test
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 Action badAct = () => replicator.IsDocumentPending("doc1", DefaultCollection);
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<InvalidOperationException>(badAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
 
             ReopenDB();
             using (var replicator = new Replicator(config)) {
                 OtherDb.Close();
                 Action badAct = () => replicator.IsDocumentPending("doc1", DefaultCollection);
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<InvalidOperationException>(badAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
         }
 
@@ -2099,7 +2100,7 @@ namespace Test
 
             Thread.Sleep(500);
             replicator.Dispose();
-            stoppedWait.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("because otherwise the replicator didn't stop");
+            stoppedWait.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue("because otherwise the replicator didn't stop");
         }
 
         #if __IOS__ && !SANITY_ONLY
@@ -2161,7 +2162,7 @@ namespace Test
             r.Stop();
             stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
                 .BeTrue("because otherwise the replicator didn't stop");
-            foregroundCount.Should().Be(NUM_ROUNDS + 1,
+            foregroundCount.ShouldBe(NUM_ROUNDS + 1,
                 "because otherwise an incorrect number of foreground events happened");
             backgroundCount.Should()
                 .Be(NUM_ROUNDS, "because otherwise an incorrect number of background events occurred");
@@ -2241,7 +2242,7 @@ namespace Test
             var token = r.AddChangeListener((sender, args) =>
             {
                 // ReSharper disable AccessToModifiedClosure
-                foregroundingAssert.RunAssert(() => foregrounding.Should().BeFalse());
+                foregroundingAssert.RunAssert(() => foregrounding.ShouldBeFalse());
                 // ReSharper restore AccessToModifiedClosure
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
                     idleEvent.Set();
@@ -2313,7 +2314,7 @@ namespace Test
             });
             // ReSharper restore AccessToDisposedClosure
 
-            OtherDefaultCollection.Count.Should().Be(0, "because nothing was replicated yet");
+            OtherDefaultCollection.Count.ShouldBe(0, "because nothing was replicated yet");
             r.Start();
             idleEvent.Wait(TimeSpan.FromSeconds(5)).Should()
                 .BeTrue("because otherwise the replicator never went idle");
@@ -2336,10 +2337,10 @@ namespace Test
                 .BeTrue("because otherwise the replicator never finished");
             token.Remove();
 
-            OtherDefaultCollection.Count.Should().Be(1, "because one document should have replicated");
+            OtherDefaultCollection.Count.ShouldBe(1, "because one document should have replicated");
             using var doc = OtherDefaultCollection.GetDocument("doc1");
             var blob2 = doc?.GetBlob("blob");
-            blob2?.Digest.Should().Be(blob.Digest, "because the blobs should match");
+            blob2?.Digest.ShouldBe(blob.Digest, "because the blobs should match");
         }
 
         [Fact]
@@ -2402,11 +2403,11 @@ namespace Test
 
             int retryCounter = 0;
             while (r.PendingConflictCount > 0) {
-                retryCounter++.Should().BeLessThan(20, "because otherwise the pending conflicts never got suspended");
+                retryCounter++.ShouldBeLessThan(20, "because otherwise the pending conflicts never got suspended");
                 Thread.Sleep(500);
             }
 
-            resolvingCount.Should().BeLessThan(NUM_DOCS, "because the conflicts should have been suspended");
+            resolvingCount.ShouldBeLessThan(NUM_DOCS, "because the conflicts should have been suspended");
             offlineEvent.Wait(TimeSpan.FromSeconds(5)).Should()
                 .BeTrue("because otherwise the replicator never suspended");
             r.Stop();
@@ -2689,7 +2690,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
             var count = 0;
             var repl = new Replicator(config);
-            var waitAssert = new WaitAssert();
+            using var waitAssert = new WaitAssert();
             var token = repl.AddChangeListener((sender, args) =>
             {
                 waitAssert.RunConditionalAssert(() =>
@@ -2708,7 +2709,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             waitAssert.WaitForResult(TimeSpan.FromSeconds(60));
             token.Remove();
 
-            count.Should().Be(attempts - 1);
+            count.ShouldBe(attempts - 1);
             repl.Dispose();
         }
 
@@ -2721,18 +2722,18 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             if (selection == PENDING_DOC_ID_SEL.UPDATE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest))
                 using (var md = d?.ToMutable()) {
-                    md.Should().NotBeNull("because otherwise the database is missing 'doc-001'");
+                    md.ShouldNotBeNull("because otherwise the database is missing 'doc-001'");
                     md!.SetString("addString", "This is a new string.");
                     DefaultCollection.Save(md);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.DELETE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest)) {
-                    d.Should().NotBeNull("because otherwise the database is missing '{id}'", DocIdForTest);
+                    d.ShouldNotBeNull($"because otherwise the database is missing '{DocIdForTest}'");
                     DefaultCollection.Delete(d!);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest)) {
-                    d.Should().NotBeNull("because otherwise the database is missing '{id}'", DocIdForTest);
+                    d.ShouldNotBeNull($"because otherwise the database is missing '{DocIdForTest}'");
                     DefaultCollection.Purge(d!);
                     idsSet.Remove(DocIdForTest);
                 }
@@ -2751,14 +2752,14 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             }
 
             using (var replicator = new Replicator(config)) {
-                var wa = new WaitAssert();
+                using var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
                     wa.RunConditionalAssert(() =>
                     {
                         if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
                             pendingDocIds = replicator.GetPendingDocumentIDs(DefaultCollection);
-                            pendingDocIds.Count.Should().Be(0);
+                            pendingDocIds.Count.ShouldBe(0);
                         }
 
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -2767,11 +2768,11 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
                 pendingDocIds = replicator.GetPendingDocumentIDs(DefaultCollection);
                 if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                    pendingDocIds.Count.Should().Be(1);
-                    pendingDocIds.ElementAt(0).Should().Be(DocIdForTest);
+                    pendingDocIds.Count.ShouldBe(1);
+                    pendingDocIds.ElementAt(0).ShouldBe(DocIdForTest);
                 } else {
-                    idsSet.ToImmutableSortedSet<string>().Should().BeEquivalentTo(pendingDocIds);
-                    idsSet.Count.Should().Be(pendingDocIds.Count);
+                    idsSet.ToImmutableSortedSet<string>().ShouldBeSubsetOf(pendingDocIds);
+                    idsSet.Count.ShouldBe(pendingDocIds.Count);
                 }
 
                 replicator.Start();
@@ -2781,9 +2782,9 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
                     .Times(5)
                     .Delay(TimeSpan.FromMilliseconds(500))
-                    .Go().Should().BeTrue();
+                    .Go().ShouldBeTrue();
 
-                replicator.GetPendingDocumentIDs(DefaultCollection).Count.Should().Be(0);
+                replicator.GetPendingDocumentIDs(DefaultCollection).Count.ShouldBe(0);
                 token.Remove();
             }
 
@@ -2799,18 +2800,18 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             if (selection == PENDING_DOC_ID_SEL.UPDATE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest))
                 using (var md = d?.ToMutable()) {
-                    md.Should().NotBeNull("because otherwise the database is missing 'doc-001'");
+                    md.ShouldNotBeNull("because otherwise the database is missing 'doc-001'");
                     md!.SetString("addString", "This is a new string.");
                     DefaultCollection.Save(md);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.DELETE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest)) {
-                    d.Should().NotBeNull("because otherwise the database is missing '{id}'", DocIdForTest);
+                    d.ShouldNotBeNull($"because otherwise the database is missing '{DocIdForTest}'");
                     DefaultCollection.Delete(d!);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest)) {
-                    d.Should().NotBeNull("because otherwise the database is missing '{id}'", DocIdForTest);
+                    d.ShouldNotBeNull($"because otherwise the database is missing '{DocIdForTest}'");
                     DefaultCollection.Purge(d!);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
@@ -2828,12 +2829,12 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             }
 
             using (var replicator = new Replicator(config)) {
-                var wa = new WaitAssert();
+                using var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
                     if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
                         docIdIsPending = replicator.IsDocumentPending(DocIdForTest, DefaultCollection);
-                        docIdIsPending.Should().BeFalse();
+                        docIdIsPending.ShouldBeFalse();
                     }
 
                     wa.RunConditionalAssert(() =>
@@ -2845,15 +2846,15 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 docIdIsPending = replicator.IsDocumentPending(DocIdForTest, DefaultCollection);
                 if (selection == PENDING_DOC_ID_SEL.CREATE || selection == PENDING_DOC_ID_SEL.UPDATE
                     || selection == PENDING_DOC_ID_SEL.DELETE) {
-                    docIdIsPending.Should().BeTrue();
+                    docIdIsPending.ShouldBeTrue();
                     docIdIsPending = replicator.IsDocumentPending("IdNotThere", DefaultCollection);
-                    docIdIsPending.Should().BeFalse();
+                    docIdIsPending.ShouldBeFalse();
                 } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                    docIdIsPending.Should().BeTrue();
+                    docIdIsPending.ShouldBeTrue();
                     docIdIsPending = replicator.IsDocumentPending("doc-002", DefaultCollection);
-                    docIdIsPending.Should().BeFalse();
+                    docIdIsPending.ShouldBeFalse();
                 } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
-                    docIdIsPending.Should().BeFalse();
+                    docIdIsPending.ShouldBeFalse();
                 }
 
                 replicator.Start();
@@ -2863,9 +2864,9 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
                     .Times(5)
                     .Delay(TimeSpan.FromMilliseconds(500))
-                    .Go().Should().BeTrue();
+                    .Go().ShouldBeTrue();
 
-                replicator.IsDocumentPending(DocIdForTest, DefaultCollection).Should().BeFalse();
+                replicator.IsDocumentPending(DocIdForTest, DefaultCollection).ShouldBeFalse();
                 token.Remove();
             }
 
@@ -2874,13 +2875,13 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
         private void WithActiveReplicationAndQuery(bool isCloseNotDelete)
         {
-            WaitAssert waitIdleAssert = new WaitAssert();
-            WaitAssert waitStoppedAssert = new WaitAssert();
+            using var waitIdleAssert = new WaitAssert();
+            using var waitStoppedAssert = new WaitAssert();
             var config = CreateConfig(true, true, true, OtherDb);
             using (var repl = new Replicator(config)) {
 
                 var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(DefaultCollection));
-                var doc1Listener = new WaitAssert();
+                using var doc1Listener = new WaitAssert();
                 query.AddChangeListener(null, (sender, args) =>
                 {
                     foreach (var row in args.Results) {
@@ -2913,15 +2914,15 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
                 waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
 
-                Db.ActiveStoppables.Count.Should().Be(2);
+                Db.ActiveStoppables.Count.ShouldBe(2);
 
                 if (isCloseNotDelete)
                     Db.Close();
                 else
                     Db.Delete();
 
-                Db.ActiveStoppables.Count.Should().Be(0);
-                Db.IsClosedLocked.Should().Be(true);
+                Db.ActiveStoppables.Count.ShouldBe(0);
+                Db.IsClosedLocked.ShouldBe(true);
 
                 waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
             }
@@ -2929,10 +2930,10 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
         private void WithActiveReplications(bool isCloseNotDelete)
         {
-            WaitAssert waitIdleAssert = new WaitAssert();
-            WaitAssert waitStoppedAssert = new WaitAssert();
-            WaitAssert waitIdleAssert1 = new WaitAssert();
-            WaitAssert waitStoppedAssert1 = new WaitAssert();
+            using var waitIdleAssert = new WaitAssert();
+            using var waitStoppedAssert = new WaitAssert();
+            using var waitIdleAssert1 = new WaitAssert();
+            using var waitStoppedAssert1 = new WaitAssert();
 
             var config = CreateConfig(true, true, true, OtherDb);
             using (var repl = new Replicator(config))
@@ -2974,15 +2975,15 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
                 waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
 
-                Db.ActiveStoppables.Count.Should().Be(2);
+                Db.ActiveStoppables.Count.ShouldBe(2);
 
                 if (isCloseNotDelete)
                     Db.Close();
                 else
                     Db.Delete();
 
-                Db.ActiveStoppables.Count.Should().Be(0);
-                Db.IsClosedLocked.Should().Be(true);
+                Db.ActiveStoppables.Count.ShouldBe(0);
+                Db.IsClosedLocked.ShouldBe(true);
 
                 waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
                 waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
@@ -3000,24 +3001,24 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             });
 
             using (var repl = new Replicator(config)) {
-                var wa = new WaitAssert();
+                using var wa = new WaitAssert();
                 var token = repl.AddDocumentReplicationListener((sender, args) => {
                     if (args.Documents[0].Id == "doc1" && !args.IsPush) {
                         wa.RunAssert(() => {
                             WriteLine($"Received document listener callback of size {args.Documents.Count}");
-                            args.Documents[0].Error.Should().NotBeNull();
-                            args.Documents[0].Error!.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite,
+                            args.Documents[0].Error.ShouldNotBeNull();
+                            args.Documents[0].Error!.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite,
                                 $"because otherwise the wrong error ({args.Documents[0].Error!.Error}) occurred");
-                            args.Documents[0].Error!.Error.Should().Be((int)CouchbaseLiteError.UnexpectedError);
+                            args.Documents[0].Error!.Error.ShouldBe((int)CouchbaseLiteError.UnexpectedError);
                             var innerException = ((ReplicatedDocument[])args.Documents)[0].Error!.InnerException;
                             if (innerException is InvalidOperationException) {
                                 if (withBlob) {
-                                    innerException.Message.Should().Be(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
+                                    innerException.Message.ShouldBe(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
                                 } else {
-                                    innerException.Message.Should().Contain("Resolved document's database different_db is different from expected database");
+                                    innerException.Message.ShouldStartWith("Resolved document's database different_db is different from expected database");
                                 }
                             } else if (innerException is Exception) {
-                                innerException.Message.Should().Be("Customer side exception");
+                                innerException.Message.ShouldBe("Customer side exception");
                             }
                         });
                     }
@@ -3030,9 +3031,9 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
                     .Times(5)
                     .Delay(TimeSpan.FromMilliseconds(500))
-                    .Go().Should().BeTrue();
+                    .Go().ShouldBeTrue();
 
-                repl.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                repl.Status.Activity.ShouldBe(ReplicatorActivityLevel.Stopped);
                 token.Remove();
 
                 if (!continueWithWorkingResolver)
@@ -3074,13 +3075,13 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             RunReplication(config, 0, 0);
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
-                doc.Should().NotBeNull("because otherwise the database is missing 'doc1'");
+                doc.ShouldNotBeNull("because otherwise the database is missing 'doc1'");
                 if (returnRemoteDoc) {
-                    doc!.GetString("name").Should().Be("Lion");
-                    doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 7, 7, 7 });
+                    doc!.GetString("name").ShouldBe("Lion");
+                    doc.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(new byte[] { 7, 7, 7 });
                 } else {
-                    doc!.GetString("name").Should().Be("Cat");
-                    doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+                    doc!.GetString("name").ShouldBe("Cat");
+                    doc.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(new byte[] { 6, 6, 6 });
                 }
             }
         }
@@ -3097,7 +3098,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     DefaultCollection.Save(doc1);
                     if (checkFlags) {
                         flags = doc1.c4Doc!.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }
 
@@ -3107,7 +3108,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     OtherDefaultCollection.Save(doc1);
                     if (checkFlags) {
                         flags = doc1.c4Doc!.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }
 
@@ -3116,19 +3117,19 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 using (var doc1aMutable = doc1a?.ToMutable()) {
                     var evilByteArray = new byte[] { 6, 6, 6 };
 
-                    doc1aMutable.Should().NotBeNull("because otherwise the database is missing '{id}'", id);
+                    doc1aMutable.ShouldNotBeNull($"because otherwise the database is missing '{id}'");
                     doc1aMutable!.SetString("name", "Cat");
                     doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
                     DefaultCollection.Save(doc1aMutable);
                     if (checkFlags) {
                         flags = doc1aMutable.c4Doc!.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }
 
                 using (var doc1a = OtherDefaultCollection.GetDocument(id))
                 using (var doc1aMutable = doc1a?.ToMutable()) {
-                    doc1aMutable.Should().NotBeNull("because otherwise the database is missing '{id}'", id);
+                    doc1aMutable.ShouldNotBeNull($"because otherwise the database is missing '{id}'");
                     var luckyByteArray = new byte[] { 7, 7, 7 };
 
                     doc1aMutable!.SetString("name", "Lion");
@@ -3136,7 +3137,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     OtherDefaultCollection.Save(doc1aMutable);
                     if (checkFlags) {
                         flags = doc1aMutable.c4Doc!.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }
             }
@@ -3162,9 +3163,9 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             });
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
-            OtherDefaultCollection.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-            OtherDefaultCollection.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback.ShouldBeTrue();
+            OtherDefaultCollection.GetDocument("doc1").ShouldBeNull("because doc1 is filtered out in the callback");
+            OtherDefaultCollection.GetDocument("doc2").ShouldNotBeNull("because doc2 is filtered in in the callback");
             _isFilteredCallback = false;
         }
 
@@ -3188,7 +3189,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             if (flags != 0) {
                 return document.Id == "pass";
             }
-            document.RevisionID.Should().NotBeNull();
+            document.RevisionID.ShouldNotBeNull();
             var name = document.GetString("name");
             return name == "pass";
         }
@@ -3348,7 +3349,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         public void Validate()
         {
             _mre.Dispose();
-            _exceptions.Should().BeEmpty("because otherwise an unexpected error occurred");
+            _exceptions.ShouldBeEmpty("because otherwise an unexpected error occurred");
         }
 
         private void CheckForStopped(object? sender, MessageEndpointListenerChangedEventArgs e)

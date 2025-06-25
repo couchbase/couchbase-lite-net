@@ -26,7 +26,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
-using FluentAssertions;
+using Shouldly;
 using Couchbase.Lite.P2P;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 
@@ -41,6 +41,13 @@ namespace Test
         {
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            _waitAssert?.Dispose();
         }
 
 #if !SANITY_ONLY
@@ -72,8 +79,8 @@ namespace Test
                 };
                 config.AddCollection(DefaultCollection);
                 RunReplication(config, 0, 0);
-                OtherDefaultCollection.Count.Should().Be(2UL, "because it contains the original and new");
-                DefaultCollection.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
+                OtherDefaultCollection.Count.ShouldBe(2UL, "because it contains the original and new");
+                DefaultCollection.Count.ShouldBe(1UL, "because there is no pull, so the first db should only have the original");
 
                 // PULL
                 config = new ReplicatorConfiguration(messageendpoint) {
@@ -83,18 +90,18 @@ namespace Test
                 config.AddCollection(DefaultCollection);
 
                 RunReplication(config, 0, 0);
-                DefaultCollection.Count.Should().Be(2UL, "because the pull should add the document from otherDB");
+                DefaultCollection.Count.ShouldBe(2UL, "because the pull should add the document from otherDB");
 
                 using (var savedDoc = DefaultCollection.GetDocument("livesinotherdb"))
                 using (var mdoc = savedDoc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
+                    mdoc.ShouldNotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
                     mdoc!.SetBoolean("modified", true);
                     DefaultCollection.Save(mdoc);
                 }
 
                 using (var savedDoc = OtherDefaultCollection.GetDocument("livesindb"))
                 using (var mdoc = savedDoc?.ToMutable()) {
-                    mdoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                    mdoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
                     mdoc!.SetBoolean("modified", true);
                     OtherDefaultCollection.Save(mdoc);
                 }
@@ -105,18 +112,18 @@ namespace Test
                 config.AddCollection(DefaultCollection);
 
                 RunReplication(config, 0, 0);
-                DefaultCollection.Count.Should().Be(2UL, "because no new documents were added");
+                DefaultCollection.Count.ShouldBe(2UL, "because no new documents were added");
 
                 using (var savedDoc = DefaultCollection.GetDocument("livesindb")) {
-                    savedDoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
-                    savedDoc!.GetBoolean("modified").Should()
-                        .BeTrue("because the property change should have come from the other DB");
+                    savedDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                    savedDoc!.GetBoolean("modified")
+                        .ShouldBeTrue("because the property change should have come from the other DB");
                 }
 
                 using (var savedDoc = OtherDefaultCollection.GetDocument("livesinotherdb")) {
-                    savedDoc.Should().NotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
-                    savedDoc!.GetBoolean("modified").Should()
-                        .BeTrue("because the property change should come from the original DB");
+                    savedDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
+                    savedDoc!.GetBoolean("modified")
+                        .ShouldBeTrue("because the property change should come from the original DB");
                 }
 
                 Db.Delete();
@@ -190,7 +197,7 @@ namespace Test
                 var count = 0;
                 while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
                     Thread.Sleep(500);
-                    count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
+                    count.ShouldBeLessThan(10, "because otherwise the replicator never went idle");
                 }
                 var connection = listener.Connections;
                 errorLogic.ErrorActive = true;
@@ -198,14 +205,14 @@ namespace Test
                 count = 0;
                 while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
                     Thread.Sleep(500);
-                    count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
+                    count.ShouldBeLessThan(10, "because otherwise the replicator never stopped");
                 }
 
-                awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+                awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).ShouldBeTrue();
                 awaiter.Validate();
 
-                replicator.Status.Error.Should()
-                    .NotBeNull("because closing the passive side creates an error on the active one");
+                replicator.Status.Error
+                    .ShouldNotBeNull("because closing the passive side creates an error on the active one");
             }
         }
 #endif
@@ -213,8 +220,7 @@ namespace Test
         [Fact]
         public void TestP2PPassiveCloseAll()
         {
-            using (var doc = new MutableDocument("test"))
-            {
+            using (var doc = new MutableDocument("test")) {
                 doc.SetString("name", "Smokey");
                 DefaultCollection.Save(doc);
             }
@@ -261,12 +267,13 @@ namespace Test
                 errorLogic.ErrorActive = true;
                 listener.CloseAll();
 
-                WaitHandle.WaitAll(new[] { closeWait1.WaitHandle, closeWait2.WaitHandle }, TimeSpan.FromSeconds(20)).Should().BeTrue();
 
-                replicator.Status.Error.Should()
-                    .NotBeNull("because closing the passive side creates an error on the active one");
-                replicator2.Status.Error.Should()
-                    .NotBeNull("because closing the passive side creates an error on the active one");
+                WaitAssert.WaitAll([closeWait1, closeWait2], TimeSpan.FromSeconds(20)).ShouldBeTrue();
+
+                replicator.Status.Error
+                    .ShouldNotBeNull("because closing the passive side creates an error on the active one");
+                replicator2.Status.Error
+                    .ShouldNotBeNull("because closing the passive side creates an error on the active one");
             }
 
             closeWait1.Dispose();
@@ -290,10 +297,10 @@ namespace Test
             });
             var connection = listener.Connections;
             RunReplication(config, 0, 0);
-            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).ShouldBeTrue();
             awaiter.Validate();
-            statuses.Count.Should()
-                .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
+            statuses.Count
+                .ShouldBeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
         }
 
         [Fact]
@@ -315,10 +322,10 @@ namespace Test
             var connection = listener.Connections;
             token.Remove();
             RunReplication(config, 0, 0);
-            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).ShouldBeTrue();
             awaiter.Validate();
 
-            statuses.Count.Should().Be(0);
+            statuses.Count.ShouldBe(0);
         }
 
         #region 8.16 Collections replication in MessageEndpointListener
@@ -355,7 +362,8 @@ namespace Test
         {
             var collsOtherDb = new List<Collection>();
             Action badAct = () => new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream);
-            badAct.Should().Throw<CouchbaseLiteException>().WithMessage("The given collections must not be null or empty.");
+            var ex = Should.Throw<CouchbaseLiteException>(badAct);
+            ex.Message.ShouldBe("The given collections must not be null or empty.");
         }
 
         #endregion
@@ -398,10 +406,10 @@ namespace Test
                 RunReplication(config, 0, 0);
 
                 // Check docs are replicated between collections colADb & colAOtherDb
-                colAOtherDb.GetDocument("doc")?.GetString("str").Should().Be("string");
-                colAOtherDb.GetDocument("doc1")?.GetString("str1").Should().Be("string1");
-                colADb.GetDocument("doc2")?.GetString("str2").Should().Be("string2");
-                colADb.GetDocument("doc3")?.GetString("str3").Should().Be("string3");
+                colAOtherDb.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+                colADb.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colADb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
             }
         }
 
@@ -499,17 +507,17 @@ namespace Test
                                 break;
                         }
                         
-                        count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                        count.ShouldBeLessThan(10, "because otherwise the replicator did not advance");
                     } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
                         Thread.Sleep(1000);
                     }
 
                     var previousCompleted = replicator.Status.Progress.Completed;
-                    firstTarget.Count.Should().Be(1);
+                    firstTarget.Count.ShouldBe(1UL);
 
                     using (var savedDoc = secondSource.GetDocument("livesindb"))
                     using (var mdoc = savedDoc?.ToMutable()) {
-                        mdoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                        mdoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
                         mdoc!.SetInt("version", 2);
                         secondSource.Save(mdoc);
                     }
@@ -524,14 +532,14 @@ namespace Test
                                 break;
                         }
                         
-                        count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                        count.ShouldBeLessThan(10, "because otherwise the replicator did not advance");
                     } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
                         Thread.Sleep(1000);
                     }
                     
                     using (var savedDoc = secondTarget.GetDocument("livesindb")) {
-                        savedDoc.Should().NotBeNull("because otherwise the retrieval of 'livesindb' failed");
-                        savedDoc!.GetInt("version").Should().Be(2);
+                        savedDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
+                        savedDoc!.GetInt("version").ShouldBe(2);
                     }
 
                     replicator.Stop();
