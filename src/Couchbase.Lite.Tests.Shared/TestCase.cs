@@ -220,18 +220,18 @@ namespace Test
                         md.GetDate(kvPair.Key).ShouldBe((DateTimeOffset) kvPair.Value!);
                         break;
                     case "array":
-                        md.GetArray(kvPair.Key).ShouldBeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value!));
-                        md.GetValue(kvPair.Key).ShouldBeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value!));
+                        md.GetArray(kvPair.Key).ShouldBeEquivalentToFluent(new MutableArrayObject((List<int>) kvPair.Value!));
+                        md.GetValue(kvPair.Key).ShouldBeEquivalentToFluent(new MutableArrayObject((List<int>) kvPair.Value!));
                         break;
                     case "dictionary":
-                        md.GetDictionary(kvPair.Key).ShouldBeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
-                        md.GetValue(kvPair.Key).ShouldBeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
+                        md.GetDictionary(kvPair.Key).ShouldBeEquivalentToFluent(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
+                        md.GetValue(kvPair.Key).ShouldBeEquivalentToFluent(new MutableDictionaryObject((Dictionary<string, object?>) kvPair.Value!));
                         break;
                     case "blob":
                         md.GetBlob(kvPair.Key).ShouldBeNull("Because we are getting a dictionary represents Blob object back.");
                         var di = ((MutableDictionaryObject?) md.GetValue(kvPair.Key))!.ToDictionary();
                         Blob.IsBlob(di).ShouldBeTrue();
-                        di.ShouldBeEquivalentTo(((Blob) dic[kvPair.Key]!).JsonRepresentation);
+                        di.ShouldBeEquivalentToFluent(((Blob) dic[kvPair.Key]!).JsonRepresentation);
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");
@@ -257,11 +257,11 @@ namespace Test
                     }
 
                     var blob = new Blob(Db!, b1JsonD!);
-                    blob.ShouldBeEquivalentTo((Blob) dic[i.Key]!);
+                    blob.ShouldBeEquivalentToFluent((Blob) dic[i.Key]!);
                 } else if (i.Key == "floatVal") {
                     (DataOps.ConvertToFloat(jdic![i.Key])).ShouldBe((float) dic[i.Key]!, 0.0000000001f);
                 } else {
-                    (DataOps.ToCouchbaseObject(jdic![i.Key])).ShouldBeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
+                    (DataOps.ToCouchbaseObject(jdic![i.Key])).ShouldBeEquivalentToFluent((DataOps.ToCouchbaseObject(dic[i.Key])));
                 }
             }
         }
