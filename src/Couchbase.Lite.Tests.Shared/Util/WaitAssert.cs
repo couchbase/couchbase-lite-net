@@ -49,7 +49,7 @@ namespace Couchbase.Lite
                 // MTA thread can use WaitAll directly
                 allSignaled = WaitHandle.WaitAll(
                     handles.Select(x => x.WaitHandle).ToArray(),
-                    TimeSpan.FromSeconds(20)
+                    timeout
                 );
             }
 
