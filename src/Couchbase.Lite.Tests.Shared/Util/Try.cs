@@ -21,8 +21,6 @@ using System;
 using System.Reflection;
 using System.Threading;
 
-using FluentAssertions.Execution;
-
 using Xunit.Sdk;
 
 namespace Test.Util

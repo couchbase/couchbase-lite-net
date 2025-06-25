@@ -21,9 +21,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Couchbase.Lite;
-using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
+using Shouldly;
 
 namespace Test
 {
@@ -59,7 +59,7 @@ namespace Test
         private void AddRevisions(uint count)
         {
             var doc = Db.GetDefaultCollection().GetDocument("doc")?.ToMutable();
-            doc.Should().NotBeNull("because otherwise the save of the perf test failed");
+            doc.ShouldNotBeNull("because otherwise the save of the perf test failed");
             Db.InBatch(() =>
             {
                 for (int i = 0; i < count; i++) {

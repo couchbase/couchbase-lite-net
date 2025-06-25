@@ -25,7 +25,7 @@ using System.IO;
 using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
-using FluentAssertions;
+using Shouldly;
 using Test.Util;
 using Xunit;
 using Xunit.Abstractions;
@@ -69,8 +69,8 @@ namespace Test
 
         protected void OpenDB()
         {
-            _dbName.Should().NotBeNull("because otherwise we cannot open the database");
-            Db.Should().BeNull("because otherwise we are trying to reopen the database incorrectly");
+            _dbName.ShouldNotBeNull("because otherwise we cannot open the database");
+            Db.ShouldBeNull("because otherwise we are trying to reopen the database incorrectly");
             Db = new Database(_dbName, _dbConfiguration);
         }
 
