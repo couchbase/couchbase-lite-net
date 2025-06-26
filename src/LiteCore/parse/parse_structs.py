@@ -5,6 +5,7 @@ import re
 from datetime import date
 import parse_enums
 import sys
+import logging
 
 type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte","C4StorageEngine":"string","char*":"string","uint64_t":"ulong","uint16_t":"ushort","C4SequenceNumber":"ulong", 
 "C4String":"FLSlice","C4FullTextID":"ulong","C4RemoteID":"uint","C4HeapString":"FLHeapSlice","C4Slice":"FLSlice","C4HeapSlice":"FLHeapSlice","C4SliceResult":"FLSliceResult","FLDoc":"FLDoc*",
@@ -12,7 +13,7 @@ type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte
 "FLString":"FLSlice"}
 bridge_types = ["UIntPtr","string","bool"]
 reverse_bridge_map = {"string":"IntPtr","bool":"byte"}
-skip_types = ["C4FullTextTerm","C4SocketFactory","C4ReplicatorParameters","C4ReplicationCollection","C4PredictiveModel", "C4ExtraInfo", "C4TLSConfig", "C4ListenerConfig", "C4ExternalKeyCallbacks"]
+skip_types = ["C4FullTextTerm", "C4SocketFactory"]
 partials = ["C4RawDocument", "C4Address", "C4QueryEnumerator", "C4SocketFactory", "C4Error","C4Slice","C4BlobKey","C4EncryptionKey","C4DatabaseConfig","C4IndexOptions",
             "C4EnumeratorOptions","C4QueryOptions","C4UUID","FLSlice","FLSliceResult","C4FullTextMatch","C4DocPutRequest", "C4DocumentInfo",
             "C4Document", "C4SocketFactory"]
@@ -38,6 +39,7 @@ def make_literal(type):
     except:
         return None
 
+    logging.warning(f"Using manually written definition for {type}, double check its content!")
     ret_val = fin.read().rstrip('\n')
     fin.close()
     return ret_val
@@ -162,8 +164,9 @@ if __name__ == "__main__":
             if len(variables) == 1 and variables[0] == "skip":
                 try:
                     tin = open("templates/{}.cs".format(name))
+                    logging.warning(f"Using template for {name}, double check its content!")
                 except:
-                    print("No definition found for {}; skipping...".format(name))
+                    logging.warning("No definition found for {}; skipping...".format(name))
                     continue
 
                 out_text += "{}\n\n".format(tin.read())
