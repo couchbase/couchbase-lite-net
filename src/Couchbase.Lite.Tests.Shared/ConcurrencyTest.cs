@@ -28,7 +28,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -49,7 +49,7 @@ namespace Test
 
             ConcurrentRuns(nConcurrent, (index) => {
                 var tag = $"Create{index}";
-                CreateDocs(nDocs, tag).Should().HaveCount(nDocs);
+                CreateDocs(nDocs, tag).Count().ShouldBe(nDocs);
             });
 
             for (uint i = 0; i < nConcurrent; i++) {
@@ -66,7 +66,7 @@ namespace Test
 
             ConcurrentRuns(nConcurrent, (index) => {
                 var tag = $"Create{index}";
-                Db.InBatch(() => { CreateDocs(nDocs, tag).Should().HaveCount(nDocs); });
+                Db.InBatch(() => { CreateDocs(nDocs, tag).Count().ShouldBe(nDocs); });
             });
 
             for (uint i = 0; i < nConcurrent; i++) {
@@ -101,7 +101,7 @@ namespace Test
                 });
             }
 
-            count.Should().Be(nDocs, "because only the last in the previous loop should return results");
+            count.ShouldBe(nDocs, "because only the last in the previous loop should return results");
         }
 
         [Fact]
@@ -148,7 +148,7 @@ namespace Test
             var t1 = Task.Run(() => ReadDocs(docIDs, nRounds));
             var t2 = Task.Run(() => UpdateDocs(docIDs, nRounds, tag));
 
-            Task.WaitAll(new[] { t1, t2 }, TimeSpan.FromSeconds(60)).Should().BeTrue();
+            Task.WaitAll(new[] { t1, t2 }, TimeSpan.FromSeconds(60)).ShouldBeTrue();
         }
 
         [Fact]
@@ -156,7 +156,7 @@ namespace Test
         {
             const int nDocs = 1000;
             var docs = CreateDocs(nDocs, "Create").ToList();
-            docs.Count.Should().Be(nDocs);
+            docs.Count.ShouldBe(nDocs);
 
             var delete1 = new WaitAssert();
             var ignore = delete1.RunAssertAsync(() =>
@@ -175,7 +175,7 @@ namespace Test
             });
 
             WaitAssert.WaitFor(TimeSpan.FromSeconds(60), delete1, delete2);
-            DefaultCollection.Count.Should().Be(0, "because all documents were deleted");
+            DefaultCollection.Count.ShouldBe(0UL, "because all documents were deleted");
         }
 
         [Fact]
@@ -191,7 +191,7 @@ namespace Test
 
                 Db.InBatch(() => {
                     var tag = $"Create{index}";
-                    CreateDocs(nDocs, tag).Should().HaveCount(nDocs); // Force evaluation, not a needed assert
+                    CreateDocs(nDocs, tag).Count().ShouldBe(nDocs); // Force evaluation, not a needed assert
                 });
             });
 
@@ -208,7 +208,7 @@ namespace Test
             const uint nConcurrent = 10;
 
             var docs = CreateDocs(nDocs, "Create").ToList();
-            docs.Count.Should().Be(nDocs);
+            docs.Count.ShouldBe(nDocs);
 
             ConcurrentRuns(nConcurrent, index => {
                 foreach (var doc in docs) {
@@ -222,7 +222,7 @@ namespace Test
                 }
             });
 
-            DefaultCollection.Count.Should().Be(0, "because all documents were purged");
+            DefaultCollection.Count.ShouldBe(0UL, "because all documents were purged");
         }
 
         [Fact]
@@ -232,7 +232,7 @@ namespace Test
             const uint nRounds = 10;
             const uint nConcurrent = 10;
 
-            CreateDocs(nDocs, "Create").Should().HaveCount(nDocs);
+            CreateDocs(nDocs, "Create").Count().ShouldBe(nDocs);
 
             ConcurrentRuns(nConcurrent, index =>
             {
@@ -251,7 +251,7 @@ namespace Test
             var ignore = exp1.RunAssertAsync(() =>
             {
                 Action a = () => CreateDocs(nDocs, "Create").ToList();
-                a.Should().Throw<InvalidOperationException>();
+                Should.Throw<InvalidOperationException>(a);
             });
 
             Db.Close();
@@ -267,7 +267,7 @@ namespace Test
             var ignore = exp1.RunAssertAsync(() =>
             {
                 Action a = () => CreateDocs(nDocs, "Create").ToList();
-                a.Should().Throw<InvalidOperationException>();
+                Should.Throw<InvalidOperationException>(a);
             });
 
             Db.Delete();
@@ -370,7 +370,7 @@ namespace Test
                     {
                         Interlocked.CompareExchange(ref stepCount, 1, 0);
                         enterInBatchLock.Set();
-                        enterQueryLock.Wait(TimeSpan.FromSeconds(1)).Should().BeFalse("because t2 should be blocked waiting for t1's InBatch");
+                        enterQueryLock.Wait(TimeSpan.FromSeconds(1)).ShouldBeFalse("because t2 should be blocked waiting for t1's InBatch");
                         Interlocked.CompareExchange(ref stepCount, 3, 2);
                     });
                 } catch(Exception e) {
@@ -381,7 +381,7 @@ namespace Test
             var t2 = new Thread(() =>
             {
                 try {
-                    enterInBatchLock.Wait(TimeSpan.FromSeconds(1)).Should().BeTrue("because otherwise t1 didn't enter InBatch");
+                    enterInBatchLock.Wait(TimeSpan.FromSeconds(1)).ShouldBeTrue("because otherwise t1 didn't enter InBatch");
                     Interlocked.CompareExchange(ref stepCount, 2, 1);
                     using var rs = Db.CreateQuery("select * from _").Execute();
                     var realized = rs.ToList();
@@ -403,7 +403,7 @@ namespace Test
                 throw ex;
             }
 
-            stepCount.Should().Be(4, "because otherwise some of the steps happened out of order");
+            stepCount.ShouldBe(4, "because otherwise some of the steps happened out of order");
         }
 
         private void ReadDocs(IEnumerable<string> docIDs, uint rounds)
@@ -411,8 +411,8 @@ namespace Test
             for (uint r = 1; r <= rounds; r++) {
                 foreach (var docID in docIDs) {
                     var doc = DefaultCollection.GetDocument(docID);
-                    doc.Should().NotBeNull();
-                    doc!.Id.Should().Be(docID);
+                    doc.ShouldNotBeNull();
+                    doc!.Id.ShouldBe(docID);
                 }
             }
         }
@@ -423,16 +423,16 @@ namespace Test
             for (uint r = 1; r <= rounds; r++) {
                 foreach (var docID in docIDs) {
                     var doc = DefaultCollection.GetDocument(docID)?.ToMutable();
-                    doc.Should().NotBeNull("because otherwise document '{id}' does not exist", docID);
+                    doc.ShouldNotBeNull($"because otherwise document '{docID}' does not exist");
                     doc!.SetString("tag", tag);
 
                     var address = doc.GetDictionary("address");
-                    address.Should().NotBeNull();
+                    address.ShouldNotBeNull();
                     var street = $"{n} street.";
                     address!.SetString("street", street);
 
                     var phones = doc.GetArray("phones");
-                    phones.Should().HaveCount(2);
+                    phones.Count.ShouldBe(2);
                     var phone = $"650-000-{n}";
                     phones!.SetString(0, phone);
 
@@ -467,7 +467,7 @@ namespace Test
                 count++;
             });
 
-            count.Should().Be(numRows);
+            count.ShouldBe(numRows);
         }
 
         private MutableDocument CreateDocument(string tag)
