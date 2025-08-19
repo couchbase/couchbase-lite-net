@@ -22,6 +22,7 @@ using Couchbase.Lite.Internal.Logging;
 using Foundation;
 using LiteCore.Interop;
 using System;
+using System.Linq;
 using System.Threading;
 using UIKit;
 
@@ -46,7 +47,7 @@ public partial class Replicator
     {
         get {
 #pragma warning disable CS0618 // Type or member is obsolete
-            var attrs = NSFileManager.DefaultManager.GetAttributes(Config.Database.Path!);
+            var attrs = NSFileManager.DefaultManager.GetAttributes(Config.Collections.First().Database.Path!);
             return attrs?.ProtectionKey ?? NSFileProtection.None;
 #pragma warning restore CS0618 // Type or member is obsolete
         }

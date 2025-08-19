@@ -91,9 +91,7 @@ namespace Couchbase.Lite
         #region Properties
 
         // Must be called inside self lock
-#if !XAMARINIOS && !MONODROID
         [MemberNotNullWhen(false, nameof(c4Db), nameof(_c4coll))]
-#endif
         internal bool IsClosed => c4Db == null || _c4coll == null || !NativeSafe.c4coll_isValid(_c4coll);
 
         // Must be called inside self lock
@@ -948,9 +946,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Throws if this collection has been deleted, or its database closed.
         /// </summary>
-#if !XAMARINIOS && !MONOANDROID
         [MemberNotNull(nameof(c4Db), nameof(_c4coll))]
-#endif
         internal void CheckCollectionValid()
         {
             using var scope = ThreadSafety.BeginLockedScope();
@@ -987,7 +983,7 @@ namespace Couchbase.Lite
                 if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
                     if (docIDs.Count > 0) {
                         // Only notify if there are actually changes to send
-                        var args = new CollectionChangedEventArgs(this, docIDs, Database);
+                        var args = new CollectionChangedEventArgs(this, docIDs);
                         _databaseChanged.Fire(this, args);
                         docIDs = new List<string>();
                     }

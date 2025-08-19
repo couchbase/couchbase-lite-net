@@ -48,32 +48,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestDatabaseChange()
-        {
-            using var wa = new WaitAssert();
-            DefaultCollection.AddChangeListener(null, (sender, args) =>
-            {
-                var docIDs = args.DocumentIDs;
-                wa.RunAssert(() =>
-                {
-                    args.Database.ShouldBe(Db);
-                    docIDs.Count.ShouldBe(10, "because that is the number of expected rows");
-                });
-            });
-
-            Db.InBatch(() =>
-            {
-                for (uint i = 0; i < 10; i++) {
-                    var doc = new MutableDocument($"doc-{i}");
-                    doc.SetString("type", "demo");
-                    DefaultCollection.Save(doc);
-                }
-            });
-
-            wa.WaitForResult(TimeSpan.FromSeconds(5));
-        }
-
-        [Fact]
         public void TestCollectionChange()
         {
             using var wa = new WaitAssert();

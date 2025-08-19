@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -24,9 +25,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The parameters of a collection changed event
     /// </summary>
-#pragma warning disable CS0618 // Type or member is obsolete
-    public sealed class CollectionChangedEventArgs : DatabaseChangedEventArgs
-#pragma warning restore CS0618 // Type or member is obsolete
+    public sealed class CollectionChangedEventArgs : EventArgs
     {
         #region Properties
 
@@ -35,14 +34,18 @@ namespace Couchbase.Lite
         /// </summary>
         public Collection Collection { get; }
 
+        /// <summary>
+        /// Gets the document that was changed
+        /// </summary>
+        public IReadOnlyList<string> DocumentIDs { get; }
+
         #endregion
 
         #region Constructors
 
-        internal CollectionChangedEventArgs(Collection collection, IReadOnlyList<string> documentIDs,
-            Database database)
-            :base(database, documentIDs)
+        internal CollectionChangedEventArgs(Collection collection, IReadOnlyList<string> documentIDs)
         {
+            DocumentIDs = documentIDs; 
             Collection = collection;
         }
 

@@ -156,27 +156,6 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// [DEPRECATED] A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
-        /// The default value is null, meaning that all accessible channels will be pulled.
-        /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
-        /// </summary>
-        /// <remarks>
-        /// Note: Channels property is only applicable in the replications with Sync Gateway.
-        /// </remarks>
-        [Obsolete("Channels is deprecated, please use CollectionConfiguration.Channels")]
-        public IList<string>? Channels
-        {
-            get => DefaultCollectionConfig.Options.Channels;
-            set {
-                _freezer.PerformAction(() =>
-                {
-                    DefaultCollectionConfig.Options.Channels = value;
-                    Options.Channels = value;
-                });
-            }
-        }
-
-        /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
         /// Default value is <see cref="Constants.DefaultReplicatorContinuous" />
@@ -189,31 +168,6 @@ namespace Couchbase.Lite.Sync
                 _freezer.SetValue(ref _continuous, value);
                 if (_isDefaultMaxAttemptSet)
                     MaxAttempts = 0;
-            }
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Gets the local database participating in the replication. 
-        /// </summary>
-        /// <exception cref="CouchbaseLiteException">Thrown if Database doesn't exist in the replicator configuration.</exception>
-        [Obsolete("Database is deprecated, please use Collections")]
-        public Database Database => Collections.Count > 0 && Collections[0].Database != null ? Collections[0].Database
-            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a missing Database in the Replication Configuration.");
-
-        /// <summary>
-        /// [DEPRECATED] A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
-        /// and/or pulled
-        /// </summary>
-        [Obsolete("DocumentIDs is deprecated, please use CollectionConfiguration.DocumentIDs")]
-        public IList<string>? DocumentIDs
-        {
-            get => DefaultCollectionConfig.Options.DocIDs;
-            set {
-                _freezer.PerformAction(() =>
-                {
-                    DefaultCollectionConfig.Options.DocIDs = value;
-                    Options.DocIDs = value;
-                });
             }
         }
 
@@ -253,30 +207,6 @@ namespace Couchbase.Lite.Sync
         {
             get => Options.NetworkInterface;
             set => _freezer.PerformAction(() => Options.NetworkInterface = value);
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
-        /// Document pull will be allowed if output is true, othewise, Document pull 
-        /// will not be allowed
-        /// </summary>
-        [Obsolete("PullFilter is deprecated, please use CollectionConfiguration.PullFilter")]
-        public Func<Document, DocumentFlags, bool>? PullFilter
-        {
-            get => DefaultCollectionConfig.PullFilter;
-            set => _freezer.PerformAction(() => DefaultCollectionConfig.PullFilter = value);
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
-        /// Document push will be allowed if output is true, othewise, Document push 
-        /// will not be allowed
-        /// </summary>
-        [Obsolete("PushFilter is deprecated, please use CollectionConfiguration.PushFilter")]
-        public Func<Document, DocumentFlags, bool>? PushFilter
-        {
-            get => DefaultCollectionConfig.PushFilter;
-            set => _freezer.PerformAction(() => DefaultCollectionConfig.PushFilter = value);
         }
 
         /// <summary>
@@ -376,18 +306,6 @@ namespace Couchbase.Lite.Sync
         public IEndpoint Target { get; }
 
         /// <summary>
-        /// [DEPRECATED] The implemented custom conflict resolver object can be registered to the replicator 
-        /// at ConflictResolver property. The default value of the conflictResolver is null. 
-        /// When the value is null, the default conflict resolution will be applied.
-        /// </summary>
-        [Obsolete("ConflictResolver is deprecated, please use CollectionConfiguration.ConflictResolver")]
-        public IConflictResolver? ConflictResolver
-        {
-            get => DefaultCollectionConfig.ConflictResolver;
-            set => _freezer.PerformAction(() => DefaultCollectionConfig.ConflictResolver = value);
-        }
-
-        /// <summary>
         /// The collections in the replication.
         /// </summary>
         public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
@@ -454,21 +372,6 @@ namespace Couchbase.Lite.Sync
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Constructs a new builder object with the required properties
-        /// </summary>
-        /// <param name="database">The database that will serve as the local side of the replication</param>
-        /// <param name="target">The endpoint to replicate to, either local or remote</param>
-        /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
-        /// is provided as <paramref name="target"/></exception>
-        [Obsolete("Constructor ReplicatorConfiguration(Database, IEndpoint) is deprecated, please use ReplicatorConfiguration(IEndpoint)")]
-        public ReplicatorConfiguration(Database database, IEndpoint target)
-            :this(target)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
-            AddCollection(database.GetDefaultCollection());
         }
 
         #endregion

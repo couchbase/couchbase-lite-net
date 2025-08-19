@@ -15,7 +15,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Collection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\CollectionChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DocumentChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Interfaces\IChangeObservable.cs" />
@@ -58,7 +57,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Collation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\DataSource.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Expression.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextFunction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Function.cs" />

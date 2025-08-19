@@ -34,12 +34,6 @@ namespace Couchbase.Lite
         public string DocumentID { get; }
 
         /// <summary>
-        /// [DEPRECATED] The source of the document that changed
-        /// </summary>
-        [Obsolete("Database is deprecated, please use Collection property instead")]
-        public Database Database { get; }
-
-        /// <summary>
         /// The source of the document that changed
         /// </summary>
         public Collection Collection { get; }
@@ -52,9 +46,6 @@ namespace Couchbase.Lite
         {
             DocumentID = documentID;
             Collection = collection;
-#pragma warning disable CS0618 // Type or member is obsolete
-            Database = collection.Database;
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         #endregion
