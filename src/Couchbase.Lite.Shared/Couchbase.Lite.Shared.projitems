@@ -46,7 +46,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\Defaults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessageNetOnly.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)api\info\Defaults_Deprecated.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ILogger.cs" />
