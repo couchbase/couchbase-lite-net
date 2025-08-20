@@ -116,7 +116,7 @@ namespace Test
                 #endif
 
                 Directory.EnumerateFiles(logDirectory)
-                    .Count().ShouldBe(totalCount, "because old log files should be getting pruned");
+                    .Count().ShouldBe((int)totalCount, "because old log files should be getting pruned");
             });
         }
 

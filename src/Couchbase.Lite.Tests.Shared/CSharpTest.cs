@@ -109,6 +109,7 @@ namespace Test
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.ShouldBeSameAs(context);
+                    Db.c4db.ShouldNotBeNull();
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
                         NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
@@ -202,6 +203,7 @@ namespace Test
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.ShouldBeSameAs(context);
+                    Db.c4db.ShouldNotBeNull();
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
                         NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);

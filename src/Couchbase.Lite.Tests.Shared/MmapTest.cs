@@ -59,11 +59,11 @@ namespace Test
             config.MmapEnabled.ShouldBeTrue();
             config.MmapEnabled.ShouldBeTrue("because the default should be true");
 
-            config.MmapEnabled = false;
+            config = new DatabaseConfiguration
+            {
+                MmapEnabled = false
+            };
             config.MmapEnabled.ShouldBeFalse("because C# properties should work...");
-
-            config.MmapEnabled = true;
-            config.MmapEnabled.ShouldBeTrue("because C# properties should work...");
 #endif
         }
 

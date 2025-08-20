@@ -68,7 +68,7 @@ public static partial class Constants {
 	/// Default value for <see cref="LogFileConfiguration.MaxRotateCount" /> (1)
 	/// 1 rotated file present (2 total, including the currently active log file)
 	/// </summary>
-	public static readonly int DefaultLogFileMaxRotateCount = 1;
+	public static readonly uint DefaultLogFileMaxRotateCount = 1;
 
 	/// <summary>
 	/// Default value for <see cref="FullTextIndexConfiguration.IgnoreAccents" /> (false)

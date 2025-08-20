@@ -41,15 +41,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private readonly Freezer _freezer = new Freezer();
-
         private string? _directory;
-        private bool _fullSync = Constants.DefaultDatabaseFullSync;
-        private bool _mmapEnabled = Constants.DefaultDatabaseMmapEnabled;
-
-        #if COUCHBASE_ENTERPRISE
-        private EncryptionKey? _encryptionKey;
-        #endif
 
         #endregion
 
@@ -61,7 +53,7 @@ namespace Couchbase.Lite
         public string Directory
         {
             get => _directory ??= Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
-            set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
+            init => _directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value);
         }
 
         /// <summary>
@@ -74,11 +66,7 @@ namespace Couchbase.Lite
         /// synchronous is very safe but it is also dramatically slower.
         /// </summary>
         /// <returns>A boolean representing whether or not full sync is enabled</returns>
-        public bool FullSync
-        {
-            get => _fullSync;
-            set => _freezer.SetValue(ref _fullSync, value);
-        }
+        public bool FullSync { get; init; } = Constants.DefaultDatabaseFullSync;
 
         /// <summary>
         /// Hint for enabling or disabling memory-mapped I/O. 
@@ -95,64 +83,14 @@ namespace Couchbase.Lite
             [UnsupportedOSPlatform("osx")]
             [UnsupportedOSPlatform("maccatalyst")]
 #endif
-        public bool MmapEnabled
-        {
-            get {
-                return _mmapEnabled;
-            }
-            set {
-                _freezer.SetValue(ref _mmapEnabled, value);
-            }
-        }
+        public bool MmapEnabled { get; init; } = Constants.DefaultDatabaseMmapEnabled;
 
         #if COUCHBASE_ENTERPRISE
         /// <summary>
         /// Gets or sets the encryption key to use on the database
         /// </summary>
-        public EncryptionKey? EncryptionKey
-        {
-            get => _encryptionKey;
-            set => _freezer.SetValue(ref _encryptionKey, value);
-        }
+        public EncryptionKey? EncryptionKey { get; init; }
         #endif
-
-        #endregion
-
-        /// <summary>
-        /// Default constructor
-        /// </summary>
-        public DatabaseConfiguration()
-        {
-        }
-
-
-        internal DatabaseConfiguration(bool frozen)
-        {
-            if (frozen) {
-                _freezer.Freeze("Cannot modify a DatabaseConfiguration that is currently in use");
-            }
-        }
-
-        #region Internal Methods
-
-        internal DatabaseConfiguration Freeze()
-        {
-#pragma warning disable CA1416 // Validate platform compatibility
-            var retVal = new DatabaseConfiguration
-            {
-                Directory = Directory,
-                FullSync = FullSync,
-                MmapEnabled = MmapEnabled
-            };
-#pragma warning restore CA1416 // Validate platform compatibility
-
-#if COUCHBASE_ENTERPRISE
-            retVal.EncryptionKey = EncryptionKey;
-#endif
-
-            retVal._freezer.Freeze("Cannot modify a DatabaseConfiguration that is currently in use");
-            return retVal;
-        }
 
         #endregion
     }

@@ -148,7 +148,7 @@ namespace Couchbase.Lite.Sync
             if (config.Collections.Count <= 0)
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator Configuration must contain at least one collection.");
 
-            _config = config.Freeze();
+            _config = config;
         }
 
         /// <summary>

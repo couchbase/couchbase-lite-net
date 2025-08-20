@@ -47,16 +47,6 @@ namespace Couchbase.Lite.Logging
 
         #endregion
 
-        #region Variables
-
-        private readonly Freezer _freezer = new Freezer();
-
-        private int _maxRotateCount = Constants.DefaultLogFileMaxRotateCount;
-        private long _maxSize = Constants.DefaultLogFileMaxSize;
-        private bool _usePlaintext = Constants.DefaultLogFileUsePlaintext;
-
-        #endregion
-
         #region Properties
 
         /// <summary>
@@ -70,11 +60,7 @@ namespace Couchbase.Lite.Logging
         /// and the 'rotated')
         /// Default value is <see cref="Constants.DefaultLogFileMaxRotateCount" />
         /// </summary>
-        public int MaxRotateCount
-        {
-            get => _maxRotateCount;
-            set => _freezer.SetValue(ref _maxRotateCount, value);
-        }
+        public uint MaxRotateCount { get; init; } = Constants.DefaultLogFileMaxRotateCount;
 
         /// <summary>
         /// Gets or sets the max size of the log files in bytes.  If a log file
@@ -82,23 +68,15 @@ namespace Couchbase.Lite.Logging
         /// number is a best effort and the actual size may go over slightly.
         /// Default value is <see cref="Constants.DefaultLogFileMaxSize" />
         /// </summary>
-        public long MaxSize
-        {
-            get => _maxSize;
-            set => _freezer.SetValue(ref _maxSize, value);
-        }
+        public long MaxSize { get; init; } = Constants.DefaultLogFileMaxSize;
 
-        /// <summary>
+    /// <summary>
         /// Gets or sets whether or not to log in plaintext.  The default is
         /// to log in a binary encoded format that is more CPU and I/O friendly
         /// and enabling plaintext is not recommended in production.
         /// Default value is <see cref="Constants.DefaultLogFileUsePlaintext" />
         /// </summary>
-        public bool UsePlaintext
-        {
-            get => _usePlaintext;
-            set => _freezer.SetValue(ref _usePlaintext, value);
-        }
+        public bool UsePlaintext { get; init; } =  Constants.DefaultLogFileUsePlaintext;
 
         #endregion
 
@@ -144,17 +122,6 @@ namespace Couchbase.Lite.Logging
         }
 
         #endregion
-
-        #region Internal Methods
-
-        internal LogFileConfiguration Freeze()
-        {
-            var retVal = new LogFileConfiguration(this);
-            retVal._freezer.Freeze("Cannot modify a FileConfiguration that is currently in use");
-            return retVal;
-        }
-
-        #endregion
     }
 
     /// <summary>
@@ -186,7 +153,7 @@ namespace Couchbase.Lite.Logging
                     WriteLog.To.Database.W("Logging", "Database.Log.File.Config is now null, meaning file logging is disabled.  Log files required for product support are not being generated.");
                 }
 
-                _config = value?.Freeze();
+                _config = value;
                 UpdateConfig();
             }
         }
@@ -258,7 +225,7 @@ namespace Couchbase.Lite.Logging
                 {
                     base_path = dir.AsFLSlice(),
                     log_level = Config?.Directory == null ? C4LogLevel.None : (C4LogLevel) Level,
-                    max_rotate_count = _config?.MaxRotateCount ?? 1,
+                    max_rotate_count = (int)(_config?.MaxRotateCount ?? 1U),
                     max_size_bytes = _config?.MaxSize ?? 1024 * 500L,
                     use_plaintext = _config?.UsePlaintext ?? false,
                     header = header.AsFLSlice()

@@ -255,7 +255,7 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(err);
             }
 
-            Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
+            Config = configuration ?? new DatabaseConfiguration();
             Run.Once(nameof(CheckFileLogger), CheckFileLogger);
             Open();
         }
@@ -280,7 +280,7 @@ namespace Couchbase.Lite
         internal Database(C4DatabaseWrapper c4db)
         {
             Name = "tmp";
-            Config = new DatabaseConfiguration(true);
+            Config = new DatabaseConfiguration();
             this.c4db = c4db.Retain<C4DatabaseWrapper>();
             IsShell = true;
         }
@@ -727,6 +727,8 @@ namespace Couchbase.Lite
             string? cookies = null;
             if (uri == null) {
                 WriteLog.To.Sync.V(Tag, "The Uri used to get cookies is null.");
+            } else if (c4db == null) {
+                WriteLog.To.Sync.W(Tag, "The database appears closed");
             } else {
                 var addr = new C4Address();
                 var scheme = new C4String();
@@ -757,16 +759,18 @@ namespace Couchbase.Lite
 
         internal bool SaveCookie(string cookie, Uri uri, bool acceptParentDomain)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(cookie), cookie);
             bool cookieSaved = false;
-            if (uri == null) {
-                WriteLog.To.Sync.V(Tag, "The Uri used to set cookie is null.");
-            } else {
-                var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
-                C4Error err = new C4Error();
-                cookieSaved = NativeSafe.c4db_setCookie(c4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
-                if(err.code > 0) {
-                    WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
-                }
+            var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
+            C4Error err = new C4Error();
+            if (c4db == null) {
+                WriteLog.To.Sync.W(Tag, $"Failed saving Cookie {cookie} (closed db).");
+                return cookieSaved;
+            }
+            
+            cookieSaved = NativeSafe.c4db_setCookie(c4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
+            if(err.code > 0) {
+                WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
             }
 
             return cookieSaved;

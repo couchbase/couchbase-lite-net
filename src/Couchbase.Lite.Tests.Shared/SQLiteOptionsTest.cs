@@ -54,11 +54,12 @@ namespace Test
             var config = new DatabaseConfiguration();
             config.FullSync.ShouldBeFalse("because the default should be false");
 
-            config.FullSync = true;
+            config = new DatabaseConfiguration
+            {
+                FullSync = true,
+            };
+                
             config.FullSync.ShouldBeTrue("because C# properties should work...");
-
-            config.FullSync = false;
-            config.FullSync.ShouldBeFalse("because C# properties should work...");
         }
 
         /// <summary>

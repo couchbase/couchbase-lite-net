@@ -171,8 +171,9 @@ namespace Test
                     doc.Count.ShouldBe(1);
                     doc.Contains("dict").ShouldBeTrue();
                     var d = doc.GetDictionary("dict");
+                    d.ShouldNotBeNull();
                     d.Count.ShouldBe(4);
-                    d!.Contains("obj-null").ShouldBeTrue(); // If null the previous check will fail
+                    d.Contains("obj-null").ShouldBeTrue(); // If null the previous check will fail
                     d.Contains("string-null").ShouldBeTrue();
                     d.Contains("array-null").ShouldBeTrue();
                     d.Contains("dict-null").ShouldBeTrue();
@@ -224,6 +225,7 @@ namespace Test
             });
 
             var dicts = doc.GetArray("dicts");
+            dicts.ShouldNotBeNull();
             dicts.Count.ShouldBe(4, "because that is the number of entries added");
 
             var d1 = dicts!.GetDictionary(0); // This is not null because otherwise the previous check will fail
@@ -240,6 +242,7 @@ namespace Test
             var gotDoc = DefaultCollection.GetDocument("doc1");
             gotDoc.ShouldNotBeNull("because the document was just saved");
             var savedDicts = gotDoc!.GetArray("dicts");
+            savedDicts.ShouldNotBeNull();
             savedDicts.Count.ShouldBe(4, "because that is the number of entries");
 
             var savedD1 = savedDicts?.GetDictionary(0);
