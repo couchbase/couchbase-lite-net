@@ -35,13 +35,34 @@ using LiteCore.Util;
 namespace Couchbase.Lite
 {
     /// <summary>
+    /// An extension class for helping to turn a nanosecond based timestamp into a
+    /// <see cref="DateTimeOffset"/> object
+    /// </summary>
+    public static class TimestampExtensions
+    {
+        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        
+        /// <summary>
+        /// Converts the nanosecond timestamp to a DateTimeOffset in UTC time
+        /// </summary>
+        /// <param name="rawVal">The nanosecond timestamp</param>
+        /// <returns>The DateTimeOffset object using the timestamp, or null if it was invalid</returns>
+        public static DateTimeOffset? AsDateTimeOffset(this ulong rawVal)
+        {
+            if(rawVal == 0) {
+                return null;
+            }
+
+            // .NET ticks are in 100 nanosecond intervals
+            return UnixEpoch + TimeSpan.FromTicks((long)(rawVal / 100));
+        }
+    }
+    /// <summary>
     /// A class representing a document which cannot be altered
     /// </summary>
     public unsafe class Document : IDictionaryObject, IJSON, IDisposable
     {
         private const string Tag = nameof(Document);
-
-        private static readonly DateTimeOffset UnixEpoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         #region Variables
 
@@ -65,16 +86,16 @@ namespace Couchbase.Lite
         internal C4DatabaseWrapper c4Db
         {
             get {
-                Debug.Assert(Database != null && Database.c4db != null);
-                return Database!.c4db!;
+                Debug.Assert(Database is { c4db: not null });
+                return Database.c4db;
             }
         }
 
         internal C4CollectionWrapper c4Coll
         {
             get {
-                Debug.Assert(Collection != null && Collection.c4coll != null);
-                return Collection!.c4coll!;
+                Debug.Assert(Collection != null);
+                return Collection!.c4coll;
             }
         }
 
@@ -164,25 +185,16 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// The hybrid logical timestamp that the revision was created.
+        /// The hybrid logical timestamp that the revision was created, represented in nanoseconds
+        /// from the unix epoch.  If you want this value as a DateTimeOffset you can use the
+        /// convenience function <see cref="TimestampExtensions.AsDateTimeOffset(ulong)">AsDateTimeOffset</see>.
+        /// Just be aware that DateTimeOffset only handles 100 nanosecond resolution.
         /// </summary>
-        public DateTimeOffset? Timestamp
+        public ulong Timestamp
         {
             get {
                 using var scope = ThreadSafety.BeginLockedScope();
-                var rawVal = c4Doc?.HasValue == true ? NativeRaw.c4rev_getTimestamp(c4Doc.RawDoc->selectedRev.revID) : 0;
-                if(rawVal == 0) {
-                    return null;
-                }
-
-                // .NET ticks are in 100 nanosecond intervals
-                rawVal /= 100;
-
-                if(rawVal > Int64.MaxValue) {
-                    throw new OverflowException("The returned value from LiteCore is too large to be represented by DateTimeOffset");
-                }
-
-                return UnixEpoch + TimeSpan.FromTicks((long)rawVal);
+                return c4Doc?.HasValue == true ? NativeRaw.c4rev_getTimestamp(c4Doc.RawDoc->selectedRev.revID) : 0;
             }
         }
 
