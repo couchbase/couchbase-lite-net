@@ -322,58 +322,6 @@ namespace Test
 #endif
 
         [Fact]
-        [Obsolete]
-        public void TestWhereNullOrMissing()
-        {
-            MutableDocument? doc1 = null, doc2 = null;
-            doc1 = new MutableDocument("doc1");
-            doc1.SetString("name", "Scott");
-            DefaultCollection.Save(doc1);
-
-            doc2 = new MutableDocument("doc2");
-            doc2.SetString("name", "Tiger");
-            doc2.SetString("address", "123 1st ave.");
-            doc2.SetInt("age", 20);
-            DefaultCollection.Save(doc2);
-
-            var name = Expression.Property("name");
-            var address = Expression.Property("address");
-            var age = Expression.Property("age");
-            var work = Expression.Property("work");
-
-            var tests = new[] {
-                Tuple.Create(name.NotNullOrMissing(), new[] { doc1, doc2 }),
-                Tuple.Create(name.IsNullOrMissing(), new MutableDocument[0]),
-                Tuple.Create(address.NotNullOrMissing(), new[] { doc2 }),
-                Tuple.Create(address.IsNullOrMissing(), new[] { doc1 }),
-                Tuple.Create(age.NotNullOrMissing(), new[] { doc2 }),
-                Tuple.Create(age.IsNullOrMissing(), new[] { doc1 }),
-                Tuple.Create(work.NotNullOrMissing(), new MutableDocument[0]),
-                Tuple.Create(work.IsNullOrMissing(), new[] { doc1, doc2 })
-            };
-
-            int testNum = 1;
-            foreach (var test in tests) {
-                var exp = test.Item1;
-                var expectedDocs = test.Item2;
-                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(DefaultCollection)).Where(exp)) {
-                    var numRows = VerifyQuery(q, (n, row) =>
-                    {
-                        if (n <= expectedDocs.Length) {
-                            var doc = expectedDocs[n - 1];
-                            row.GetString("id")
-                                .ShouldBe(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
-                        }
-                    });
-
-                    numRows.ShouldBe(expectedDocs.Length, "because otherwise too many rows were returned");
-                }
-
-                testNum++;
-            }
-        }
-
-        [Fact]
         public void TestWhereValued()
         {
             MutableDocument? doc1 = null, doc2 = null;
@@ -2751,16 +2699,13 @@ namespace Test
                ("test.flowers as f", "f")
             };
 
-#pragma warning disable CS0618 // Type or member is obsolete
             var queryBuilderInputAndResult = new List<(IDataSource querySource, string resultName)>
             {
-                (DataSource.Database(Db), Db.Name),
                 (DataSource.Collection(DefaultCollection).As("db-alias"), "db-alias"),
                 (DataSource.Collection(DefaultCollection), "_default"),
                 (DataSource.Collection(c), "flowers"),
                 (DataSource.Collection(c).As("collection-alias"), "collection-alias")
             };
-#pragma warning restore CS0618 // Type or member is obsolete
 
 
             using var doc1 = new MutableDocument("foo1");

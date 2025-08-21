@@ -215,9 +215,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-#if !XAMARINIOS && !MONODROID
         [MemberNotNull(nameof(c4Db))]
-#endif
         private void CheckOpen()
         {
             if (c4Db == null) {

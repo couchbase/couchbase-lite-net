@@ -31,27 +31,6 @@ namespace Couchbase.Lite.Query
         /// Create a full-text matching function that will check for matches between given 
         /// full text index name and the given query expression
         /// </summary>
-        /// <param name="indexName">The name of the full-text index to perform the
-        /// check against</param>
-        /// <param name="query">The query expression to perform the check against</param>
-        /// <returns>A function that will perform the matching</returns>
-        [Obsolete("Use Match(index, query) instead")]
-        public static IExpression Match(string indexName, string query) =>
-            Match(Expression.FullTextIndex(indexName), query);
-
-        /// <summary>
-        /// Creates a full-text ranking value function indicating how well the current
-        /// query result matches the full-text query when performing the match comparison.
-        /// </summary>
-        /// <param name="indexName">The FTS index name to use when performing the calculation</param>
-        /// <returns>A function that will perform the ranking</returns>
-        [Obsolete("Use Rank(index) instead")]
-        public static IExpression Rank(string indexName) => Rank(Expression.FullTextIndex(indexName));
-
-        /// <summary>
-        /// Create a full-text matching function that will check for matches between given 
-        /// full text index name and the given query expression
-        /// </summary>
         /// <param name="index">The full-text index to perform the
         /// check against</param>
         /// <param name="query">The query expression to perform the check against</param>

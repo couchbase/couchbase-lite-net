@@ -3,7 +3,7 @@
     <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <TargetFramework>net9.0-android</TargetFramework>
-    <SupportedOSPlatformVersion>22.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
     <AssemblyName>Couchbase.Lite.Support.Android</AssemblyName>

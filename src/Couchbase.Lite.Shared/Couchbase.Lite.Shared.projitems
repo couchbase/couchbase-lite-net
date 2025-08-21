@@ -15,7 +15,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Collection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\CollectionChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DocumentChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Interfaces\IChangeObservable.cs" />
@@ -47,7 +46,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\Defaults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessageNetOnly.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)api\info\Defaults_Deprecated.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ILogger.cs" />
@@ -58,7 +56,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Collation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\DataSource.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Expression.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextFunction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Function.cs" />
