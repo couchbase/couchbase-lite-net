@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Internal.Query
     /// A configuration object that stores the details of how a given <see cref="Couchbase.Lite.Query.IIndex"/>
     /// object should be created
     /// </summary>
-    public abstract class IndexConfiguration
+    public abstract record IndexConfiguration
     {
         private const string Tag = nameof(IndexConfiguration);
 

@@ -737,17 +737,15 @@ namespace Test
             //6.5 Get Collections from The Scope Having No Collections
             //GetCollection() NULL
             //GetCollections() empty result
-            using (var colA = Db.CreateCollection("colA", "scopeA")) {
-                using (var scopeA = Db.GetScope("scopeA"))
-                using (var otherDB = OpenDB(Db.Name)) {
-                    otherDB.DeleteCollection("colA", "scopeA");
+            using var colA = Db.CreateCollection("colA", "scopeA");
+            var scopeA = Db.GetScope("scopeA");
+            using var otherDB = OpenDB(Db.Name);
+            otherDB.DeleteCollection("colA", "scopeA");
 
-                    using (var col = scopeA!.GetCollection("colA"))
-                        col.ShouldBeNull("Because GetCollection after collection colA is deleted from the other db.");
+            using var col = scopeA!.GetCollection("colA");
+            col.ShouldBeNull("Because GetCollection after collection colA is deleted from the other db.");
 
-                    scopeA.GetCollections().Count.ShouldBe(0, "Because GetCollections after collection colA is deleted from the other db.");
-                }
-            }
+            scopeA.GetCollections().Count.ShouldBe(0, "Because GetCollections after collection colA is deleted from the other db.");
         }
 
         #endregion
@@ -822,20 +820,15 @@ namespace Test
         public void TestScopeDatabase()
         {
             // 3.3 TestGetDatabaseFromScopeObtainedFromCollection
-            using (var col = Db.CreateCollection("colA", "scopeA"))
-            {
-                col.ShouldNotBeNull("Created colA should not be null");
-                var scope = col.Scope;
-                scope.ShouldNotBeNull("scopeA should not be null");
-                scope.Database.ShouldBe(Db);
-            }
+            using var col = Db.CreateCollection("colA", "scopeA");
+            col.ShouldNotBeNull("Created colA should not be null");
+            col.Scope.ShouldNotBeNull("scopeA should not be null");
+            col.Scope.Database.ShouldBe(Db);
 
             // 3.4 TestGetDatabaseFromScopeObtainedFromDatabase
-            using (var scope = Db.GetScope("scopeA"))
-            {
-                scope.ShouldNotBeNull("scopeA should not be null");
-                scope!.Database.ShouldBe(Db);
-            }
+            var scope = Db.GetScope("scopeA");
+            scope.ShouldNotBeNull("scopeA should not be null");
+            scope!.Database.ShouldBe(Db);
         }
 
         #endregion
@@ -948,7 +941,6 @@ namespace Test
             var collection = scope.CreateCollection("foo");
             var defaultCollection = Db.GetDefaultCollection();
 
-            scope.Dispose();
             collection.Dispose();
             defaultCollection.Dispose();
 

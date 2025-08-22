@@ -33,20 +33,15 @@ namespace Couchbase.Lite
     /// SQL equivalent but it can be thought of a a logical grouping of tables with potential
     /// foreign key links.
     /// </summary>
-    public sealed unsafe class Scope : IDisposable
+    public sealed unsafe class Scope
     {
-        #region Variales
-
-        private ConcurrentDictionary<string, Collection> _collections = new ConcurrentDictionary<string, Collection>();
-
-        #endregion
 
         #region Properties
 
         /// <summary>
         /// Gets the database that this scope belongs to
         /// </summary>
-        public Database Database { get; internal set; }
+        public Database Database { get; }
 
         /// <summary>
         /// Gets the Scope Name
@@ -58,7 +53,7 @@ namespace Couchbase.Lite
         /// Cannot start with _ or %.
         /// Case sensitive.
         /// </remarks>
-        public string Name { get; internal set; } = Database._defaultScopeName;
+        public string Name { get; } = Database._defaultScopeName;
 
         internal C4DatabaseWrapper c4Db
         {
@@ -72,29 +67,14 @@ namespace Couchbase.Lite
 
         internal ThreadSafety ThreadSafety { get; }
 
-        /// <summary>
-        /// Gets the total collections in the scope
-        /// </summary>
-        internal int Count
-        {
-            get {
-                return _collections.Count;
-            }
-        }
-
         #endregion
 
         #region Constructors
 
-        internal Scope(Database database)
+        internal Scope(Database database, string scope = Database._defaultScopeName)
         {
             Database = database;
             ThreadSafety = database.ThreadSafety;
-        }
-
-        internal Scope(Database database, string scope)
-            :this(database)
-        {
             Name = scope;
         }
 
@@ -117,25 +97,14 @@ namespace Couchbase.Lite
         {
             using var threadSafetyScope = ThreadSafety.BeginLockedScope();
             CheckOpen();
-            if (_collections.ContainsKey(name)) {
-                var c = _collections[name];
-                if (c.IsValid) {
-                    return c;
-                } else {
-                    // Remove invalid collection from cache
-                    _collections.TryRemove(name, out var co);
-                    co?.Dispose();
-                }
-            }
 
             Collection? coll = null;
             var c4c = GetCollectionFromLiteCore(name);
             if (c4c != null) {
                 coll = new Collection(Database, name, this, c4c);
-                _collections.TryAdd(name, coll);
             }
 
-            return coll == null || !coll.IsValid ? null : coll;
+            return coll is not { IsValid: true } ? null : coll;
         }
 
         /// <summary>
@@ -145,9 +114,27 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public IReadOnlyList<Collection> GetCollections()
         {
-            GetCollectionList();
-            return _collections.Values as IReadOnlyList<Collection>
-                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Invalid cast in GetCollections()");
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            CheckOpen();
+            C4Error error;
+            var arrColl = NativeSafe.c4db_collectionNames(c4Db, Name, &error);
+            var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
+            var collections = new List<Collection>((int)collsCnt);
+            if (error.code == 0) {
+                for (uint i = 0; i < collsCnt; i++) {
+                    var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                    if (collStr != null) {
+                        var c4c = GetCollectionFromLiteCore(collStr);
+                        if (c4c != null) {
+                            var coll = new Collection(Database, collStr, this, c4c);
+                            collections.Add(coll);
+                        }
+                    }
+                }
+            }
+
+            Native.FLValue_Release((FLValue*)arrColl);
+            return collections;
         }
 
         #endregion
@@ -158,16 +145,6 @@ namespace Couchbase.Lite
         {
             using var threadSafetyScope = ThreadSafety.BeginLockedScope();
             CheckOpen();
-            if (_collections.ContainsKey(collectionName)) {
-                var coll = _collections[collectionName];
-                if (coll.IsValid) {
-                    return coll;
-                } else {
-                    // Remove invalid collection from cache
-                    _collections.TryRemove(collectionName, out var c);
-                    c?.Dispose();
-                }
-            }
 
             using var collName_ = new C4String(collectionName);
             using var scopeName_ = new C4String(Name);
@@ -177,15 +154,10 @@ namespace Couchbase.Lite
                 scope = scopeName_.AsFLSlice()
             };
 
-            var c4c = LiteCoreBridge.CheckTyped(err =>
-            {
-                return NativeSafe.c4db_createCollection(c4Db, collectionSpec, err);
-            })!;
+            var c4c = LiteCoreBridge.CheckTyped(err => NativeSafe.c4db_createCollection(c4Db, collectionSpec, err))!;
 
             // c4c is not null now, otherwise the above throws an exception
-            var collection = new Collection(Database, collectionName, this, c4c);
-            _collections.TryAdd(collectionName, collection);
-            return collection;
+            return new Collection(Database, collectionName, this, c4c);
         }
 
         internal bool DeleteCollection(string name, string scope)
@@ -200,15 +172,8 @@ namespace Couchbase.Lite
                 scope = scopeName_.AsFLSlice()
             };
 
-            var deleteSuccessful = LiteCoreBridge.Check(err =>
+            return LiteCoreBridge.Check(err =>
                 NativeSafe.c4db_deleteCollection(c4Db, collectionSpec, err));
-
-            if (deleteSuccessful) {
-                _collections.TryRemove(name, out var co);
-                co?.Dispose();
-            }
-
-            return deleteSuccessful;
         }
 
         #endregion
@@ -221,32 +186,6 @@ namespace Couchbase.Lite
             if (c4Db == null) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
             }
-        }
-
-        private void GetCollectionList()
-        {
-            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
-            CheckOpen();
-            C4Error error;
-            var arrColl = NativeSafe.c4db_collectionNames(c4Db, Name, &error);
-            if (error.code == 0) {
-                var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
-                if (_collections.Count > collsCnt)
-                    _collections.Clear();
-
-                for (uint i = 0; i < collsCnt; i++) {
-                    var collStr = (string?)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                    if (collStr != null && !_collections.ContainsKey(collStr)) {
-                        var c4c = GetCollectionFromLiteCore(collStr);
-                        if (c4c != null) {
-                            var coll = new Collection(Database, collStr, this, c4c);
-                            _collections.TryAdd(collStr, coll);
-                        }
-                    }
-                }
-            }
-
-            Native.FLValue_Release((FLValue*)arrColl);
         }
 
         private C4CollectionWrapper? GetCollectionFromLiteCore(string collectionName)
@@ -270,10 +209,7 @@ namespace Couchbase.Lite
         #region Overrides
 
         /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            return Name?.GetHashCode() ?? 0;
-        }
+        public override int GetHashCode() => Name.GetHashCode();
 
         /// <inheritdoc />
         public override bool Equals(object? obj)
@@ -282,29 +218,12 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            return String.Equals(Name, other.Name, StringComparison.Ordinal);
+            return String.Equals(Name, other.Name, StringComparison.Ordinal)
+                && ReferenceEquals(Database, other.Database);
         }
 
         /// <inheritdoc />
         public override string ToString() => $"SCOPE[{Name}]";
-
-        #endregion
-
-        #region IDisposable
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
-            if (_collections == null)
-                return;
-
-            foreach (var c in _collections) {
-                c.Value.Dispose();
-            }
-
-            _collections.Clear();
-        }
 
         #endregion
     }

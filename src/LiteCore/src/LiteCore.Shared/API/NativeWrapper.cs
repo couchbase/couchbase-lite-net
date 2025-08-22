@@ -33,6 +33,8 @@ internal abstract class NativeWrapper : IDisposable
 
     public ThreadSafety InstanceSafety { get; }
 
+    protected bool IsDisposed => _disposed;
+
     public NativeWrapper(IntPtr instance)
     {
         _nativeInstance = instance;

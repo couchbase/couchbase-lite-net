@@ -34,8 +34,6 @@ internal unsafe sealed class C4ReplicatorWrapper : NativeWrapper
 
     public C4Replicator* RawReplicator => (C4Replicator*)_nativeInstance;
 
-    private bool _disposed;
-
     public C4ReplicatorWrapper(C4Replicator* repl)
         : base((IntPtr)repl)
     {
@@ -43,8 +41,8 @@ internal unsafe sealed class C4ReplicatorWrapper : NativeWrapper
 
     public T UseSafe<T>(NativeCallback<T> a)
     {
-        if (_disposed) {
-            throw new ObjectDisposedException(nameof(C4QueryObserverWrapper));
+        if (IsDisposed) {
+            throw new ObjectDisposedException(nameof(C4ReplicatorWrapper));
         }
 
         using var scope = BeginLockedScope(true);

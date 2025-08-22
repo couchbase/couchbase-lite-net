@@ -20,6 +20,9 @@ using Couchbase.Lite.Support;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Sync
 {
@@ -27,21 +30,11 @@ namespace Couchbase.Lite.Sync
     /// A configuration object for setting the details of how to treat
     /// a collection when used inside of a <see cref="Replicator"/>
     /// </summary>
-    public sealed class CollectionConfiguration
+    public sealed record CollectionConfiguration
     {
         #region Constants
 
         private const string Tag = nameof(CollectionConfiguration);
-
-        #endregion
-
-        #region Variables
-
-        private readonly Freezer _freezer = new Freezer();
-        private IConflictResolver _resolver = Lite.ConflictResolver.Default;
-        private Func<Document, DocumentFlags, bool>? _pushFilter;
-        private Func<Document, DocumentFlags, bool>? _pullValidator;
-        internal ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
 
         #endregion
 
@@ -53,39 +46,21 @@ namespace Couchbase.Lite.Sync
         /// When the value is null, the default conflict resolution will be applied.
         /// The default value is <see cref="ConflictResolver.Default" />. 
         /// </summary>
-        public IConflictResolver? ConflictResolver
-        {
-            get => _resolver;
-            set 
-            { 
-                if(value == null) 
-                    _freezer.PerformAction(() => _resolver = Lite.ConflictResolver.Default);
-                else
-                    _freezer.PerformAction(() => _resolver = value); 
-            }
-        }
+        public IConflictResolver? ConflictResolver { get; init; } = Lite.ConflictResolver.Default;
 
         /// <summary>
         /// Func delegate that takes Document input parameter and bool output parameter
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
-        public Func<Document, DocumentFlags, bool>? PullFilter
-        {
-            get => _pullValidator;
-            set => _freezer.PerformAction(() => _pullValidator = value);
-        }
+        public Func<Document, DocumentFlags, bool>? PullFilter { get; init; }
 
         /// <summary>
         /// Func delegate that takes Document input parameter and bool output parameter
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
-        public Func<Document, DocumentFlags, bool>? PushFilter
-        {
-            get => _pushFilter;
-            set => _freezer.PerformAction(() => _pushFilter = value);
-        }
+        public Func<Document, DocumentFlags, bool>? PushFilter { get; init; }
 
         /// <summary>
         /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
@@ -99,7 +74,7 @@ namespace Couchbase.Lite.Sync
         public IList<string>? Channels
         {
             get => Options.Channels;
-            set => _freezer.PerformAction(() => Options.Channels = value?.Any() == true ? value : null);
+            init => Options.Channels = value?.Any() == true ? value : null;
         }
 
         /// <summary>
@@ -109,57 +84,16 @@ namespace Couchbase.Lite.Sync
         public IList<string>? DocumentIDs
         {
             get => Options.DocIDs;
-            set => _freezer.PerformAction(() => Options.DocIDs = value?.Any() == true ? value : null);
+            init => Options.DocIDs = value?.Any() == true ? value : null;
         }
-
+        
         /// <summary>
         /// A value indicating the direction of the replication.  The default is
         /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
         /// </summary>
-        internal ReplicatorType ReplicatorType
-        {
-            get => _replicatorType;
-            set => _replicatorType = value;
-        }
+        internal ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
 
-        internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
-
-        #endregion
-
-        #region Constructor
-
-        /// <summary>
-        /// The default constructor
-        /// </summary>
-        public CollectionConfiguration() {}
-
-        internal CollectionConfiguration(CollectionConfiguration copy)
-        {
-            PushFilter = copy?.PushFilter;
-            PullFilter = copy?.PullFilter;
-            ConflictResolver = copy?.ConflictResolver;
-            ReplicatorType = copy?.ReplicatorType ?? ReplicatorType.PushAndPull;
-            Options = copy?.Options ?? new ReplicatorOptionsDictionary();
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal CollectionConfiguration Freeze()
-        {
-            var retVal = new CollectionConfiguration()
-            {
-                PushFilter = PushFilter,
-                PullFilter = PullFilter,
-                ConflictResolver = ConflictResolver,
-                ReplicatorType = ReplicatorType,
-                Options = Options
-            };
-
-            retVal._freezer.Freeze("Cannot modify a CollectionConfiguration that is in use");
-            return retVal;
-        }
+        internal ReplicatorOptionsDictionary Options { get; } = new();
 
         #endregion
     }

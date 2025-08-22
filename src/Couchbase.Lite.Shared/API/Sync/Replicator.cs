@@ -148,7 +148,7 @@ namespace Couchbase.Lite.Sync
             if (config.Collections.Count <= 0)
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator Configuration must contain at least one collection.");
 
-            _config = config.Freeze();
+            _config = config;
         }
 
         /// <summary>
@@ -970,8 +970,8 @@ namespace Couchbase.Lite.Sync
                         //TODO: in the future we can set different replicator type per collection
                         //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
                         //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
-                        //for now collecion config's ReplicatorType should be the same as ReplicatorType in replicator config
-                        config.ReplicatorType = Config.ReplicatorType; 
+                        //for now collection config's ReplicatorType should be the same as ReplicatorType in replicator config
+                        Config.CollectionConfigs[col] = config with { ReplicatorType = Config.ReplicatorType };
 
                         colConfigOptions.Build();
 

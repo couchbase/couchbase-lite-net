@@ -111,41 +111,33 @@ namespace Test
         }
 
         protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
-            Authenticator? authenticator = null, X509Certificate2? serverCert = null, Database? sourceDb = null)
+            Authenticator? authenticator = null, X509Certificate2? serverCert = null, Database? sourceDb = null, 
+            bool acceptOnlySelfSigned = false)
         {
+            var pinnedCert = default(X509Certificate2);
+            if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
+                if (serverCert != null) {
+                    pinnedCert= serverCert;
+                } else if (!DisableDefaultServerCertPinning) {
+                    pinnedCert = DefaultServerCert;
+                }
+            }
+            
             var c = new ReplicatorConfiguration(target)
             {
                 ReplicatorType = type,
                 Continuous = continuous,
-                Authenticator = authenticator
+                Authenticator = authenticator,
+                PinnedServerCertificate = pinnedCert,
+                CheckpointInterval = continuous ? TimeSpan.FromSeconds(1) : TimeSpan.Zero,
+                #if COUCHBASE_ENTERPRISE
+                AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSigned
+                #endif
             };
             c.AddCollection(sourceDb?.GetDefaultCollection() ?? DefaultCollection);
 
-            if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
-                if (serverCert != null) {
-                    c.PinnedServerCertificate = serverCert;
-                } else if (!DisableDefaultServerCertPinning) {
-                    c.PinnedServerCertificate = DefaultServerCert;
-                }
-            }
-
-            if (continuous) {
-                c.CheckpointInterval = TimeSpan.FromSeconds(1);
-            }
-
             return c;
         }
-
-        #if COUCHBASE_ENTERPRISE
-        protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
-            bool acceptOnlySelfSignedServerCertificate, Authenticator? authenticator = null,
-            X509Certificate2? serverCert = null)
-        {
-            var c = CreateConfig(target, type, continuous, authenticator, serverCert);
-            c.AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
-            return c;
-        }
-#endif
 
         // Can't convince the compiler that safeswap will set _repl to non null
 #pragma warning disable CS8774 // Member must have a non-null value when exiting.
@@ -173,8 +165,8 @@ namespace Test
             Authenticator? authenticator, bool acceptOnlySelfSignedServerCertificate,
             X509Certificate2? serverCert, int expectedErrCode, CouchbaseLiteErrorType expectedErrorDomain)
         {
-            var config = CreateConfig(target, type, continuous, acceptOnlySelfSignedServerCertificate, authenticator,
-                serverCert);
+            var config = CreateConfig(target, type, continuous, authenticator,
+                serverCert, acceptOnlySelfSigned: acceptOnlySelfSignedServerCertificate);
             RunReplication(config, expectedErrCode, expectedErrorDomain);
         }
         #endif
@@ -270,32 +262,20 @@ namespace Test
         {
             Action? badAction = null;
             var config = CreateConfig(true, false, false);
-            using (var repl = new Replicator(config)) {
-                badAction = (() => repl.Config.Heartbeat = TimeSpan.FromSeconds(2));
-                Should.Throw < InvalidOperationException>(badAction, "Cannot modify a ReplicatorConfiguration (Heartbeat) that is in use.");
-
-                repl.Config.Heartbeat.ShouldBe(Constants.DefaultReplicatorHeartbeat, $"Because default Heartbeat Interval is 300 sec and {Constants.DefaultReplicatorHeartbeat} is returned.");
-            }
-
-            config.Heartbeat = TimeSpan.FromSeconds(60);
-            using (var repl = new Replicator(config)) {
-                repl.Config.Heartbeat.ShouldBe(TimeSpan.FromSeconds(60));
-            }
-
-            config.Heartbeat = null;
-            using (var repl = new Replicator(config)) {
+            var nextConfig = new ReplicatorConfiguration(config)
+            {
+                Heartbeat = null
+            };
+            
+            using (var repl = new Replicator(nextConfig)) {
                 repl.Config.Heartbeat.ShouldBe(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
-            badAction = (() => config.Heartbeat = TimeSpan.FromSeconds(0));
+            badAction = (() => { _ = new ReplicatorConfiguration(config) { Heartbeat = TimeSpan.Zero }; });
             Should.Throw<ArgumentException>(badAction, "Assigning Heartbeat to an invalid value (<= 0).");
 
-            badAction = (() => config.Heartbeat = TimeSpan.FromMilliseconds(800));
+            badAction = (() => { _ = new ReplicatorConfiguration(config) { Heartbeat = TimeSpan.FromMilliseconds(800) }; });
             Should.Throw<ArgumentException>(badAction, "Assigning Heartbeat to an invalid value.");
-
-            using (var repl = new Replicator(config)) {
-                repl.Config.Heartbeat.ShouldBe(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
-            }
         }
 
         [Fact]
@@ -303,32 +283,29 @@ namespace Test
         {
             Action? badAction = null;
             var config = CreateConfig(true, false, false);
-            using (var repl = new Replicator(config)) {
-                badAction = (() => repl.Config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(2));
-                Should.Throw<InvalidOperationException>(badAction, "Cannot modify a ReplicatorConfiguration (MaxAttemptsWaitTime) that is in use.");
+            var nextConfig = new ReplicatorConfiguration(config)
+            {
+                MaxAttemptsWaitTime = TimeSpan.FromSeconds(60)
+            };
 
-                repl.Config.MaxAttemptsWaitTime.ShouldBe(Constants.DefaultReplicatorMaxAttemptsWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
-            }
-
-            config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
-            using (var repl = new Replicator(config)) {
+            using (var repl = new Replicator(nextConfig)) {
                 repl.Config.MaxAttemptsWaitTime.ShouldBe(TimeSpan.FromSeconds(60));
             }
+            
+            nextConfig = new ReplicatorConfiguration(config)
+            {
+                MaxAttemptsWaitTime = null
+            };
 
-            config.MaxAttemptsWaitTime = null;
-            using (var repl = new Replicator(config)) {
+            using (var repl = new Replicator(nextConfig)) {
                 repl.Config.MaxAttemptsWaitTime.ShouldBe(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
-            badAction = (() => config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(0));
+            badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttemptsWaitTime = TimeSpan.Zero });
             Should.Throw<ArgumentException>(badAction, "Assigning Max Retry Wait Time to an invalid value (<= 0).");
 
-            badAction = (() => config.MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800));
+            badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800) });
             Should.Throw<ArgumentException>(badAction, "Assigning Max Retry Wait Time to an invalid value");
-
-            using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttemptsWaitTime.ShouldBe(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
-            }
         }
 
         [Fact]
@@ -337,12 +314,6 @@ namespace Test
             Action? badAction = null;
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
             config.AddCollection(DefaultCollection);
-            using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.ShouldBe(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
-
-                badAction = (() => repl.Config.MaxAttempts = 2);
-                Should.Throw<InvalidOperationException>(badAction, "Cannot modify a ReplicatorConfiguration (MaxAttempts) that is in use.");
-            }
 
             config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb)) { Continuous = true };
             config.AddCollection(DefaultCollection);
@@ -357,8 +328,8 @@ namespace Test
                 repl.Config.MaxAttempts.ShouldBe(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
 
-            config.MaxAttempts = 0;
-            using (var repl = new Replicator(config)) {
+            var nextConfig = new ReplicatorConfiguration(config) { MaxAttempts = 0 };
+            using (var repl = new Replicator(nextConfig)) {
                 repl.Config.MaxAttempts.ShouldBe(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
             }
 
@@ -368,7 +339,7 @@ namespace Test
                 repl.Config.MaxAttempts.ShouldBe(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
 
-            badAction = (() => config.MaxAttempts = -1);
+            badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttempts = -1 });
             Should.Throw<ArgumentException>(badAction, "Assigning Max Retries to an invalid value (< 0).");
 
             using (var repl = new Replicator(config)) {
@@ -383,17 +354,6 @@ namespace Test
         [Fact]
         public void TestReplicatorOneMaxAttempts() => ReplicatorMaxAttempts(1);
 #endif
-
-        [Fact]
-        public void TestReadOnlyConfiguration()
-        {
-            var config = CreateConfig(true, false, false);
-            using (var repl = new Replicator(config)) {
-                config = repl.Config;
-                Should.Throw<InvalidOperationException>(() => config.ReplicatorType = ReplicatorType.PushAndPull, 
-                    "because the configuration from a replicator should be read only");
-            }
-        }
 
         [Fact]
         public void TestEmptyPush()
@@ -619,8 +579,7 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, true);
-            config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            var config = CreateConfig(true, false, true, checkPointInterval: TimeSpan.FromSeconds(1));
             RunReplication(config, 0, 0);
 
             OtherDefaultCollection.Count.ShouldBe(2UL);
@@ -778,8 +737,7 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, true);
-            config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            var config = CreateConfig(false, true, true, checkPointInterval: TimeSpan.FromSeconds(1));
             RunReplication(config, 0, 0);
 
             DefaultCollection.Count.ShouldBe(2UL, "because the replicator should have pulled doc2 from the other DB");
@@ -1232,14 +1190,6 @@ namespace Test
             {
                 ConflictResolver = resolver
             });
-
-            using (var replicator = new Replicator(config)) {
-
-                Action badAction = (() => {
-                    replicator.Config.GetCollectionConfig(DefaultCollection)!.ConflictResolver = new FakeConflictResolver();
-                });
-                Should.Throw<InvalidOperationException>(badAction, "Attempt to modify a frozen object is prohibited.");
-            }
         }
 
         [Fact]
@@ -3169,17 +3119,28 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             _isFilteredCallback = false;
         }
 
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database? target = null, TimeSpan? checkPointInterval = null)
         {
-            var target = OtherDb;
-            return CreateConfig(push, pull, continuous, target);
-        }
-
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target)
-        {
-            var retVal = new ReplicatorConfiguration(new DatabaseEndpoint(target));
+            var replicatorType = ReplicatorType.PushAndPull;
+            if (!push)
+            {
+                pull.ShouldBe(true);
+                replicatorType = ReplicatorType.Pull;
+            }
+            else if(!pull)
+            {
+                push.ShouldBe(true);
+                replicatorType = ReplicatorType.Push;
+            }
+            
+            var retVal = new ReplicatorConfiguration(new DatabaseEndpoint(target ?? OtherDb))
+            {
+                CheckpointInterval = checkPointInterval ?? TimeSpan.FromSeconds(0),
+                ReplicatorType = replicatorType,
+                Continuous = continuous
+            };
             retVal.AddCollection(DefaultCollection);
-            return ModifyConfig(retVal, push, pull, continuous);
+            return retVal;
         }
 #endif
 
@@ -3192,22 +3153,6 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             document.RevisionID.ShouldNotBeNull();
             var name = document.GetString("name");
             return name == "pass";
-        }
-
-        private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
-        {
-            var type = (ReplicatorType)0;
-            if (push) {
-                type |= ReplicatorType.Push;
-            }
-
-            if (pull) {
-                type |= ReplicatorType.Pull;
-            }
-
-            config.ReplicatorType = type;
-            config.Continuous = continuous;
-            return config;
         }
 
         private void DocumentEndedUpdate(object? sender, DocumentReplicationEventArgs args)

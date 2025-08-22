@@ -137,9 +137,11 @@ public sealed class VersionVectorTest : TestCase
             expectedValue = "value2";
         }
         
-        var replConfig = new ReplicatorConfiguration(new DatabaseEndpoint(db2));
+        var replConfig = new ReplicatorConfiguration(new DatabaseEndpoint(db2))
+        {
+            ReplicatorType = ReplicatorType.Pull
+        };
         replConfig.AddCollection(db1.GetDefaultCollection());
-        replConfig.ReplicatorType = ReplicatorType.Pull;
         using var repl = new Replicator(replConfig);
         repl.Start();
         while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
@@ -189,9 +191,11 @@ public sealed class VersionVectorTest : TestCase
         db2Doc["key"].Value = "value3";
         db2.GetDefaultCollection().Save(db2Doc);
 
-        var replConfig = new ReplicatorConfiguration(new DatabaseEndpoint(db2));
+        var replConfig = new ReplicatorConfiguration(new DatabaseEndpoint(db2))
+        {
+            ReplicatorType = ReplicatorType.Pull
+        };
         replConfig.AddCollection(db1.GetDefaultCollection());
-        replConfig.ReplicatorType = ReplicatorType.Pull;
         using var repl = new Replicator(replConfig);
         repl.Start();
         while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {

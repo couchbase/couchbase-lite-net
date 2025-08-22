@@ -158,7 +158,7 @@ namespace Test
 
             // User Identity
             TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
-            var id = TLSIdentity.CreateIdentity(false,
+            var id = TLSIdentity.CreateIdentity(KeyUsages.ClientAuth,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CBL-Server" } },
                 null,
                 _store,
@@ -280,12 +280,18 @@ namespace Test
             }
 
             // Replicator - Wrong Credentials
-            config.Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString);
-            RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
+            var nextConfig = new ReplicatorConfiguration(config)
+            {
+                Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString)
+            };
+            RunReplication(nextConfig, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
             // Replicator - Success
-            config.Authenticator = new BasicAuthenticator("daniel", pwSecureString);
-            RunReplication(config, 0, 0);
+            nextConfig = new ReplicatorConfiguration(config)
+            {
+                Authenticator = new BasicAuthenticator("daniel", pwSecureString)
+            };
+            RunReplication(nextConfig, 0, 0);
 
             _listener.Stop();
             pwSecureString.Dispose();
@@ -315,7 +321,7 @@ namespace Test
 
             // User Identity
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-            var id = TLSIdentity.CreateIdentity(false,
+            var id = TLSIdentity.CreateIdentity(KeyUsages.ClientAuth,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
                 null,
                 _store,
@@ -376,7 +382,7 @@ namespace Test
 
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             // Create wrong client identity
-            var id = TLSIdentity.CreateIdentity(false,
+            var id = TLSIdentity.CreateIdentity(KeyUsages.ClientAuth,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
                 null,
                 _store,
@@ -599,8 +605,7 @@ namespace Test
         [Fact]
         public void TestEmptyNetworkInterface()
         {
-            var config = CreateListenerConfig(false);
-            config.NetworkInterface = "0.0.0.0";
+            var config = CreateListenerConfig(false, networkInterface: "0.0.0.0");
             _listener = Listen(config, 0, 0);
             _listener.Stop();
         }
@@ -608,11 +613,10 @@ namespace Test
         [Fact]
         public void TestUnavailableNetworkInterface()
         {
-            var config = CreateListenerConfig(false);
-            config.NetworkInterface = "1.1.1.256";
+            var config = CreateListenerConfig(false, networkInterface: "1.1.1.256");
             Listen(config, (int) CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
-
-            config.NetworkInterface = "blah";
+            
+            config = CreateListenerConfig(false, networkInterface: "blah");
             Listen(config, (int) CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
         }
 
@@ -797,13 +801,12 @@ namespace Test
 #endif
 
 #if NET6_0_OR_GREATER
-        [Fact] // Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
+        [Fact]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) //Mac OS 8-23-21 hang with LiteCore Commit: 5d9539fae43e9282787c2b68772bb85ecbc00b5c [5d9539f]
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             { 
-                var config = CreateListenerConfig();
-                config.ReadOnly = true;
+                var config = CreateListenerConfig(readOnly: true);
                 _listener = Listen(config);
 
                 // save a doc on listener DB
@@ -1320,21 +1323,21 @@ namespace Test
         }
 
         private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, bool useDynamicPort = true,
-            IListenerAuthenticator? auth = null, TLSIdentity? id = null, bool stopListener = true)
+            IListenerAuthenticator? auth = null, TLSIdentity? id = null, bool stopListener = true, string? networkInterface = null,
+            bool readOnly = false)
         {
             if(stopListener)
                 _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection });
-            if (useDynamicPort) {
-                config.Port = 0;
-            } else {
-                config.Port = tls ? WssPort : WsPort;
-            }
-
-            config.DisableTLS = !tls;
-            config.Authenticator = auth;
-            config.TlsIdentity = id;
+            var config = new URLEndpointListenerConfiguration([OtherDefaultCollection])
+            {
+                Port = (ushort)(useDynamicPort ? 0 : tls ? WssPort : WsPort),
+                DisableTLS = !tls,
+                Authenticator = auth,
+                TlsIdentity = id,
+                NetworkInterface = networkInterface,
+                ReadOnly = readOnly
+            };
 
             return config;
         }
@@ -1344,16 +1347,13 @@ namespace Test
         {
             _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection });
-            //In order to get the test to pass on Linux, Port needs to be 0.
-            if (useDynamicPort) {
-                config.Port = 0;
-            } else {
-                config.Port = tls ? WssPort : WsPort;
-            }
-
-            config.DisableTLS = !tls;
-            config.Authenticator = auth;
+            var config = new URLEndpointListenerConfiguration([OtherDefaultCollection])
+            {
+                //In order to get the test to pass on Linux, Port needs to be 0.
+                Port = (ushort)(useDynamicPort ? 0 : tls ? WssPort : WsPort),
+                DisableTLS = !tls,
+                Authenticator = auth
+            };
 
             return Listen(config);
         }

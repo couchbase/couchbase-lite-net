@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
@@ -85,22 +86,15 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Variables
-
-        private readonly Freezer _freezer = new Freezer();
-        private Authenticator? _authenticator;
-        private ProxyAuthenticator? _proxyAuthenticator;
-        private bool _continuous = Constants.DefaultReplicatorContinuous;
-        private Database? _otherDb;
-        private Uri? _remoteUrl;
-        private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
+        
+        private readonly bool _continuous = Constants.DefaultReplicatorContinuous;
         private C4SocketFactory _socketFactory;
         private bool _isDefaultMaxAttemptSet = true;
 
 #if __IOS__ && !MACCATALYST
-        private bool _allowReplicatingInBackground;
 #endif
 
-#endregion
+        #endregion
 
         #region Properties
 
@@ -113,7 +107,7 @@ namespace Couchbase.Lite.Sync
         public bool AcceptParentDomainCookies
         {
             get => Options.AcceptParentDomainCookies;
-            set => _freezer.PerformAction(() => Options.AcceptParentDomainCookies = value);
+            init => Options.AcceptParentDomainCookies = value;
         }
 
 #if __IOS__ && !MACCATALYST
@@ -130,30 +124,18 @@ namespace Couchbase.Lite.Sync
         /// > There is a bug in earlier versions in which the functionality is reversed from
         /// > what the documentation says, so please upgrade to get the correct behavior
         /// </remarks>
-        public bool AllowReplicatingInBackground
-        {
-            get => _allowReplicatingInBackground;
-            set => _freezer.SetValue(ref _allowReplicatingInBackground, value);
-        }
+        public bool AllowReplicatingInBackground { get; init; }
 #endif
 
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
-        public Authenticator? Authenticator
-        {
-            get => _authenticator;
-            set => _freezer.SetValue(ref _authenticator, value);
-        }
+        public Authenticator? Authenticator { get; init; }
 
-        /// <summary>
+    /// <summary>
         /// Gets or sets the class which will authenticate with the proxy, if needed.
         /// </summary>
-        public ProxyAuthenticator? ProxyAuthenticator
-        {
-            get => _proxyAuthenticator;
-            set => _freezer.SetValue(ref _proxyAuthenticator, value);
-        }
+        public ProxyAuthenticator? ProxyAuthenticator { get; init; }
 
         /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
@@ -163,11 +145,11 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set
+            init
             {
-                _freezer.SetValue(ref _continuous, value);
+                _continuous = value;
                 if (_isDefaultMaxAttemptSet)
-                    MaxAttempts = 0;
+                    SetMaxAttempts(0);
             }
         }
 
@@ -177,7 +159,7 @@ namespace Couchbase.Lite.Sync
         public IDictionary<string, string?> Headers
         {
             get => Options.Headers;
-            set => _freezer.PerformAction(() => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value));
+            init => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value);
         }
 
         /// <summary>
@@ -191,7 +173,7 @@ namespace Couchbase.Lite.Sync
         public X509Certificate2? PinnedServerCertificate
         {
             get => Options.PinnedServerCertificate;
-            set => _freezer.PerformAction(() => Options.PinnedServerCertificate = value);
+            init => Options.PinnedServerCertificate = value;
         }
 
         /// <summary>
@@ -206,7 +188,7 @@ namespace Couchbase.Lite.Sync
         internal string? NetworkInterface
         {
             get => Options.NetworkInterface;
-            set => _freezer.PerformAction(() => Options.NetworkInterface = value);
+            init => Options.NetworkInterface = value;
         }
 
         /// <summary>
@@ -214,11 +196,7 @@ namespace Couchbase.Lite.Sync
         /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
         /// Default value is <see cref="Constants.DefaultReplicatorType" />
         /// </summary>
-        public ReplicatorType ReplicatorType
-        {
-            get => _replicatorType;
-            set =>_freezer.SetValue(ref _replicatorType, value);
-        }
+        public ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
 
         /// <summary>
         /// Gets or sets the value to enable/disable the auto-purge feature. 
@@ -238,7 +216,7 @@ namespace Couchbase.Lite.Sync
         public bool EnableAutoPurge
         {
             get => Options.EnableAutoPurge;
-            set => _freezer.PerformAction(() => Options.EnableAutoPurge = value);
+            init => Options.EnableAutoPurge = value;
         }
 
         /// <summary>
@@ -252,7 +230,7 @@ namespace Couchbase.Lite.Sync
         public TimeSpan? Heartbeat
         {
             get => Options.Heartbeat;
-            set => _freezer.PerformAction(() => Options.Heartbeat = value);
+            init => Options.Heartbeat = value;
         }
 
         /// <summary>
@@ -271,16 +249,7 @@ namespace Couchbase.Lite.Sync
         public int MaxAttempts
         {
             get => Options.MaxAttempts;
-            set 
-            {
-                if (value == 0) { // backward compatible when user set the value to 0
-                    _freezer.PerformAction(() => Options.MaxAttempts = Continuous ? Constants.DefaultReplicatorMaxAttemptsContinuous : Constants.DefaultReplicatorMaxAttemptsSingleShot);
-                    _isDefaultMaxAttemptSet = true;
-                } else {
-                    _freezer.PerformAction(() => Options.MaxAttempts = value);
-                        _isDefaultMaxAttemptSet = false;
-                }
-            }
+            init => SetMaxAttempts(value);
         }
 
         /// <summary>
@@ -296,7 +265,7 @@ namespace Couchbase.Lite.Sync
         public TimeSpan? MaxAttemptsWaitTime
         {
             get => Options.MaxAttemptsWaitTime;
-            set => _freezer.PerformAction(() => Options.MaxAttemptsWaitTime = value);
+            init => Options.MaxAttemptsWaitTime = value;
         }
 
         /// <summary>
@@ -310,25 +279,18 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
 
-        //Pre 3.1 Default Collection Config
-        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(DatabaseInternal.GetDefaultCollection()) ? CollectionConfigs[DatabaseInternal.GetDefaultCollection()] 
-            : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
 
         internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
 
         internal TimeSpan CheckpointInterval
         {
             get => Options.CheckpointInterval;
-            set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
+            init => Options.CheckpointInterval = value;
         }
 
-        internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
+        internal ReplicatorOptionsDictionary Options { get; set; } = new();
 
-        internal Database? OtherDB
-        {
-            get => _otherDb;
-            set => _freezer.SetValue(ref _otherDb, value);
-        }
+        internal Database? OtherDB { get; set; }
 
         internal Database DatabaseInternal
         {
@@ -338,16 +300,12 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        internal Uri? RemoteUrl
-        {
-            get => _remoteUrl;
-            set => _freezer.SetValue(ref _remoteUrl, value);
-        }
+        internal Uri? RemoteUrl { get; set; }
 
         internal C4SocketFactory SocketFactory
         {
             get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
-            set => _freezer.SetValue(ref _socketFactory, value);
+            set => _socketFactory = value;
         }
 
 #endregion
@@ -372,6 +330,37 @@ namespace Couchbase.Lite.Sync
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);
+        }
+
+        /// <summary>
+        /// Copy constructor (Used to create a new replicator configuration
+        /// with a modified property or properties).
+        /// </summary>
+        /// <param name="configuration"></param>
+        public ReplicatorConfiguration(ReplicatorConfiguration configuration)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(configuration), configuration);
+
+            // Copy the Target property first since it's read-only and required
+            Target = configuration.Target;
+
+            // Use reflection to copy all properties with init/set accessors
+            // This will automatically invoke property setters which handle backing fields
+            var properties = typeof(ReplicatorConfiguration).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var prop in properties) {
+                // Check if property can be set (has init or set accessor)
+                if (!prop.CanWrite) {
+                    continue;
+                }
+                
+                try {
+                    var value = prop.GetValue(configuration);
+                    prop.SetValue(this, value);
+                } catch (Exception ex) {
+                    // Log the error but continue with other properties
+                    WriteLog.To.Sync.W(Tag, $"Failed to copy property {prop.Name}: {ex.Message}");
+                }
+            }
         }
 
         #endregion
@@ -410,16 +399,12 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
 
-            if (Collections.Count > 0 && collection.Database != DatabaseInternal)
+            if (Collections.Count > 0 && !ReferenceEquals(collection.Database, DatabaseInternal))
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, 
                     $"The given collection database {collection.Database} doesn't match the database {DatabaseInternal} participating in the replication. All collections in the replication configuration must operate on the same database.");
 
-            config = config == null ? new CollectionConfiguration() : new CollectionConfiguration(config);
-
-            if (CollectionConfigs.ContainsKey(collection))
-                CollectionConfigs.Remove(collection);
-
-            CollectionConfigs.Add(collection, config);
+            CollectionConfigs.Remove(collection);
+            CollectionConfigs.Add(collection, config ?? new CollectionConfiguration());
         }
 
         /// <summary>
@@ -451,35 +436,15 @@ namespace Couchbase.Lite.Sync
 
         #endregion
 
-        #region Internal Methods
-
-        internal ReplicatorConfiguration Freeze()
+        private void SetMaxAttempts(int newValue)
         {
-            var frozenConfigs = new Dictionary<Collection, CollectionConfiguration>();
-            foreach (var cc in CollectionConfigs) {
-                frozenConfigs[cc.Key] = cc.Value.Freeze();
+            if (newValue == 0) { // backward compatible when user set the value to 0
+                Options.MaxAttempts = Continuous ? Constants.DefaultReplicatorMaxAttemptsContinuous : Constants.DefaultReplicatorMaxAttemptsSingleShot;
+                _isDefaultMaxAttemptSet = true;
+            } else {
+                Options.MaxAttempts = newValue;
+                _isDefaultMaxAttemptSet = false;
             }
-
-            var retVal = new ReplicatorConfiguration(Target)
-            {
-                Authenticator = Authenticator,
-                ProxyAuthenticator = ProxyAuthenticator,
-#if COUCHBASE_ENTERPRISE
-                AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
-#endif
-#if __IOS__ && !MACCATALYST
-                AllowReplicatingInBackground = AllowReplicatingInBackground,
-#endif
-                Continuous = Continuous,
-                ReplicatorType = ReplicatorType,
-                Options = Options,
-                CollectionConfigs = frozenConfigs
-            };
-
-            retVal._freezer.Freeze("Cannot modify a ReplicatorConfiguration that is in use");
-            return retVal;
         }
-
-        #endregion
     }
 }

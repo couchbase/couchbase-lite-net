@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Sync
         #region Constructors
 
         /// <summary>
-        /// [DEPRECATED] Constructor
+        /// Constructor
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
