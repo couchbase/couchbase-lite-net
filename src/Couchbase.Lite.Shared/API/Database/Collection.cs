@@ -787,7 +787,7 @@ namespace Couchbase.Lite
         {
             if (document.Collection == null) {
                 document.Collection = this;
-            } else if (document.Collection != this) {
+            } else if (!document.Collection.Equals(this)) {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
                     "The collection being used for Save does not match the one on the document being saved (" +
                     "either it is a different collection or a collection from a different database instance).");
