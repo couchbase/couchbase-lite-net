@@ -27,7 +27,7 @@ namespace Couchbase.Lite.Query;
 /// Configuration for indexing property values within nested arrays
 /// in documents, intended for use with the UNNEST query keyword.
 /// </summary>
-public sealed class ArrayIndexConfiguration : IndexConfiguration
+public sealed record ArrayIndexConfiguration : IndexConfiguration
 {
     private const string Tag = nameof(ArrayIndexConfiguration);
 

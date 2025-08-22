@@ -24,7 +24,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An class for an index based on a simple property value
     /// </summary>
-    public sealed class ValueIndexConfiguration : IndexConfiguration
+    public sealed record ValueIndexConfiguration : IndexConfiguration
     {
         #region Properties
         internal override C4IndexOptions Options => new C4IndexOptions();

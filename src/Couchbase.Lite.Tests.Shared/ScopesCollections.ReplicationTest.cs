@@ -108,8 +108,7 @@ namespace Test
             var colBConfig = config.GetCollectionConfig(colB);
             colAConfig.ShouldNotBeNull("because it was just set");
             colBConfig.ShouldNotBeNull("because it was just set");
-            colAConfig.ShouldNotBe(colBConfig, "Because the returned configs should be different instances.");
-            colAConfig!.ConflictResolver.ShouldBe(colBConfig!.ConflictResolver, "Both properties were assigned with same value.");
+            colAConfig.ConflictResolver.ShouldBe(colBConfig!.ConflictResolver, "Both properties were assigned with same value.");
             colAConfig.PushFilter.ShouldBe(colBConfig.PushFilter, "Both properties were assigned with same value.");
             colAConfig.PullFilter.ShouldBe(colBConfig.PullFilter, "Both properties were assigned with same value.");
         }

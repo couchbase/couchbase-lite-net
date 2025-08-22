@@ -29,9 +29,9 @@ using System.Runtime.Versioning;
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// A struct containing configuration for creating or opening database data
+    /// A record containing configuration for creating or opening database data
     /// </summary>
-    public sealed class DatabaseConfiguration
+    public sealed record DatabaseConfiguration
     {
         #region Constants
 
@@ -41,7 +41,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private string? _directory;
+        private readonly string? _directory;
 
         #endregion
 
@@ -52,7 +52,7 @@ namespace Couchbase.Lite
         /// </summary>
         public string Directory
         {
-            get => _directory ??= Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
+            get => _directory ?? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
             init => _directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value);
         }
 

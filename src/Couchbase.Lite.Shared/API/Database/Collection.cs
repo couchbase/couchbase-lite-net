@@ -1034,7 +1034,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            return Name?.GetHashCode() ?? 0;
+            var hasher = Hasher.Start;
+            hasher.Add(Name);
+            hasher.Add(Scope);
+            return hasher.GetHashCode();
         }
 
         /// <inheritdoc />
@@ -1046,8 +1049,8 @@ namespace Couchbase.Lite
             if (obj is not Collection other) {
                 return false;
             }
-
-            return _c4coll != null && NativeSafe.c4coll_isValid(_c4coll)
+            
+            return IsValid == other.IsValid
                 && String.Equals(Name, other.Name, StringComparison.Ordinal)
                 && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal)
                 && ReferenceEquals(Database, other.Database);

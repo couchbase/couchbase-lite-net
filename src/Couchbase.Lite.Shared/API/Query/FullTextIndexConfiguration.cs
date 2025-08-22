@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An class for an index based on full text searching
     /// </summary>
-    public sealed class FullTextIndexConfiguration : IndexConfiguration
+    public sealed record FullTextIndexConfiguration : IndexConfiguration
     {
         #region Properties
 

@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
@@ -86,8 +87,7 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
         
-        private bool _continuous = Constants.DefaultReplicatorContinuous;
-        private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
+        private readonly bool _continuous = Constants.DefaultReplicatorContinuous;
         private C4SocketFactory _socketFactory;
         private bool _isDefaultMaxAttemptSet = true;
 
@@ -279,9 +279,6 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
 
-        //Pre 3.1 Default Collection Config
-        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(DatabaseInternal.GetDefaultCollection()) ? CollectionConfigs[DatabaseInternal.GetDefaultCollection()] 
-            : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
 
         internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
 
@@ -335,32 +332,35 @@ namespace Couchbase.Lite.Sync
             castTarget.Visit(this);
         }
 
+        /// <summary>
+        /// Copy constructor (Used to create a new replicator configuration
+        /// with a modified property or properties).
+        /// </summary>
+        /// <param name="configuration"></param>
         public ReplicatorConfiguration(ReplicatorConfiguration configuration)
         {
-            #if COUCHBASE_ENTERPRISE
-            AcceptOnlySelfSignedServerCertificate = configuration.AcceptOnlySelfSignedServerCertificate;
-            #endif
-            AcceptParentDomainCookies = configuration.AcceptParentDomainCookies;
-            #if __IOS__ && !MACCATALYST
-            AllowReplicatingInBackground = configuration.AllowReplicatingInBackground;
-            #endif
-            Authenticator = configuration.Authenticator;
-            CheckpointInterval = configuration.CheckpointInterval;
-            CollectionConfigs = configuration.CollectionConfigs;
-            Continuous = configuration.Continuous;
-            EnableAutoPurge = configuration.EnableAutoPurge;
-            Headers = configuration.Headers;
-            Heartbeat = configuration.Heartbeat;
-            MaxAttempts = configuration.MaxAttempts;
-            MaxAttemptsWaitTime = configuration.MaxAttemptsWaitTime;
-            NetworkInterface = configuration.NetworkInterface;
-            OtherDB = configuration.OtherDB;
-            PinnedServerCertificate = configuration.PinnedServerCertificate;
-            ProxyAuthenticator = configuration.ProxyAuthenticator;
-            RemoteUrl = configuration.RemoteUrl;
-            ReplicatorType = configuration.ReplicatorType;
-            SocketFactory = configuration.SocketFactory;
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(configuration), configuration);
+
+            // Copy the Target property first since it's read-only and required
             Target = configuration.Target;
+
+            // Use reflection to copy all properties with init/set accessors
+            // This will automatically invoke property setters which handle backing fields
+            var properties = typeof(ReplicatorConfiguration).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var prop in properties) {
+                // Check if property can be set (has init or set accessor)
+                if (!prop.CanWrite) {
+                    continue;
+                }
+                
+                try {
+                    var value = prop.GetValue(configuration);
+                    prop.SetValue(this, value);
+                } catch (Exception ex) {
+                    // Log the error but continue with other properties
+                    WriteLog.To.Sync.W(Tag, $"Failed to copy property {prop.Name}: {ex.Message}");
+                }
+            }
         }
 
         #endregion
@@ -399,16 +399,12 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
 
-            if (Collections.Count > 0 && collection.Database != DatabaseInternal)
+            if (Collections.Count > 0 && !ReferenceEquals(collection.Database, DatabaseInternal))
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, 
                     $"The given collection database {collection.Database} doesn't match the database {DatabaseInternal} participating in the replication. All collections in the replication configuration must operate on the same database.");
 
-            config = config == null ? new CollectionConfiguration() : new CollectionConfiguration(config);
-
-            if (CollectionConfigs.ContainsKey(collection))
-                CollectionConfigs.Remove(collection);
-
-            CollectionConfigs.Add(collection, config);
+            CollectionConfigs.Remove(collection);
+            CollectionConfigs.Add(collection, config ?? new CollectionConfiguration());
         }
 
         /// <summary>

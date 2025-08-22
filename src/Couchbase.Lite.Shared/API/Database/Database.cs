@@ -368,13 +368,8 @@ namespace Couchbase.Lite
         /// <returns>scope object with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public Scope? GetScope(string? name = _defaultScopeName)
+        public Scope? GetScope(string name = _defaultScopeName)
         {
-            // TODO: Make name non-null in 4.0
-            if (name == null) {
-                name = _defaultScopeName;
-            }
-
             using var scope = ThreadSafety.BeginLockedScope();
             CheckOpen();
             if(!NativeSafe.c4db_hasScope(c4db, name)) {
@@ -414,11 +409,8 @@ namespace Couchbase.Lite
         /// <returns>The collection with the given name and scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public Collection? GetCollection(string name, string? scope = _defaultScopeName)
+        public Collection? GetCollection(string name, string scope = _defaultScopeName)
         {
-            // TODO: Make scope non-null in 4.0
-            scope ??= _defaultScopeName;
-
             using var threadSafetyScope = ThreadSafety.BeginLockedScope();
             CheckOpen();
             var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);

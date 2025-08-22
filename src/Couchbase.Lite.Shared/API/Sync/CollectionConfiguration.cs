@@ -20,6 +20,9 @@ using Couchbase.Lite.Support;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Sync
 {
@@ -27,7 +30,7 @@ namespace Couchbase.Lite.Sync
     /// A configuration object for setting the details of how to treat
     /// a collection when used inside of a <see cref="Replicator"/>
     /// </summary>
-    public sealed class CollectionConfiguration
+    public sealed record CollectionConfiguration
     {
         #region Constants
 
@@ -83,32 +86,14 @@ namespace Couchbase.Lite.Sync
             get => Options.DocIDs;
             init => Options.DocIDs = value?.Any() == true ? value : null;
         }
-
+        
         /// <summary>
         /// A value indicating the direction of the replication.  The default is
         /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
         /// </summary>
-        internal ReplicatorType ReplicatorType { get; set; } = ReplicatorType.PushAndPull;
+        internal ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
 
         internal ReplicatorOptionsDictionary Options { get; } = new();
-
-        #endregion
-
-        #region Constructor
-
-        /// <summary>
-        /// The default constructor
-        /// </summary>
-        public CollectionConfiguration() {}
-
-        internal CollectionConfiguration(CollectionConfiguration copy)
-        {
-            PushFilter = copy?.PushFilter;
-            PullFilter = copy?.PullFilter;
-            ConflictResolver = copy?.ConflictResolver;
-            ReplicatorType = copy?.ReplicatorType ?? ReplicatorType.PushAndPull;
-            Options = copy?.Options ?? new ReplicatorOptionsDictionary();
-        }
 
         #endregion
     }
