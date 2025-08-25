@@ -16,42 +16,35 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// The base interface for an index in a <see cref="Database"/>
+/// </summary>
+public interface IIndex;
+
+/// <summary>
+/// An interface for an index based on a simple property value
+/// </summary>
+public interface IValueIndex : IIndex;
+
+/// <summary>
+/// An interface for an index based on full text searching
+/// </summary>
+public interface IFullTextIndex : IIndex
 {
     /// <summary>
-    /// The base interface for an index in a <see cref="Database"/>
+    /// Sets whether to ignore accents when performing 
+    /// the full text search
     /// </summary>
-    public interface IIndex
-    {
-        
-    }
+    /// <param name="ignoreAccents">Whether to ignore accents</param>
+    /// <returns>The index for further processing</returns>
+    IFullTextIndex IgnoreAccents(bool ignoreAccents);
 
     /// <summary>
-    /// An interface for an index based on a simple property value
+    /// Sets the locale to use when performing full text searching
     /// </summary>
-    public interface IValueIndex : IIndex
-    {
-        
-    }
-
-    /// <summary>
-    /// An interface for an index based on full text searching
-    /// </summary>
-    public interface IFullTextIndex : IIndex
-    {
-        /// <summary>
-        /// Sets whether or not to ignore accents when performing 
-        /// the full text search
-        /// </summary>
-        /// <param name="ignoreAccents">Whether or not to ignore accents</param>
-        /// <returns>The index for further processing</returns>
-        IFullTextIndex IgnoreAccents(bool ignoreAccents);
-
-        /// <summary>
-        /// Sets the locale to use when performing full text searching
-        /// </summary>
-        /// <param name="language">The language code in the form of ISO-639 language code</param>
-        /// <returns>The index for further processing</returns>
-        IFullTextIndex SetLanguage(string? language);
-    }
+    /// <param name="language">The language code in the form of ISO-639 language code</param>
+    /// <returns>The index for further processing</returns>
+    IFullTextIndex SetLanguage(string? language);
 }

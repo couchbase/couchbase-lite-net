@@ -19,43 +19,38 @@ using System;
 using System.Text;
 using System.Threading;
 
-namespace Couchbase.Lite.Util
+namespace Couchbase.Lite.Util;
+
+internal static class Misc
 {
-    internal static class Misc
+    public static TClass TryCast<TInterface, TClass>(TInterface iface)
+        where TClass : class, TInterface
     {
-        #region Public Methods
+        return iface as TClass ??
+            throw new NotSupportedException($"Custom {typeof(TInterface).Name} is not supported");
+    }
 
-        public static TClass TryCast<TInterface, TClass>(TInterface iface)
-            where TClass : class, TInterface
-        {
-            return iface as TClass ??
-                   throw new NotSupportedException($"Custom {typeof(TInterface).Name} is not supported");
+    public static void SafeSwap<T>(ref T? old, T? @new) where T : class, IDisposable
+    {
+        if (ReferenceEquals(old, @new) || old?.Equals(@new) == true) {
+            return; // Same object, don't dispose
         }
 
-        public static void SafeSwap<T>(ref T? old, T? @new) where T : class, IDisposable
-        {
-            if (ReferenceEquals(old, @new) || old?.Equals(@new) == true) {
-                return; // Same object, don't dispose
-            }
+        var oldRef = Interlocked.Exchange(ref old, @new);
+        oldRef?.Dispose();
+    }
 
-            var oldRef = Interlocked.Exchange(ref old, @new);
-            oldRef?.Dispose();
-        }
+    public static string CreateGuid()
+    {
+        var sb = new StringBuilder(Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('='));
 
-        public static string CreateGuid()
-        {
-            var sb = new StringBuilder(Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('='));
+        // URL-safe character set per RFC 4648 sec. 5:
+        sb.Replace('/', '_');
+        sb.Replace('+', '-');
 
-            // URL-safe character set per RFC 4648 sec. 5:
-            sb.Replace('/', '_');
-            sb.Replace('+', '-');
-
-            // prefix a '-' to make it more clear where this string came from and prevent having a leading
-            // '_' character:
-            sb.Insert(0, '-');
-            return sb.ToString();
-        }
-
-        #endregion
+        // prefix a '-' to make it more clear where this string came from and prevent having a leading
+        // '_' character:
+        sb.Insert(0, '-');
+        return sb.ToString();
     }
 }

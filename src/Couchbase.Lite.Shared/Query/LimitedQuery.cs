@@ -20,35 +20,26 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal abstract class LimitedQuery : XQuery, ILimitRouter, ILimit
 {
-    internal abstract class LimitedQuery : XQuery, ILimitRouter, ILimit
+    private const string Tag = nameof(LimitedQuery);
+
+    public ILimit Limit(IExpression limit)
     {
-        #region Constants
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
 
-        private const string Tag = nameof(LimitedQuery);
+        LimitValue = limit;
+        return this;
+    }
 
-        #endregion
+    public ILimit Limit(IExpression limit, IExpression? offset)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
 
-        #region ILimitRouter
-
-        public ILimit Limit(IExpression limit)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
-
-            LimitValue = limit;
-            return this;
-        }
-
-        public ILimit Limit(IExpression limit, IExpression? offset)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
-
-            LimitValue = limit;
-            SkipValue = offset;
-            return this;
-        }
-
-        #endregion
+        LimitValue = limit;
+        SkipValue = offset;
+        return this;
     }
 }

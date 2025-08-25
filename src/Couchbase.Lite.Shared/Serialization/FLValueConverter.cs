@@ -28,181 +28,163 @@ using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Internal.Doc;
 
-namespace Couchbase.Lite.Internal.Serialization
+namespace Couchbase.Lite.Internal.Serialization;
+
+internal static unsafe class FLValueConverter
 {
-    internal static unsafe class FLValueConverter
+    public delegate object ObjectConvertDelegate(FLDict* dict);
+
+    public static object? ToCouchbaseObject(FLValue* value, Database? db, bool dotNetTypes, Type? hintType1 = null, MRoot? root = null)
     {
-        #region Constants
-
-        private const string Tag = nameof(FLValueConverter);
-
-        #endregion
-
-        #region Variables
-
-        public delegate object ObjectConvertDelegate(FLDict* dict);
-
-        #endregion
-
-        #region Public Methods
-
-        public static object? ToCouchbaseObject(FLValue* value, Database? db, bool dotNetTypes, Type? hintType1 = null, MRoot? root = null)
-        {
-            switch (Native.FLValue_GetType(value)) {
-                case FLValueType.Array: {
-                        if (dotNetTypes) {
-                            return ToObject(value, db, 0, hintType1);
-                        }
-
-                        var array = new ArrayObject(new FleeceMutableArray(new MValue(value), root), false);
-                        return array;
-                    }
-                case FLValueType.Dict: {
-                        var dict = Native.FLValue_AsDict(value);
-                        var type = TypeForDict(dict);
-                        if (!dotNetTypes && type.buf == null && !IsOldAttachment(dict)) {
-                            return new DictionaryObject(new MDict(new MValue(value), root), false);
-                        }
-
-                        return ToObject(value, db, 0, hintType1);
-                    }
-                case FLValueType.Undefined:
-                    return null;
-                default:
-                    return ToObject(value, db);
-            }
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal static bool IsOldAttachment(FLDict* dict)
-        {
-            var flDigest = Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("digest"));
-            var flLength =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("length"));
-            var flStub =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("stub"));
-            var flRevPos =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("revpos"));
-
-            return flDigest != null && flLength != null && flStub != null && flRevPos != null;
-        }
-
-        internal static bool IsOldAttachment(IDictionary<string, object?> dict)
-        {
-            var digest = dict.Get("digest");
-            var length = dict.Get("length");
-            var stub = dict.Get("stub");
-            var revpos = dict.Get("revpos");
-            return digest != null && length != null && stub != null && revpos != null;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private static object? ConvertDictionary(IDictionary<string, object?>? dict, Database? database)
-        {
-            if (dict == null) {
-                return null;
-            }
-
-            if (database != null) { 
-            var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
-                if (type == null) {
-                    if (IsOldAttachment(dict)) {
-                        return new Blob(database, dict);
-                    }
-
-                    return dict;
+        switch (Native.FLValue_GetType(value)) {
+            case FLValueType.Array:
+            {
+                if (dotNetTypes) {
+                    return ToObject(value, db, 0, hintType1);
                 }
 
-                if (type == Constants.ObjectTypeBlob) {
+                var array = new ArrayObject(new FleeceMutableArray(new MValue(value), root), false);
+                return array;
+            }
+            case FLValueType.Dict:
+            {
+                var dict = Native.FLValue_AsDict(value);
+                var type = TypeForDict(dict);
+                if (!dotNetTypes && type.buf == null && !IsOldAttachment(dict)) {
+                    return new DictionaryObject(new MDict(new MValue(value), root), false);
+                }
+
+                return ToObject(value, db, 0, hintType1);
+            }
+            case FLValueType.Undefined:
+                return null;
+            default:
+                return ToObject(value, db);
+        }
+    }
+
+    internal static bool IsOldAttachment(FLDict* dict)
+    {
+        var flDigest = Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("digest"));
+        var flLength = Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("length"));
+        var flStub = Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("stub"));
+        var flRevPos = Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("revpos"));
+
+        return flDigest != null && flLength != null && flStub != null && flRevPos != null;
+    }
+
+    internal static bool IsOldAttachment(IDictionary<string, object?> dict)
+    {
+        var digest = dict.Get("digest");
+        var length = dict.Get("length");
+        var stub = dict.Get("stub");
+        var revpos = dict.Get("revpos");
+        return digest != null && length != null && stub != null && revpos != null;
+    }
+
+    private static object? ConvertDictionary(IDictionary<string, object?>? dict, Database? database)
+    {
+        if (dict == null) {
+            return null;
+        }
+
+        if (database != null) {
+            var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
+            if (type == null) {
+                if (IsOldAttachment(dict)) {
                     return new Blob(database, dict);
                 }
+
+                return dict;
             }
-            
-            return dict;
+
+            if (type == Constants.ObjectTypeBlob) {
+                return new Blob(database, dict);
+            }
         }
 
-        private static object? ToObject(FLValue* value, Database? db, int level = 0, Type? hintType1 = null)
-        {
-            if (value == null) {
+        return dict;
+    }
+
+    private static object? ToObject(FLValue* value, Database? db, int level = 0, Type? hintType1 = null)
+    {
+        if (value == null) {
+            return null;
+        }
+
+        switch (Native.FLValue_GetType(value)) {
+            case FLValueType.Array:
+            {
+                var arr = Native.FLValue_AsArray(value);
+                var hintType = level == 0 && hintType1 != null ? hintType1 : typeof(object);
+                var count = (int)Native.FLArray_Count(arr);
+                if (count == 0) {
+                    return new List<object>();
+                }
+
+                var retVal =
+                    (IList)Activator.CreateInstance(typeof(List<>).GetTypeInfo().MakeGenericType(hintType),
+                        count)!;
+
+                var i = default(FLArrayIterator);
+                Native.FLArrayIterator_Begin(arr, &i);
+                do {
+                    retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), db, level + 1, hintType1));
+                } while (Native.FLArrayIterator_Next(&i));
+
+                return retVal;
+            }
+            case FLValueType.Boolean:
+                return Native.FLValue_AsBool(value);
+            case FLValueType.Data:
+                return Native.FLValue_AsData(value);
+            case FLValueType.Dict:
+            {
+
+                var dict = Native.FLValue_AsDict(value);
+                var hintType = level == 0 && hintType1 != null ? hintType1 : typeof(object);
+                var count = (int)Native.FLDict_Count(dict);
+                if (count == 0) {
+                    return new Dictionary<string, object>();
+                }
+
+                var retVal = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeof(string), hintType), count)!;
+                var i = default(FLDictIterator);
+                Native.FLDictIterator_Begin(dict, &i);
+                do {
+                    var key = Native.FLDictIterator_GetKeyString(&i)!;
+                    retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
+                } while (Native.FLDictIterator_Next(&i));
+
+                return ConvertDictionary((retVal as IDictionary<string, object>)!, db) ?? retVal;
+            }
+            case FLValueType.Null:
                 return null;
-            }
-
-            switch (Native.FLValue_GetType(value)) {
-                case FLValueType.Array: {
-                    var arr = Native.FLValue_AsArray(value);
-                    var hintType = level == 0 && hintType1 != null ? hintType1 : typeof(object);
-                    var count = (int)Native.FLArray_Count(arr);
-                    if (count == 0) {
-                        return new List<object>();
+            case FLValueType.Number:
+                if (Native.FLValue_IsInteger(value)) {
+                    if (Native.FLValue_IsUnsigned(value)) {
+                        return Native.FLValue_AsUnsigned(value);
                     }
 
-                    var retVal =
-                        (IList)Activator.CreateInstance(typeof(List<>).GetTypeInfo().MakeGenericType(hintType),
-                            count)!;
-
-                    var i = default(FLArrayIterator);
-                    Native.FLArrayIterator_Begin(arr, &i);
-                    do {
-                        retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), db, level + 1, hintType1));
-                    } while (Native.FLArrayIterator_Next(&i));
-
-                    return retVal;
+                    return Native.FLValue_AsInt(value);
+                } else if (Native.FLValue_IsDouble(value)) {
+                    return Native.FLValue_AsDouble(value);
                 }
-                case FLValueType.Boolean:
-                    return Native.FLValue_AsBool(value);
-                case FLValueType.Data:
-                    return Native.FLValue_AsData(value);
-                case FLValueType.Dict: {
 
-                    var dict = Native.FLValue_AsDict(value);
-                    var hintType = level == 0 && hintType1 != null ? hintType1 : typeof(object);
-                    var count = (int)Native.FLDict_Count(dict);
-                    if (count == 0) {
-                        return new Dictionary<string, object>();
-                    }
-
-                    var retVal = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeof(string), hintType), count)!;
-                    var i = default(FLDictIterator);
-                    Native.FLDictIterator_Begin(dict, &i);
-                    do {
-                        var key = Native.FLDictIterator_GetKeyString(&i)!;
-                        retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
-                    } while (Native.FLDictIterator_Next(&i));
-
-                    return ConvertDictionary((retVal as IDictionary<string, object>)!, db) ?? retVal;
-                }
-                case FLValueType.Null:
-                    return null;
-                case FLValueType.Number:
-                    if(Native.FLValue_IsInteger(value)) {
-                        if(Native.FLValue_IsUnsigned(value)) {
-                            return Native.FLValue_AsUnsigned(value);
-                        }
-
-                        return Native.FLValue_AsInt(value);
-                    } else if(Native.FLValue_IsDouble(value)) {
-                        return Native.FLValue_AsDouble(value);
-                    }
-
-                    return Native.FLValue_AsFloat(value);
-                case FLValueType.String:
-                    return Native.FLValue_AsString(value);
-                default:
-                    return null;
-            }
+                return Native.FLValue_AsFloat(value);
+            case FLValueType.String:
+                return Native.FLValue_AsString(value);
+            case FLValueType.Undefined:
+            default:
+                return null;
         }
+    }
 
-        private static FLSlice TypeForDict(FLDict* dict)
-        {
-            var typeKey = FLSlice.Constant(Constants.ObjectTypeProperty);
-            var type = NativeRaw.FLDict_Get(dict, typeKey);
+    private static FLSlice TypeForDict(FLDict* dict)
+    {
+        var typeKey = FLSlice.Constant(Constants.ObjectTypeProperty);
+        var type = NativeRaw.FLDict_Get(dict, typeKey);
 
-            return NativeRaw.FLValue_AsString(type);
-        }
-
-        #endregion
+        return NativeRaw.FLValue_AsString(type);
     }
 }

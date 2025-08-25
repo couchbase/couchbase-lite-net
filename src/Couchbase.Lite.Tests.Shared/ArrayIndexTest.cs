@@ -52,19 +52,17 @@ namespace Test
             profiles.CreateIndex(indexNameB, indexConfigb);
             profiles.GetIndexes().Any(x => x == indexName).ShouldBeTrue("because the index was just created");
             profiles.GetIndexes().Any(x => x == indexNameB).ShouldBeTrue("because the index was just created");
-            C4Error err;
             IDictionary<string, object>? indexInfo;
-            IDictionary<string, object>? indexInfoB;
             unsafe {
+                C4Error err;
                 var allIndexInfo = TestNative.c4coll_getIndexesInfo(profiles, &err);
                 allIndexInfo.ShouldNotBeNull("because an index exists");
-                indexInfo = allIndexInfo!.FirstOrDefault(x => (x["name"] as string) == indexName);
-                indexInfoB = allIndexInfo!.FirstOrDefault(x => (x["name"] as string) == indexNameB);
+                indexInfo = allIndexInfo.FirstOrDefault(x => x["name"] as string == indexName);
             }
             indexInfo.ShouldNotBeNull("because otherwise the contacts index does not exist");
-            ((long)indexInfo!["type"]).ShouldBe((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
+            ((long)indexInfo["type"]).ShouldBe((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
             (indexInfo["lang"] as string).ShouldBe("n1ql", "because otherwise the wrong query language was used");
-            (indexInfo["expr"] as string).ShouldBe(expressions != null ? String.Join(",", expressions) : "", "because otherwise the wrong expression was used");
+            (indexInfo["expr"] as string).ShouldBe(String.Join(",", expressions), "because otherwise the wrong expression was used");
         }
 
         /// <summary>
@@ -128,18 +126,18 @@ namespace Test
     {
         public static IList<IDictionary<string, object>>? c4coll_getIndexesInfo(Collection collection, C4Error* error)
         {
-            using var rawData = TestNativeRaw.c4coll_getIndexesInfo(collection.c4coll.RawCollection, error);
+            using var rawData = TestNativeRaw.c4coll_getIndexesInfo(collection.C4Coll.RawCollection, error);
             if (rawData.size == 0) {
                 return null;
             }
 
             var flValue = NativeRaw.FLValue_FromData((FLSlice)rawData, FLTrust.Trusted);
             var halfwayConverted = FLValueConverter.ToCouchbaseObject(flValue, null, true) as IList<object>;
-            return halfwayConverted?.Cast<IDictionary<string, object>>()?.ToList();
+            return halfwayConverted?.Cast<IDictionary<string, object>>().ToList();
         }
     }
 
-    internal unsafe static partial class TestNativeRaw
+    internal static unsafe class TestNativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* error);

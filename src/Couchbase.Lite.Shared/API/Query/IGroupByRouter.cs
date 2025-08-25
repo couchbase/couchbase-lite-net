@@ -16,23 +16,18 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a portion of a query which can take GROUP BY
+/// as its next step
+/// </summary>
+public interface IGroupByRouter
 {
     /// <summary>
-    /// An interface representing a portion of a query which can take GROUP BY
-    /// as its next step
+    /// Groups the current query by the given GROUP BY clauses
     /// </summary>
-    public interface IGroupByRouter
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Groups the current query by the given GROUP BY clauses
-        /// </summary>
-        /// <param name="expressions">The clauses to group by</param>
-        /// <returns>The query grouped by the given clauses for further processing</returns>
-        IGroupBy GroupBy(params IExpression[] expressions);
-
-        #endregion
-    }
+    /// <param name="expressions">The clauses to group by</param>
+    /// <returns>The query grouped by the given clauses for further processing</returns>
+    IGroupBy GroupBy(params IExpression[] expressions);
 }

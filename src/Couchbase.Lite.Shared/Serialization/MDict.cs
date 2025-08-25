@@ -26,287 +26,250 @@ using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Serialization
+namespace Couchbase.Lite.Internal.Serialization;
+
+internal sealed unsafe class MDict : MCollection
 {
-    internal sealed unsafe class MDict : MCollection
+    private const string Tag = nameof(MDict);
+
+    private FLDict* _dict;
+    private Dictionary<string, MValue> _map = new();
+
+    public int Count { get; private set; }
+
+    public MDict()
     {
-        #region Constants
-
-        private const string Tag = nameof(MDict);
-
-        #endregion
-
-        #region Variables
-
-        private readonly List<string> _newKeys = new List<string>();
-
-        private FLDict* _dict;
-        private Dictionary<string, MValue> _map = new Dictionary<string, MValue>();
-
-        #endregion
-
-        #region Properties
-
-        public int Count { get; private set; }
-
-        #endregion
-
-        #region Constructors
-
-        public MDict()
-        {
             
+    }
+
+    public MDict(MValue mv, MCollection? parent)
+    {
+        InitInSlot(mv, parent);
+    }
+
+    public void Clear()
+    {
+        Debug.Assert(Context != null);
+        Context!.CheckDisposed();
+        if (!IsMutable) {
+            throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMDict);
         }
 
-        public MDict(MValue mv, MCollection? parent)
-        {
-            InitInSlot(mv, parent);
+        if (Count == 0) {
+            return;
         }
 
-        #endregion
+        Mutate();
+        _map.Clear();
+        foreach (var item in IterateDict()) {
+            _map[item.Key] = MValue.Empty;
+        }
 
-        #region Public Methods
+        Count = 0;
+    }
 
-        public void Clear()
-        {
-            Debug.Assert(Context != null);
-            Context!.CheckDisposed();
-            if (!IsMutable) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMDict);
-            }
+    public bool Contains(string key)
+    {
+        Debug.Assert(Context != null);
+        Context!.CheckDisposed();
+        return _map.ContainsKey(key) || Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null;
+    }
 
-            if (Count == 0) {
+    public MValue Get(string key)
+    {
+        Debug.Assert(Context != null);
+        Context!.CheckDisposed();
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
+
+        if (_map.TryGetValue(key, out var value)) {
+            return value;
+        }
+
+        var val = Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key));
+        if (val == null) {
+            return MValue.Empty;
+        }
+
+        var retVal = new MValue(val);
+        SetInMap(key, retVal);
+        return retVal;
+    }
+
+    public void InitInSlot(MValue mv, MCollection? parent)
+    {
+        InitInSlot(mv, parent, parent?.MutableChildren == true);
+    }
+
+    public void Remove(string key)
+    {
+        Set(key, MValue.Empty);
+    }
+
+    public void Set(string key, MValue val)
+    {
+        Debug.Assert(Context != null);
+        Context!.CheckDisposed();
+        if (!IsMutable) {
+            throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
+        }
+
+        if (_map.ContainsKey(key)) {
+            var existing = _map[key];
+            if (val.IsEmpty && existing.IsEmpty) {
                 return;
             }
 
             Mutate();
-            _map.Clear();
-            foreach (var item in IterateDict()) {
-                _map[item.Key] = MValue.Empty;
-            }
-
-            Count = 0;
-        }
-
-        public bool Contains(string key)
-        {
-            Debug.Assert(Context != null);
-            Context!.CheckDisposed();
-            return _map.ContainsKey(key) || Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null;
-        }
-
-        public MValue Get(string key)
-        {
-            Debug.Assert(Context != null);
-            Context!.CheckDisposed();
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
-
-            if (_map.ContainsKey(key)) {
-                return _map[key];
-            }
-
-            var val = Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key));
-            if (val == null) {
-                return MValue.Empty;
-            }
-
-            var retVal = new MValue(val);
-            SetInMap(key, retVal);
-            return retVal;
-        }
-
-        public void InitInSlot(MValue mv, MCollection? parent)
-        {
-            InitInSlot(mv, parent, parent?.MutableChildren == true);
-        }
-
-        public void Remove(string key)
-        {
-            Set(key, MValue.Empty);
-        }
-
-        public void Set(string key, MValue val)
-        {
-            Debug.Assert(Context != null);
-            Context!.CheckDisposed();
-            if (!IsMutable) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
-            }
-
-            if (_map.ContainsKey(key)) {
-                var existing = _map[key];
-                if (val.IsEmpty && existing.IsEmpty) {
-                    return;
-                }
-
-                Mutate();
-                Count += Convert.ToInt32(!val.IsEmpty) - Convert.ToInt32(!existing.IsEmpty);
-                _map[key] = val;
-            } else {
-                if (Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null) {
-                    if (val.IsEmpty) {
-                        Count--;
-                    }
-                } else {
-                    Count++;
-                }
-
-                Mutate();
-                SetInMap(key, val);
-            }
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal IEnumerable<KeyValuePair<string, MValue>> AllItems()
-        {
-            Debug.Assert(Context != null);
-            Context!.CheckDisposed();
-            foreach (var item in _map) {
-                if (!item.Value.IsEmpty) {
-                    yield return item;
-                }
-            }
-
-            foreach (var item in IterateDict()) {
-                if (!_map.ContainsKey(item.Key)) {
-                    yield return item;
-                }
-            }
-        }
-
-        internal string ToJSON()
-        {
-            return Native.FLValue_ToJSON((FLValue*) _dict)!;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private bool Advance(ref FLDictIterator i)
-        {
-            fixed (FLDictIterator* i2 = &i) {
-                return Native.FLDictIterator_Next(i2);
-            }
-        }
-
-        private FLDictIterator BeginIteration()
-        {
-            FLDictIterator i;
-            Native.FLDictIterator_Begin(_dict, &i);
-            return i;
-        }
-
-        private KeyValuePair<string, MValue> Get(FLDictIterator i)
-        {
-            if (_dict == null || Native.FLDict_Count(_dict) == 0U) {
-                return new KeyValuePair<string, MValue>();
-            }
-
-            var key = Native.FLDictIterator_GetKeyString(&i);
-            if (key == null) {
-                return new KeyValuePair<string, MValue>();
-            }
-
-            var value = Native.FLDictIterator_GetValue(&i);
-            return new KeyValuePair<string, MValue>(key, new MValue(value));
-        }
-
-        private IEnumerable<KeyValuePair<string, MValue>> IterateDict()
-        {
-            // I hate this dance...but it's necessary to convince the commpiler to let
-            // me use unsafe methods inside of a generator method
-            var i = BeginIteration();
-
-            var got = Get(i);
-            while (got.Key != null) {
-                yield return got;
-                Advance(ref i);
-                got = Get(i);
-            }
-        }
-
-        private void SetInMap(string key, MValue val)
-        {
-            _newKeys.Add(key);
+            Count += Convert.ToInt32(!val.IsEmpty) - Convert.ToInt32(!existing.IsEmpty);
             _map[key] = val;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override void FLEncode(FLEncoder* enc)
-        {
-            Debug.Assert(Context != null);
-            Context!.CheckDisposed();
-            if (!IsMutated) {
-                if (_dict == null) {
-                    Native.FLEncoder_BeginDict(enc,0U);
-                    Native.FLEncoder_EndDict(enc);
-                } else {
-                    Native.FLEncoder_WriteValue(enc, (FLValue*) _dict);
+        } else {
+            if (Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null) {
+                if (val.IsEmpty) {
+                    Count--;
                 }
             } else {
-                Native.FLEncoder_BeginDict(enc, (uint)Count);
-                foreach (var item in _map) {
-                    if (item.Value.IsEmpty) {
-                        continue;
-                    }
+                Count++;
+            }
 
-                    Native.FLEncoder_WriteKey(enc, item.Key);
-                    if (item.Value.HasNative) {
-                        item.Value.NativeObject!.FLEncode(enc);
-                    } else if (item.Value.Value != null) {
-                        Native.FLEncoder_WriteValue(enc, item.Value.Value);
-                    } else {
-                        Native.FLEncoder_WriteNull(enc);
-                    }
-                }
+            Mutate();
+            SetInMap(key, val);
+        }
+    }
 
-                foreach (var item in IterateDict()) {
-                    if (_map.ContainsKey(item.Key)) {
-                        continue;
-                    }
-
-                    Native.FLEncoder_WriteKey(enc, item.Key);
-                    item.Value.FLEncode(enc);
-                }
-
-                Native.FLEncoder_EndDict(enc);
+    internal IEnumerable<KeyValuePair<string, MValue>> AllItems()
+    {
+        Debug.Assert(Context != null);
+        Context!.CheckDisposed();
+        foreach (var item in _map) {
+            if (!item.Value.IsEmpty) {
+                yield return item;
             }
         }
 
-        public override void InitAsCopyOf(MCollection original, bool isMutable)
-        {
-            base.InitAsCopyOf(original, isMutable);
-            var d = original as MDict;
-            Debug.Assert(d != null);
-            _dict = d!._dict;
-            _map = d._map;
-            Count = d.Count;
+        foreach (var item in IterateDict()) {
+            if (!_map.ContainsKey(item.Key)) {
+                yield return item;
+            }
+        }
+    }
+
+    internal string ToJSON()
+    {
+        return Native.FLValue_ToJSON((FLValue*) _dict)!;
+    }
+
+    private void Advance(ref FLDictIterator i)
+    {
+        fixed (FLDictIterator* i2 = &i) {
+            Native.FLDictIterator_Next(i2);
+        }
+    }
+
+    private FLDictIterator BeginIteration()
+    {
+        FLDictIterator i;
+        Native.FLDictIterator_Begin(_dict, &i);
+        return i;
+    }
+
+    private KeyValuePair<string?, MValue> Get(FLDictIterator i)
+    {
+        if (_dict == null || Native.FLDict_Count(_dict) == 0U) {
+            return new KeyValuePair<string?, MValue>();
         }
 
-        protected override void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
-        {
-            base.InitInSlot(slot, parent, isMutable);
-            Debug.Assert(_dict == null);
-            _dict = Native.FLValue_AsDict(slot.Value);
-            Count = (int)Native.FLDict_Count(_dict);
+        var key = Native.FLDictIterator_GetKeyString(&i);
+        if (key == null) {
+            return new KeyValuePair<string?, MValue>();
         }
 
-        public override void FLSlotSet(FLSlot* slot)
-        {
+        var value = Native.FLDictIterator_GetValue(&i);
+        return new KeyValuePair<string?, MValue>(key, new MValue(value));
+    }
+
+    private IEnumerable<KeyValuePair<string, MValue>> IterateDict()
+    {
+        // I hate this dance...but it's necessary to convince the commpiler to let
+        // me use unsafe methods inside a generator method
+        var i = BeginIteration();
+
+        var got = Get(i);
+        while (got.Key != null) {
+            yield return new KeyValuePair<string, MValue>(got.Key, got.Value);
+            Advance(ref i);
+            got = Get(i);
+        }
+    }
+
+    private void SetInMap(string key, MValue val)
+    {
+        _map[key] = val;
+    }
+
+    public override void FLEncode(FLEncoder* enc)
+    {
+        Debug.Assert(Context != null);
+        Context!.CheckDisposed();
+        if (!IsMutated) {
             if (_dict == null) {
-                Native.FLSlot_SetNull(slot);
+                Native.FLEncoder_BeginDict(enc,0U);
+                Native.FLEncoder_EndDict(enc);
             } else {
-                Native.FLSlot_SetValue(slot, (FLValue*) _dict);
+                Native.FLEncoder_WriteValue(enc, (FLValue*) _dict);
             }
-        }
+        } else {
+            Native.FLEncoder_BeginDict(enc, (uint)Count);
+            foreach (var item in _map) {
+                if (item.Value.IsEmpty) {
+                    continue;
+                }
 
-        #endregion
+                Native.FLEncoder_WriteKey(enc, item.Key);
+                if (item.Value.HasNative) {
+                    item.Value.NativeObject!.FLEncode(enc);
+                } else if (item.Value.Value != null) {
+                    Native.FLEncoder_WriteValue(enc, item.Value.Value);
+                } else {
+                    Native.FLEncoder_WriteNull(enc);
+                }
+            }
+
+            foreach (var item in IterateDict()) {
+                if (_map.ContainsKey(item.Key)) {
+                    continue;
+                }
+
+                Native.FLEncoder_WriteKey(enc, item.Key);
+                item.Value.FLEncode(enc);
+            }
+
+            Native.FLEncoder_EndDict(enc);
+        }
+    }
+
+    public override void InitAsCopyOf(MCollection original, bool isMutable)
+    {
+        base.InitAsCopyOf(original, isMutable);
+        var d = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(original), original as MDict);
+        _dict = d._dict;
+        _map = d._map;
+        Count = d.Count;
+    }
+
+    protected override void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
+    {
+        base.InitInSlot(slot, parent, isMutable);
+        Debug.Assert(_dict == null);
+        _dict = Native.FLValue_AsDict(slot.Value);
+        Count = (int)Native.FLDict_Count(_dict);
+    }
+
+    public override void FLSlotSet(FLSlot* slot)
+    {
+        if (_dict == null) {
+            Native.FLSlot_SetNull(slot);
+        } else {
+            Native.FLSlot_SetValue(slot, (FLValue*) _dict);
+        }
     }
 }

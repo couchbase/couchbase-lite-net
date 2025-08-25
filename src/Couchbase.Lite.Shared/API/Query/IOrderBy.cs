@@ -16,41 +16,33 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing the ORDER BY portion of an <see cref="IQuery"/>
+/// </summary>
+public interface IOrderBy : IQuery, ILimitRouter;
+
+/// <summary>
+/// An interface representing an arbitrary sorting for an <see cref="IOrderBy"/>
+/// </summary>
+public interface IOrdering;
+
+/// <summary>
+/// An interface representing the way that an <see cref="IOrderBy"/> should be
+/// sorted
+/// </summary>
+public interface ISortOrder : IOrdering
 {
     /// <summary>
-    /// An interface representing the ORDER BY portion of an <see cref="IQuery"/>
+    /// Returns an IExpression that will sort in ascending order
     /// </summary>
-    public interface IOrderBy : IQuery, ILimitRouter
-    {}
+    /// <returns>An IExpression that will sort in ascending order</returns>
+    IOrdering Ascending();
 
     /// <summary>
-    /// An interface representing an arbitrary sorting for an <see cref="IOrderBy"/>
+    /// Returns an IExpression that will sort in desecending order
     /// </summary>
-    public interface IOrdering
-    {
-    }
-
-    /// <summary>
-    /// An interface representing the way that an <see cref="IOrderBy"/> should be
-    /// sorted
-    /// </summary>
-    public interface ISortOrder : IOrdering
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Returns an IExpression that will sort in ascending order
-        /// </summary>
-        /// <returns>An IExpression that will sort in ascending order</returns>
-        IOrdering Ascending();
-
-        /// <summary>
-        /// Returns an IExpression that will sort in desecending order
-        /// </summary>
-        /// <returns>An IExpression that will sort in desecending order</returns>
-        IOrdering Descending();
-
-        #endregion
-    }
+    /// <returns>An IExpression that will sort in desecending order</returns>
+    IOrdering Descending();
 }

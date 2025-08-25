@@ -16,24 +16,19 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a portion of a query that can be routed
+/// to an ORDER BY portion
+/// </summary>
+public interface IOrderByRouter
 {
     /// <summary>
-    /// An interface representing a portion of a query that can be routed
-    /// to an ORDER BY portion
+    /// Routes this IExpression to the next ORDER BY portion of the query
     /// </summary>
-    public interface IOrderByRouter
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Routes this IExpression to the next ORDER BY portion of the query
-        /// </summary>
-        /// <param name="orderings">An array of order by operations to consider in the 
-        /// ORDER BY portion of the query</param>
-        /// <returns>The next ORDER BY portion of the query</returns>
-        IOrderBy OrderBy(params IOrdering[] orderings);
-
-        #endregion
-    }
+    /// <param name="orderings">An array of order by operations to consider in the 
+    /// ORDER BY portion of the query</param>
+    /// <returns>The next ORDER BY portion of the query</returns>
+    IOrderBy OrderBy(params IOrdering[] orderings);
 }

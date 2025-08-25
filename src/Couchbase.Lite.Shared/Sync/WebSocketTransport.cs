@@ -25,118 +25,92 @@ using Couchbase.Lite.Internal.Logging;
 using LiteCore.Interop;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
-using System.Diagnostics;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+internal static unsafe class WebSocketTransport
 {
-    internal static unsafe class WebSocketTransport
+    private const string Tag = nameof(WebSocketTransport);
+
+    private static readonly ConcurrentDictionary<int, WebSocketWrapper> Sockets = new ConcurrentDictionary<int, WebSocketWrapper>();
+
+    private static int NextID;
+
+    public static void RegisterWithC4()
     {
-        #region Constants
+        SocketFactory.RegisterFactory(DoOpen, DoClose, DoWrite, DoCompleteReceive, DoDispose);
+        SocketFactory.SetErrorHandler(DoError);
+    }
 
-        private const string Tag = nameof(WebSocketTransport);
+    private static void DoClose(C4Socket* socket)
+    {
+        var id = (int) Native.c4Socket_getNativeHandle(socket);
+        if (Sockets.TryGetValue(id, out var socketWrapper)) {
+            socketWrapper.CloseSocket();
+        } else {
+            WriteLog.To.Sync.W(Tag, "Invalid call to DoClose; socket does not exist (or was disposed)");
+        }
+    }
 
-        private static readonly ConcurrentDictionary<int, WebSocketWrapper> Sockets = new ConcurrentDictionary<int, WebSocketWrapper>();
+    private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
+    {
+        var id = (int)Native.c4Socket_getNativeHandle(socket);
 
-        #endregion
+        if (Sockets.TryGetValue(id, out var socketWrapper)) {
+            socketWrapper.CompletedReceive(bytecount);
+        } else {
+            WriteLog.To.Sync.W(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was closed)");
+        }
+    }
 
-        #region Variables
+    private static void DoDispose(C4Socket* socket)
+    {
+        var id = (int)Native.c4Socket_getNativeHandle(socket);
+        Sockets.TryRemove(id, out _);
+    }
 
-        private static int _NextID;
+    private static void DoError(C4Socket* socket, Exception e) => 
+        WriteLog.To.Sync.E(Tag, "Websocket Error", e);
 
-        #endregion
-
-        #region Public Methods
-
-        public static void RegisterWithC4()
-        {
-            SocketFactory.RegisterFactory(DoOpen, DoClose, DoWrite, DoCompleteReceive, DoDispose);
-            SocketFactory.SetErrorHandler(DoError);
+    private static void DoOpen(C4Socket* socket, C4Address* address, FLSlice options, void* context)
+    {
+        Uri uri;
+        try {
+            var builder = new UriBuilder
+            {
+                Host = address->hostname.CreateString(),
+                Scheme = address->scheme.CreateString(),
+                Port = address->port,
+                Path = address->path.CreateString()
+            };
+            uri = builder.Uri;
+        } catch (Exception) {
+            Native.c4socket_closed(socket, new C4Error(C4ErrorCode.InvalidParameter));
+            return;
         }
 
-        #endregion
-
-        #region Private Methods
-
-        private static void DoClose(C4Socket* socket)
-        {
-            var id = (int) Native.c4Socket_getNativeHandle(socket);
-            if (Sockets.TryGetValue(id, out var socketWrapper)) {
-                socketWrapper.CloseSocket();
-            } else {
-                WriteLog.To.Sync.W(Tag, "Invalid call to DoClose; socket does not exist (or was disposed)");
-            }
-        }
-
-        private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
-        {
-            var id = (int)Native.c4Socket_getNativeHandle(socket);
-
-            if (Sockets.TryGetValue(id, out var socketWrapper)) {
-                socketWrapper.CompletedReceive(bytecount);
-            } else {
-                WriteLog.To.Sync.W(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was closed)");
-            }
-        }
-
-        private static void DoDispose(C4Socket* socket)
-        {
-            var id = (int)Native.c4Socket_getNativeHandle(socket);
-            Sockets.TryRemove(id, out var tmp);
-        }
-
-        private static void DoError(C4Socket* socket, Exception e)
-        {
-            WriteLog.To.Sync.E(Tag, "Websocket Error", e);
-        }
-
-        private static void DoOpen(C4Socket* socket, C4Address* address, FLSlice options, void* context)
-        {
-            Uri uri;
-            try {
-                var builder = new UriBuilder
-                {
-                    Host = address->hostname.CreateString(),
-                    Scheme = address->scheme.CreateString(),
-                    Port = address->port,
-                    Path = address->path.CreateString()
-                };
-                uri = builder.Uri;
-            } catch (Exception) {
-                Native.c4socket_closed(socket, new C4Error(C4ErrorCode.InvalidParameter));
-                return;
-            }
-
-            if (uri == null) {
-                Native.c4socket_closed(socket, new C4Error(C4ErrorCode.InvalidParameter));
-                return;
-            }
-
-            var opts =
-                FLSliceExtensions.ToObject(NativeRaw.FLValue_FromData((FLSlice) options, FLTrust.Trusted)) as
-                    Dictionary<string, object?>;
-            Debug.Assert(opts != null);
-            var replicationOptions = new ReplicatorOptionsDictionary(opts!);
+        var opts =
+            FLSliceExtensions.ToObject(NativeRaw.FLValue_FromData(options, FLTrust.Trusted)) as
+                Dictionary<string, object?>;
+        var replicationOptions = new ReplicatorOptionsDictionary(opts!);
             
-            var id = Interlocked.Increment(ref _NextID);
-            Native.c4Socket_setNativeHandle(socket, (void*)id);
-            var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
-            replicator?.WatchForCertificate(socketWrapper);
-            replicator?.CheckForCookiesToSet(socketWrapper);
-            Sockets.AddOrUpdate(id, socketWrapper, (k, v) => socketWrapper);
-            socketWrapper.Start();
-        }
+        var id = Interlocked.Increment(ref NextID);
+        Native.c4Socket_setNativeHandle(socket, (void*)id);
+        var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
+        var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
+        replicator?.WatchForCertificate(socketWrapper);
+        replicator?.CheckForCookiesToSet(socketWrapper);
+        Sockets.AddOrUpdate(id, socketWrapper, (_, _) => socketWrapper);
+        socketWrapper.Start();
+    }
 
-        private static void DoWrite(C4Socket* socket, byte[] data)
-        {
-            var id = (int)Native.c4Socket_getNativeHandle(socket);
-            if (Sockets.TryGetValue(id, out var socketWrapper)) {
-                socketWrapper.Write(data);
-            } else {
-                WriteLog.To.Sync.W(Tag, "Invalid call to DoWrite; socket does not exist (or was closed)");
-            }
+    private static void DoWrite(C4Socket* socket, byte[] data)
+    {
+        var id = (int)Native.c4Socket_getNativeHandle(socket);
+        if (Sockets.TryGetValue(id, out var socketWrapper)) {
+            socketWrapper.Write(data);
+        } else {
+            WriteLog.To.Sync.W(Tag, "Invalid call to DoWrite; socket does not exist (or was closed)");
         }
-
-        #endregion
     }
 }

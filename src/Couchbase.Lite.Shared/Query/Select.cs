@@ -16,68 +16,37 @@
 // limitations under the License.
 // 
 
-using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class Select : XQuery, ISelect
 {
-    internal sealed class Select : XQuery, ISelect
+    private const string Tag = nameof(Select);
+
+    internal QuerySelectResult[] SelectResults { get; }
+
+    public Select(ISelectResult[] selects, bool distinct)
     {
-        #region Constants
+        SelectResults = selects.OfType<QuerySelectResult>().ToArray();
+        SelectImpl = this;
+        Distinct = distinct;
+    }
 
-        private const string Tag = nameof(Select);
+    public object ToJSON() => SelectResults.Select(o => o.ToJSON()).ToList();
 
-        #endregion
+    public IFrom From(IDataSource dataSource)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
+        return new From(this, dataSource);
+    }
 
-        internal QuerySelectResult[] SelectResults { get; }
-
-        #region Constructors
-
-        public Select(ISelectResult[] selects, bool distinct)
-        {
-            SelectResults = selects?.OfType<QuerySelectResult>()?.ToArray() ?? new QuerySelectResult[0];
-
-            SelectImpl = this;
-            Distinct = distinct;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public object ToJSON()
-        {
-            var obj = new List<object?>();
-            foreach (var o in SelectResults) {
-                obj.Add(o.ToJSON());
-            }
-
-            return obj;
-        }
-
-        #endregion
-
-        #region IFromRouter
-
-        public IFrom From(IDataSource dataSource)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
-            return new From(this, dataSource);
-        }
-
-        #endregion
-
-        #region IJoinRouter
-
-        public IJoin Join(params IJoin[] joins)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
-            return new QueryJoin(this, joins);
-        }
-
-        #endregion
+    public IJoin Join(params IJoin[] joins)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
+        return new QueryJoin(this, joins);
     }
 }

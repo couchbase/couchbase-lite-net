@@ -17,62 +17,51 @@
 // 
 #if __ANDROID__
 using System;
-using System.Collections.Generic;
 using System.Threading;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency]
+internal sealed class AndroidConsoleLogger : IConsoleLogger
 {
-    [CouchbaseDependency]
-    internal sealed class AndroidConsoleLogger : IConsoleLogger
+    public LogDomain Domains { get; set; } = LogDomain.All;
+
+    public LogLevel Level { get; set; } = LogLevel.Warning;
+
+    private static string MakeMessage(string message, LogDomain domain)
     {
-        #region Properties
+        var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
+        return $"[{threadId}]| [{domain}] {message}";
+    }
 
-        public LogDomain Domains { get; set; } = LogDomain.All;
-
-        public LogLevel Level { get; set; } = LogLevel.Warning;
-
-        #endregion
-
-        #region Private Methods
-
-        private static string MakeMessage(string message, LogLevel level, LogDomain domain)
-        {
-            var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
-            return $"[{threadId}]| [{domain}] {message}";
+    public void Log(LogLevel level, LogDomain domain, string message)
+    {
+        if (level < Level || !Domains.HasFlag(domain)) {
+            return;
         }
 
-        #endregion
-
-        #region ILogger
-
-        public void Log(LogLevel level, LogDomain domain, string message)
-        {
-            if (level < Level || !Domains.HasFlag(domain)) {
-                return;
-            }
-
-            var finalStr = MakeMessage(message, level, domain);
-            switch (level) {
-                case LogLevel.Error:
-                    global::Android.Util.Log.Error("CouchbaseLite", finalStr);
-                    break;
-                case LogLevel.Warning:
-                    global::Android.Util.Log.Warn("CouchbaseLite", finalStr);
-                    break;
-                case LogLevel.Info:
-                    global::Android.Util.Log.Info("CouchbaseLite", finalStr);
-                    break;
-                case LogLevel.Verbose:
-                case LogLevel.Debug:
-                    global::Android.Util.Log.Verbose("CouchbaseLite", finalStr);
-                    break;
-            }
+        var finalStr = MakeMessage(message, domain);
+        switch (level) {
+            case LogLevel.Error:
+                global::Android.Util.Log.Error("CouchbaseLite", finalStr);
+                break;
+            case LogLevel.Warning:
+                global::Android.Util.Log.Warn("CouchbaseLite", finalStr);
+                break;
+            case LogLevel.Info:
+                global::Android.Util.Log.Info("CouchbaseLite", finalStr);
+                break;
+            case LogLevel.Verbose:
+            case LogLevel.Debug:
+                global::Android.Util.Log.Verbose("CouchbaseLite", finalStr);
+                break;
+            case LogLevel.None:
+            default:
+                throw new ArgumentOutOfRangeException(nameof(level), level, null);
         }
-
-        #endregion
     }
 }
 #endif

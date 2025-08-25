@@ -16,46 +16,36 @@
 // limitations under the License.
 // 
 using System;
+using System.Diagnostics.CodeAnalysis;
+
 using Couchbase.Lite.Sync;
 
-namespace Couchbase.Lite.DI
+namespace Couchbase.Lite.DI;
+
+/// <summary>
+/// An interface for describing whether a given URL is reachable via
+/// network connection or not.
+/// </summary>
+public interface IReachability
 {
     /// <summary>
-    /// An interface for describing whether a given URL is reachable via
-    /// network connection or not.
+    /// Fired when the status of connectivity changes
     /// </summary>
-    public interface IReachability
-    {
-        #region Variables
+    event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
-        /// <summary>
-        /// Fired when the status of connectivity changes
-        /// </summary>
-        event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+    /// <summary>
+    /// The URL to track connectivity to
+    /// </summary>
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
+    Uri? Url { get; set; }
 
-        #endregion
+    /// <summary>
+    /// Start monitoring for changes in network status
+    /// </summary>
+    void Start();
 
-        #region Properties
-
-        /// <summary>
-        /// The URL to track connectivity to
-        /// </summary>
-        Uri? Url { get; set; }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Start monitoring for changes in network status
-        /// </summary>
-        void Start();
-
-        /// <summary>
-        /// Stop monitoring for changes in network status
-        /// </summary>
-        void Stop();
-
-        #endregion
-    }
+    /// <summary>
+    /// Stop monitoring for changes in network status
+    /// </summary>
+    void Stop();
 }

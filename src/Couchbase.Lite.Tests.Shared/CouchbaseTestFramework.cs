@@ -19,9 +19,9 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -31,19 +31,21 @@ namespace Test
     // in which a single test is ready for execution, and any final processing is done.
     // We use this opportunity to log some messages (notably that the test started) for 
     // diagnostic purposes.
-    internal sealed class CouchbaseTestMethodRunner : XunitTestMethodRunner
+    internal sealed class CouchbaseTestMethodRunner(
+        ITestMethod method,
+        IReflectionTypeInfo classInfo,
+        IReflectionMethodInfo methodInfo,
+        IEnumerable<IXunitTestCase> testCases,
+        IMessageSink diagnosticSink,
+        IMessageBus messageBus,
+        ExceptionAggregator aggregator,
+        CancellationTokenSource cancellationTokenSource,
+        object[] constructorArgs)
+        : XunitTestMethodRunner(method, classInfo, methodInfo, testCases, diagnosticSink, messageBus, aggregator, cancellationTokenSource, constructorArgs)
     {
-        private readonly IMessageSink _diagnosticSink;
+        private readonly IMessageSink _diagnosticSink = diagnosticSink;
 
-        public CouchbaseTestMethodRunner(ITestMethod method, IReflectionTypeInfo classInfo, IReflectionMethodInfo methodInfo,
-            IEnumerable<IXunitTestCase> testCases, IMessageSink diagnosticSink, IMessageBus messageBus, ExceptionAggregator aggregator,
-            CancellationTokenSource cancellationTokenSource, object[] constructorArgs)
-            : base(method, classInfo, methodInfo, testCases, diagnosticSink, messageBus, aggregator, cancellationTokenSource, constructorArgs)
-        {
-            _diagnosticSink = diagnosticSink;
-        }
-
-        protected override async Task<RunSummary> RunTestCaseAsync(IXunitTestCase testCase)
+        protected async override Task<RunSummary> RunTestCaseAsync(IXunitTestCase testCase)
         {
             _diagnosticSink.OnMessage(new DiagnosticMessage($"Starting {testCase.TestMethod.Method.Name}..."));
 
@@ -64,16 +66,18 @@ namespace Test
     // and processed before being sent to the final level.  Unless there are variations in the passed
     // arguments for a test (aka Theory) this probably will only result in one test being sent on.  We 
     // do no processing at the moment.
-    internal sealed class CouchbaseTestClassRunner : XunitTestClassRunner
+    internal sealed class CouchbaseTestClassRunner(
+        ITestClass testClass,
+        IReflectionTypeInfo classInfo,
+        IEnumerable<IXunitTestCase> testCases,
+        IMessageSink diagnosticMessageSink,
+        IMessageBus messageBus,
+        ITestCaseOrderer testCaseOrderer,
+        ExceptionAggregator aggregator,
+        CancellationTokenSource cancellationTokenSource,
+        IDictionary<Type, object> collectionFixtureMappings)
+        : XunitTestClassRunner(testClass, classInfo, testCases, diagnosticMessageSink, messageBus, testCaseOrderer, aggregator, cancellationTokenSource, collectionFixtureMappings)
     {
-        public CouchbaseTestClassRunner(ITestClass testClass, IReflectionTypeInfo classInfo, IEnumerable<IXunitTestCase> testCases, 
-            IMessageSink diagnosticMessageSink, IMessageBus messageBus, ITestCaseOrderer testCaseOrderer, ExceptionAggregator aggregator, 
-            CancellationTokenSource cancellationTokenSource, IDictionary<Type, object> collectionFixtureMappings)
-            : base(testClass, classInfo, testCases, diagnosticMessageSink, messageBus, testCaseOrderer, aggregator, cancellationTokenSource, collectionFixtureMappings)
-        {
-
-        }
-
         protected override Task<RunSummary> RunTestMethodAsync(ITestMethod testMethod, IReflectionMethodInfo method, IEnumerable<IXunitTestCase> testCases, 
             object[] constructorArguments)
         {
@@ -85,15 +89,16 @@ namespace Test
 
     // Factory level 4, in which the discovered tests in a given collection are grouped by test class name
     // and processed before being sent onto level 5 (we do no processing at the moment)
-    internal sealed class CouchbaseTestCollectionRunner : XunitTestCollectionRunner
+    internal sealed class CouchbaseTestCollectionRunner(
+        ITestCollection testCollection,
+        IEnumerable<IXunitTestCase> testCases,
+        IMessageSink diagnosticMessageSink,
+        IMessageBus messageBus,
+        ITestCaseOrderer testCaseOrderer,
+        ExceptionAggregator aggregator,
+        CancellationTokenSource cancellationTokenSource)
+        : XunitTestCollectionRunner(testCollection, testCases, diagnosticMessageSink, messageBus, testCaseOrderer, aggregator, cancellationTokenSource)
     {
-        public CouchbaseTestCollectionRunner(ITestCollection testCollection, IEnumerable<IXunitTestCase> testCases, IMessageSink diagnosticMessageSink, 
-            IMessageBus messageBus, ITestCaseOrderer testCaseOrderer, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
-            : base(testCollection, testCases, diagnosticMessageSink, messageBus, testCaseOrderer, aggregator, cancellationTokenSource)
-        {
-
-        }
-
         protected override Task<RunSummary> RunTestClassAsync(ITestClass testClass, IReflectionTypeInfo @class, IEnumerable<IXunitTestCase> testCases)
         {
             DiagnosticMessageSink.OnMessage(new DiagnosticMessage($"Starting class {testClass.Class.Name}..."));
@@ -109,14 +114,14 @@ namespace Test
 
     // Factory level 3, in which the discovered tests are grouped by collection and each collection processed
     // before being sent onto level 4 (we do no processing at the moment)
-    internal sealed class CouchbaseAssemblyRunner : XunitTestAssemblyRunner
+    internal sealed class CouchbaseAssemblyRunner(
+        ITestAssembly testAssembly,
+        IEnumerable<IXunitTestCase> testCases,
+        IMessageSink diagnosticMessageSink,
+        IMessageSink executionMessageSink,
+        ITestFrameworkExecutionOptions executionOptions)
+        : XunitTestAssemblyRunner(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions)
     {
-        public CouchbaseAssemblyRunner(ITestAssembly testAssembly, IEnumerable<IXunitTestCase> testCases, IMessageSink diagnosticMessageSink, 
-            IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
-            : base(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions)
-        {
-        }
-
         protected override Task<RunSummary> RunTestCollectionAsync(IMessageBus messageBus, ITestCollection testCollection, 
             IEnumerable<IXunitTestCase> testCases, CancellationTokenSource cancellationTokenSource)
         {
@@ -128,18 +133,16 @@ namespace Test
 
     // Factory level 2, in which all the discovered test cases in a given assembly are processed
     // before being sent onto level 3 (we do no processing at the moment, just sent them on as-is)
-    internal sealed class CouchbaseExecutor : XunitTestFrameworkExecutor
+    internal sealed class CouchbaseExecutor(AssemblyName assemblyName, ISourceInformationProvider sourceInformationProvider, IMessageSink messageSink) : XunitTestFrameworkExecutor(assemblyName, sourceInformationProvider, messageSink)
     {
-        public CouchbaseExecutor(AssemblyName assemblyName, ISourceInformationProvider sourceInformationProvider, IMessageSink messageSink)
-            : base(assemblyName, sourceInformationProvider, messageSink)
+        protected async override void RunTestCases(IEnumerable<IXunitTestCase> testCases, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
         {
-            
-        }
-
-        protected override async void RunTestCases(IEnumerable<IXunitTestCase> testCases, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
-        {
-            using var assemblyRunner = new CouchbaseAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSink, executionOptions);
-            await assemblyRunner.RunAsync();
+            try {
+                using var assemblyRunner = new CouchbaseAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSink, executionOptions);
+                await assemblyRunner.RunAsync();
+            } catch (Exception e) {
+                executionMessageSink.OnMessage(new DiagnosticMessage("[FATAL] Unhandled exception in test execution {0}", e));
+            }
         }
     }
 

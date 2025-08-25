@@ -16,23 +16,17 @@
 //  limitations under the License.
 //
 
-namespace Couchbase.Lite.DI
+namespace Couchbase.Lite.DI;
+
+/// <summary>
+/// An interface for resolving the default directory for a Couchbase Lite database
+/// since we may be operating in a sandboxed environment
+/// </summary>
+public interface IDefaultDirectoryResolver
 {
-
     /// <summary>
-    /// An interface for resolving the default directory for a Couchbase Lite database
-    /// since we may be operating in a sandboxed environment
+    /// Gets the default directory for a Couchbase Lite database to live in
     /// </summary>
-    public interface IDefaultDirectoryResolver
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Gets the default directory for a Couchbase Lite database to live in
-        /// </summary>
-        /// <returns>The default directory for a Couchbase Lite database to live in</returns>
-        string DefaultDirectory();
-
-        #endregion
-    }
+    /// <returns>The default directory for a Couchbase Lite database to live in</returns>
+    string DefaultDirectory();
 }

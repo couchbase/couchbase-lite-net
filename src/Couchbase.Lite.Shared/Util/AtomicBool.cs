@@ -17,35 +17,18 @@
 // 
 using System.Threading;
 
-namespace Couchbase.Lite.Util
+namespace Couchbase.Lite.Util;
+
+internal struct AtomicBool(bool value)
 {
-    internal struct AtomicBool
-    {
-        private int _value;
+    private int _value = value ? 1 : 0;
 
-        public AtomicBool(bool value)
-        {
-            _value = value ? 1 : 0;
-        }
+    public bool Set(bool value) => 
+        Interlocked.Exchange(ref _value, value ? 1 : 0) != 0;
 
-        public bool Set(bool value)
-        {
-            return Interlocked.Exchange(ref _value, value ? 1 : 0) != 0;
-        }
+    public static implicit operator bool(AtomicBool value) => 
+        value._value != 0;
 
-        public bool CompareExchange(bool value, bool condition)
-        {
-            return Interlocked.CompareExchange(ref _value, value ? 1 : 0, condition ? 1 : 0) != 0;
-        }
-
-        public static implicit operator bool(AtomicBool value)
-        {
-            return value._value != 0;
-        }
-
-        public static implicit operator AtomicBool(bool value)
-        {
-            return new AtomicBool(value);
-        }
-    }
+    public static implicit operator AtomicBool(bool value) => 
+        new(value);
 }

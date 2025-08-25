@@ -16,11 +16,9 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
-{
-    /// <summary>
-    /// An interface representing the SELECT portion of an <see cref="IQuery"/>
-    /// </summary>
-    public interface ISelect : IFromRouter
-    {}
-}
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing the SELECT portion of an <see cref="IQuery"/>
+/// </summary>
+public interface ISelect : IFromRouter;

@@ -27,42 +27,29 @@ using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[ExcludeFromCodeCoverage]
+internal sealed class LinuxProxy : IProxy
 {
-    [ExcludeFromCodeCoverage]
-    internal sealed class LinuxProxy : IProxy
+    private const string Tag = nameof(LinuxProxy);
+
+    private static bool Logged;
+
+    public Task<WebProxy?> CreateProxyAsync(Uri destination)
     {
-        #region Constants
-
-        private const string Tag = nameof(LinuxProxy);
-
-        #endregion
-
-        #region Variables
-
-        private static bool _Logged;
-
-        #endregion
-
-        #region IProxy
-
-        public Task<WebProxy?> CreateProxyAsync(Uri destination)
-        {
-            if (!_Logged) {
-                WriteLog.To.Sync.W(Tag, "Linux does not support per URL proxy evaluation");
-                _Logged = true;
-            }
-
-            var proxyAddress = Environment.GetEnvironmentVariable("http_proxy") ?? Environment.GetEnvironmentVariable("all_proxy");
-            if (proxyAddress == null) {
-                return Task.FromResult(default(WebProxy));
-            }
-
-            var ignored = Environment.GetEnvironmentVariable("no_proxy")?.Split(',');
-            return Task.FromResult<WebProxy?>(new WebProxy(new Uri(proxyAddress), ignored?.Contains("<local>") == true || ignored?.Contains("*") == true, ignored));
+        if (!Logged) {
+            WriteLog.To.Sync.W(Tag, "Linux does not support per URL proxy evaluation");
+            Logged = true;
         }
 
-        #endregion
+        var proxyAddress = Environment.GetEnvironmentVariable("http_proxy") ?? Environment.GetEnvironmentVariable("all_proxy");
+        if (proxyAddress == null) {
+            return Task.FromResult(default(WebProxy));
+        }
+
+        var ignored = Environment.GetEnvironmentVariable("no_proxy")?.Split(',');
+        return Task.FromResult<WebProxy?>(new WebProxy(new Uri(proxyAddress), ignored?.Contains("<local>") == true || ignored?.Contains("*") == true, ignored));
     }
 }
 #endif

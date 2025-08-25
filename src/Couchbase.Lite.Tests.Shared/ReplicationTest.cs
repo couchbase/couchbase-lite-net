@@ -1692,7 +1692,7 @@ namespace Test
                 tmpDoc.SetString("foo", "bar");
                 thirdDb.GetDefaultCollection().Save(tmpDoc);
 
-                var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
+                var differentDbResolver = new TestConflictResolver(_ => tmpDoc);
 
                 TestConflictResolverExceptionThrown(differentDbResolver, true);
                 DefaultCollection.GetDocument("doc1")?.GetString("name").ShouldBe("Human");
@@ -1754,15 +1754,15 @@ namespace Test
                 using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("name", "Tiger");
                     DefaultCollection.Save(doc1);
-                    doc1.c4Doc.ShouldNotBeNull("because otherwise there is a serious internal bug");
-                    flags = doc1.c4Doc!.RawDoc->flags;
+                    doc1.C4Doc.ShouldNotBeNull("because otherwise there is a serious internal bug");
+                    flags = doc1.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
                 using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("name", "Tiger");
                     OtherDefaultCollection.Save(doc1);
-                    flags = doc1.c4Doc!.RawDoc->flags;
+                    flags = doc1.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
@@ -1772,7 +1772,7 @@ namespace Test
                     doc1aMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     doc1aMutable!.SetString("name", "Cat");
                     DefaultCollection.Save(doc1aMutable);
-                    flags = doc1aMutable.c4Doc!.RawDoc->flags;
+                    flags = doc1aMutable.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
@@ -1781,7 +1781,7 @@ namespace Test
                     doc1aMutable.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     doc1aMutable!.SetString("name", "Lion");
                     OtherDefaultCollection.Save(doc1aMutable);
-                    flags = doc1aMutable.c4Doc!.RawDoc->flags;
+                    flags = doc1aMutable.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
 
@@ -1795,7 +1795,7 @@ namespace Test
                     dict.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
                     var doc = new MutableDocument();
                     doc.SetValue("nestedBlob", dict);
-                    flags = conflict.LocalDocument!.c4Doc!.RawDoc->flags;
+                    flags = conflict.LocalDocument!.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocConflicted).ShouldBeTrue();
 
                     return doc;
@@ -1812,7 +1812,7 @@ namespace Test
                     doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                     var dict = doc!.GetValue("nestedBlob");
                     ((DictionaryObject?)dict)!.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(new byte[] { 6, 6, 6 });
-                    flags = doc.c4Doc!.RawDoc->flags;
+                    flags = doc.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                 }
             }
@@ -1848,7 +1848,7 @@ namespace Test
             C4DocumentFlags flags = (C4DocumentFlags)0;
             var resolver = new TestConflictResolver((conflict) => {
                 unsafe {
-                    flags = conflict.LocalDocument!.c4Doc!.RawDoc->flags;
+                    flags = conflict.LocalDocument!.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocConflicted).ShouldBeTrue();
                     flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     return conflict.LocalDocument;
@@ -1866,7 +1866,7 @@ namespace Test
                 doc.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
                 doc!.GetBlob("blob")?.Content.ShouldBeEquivalentToFluent(new byte[] { 6, 6, 6 });
                 unsafe {
-                    flags = doc.c4Doc!.RawDoc->flags;
+                    flags = doc.C4Doc!.RawDoc->flags;
                 }
             }
 
@@ -2960,14 +2960,14 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                             args.Documents[0].Error!.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite,
                                 $"because otherwise the wrong error ({args.Documents[0].Error!.Error}) occurred");
                             args.Documents[0].Error!.Error.ShouldBe((int)CouchbaseLiteError.UnexpectedError);
-                            var innerException = ((ReplicatedDocument[])args.Documents)[0].Error!.InnerException;
+                            var innerException = args.Documents[0].Error!.InnerException;
                             if (innerException is InvalidOperationException) {
                                 if (withBlob) {
                                     innerException.Message.ShouldBe(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
                                 } else {
                                     innerException.Message.ShouldStartWith("Resolved document's database different_db is different from expected database");
                                 }
-                            } else if (innerException is Exception) {
+                            } else if (innerException != null) {
                                 innerException.Message.ShouldBe("Customer side exception");
                             }
                         });
@@ -3047,7 +3047,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
                     DefaultCollection.Save(doc1);
                     if (checkFlags) {
-                        flags = doc1.c4Doc!.RawDoc->flags;
+                        flags = doc1.C4Doc!.RawDoc->flags;
                         flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }
@@ -3057,7 +3057,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
                     OtherDefaultCollection.Save(doc1);
                     if (checkFlags) {
-                        flags = doc1.c4Doc!.RawDoc->flags;
+                        flags = doc1.C4Doc!.RawDoc->flags;
                         flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }
@@ -3072,7 +3072,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
                     DefaultCollection.Save(doc1aMutable);
                     if (checkFlags) {
-                        flags = doc1aMutable.c4Doc!.RawDoc->flags;
+                        flags = doc1aMutable.C4Doc!.RawDoc->flags;
                         flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }
@@ -3086,7 +3086,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     doc1aMutable.SetBlob("blob", new Blob("text/plaintext", luckyByteArray));
                     OtherDefaultCollection.Save(doc1aMutable);
                     if (checkFlags) {
-                        flags = doc1aMutable.c4Doc!.RawDoc->flags;
+                        flags = doc1aMutable.C4Doc!.RawDoc->flags;
                         flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).ShouldBeTrue();
                     }
                 }

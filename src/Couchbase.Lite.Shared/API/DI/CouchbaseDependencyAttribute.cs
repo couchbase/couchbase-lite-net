@@ -19,30 +19,27 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Couchbase.Lite.DI
+namespace Couchbase.Lite.DI;
+
+/// <summary>
+/// An attribute to indicate that the specified class implements a dependency for
+/// Couchbase Lite (e.g. <see cref="IDefaultDirectoryResolver"/>)
+/// </summary>
+[ExcludeFromCodeCoverage]
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class CouchbaseDependencyAttribute : Attribute
 {
     /// <summary>
-    /// An attribute to indicate that the specified class implements a dependency for
-    /// Couchbase Lite (e.g. <see cref="IDefaultDirectoryResolver"/>
+    /// Gets or sets if the dependency should be created when it is
+    /// first requested (<c>true</c>) or immediately upon registration.
     /// </summary>
-    [ExcludeFromCodeCoverage]
-    [AttributeUsage(AttributeTargets.Class)]
-    public sealed class CouchbaseDependencyAttribute : Attribute
-    {
-        #region Properties
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+    public bool Lazy { get; set; }
 
-        /// <summary>
-        /// Gets or sets if the dependency should be created when it is
-        /// first requested (<c>true</c>) or immediately upon registration.
-        /// </summary>
-        public bool Lazy { get; set; }
-
-        /// <summary>
-        /// Gets or sets if the dependency is transient (i.e. should be created
-        /// on each request)
-        /// </summary>
-        public bool Transient { get; set; }
-
-        #endregion
-    }
+    /// <summary>
+    /// Gets or sets if the dependency is transient (i.e. should be created
+    /// on each request)
+    /// </summary>
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+    public bool Transient { get; set; }
 }

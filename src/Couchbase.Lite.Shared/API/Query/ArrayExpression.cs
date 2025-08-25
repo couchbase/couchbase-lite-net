@@ -20,69 +20,64 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A class containing methods for generating queries that operate on
+/// array types
+/// </summary>
+public static class ArrayExpression
 {
+    private const string Tag = nameof(ArrayExpression);
+
     /// <summary>
-    /// A class containing methods for generating queries that operate on
-    /// array types
+    /// Returns the start of an expression that will evaluate if any elements
+    /// inside an array match a given predicate
+    /// 
+    /// Usage:  <code>ArrayExpression.Any("x").In(Expression.Property("prop")).Satisfies(ArrayExpression.Variable("x").EqualTo(42))</code>
     /// </summary>
-    public static class ArrayExpression
-    {
-        #region Constants
+    /// <param name="variable">The name to assign to the variable that will be used later
+    /// via <see cref="Variable"/></param>
+    /// <returns>The first portion of the completed expression for further modification</returns>
+    public static IArrayExpressionIn Any(IVariableExpression variable) => 
+        new QueryTernaryExpression("ANY",
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
-        private const string Tag = nameof(ArrayExpression);
+    /// <summary>
+    /// Returns the start of an expression that will evaluate the following:
+    /// 1. The array is not empty (has "any" elements)
+    /// 2. Every element in the array matches a given predicate ("every" element matches)
+    /// 
+    /// Usage:  <code>ArrayExpression.AnyAndEvery("x").In(Expression.Property("prop")).Satisfies(ArrayExpression.Variable("x").EqualTo(42))</code>
+    /// </summary>
+    /// <param name="variable">The name to assign to the variable that will be used later
+    /// via <see cref="Variable"/></param>
+    /// <returns>The first portion of the completed expression for further modification</returns>
+    public static IArrayExpressionIn AnyAndEvery(IVariableExpression variable) => 
+        new QueryTernaryExpression("ANY AND EVERY",
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
-        #endregion
+    /// <summary>
+    /// Returns the start of an expression that will evaluate if every element inside
+    /// an array matches a given predicate (note: That means that an empty array will
+    /// return <c>true</c> because "all zero" elements match)
+    /// 
+    /// Usage:  <code>ArrayExpression.Every("x").In(Expression.Property("prop")).Satisfies(ArrayExpression.Variable("x").EqualTo(42))</code>
+    /// </summary>
+    /// <param name="variable">The name to assign to the variable that will be used later
+    /// via <see cref="Variable"/></param>
+    /// <returns>The first portion of the completed expression for further modification</returns>
+    public static IArrayExpressionIn Every(IVariableExpression variable) => 
+        new QueryTernaryExpression("EVERY",
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
-        /// <summary>
-        /// Returns the start of an expression that will evaluate if any elements
-        /// inside of an array match a given predicate
-        /// 
-        /// Usage:  <code>ArrayExpression.Any("x").In(Expression.Property("prop")).Satisfies(ArrayExpression.Variable("x").EqualTo(42))</code>
-        /// </summary>
-        /// <param name="variable">The name to assign to the variable that will be used later
-        /// via <see cref="Variable"/></param>
-        /// <returns>The first portion of the completed expression for further modification</returns>
-        public static IArrayExpressionIn Any(IVariableExpression variable) => 
-            new QueryTernaryExpression("ANY",
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
-
-        /// <summary>
-        /// Returns the start of an expression that will evaluate the following:
-        /// 1. The array is not empty (has "any" elements)
-        /// 2. Every element in the array matches a given predicate ("every" element matches)
-        /// 
-        /// Usage:  <code>ArrayExpression.AnyAndEvery("x").In(Expression.Property("prop")).Satisfies(ArrayExpression.Variable("x").EqualTo(42))</code>
-        /// </summary>
-        /// <param name="variable">The name to assign to the variable that will be used later
-        /// via <see cref="Variable"/></param>
-        /// <returns>The first portion of the completed expression for further modification</returns>
-        public static IArrayExpressionIn AnyAndEvery(IVariableExpression variable) => 
-            new QueryTernaryExpression("ANY AND EVERY",
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
-
-        /// <summary>
-        /// Returns the start of an expression that will evaluate if every element inside
-        /// of an array matches a given predicate (note: That means that an empty array will
-        /// return <c>true</c> because "all zero" elements match)
-        /// 
-        /// Usage:  <code>ArrayExpression.Every("x").In(Expression.Property("prop")).Satisfies(ArrayExpression.Variable("x").EqualTo(42))</code>
-        /// </summary>
-        /// <param name="variable">The name to assign to the variable that will be used later
-        /// via <see cref="Variable"/></param>
-        /// <returns>The first portion of the completed expression for further modification</returns>
-        public static IArrayExpressionIn Every(IVariableExpression variable) => 
-            new QueryTernaryExpression("EVERY",
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
-
-        /// <summary>
-        /// Returns an expression representing the value of a named variable
-        /// assigned by earlier calls to <see cref="Any"/> and family.
-        /// </summary>
-        /// <param name="name">The name of the variable</param>
-        /// <returns>An expression representing the value of a named variable</returns>
-        public static IVariableExpression Variable(string name) => 
-            new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
-                ExpressionType.Variable);
-    }
+    /// <summary>
+    /// Returns an expression representing the value of a named variable
+    /// assigned by earlier calls to <see cref="Any"/> and family.
+    /// </summary>
+    /// <param name="name">The name of the variable</param>
+    /// <returns>An expression representing the value of a named variable</returns>
+    public static IVariableExpression Variable(string name) => 
+        new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
+            ExpressionType.Variable);
 }

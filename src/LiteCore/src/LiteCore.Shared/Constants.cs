@@ -16,21 +16,20 @@
 // limitations under the License.
 //
 
-namespace LiteCore
+namespace LiteCore;
+
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+internal static class Constants
 {
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    internal static class Constants
-    {
-        internal const string DllName = "LiteCore";
+    internal const string DllName = "LiteCore";
         
-        internal static readonly string ObjectTypeProperty = "@type";
+    internal static readonly string ObjectTypeProperty = "@type";
         
-        internal static readonly string ObjectTypeBlob = "blob";
+    internal static readonly string ObjectTypeBlob = "blob";
         
-        internal static readonly string? C4LanguageDefault = null;
+    internal static readonly string? C4LanguageDefault = null;
         
-        internal static readonly string C4LanguageNone = "";
+    internal static readonly string C4LanguageNone = "";
         
-        internal static readonly string C4PlaceholderValue = "*";
-    }
+    internal static readonly string C4PlaceholderValue = "*";
 }

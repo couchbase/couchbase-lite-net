@@ -24,216 +24,198 @@ using LiteCore.Interop;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite.Internal.Doc;
+
+internal static class DataOps
 {
-    internal static class DataOps
+    internal static T? ParseTo<T>(string json)
     {
-        #region Internal Methods
+        T? retVal;
+        try {
+            var settings = new JsonSerializerSettings {
+                DateParseHandling = DateParseHandling.DateTimeOffset,
+                TypeNameHandling = TypeNameHandling.All
+            };
+            retVal = JsonConvert.DeserializeObject<T>(json, settings);
+        } catch {
+            throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+        }
 
-        internal static T? ParseTo<T>(string json)
+        return retVal;
+    }
+
+    internal static bool ConvertToBoolean(object? value)
+    {
+        return value switch
         {
-            T? retVal;
-            try {
-                var settings = new JsonSerializerSettings {
-                    DateParseHandling = DateParseHandling.DateTimeOffset,
-                    TypeNameHandling = TypeNameHandling.All
+            null => false,
+            string => true, // string is IConvertible, but will throw on things other than true or false
+            IConvertible c => c.ToBoolean(CultureInfo.InvariantCulture),
+            _ => true
+        };
+    }
+
+    internal static DateTimeOffset ConvertToDate(object? value)
+    {
+        switch (value) {
+            case null:
+                return DateTimeOffset.MinValue;
+            case DateTimeOffset dto:
+                return dto;
+            case DateTime dt:
+                return new DateTimeOffset(dt.ToUniversalTime());
+            case string s:
+                if (DateTimeOffset.TryParseExact(s, "o", CultureInfo.InvariantCulture, DateTimeStyles.None,
+                    out var retVal)) {
+                    return retVal;
+                }
+
+                return DateTimeOffset.MinValue;
+            default:
+                return DateTimeOffset.MinValue;
+        }
+    }
+
+    internal static double ConvertToDouble(object? value)
+    {
+        // NOTE: Cannot use ConvertToDecimal because double has a greater range
+        return value switch
+        {
+            string => 0.0, // string is IConvertible, but will throw for non-numeric strings
+            IConvertible c => c.ToDouble(CultureInfo.InvariantCulture),
+            _ => 0.0
+        };
+    }
+
+    internal static float ConvertToFloat(object? value)
+    {
+        // NOTE: Cannot use ConvertToDecimal because float has a greater range
+        return value switch
+        {
+            string => 0.0f, // string is IConvertible, but will throw for non-numeric strings
+            IConvertible c => c.ToSingle(CultureInfo.InvariantCulture),
+            _ => 0.0f
+        };
+    }
+
+    internal static int ConvertToInt(object? value)
+    {
+        return (int)Math.Truncate(ConvertToDecimal(value));
+    }
+
+    internal static long ConvertToLong(object? value)
+    {
+        return (long)Math.Truncate(ConvertToDecimal(value));
+    }
+
+    //makes sure it is ArrayObject / DictionaryObject instead of List and Dictionary
+    internal static object? ToCouchbaseObject(object? value)
+    {
+        switch (value) {
+            case null:
+                return null;
+            case DateTimeOffset dto:
+                return dto.ToString("o");
+            case DictionaryObject rodic and not MutableDictionaryObject:
+                return rodic.ToMutable();
+            case ArrayObject roarr and not MutableArrayObject:
+                return roarr.ToMutable();
+            case JObject jobj:
+                var jobjDict = jobj.ToObject<IDictionary<string, object>>();
+
+                //The dictionary may contain the json dict represents Blob. Developer should be able to retrieve Blob object using the Database.GetBlob(dict).
+                return ConvertDictionary(jobjDict!); 
+            case JArray jarr:
+                return ConvertList(jarr.ToObject<IList>()!);
+            case JToken jToken:
+                return jToken.Type switch
+                {
+                    JTokenType.Date => (DateTimeOffset)jToken,
+                    _ => jToken.ToObject<object>()
                 };
-                retVal = JsonConvert.DeserializeObject<T>(json, settings);
-            } catch {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
+            case IDictionary<string, object?> dict:
+                return ConvertDictionary(dict);
+            case IList list:
+                return ConvertList(list);
+            case byte:
+            case sbyte:
+            case ushort:
+            case short:
+            case uint:
+            case int:
+            case long:
+            case ulong:
+            case string:
+            case bool:
+            case float:
+            case double:
+            case MutableArrayObject:
+            case MutableDictionaryObject:
+            case Blob:
+                return value;
+            default:
+                throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidCouchbaseObjType, value.GetType().Name,
+                    "byte, sbyte, short, ushort, int, uint, long, ulong, float, double, bool, DateTimeOffset, Blob," ));
+        }
+    }
 
-            return retVal;
+    internal static object? ToNetObject(object? value)
+    {
+        switch (value) {
+            case null:
+                return null;
+            case InMemoryDictionary inMem:
+                return inMem.ToDictionary();
+            case IDictionaryObject roDic:
+                return roDic.ToDictionary();
+            case IArray roarr:
+                return roarr.ToList();
+            default:
+                return value;
+        }
+    }
+
+    internal static unsafe bool ValueWouldChange(object? newValue, MValue oldValue, MCollection container)
+    {
+        // As a simplification we assume that array and fict values are always different, to avoid
+        // a possibly expensive comparison
+        var oldType = Native.FLValue_GetType(oldValue.Value);
+        if (oldType == FLValueType.Undefined || oldType == FLValueType.Dict || oldType == FLValueType.Array) {
+            return true;
         }
 
-        internal static bool ConvertToBoolean(object? value)
-        {
-            switch (value) {
-                case null:
-                    return false;
-                case string s:
-                    return true; // string is IConvertible, but will throw on things other than true or false
-                case IConvertible c:
-                    return c.ToBoolean(CultureInfo.InvariantCulture);
-                default:
-                    return true;
-            }
-        }
-
-        internal static DateTimeOffset ConvertToDate(object? value)
-        {
-            switch (value) {
-                case null:
-                    return DateTimeOffset.MinValue;
-                case DateTimeOffset dto:
-                    return dto;
-                case DateTime dt:
-                    return new DateTimeOffset(dt.ToUniversalTime());
-                case string s:
-                    if (DateTimeOffset.TryParseExact(s, "o", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                        out var retVal)) {
-                        return retVal;
-                    }
-
-                    return DateTimeOffset.MinValue;
-                default:
-                    return DateTimeOffset.MinValue;
-            }
-        }
-
-        internal static double ConvertToDouble(object? value)
-        {
-            // NOTE: Cannot use ConvertToDecimal because double has a greater range
-            switch (value) {
-                case string s: // string is IConvertible, but will throw for non-numeric strings
-                    return 0.0;
-                case IConvertible c:
-                    return c.ToDouble(CultureInfo.InvariantCulture);
-                default:
-                    return 0.0;
-            }
-        }
-
-        internal static float ConvertToFloat(object? value)
-        {
-            // NOTE: Cannot use ConvertToDecimal because float has a greater range
-            switch (value) {
-                case string s: // string is IConvertible, but will throw for non-numeric strings
-                    return 0.0f;
-                case IConvertible c:
-                    return c.ToSingle(CultureInfo.InvariantCulture);
-                default:
-                    return 0.0f;
-            }
-        }
-
-        internal static int ConvertToInt(object? value)
-        {
-            return (int)Math.Truncate(ConvertToDecimal(value));
-        }
-
-        internal static long ConvertToLong(object? value)
-        {
-            return (long)Math.Truncate(ConvertToDecimal(value));
-        }
-
-        //makes sure it is ArrayObject / DictionaryObject instead of List and Dictionary
-        internal static object? ToCouchbaseObject(object? value)
-        {
-            switch (value) {
-                case null:
-                    return null;
-                case DateTimeOffset dto:
-                    return dto.ToString("o");
-                case DictionaryObject rodic when !(rodic is MutableDictionaryObject):
-                    return rodic.ToMutable();
-                case ArrayObject roarr when !(roarr is MutableArrayObject):
-                    return roarr.ToMutable();
-                case JObject jobj:
-                    var jobjDict = jobj.ToObject<IDictionary<string, object>>();
-
-                    //The dictionary may contain the json dict represents Blob. Developer should be able to retrieve Blob object using the Database.GetBlob(dict).
-                    return ConvertDictionary(jobjDict!); 
-                case JArray jarr:
-                    return ConvertList(jarr.ToObject<IList>()!);
-                case JToken jToken:
-                    switch (jToken.Type) {
-                        case JTokenType.Date:
-                            return (DateTimeOffset) jToken;
-                        default:
-                            return jToken.ToObject<object>();
-                    }
-                case IDictionary<string, object?> dict:
-                    return ConvertDictionary(dict);
-                case IList list:
-                    return ConvertList(list);
-                case byte b:
-                case sbyte sb:
-                case ushort us:
-                case short s:
-                case uint ui:
-                case int i:
-                case long l:
-                case ulong ul:
-                case string str:
-                case bool bl:
-                case float f:
-                case double d:
-                case MutableArrayObject ao:
-                case MutableDictionaryObject dict:
-                case Blob blob:
-                    return value;
-                default:
-                    throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidCouchbaseObjType, value.GetType().Name,
-                        "byte, sbyte, short, ushort, int, uint, long, ulong, float, double, bool, DateTimeOffset, Blob," ));
-            }
-        }
-
-        internal static object? ToNetObject(object? value)
-        {
-            switch (value) {
-                case null:
-                    return null;
-                case InMemoryDictionary inMem:
-                    return inMem.ToDictionary();
-                case IDictionaryObject roDic:
-                    return roDic.ToDictionary();
-                case IArray roarr:
-                    return roarr.ToList();
-                default:
-                    return value;
-            }
-        }
-
-        internal static unsafe bool ValueWouldChange(object? newValue, MValue oldValue, MCollection container)
-        {
-            // As a simplification we assume that array and fict values are always different, to avoid
-            // a possibly expensive comparison
-            var oldType = Native.FLValue_GetType(oldValue.Value);
-            if (oldType == FLValueType.Undefined || oldType == FLValueType.Dict || oldType == FLValueType.Array) {
+        switch (newValue) {
+            case ArrayObject:
+            case DictionaryObject:
                 return true;
-            }
-
-            switch (newValue) {
-                case ArrayObject arr:
-                case DictionaryObject dict:
-                    return true;
-                default:
-                    var oldVal = oldValue.AsObject(container);
-                    return !newValue?.Equals(oldVal) ?? oldVal != null;
-            }
+            default:
+                var oldVal = oldValue.AsObject(container);
+                return !newValue?.Equals(oldVal) ?? oldVal != null;
         }
+    }
 
-        #endregion
+    private static MutableDictionaryObject ConvertDictionary(IDictionary<string, object?> dictionary)
+    {
+        var subdocument = new MutableDictionaryObject();
+        subdocument.SetData(dictionary);
+        return subdocument;
+    }
 
-        #region Private Methods
+    private static MutableArrayObject ConvertList(IList list)
+    {
+        var array = new MutableArrayObject();
+        array.SetData(list);
+        return array;
+    }
 
-        private static MutableDictionaryObject ConvertDictionary(IDictionary<string, object?> dictionary)
+    private static decimal ConvertToDecimal(object? value)
+    {
+        return value switch
         {
-            var subdocument = new MutableDictionaryObject();
-            subdocument.SetData(dictionary);
-            return subdocument;
-        }
-
-        private static MutableArrayObject ConvertList(IList list)
-        {
-            var array = new MutableArrayObject();
-            array.SetData(list);
-            return array;
-        }
-
-        private static decimal ConvertToDecimal(object? value)
-        {
-            switch (value) {
-                case string s: // string is IConvertible, but will throw for non-numeric strings
-                    return 0;
-                case IConvertible c:
-                    return c.ToDecimal(CultureInfo.InvariantCulture);
-                default:
-                    return 0;
-            }
-        }
-
-        #endregion
+            string => // string is IConvertible, but will throw for non-numeric strings
+                0,
+            IConvertible c => c.ToDecimal(CultureInfo.InvariantCulture),
+            _ => 0
+        };
     }
 }

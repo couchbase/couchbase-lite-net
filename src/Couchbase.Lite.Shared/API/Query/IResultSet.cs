@@ -19,24 +19,23 @@
 using System;
 using System.Collections.Generic;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing an enumerable collection of results
+/// from a given <see cref="IQuery"/>.
+/// </summary>
+/// <warning>
+/// Multiple enumerations are not supported.  If you wish to enumerate
+/// more than once, then use <see cref="AllResults"/> or another LINQ
+/// method to materialize the results.
+/// </warning>
+public interface IResultSet : IEnumerable<Result>, IDisposable
 {
     /// <summary>
-    /// An interface representing an enumerable collection of results
-    /// from a given <see cref="IQuery"/>.
+    /// Cross-platform API entry to get all results in a list.  Same
+    /// as <c>ToList()</c>
     /// </summary>
-    /// <warning>
-    /// Multiple enumerations are not supported.  If you wish to enumerate
-    /// more than once, then use <see cref="AllResults"/> or another LINQ
-    /// method to materialize the results.
-    /// </warning>
-    public interface IResultSet : IEnumerable<Result>, IDisposable
-    {
-        /// <summary>
-        /// Cross platform API entry to get all results in a list.  Same
-        /// as <c>ToList()</c>
-        /// </summary>
-        /// <returns>A list of results from the result set</returns>
-        List<Result> AllResults();
-    }
+    /// <returns>A list of results from the result set</returns>
+    List<Result> AllResults();
 }

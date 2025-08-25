@@ -22,6 +22,8 @@ using CoreFoundation;
 using Foundation;
 using System;
 using System.IO;
+using System.Threading;
+
 using UIKit;
 
 namespace Couchbase.Lite.Sync;
@@ -31,7 +33,7 @@ internal sealed class BackgroundMonitor
     private nint _bgTask = UIApplication.BackgroundTaskInvalid;
     private NSObject? _bgObserver;
     private NSObject? _fgObserver;
-    private readonly object _locker = new object();
+    private readonly Lock _locker = new Lock();
 
     public event EventHandler? OnAppBackgrounding;
     public event EventHandler? OnAppForegrounding;

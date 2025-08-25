@@ -21,68 +21,47 @@ using System;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// Represents a remote endpoint for a <see cref="Replicator"/>
+/// </summary>
+public sealed class URLEndpoint : IEndpointInternal
 {
+    private const string Tag = nameof(URLEndpoint);
+
     /// <summary>
-    /// Represents a remote endpoint for a <see cref="Replicator"/>
+    /// Gets the URL used to populate this endpoint
     /// </summary>
-    public sealed class URLEndpoint : IEndpointInternal
+    public Uri Url { get; }
+
+    /// <summary>
+    /// Constructs an endpoint given a url.  Note that the scheme must be ws or wss
+    /// or an exception will be thrown
+    /// </summary>
+    /// <param name="url">The url </param>
+    /// <exception cref="ArgumentException">Thrown if the url scheme is not ws or wss</exception>
+    public URLEndpoint(Uri url)
     {
-        #region Constants
-
-        private const string Tag = nameof(URLEndpoint);
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the URL used to populate this endpoint
-        /// </summary>
-        public Uri Url { get; }
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Constructs an endpoint given a url.  Note that the scheme must be ws or wss
-        /// or an exception will be thrown
-        /// </summary>
-        /// <param name="url">The url </param>
-        /// <exception cref="ArgumentException">Thrown if the url scheme is not ws or wss</exception>
-        public URLEndpoint(Uri url)
-        {
-            var urlToUse = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, "url", url);
-            if (!urlToUse.Scheme.StartsWith("ws")) {
-                throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidSchemeURLEndpoint, urlToUse.Scheme));
-            }
-
-            var userInfo = url.UserInfo?.Split(':');
-            if (userInfo?.Length == 2) {
-                throw new ArgumentException(
-                    CouchbaseLiteErrorMessage.InvalidEmbeddedCredentialsInURL);
-            }
-
-            Url = url;
+        var urlToUse = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, "url", url);
+        if (!urlToUse.Scheme.StartsWith("ws")) {
+            throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidSchemeURLEndpoint, urlToUse.Scheme));
         }
 
-        #endregion
-
-        #region Overrides
-
-        /// <inheritdoc />
-        public override string ToString() => Url.ToString();
-
-        #endregion
-
-        #region IEndpointInternal
-
-        void IEndpointInternal.Visit(ReplicatorConfiguration config)
-        {
-            config.RemoteUrl = Url;
+        var userInfo = url.UserInfo.Split(':');
+        if (userInfo.Length == 2) {
+            throw new ArgumentException(
+                CouchbaseLiteErrorMessage.InvalidEmbeddedCredentialsInURL);
         }
 
-        #endregion
+        Url = url;
+    }
+
+    /// <inheritdoc />
+    public override string ToString() => Url.ToString();
+
+    void IEndpointInternal.Visit(ReplicatorConfiguration config)
+    {
+        config.RemoteUrl = Url;
     }
 }

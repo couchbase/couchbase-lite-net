@@ -33,7 +33,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
-using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Sync;
@@ -107,37 +106,33 @@ namespace Test
 
             try {
                 var context = new DocContext(Db, null);
-                using (var mRoot = new MRoot(context)) {
-                    mRoot.Context.ShouldBeSameAs(context);
-                    Db.c4db.ShouldNotBeNull();
-                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
-                        FLTrust.Trusted,
-                        NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
-                    var flValue = Native.FLDoc_GetRoot(fleeceDoc);
-                    var mArr = new FleeceMutableArray(new MValue(flValue), mRoot);
-                    var deserializedArray = new ArrayObject(mArr, false);
-                    deserializedArray.GetArray(2).ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
-                    deserializedArray.GetArray(3).ShouldBeNull();
-                    deserializedArray.GetBlob(1).ShouldBeNull();
-                    deserializedArray.GetDate(3).ShouldBe(now);
-                    deserializedArray.GetDate(4).ShouldBe(DateTimeOffset.MinValue);
-                    deserializedArray[1].ToString().ShouldBe("str");
-                    deserializedArray.GetString(2).ShouldBeNull();
-                    deserializedArray.GetDictionary(4).ShouldBeEquivalentToFluent(nestedDict);
-                    deserializedArray[0].Dictionary.ShouldBeNull();
+                using var mRoot = new MRoot(context);
+                mRoot.Context.ShouldBeSameAs(context);
+                Db.C4db.ShouldNotBeNull();
+                var fleeceDoc = Native.FLDoc_FromResultData(flData,
+                    FLTrust.Trusted,
+                    NativeSafe.c4db_getFLSharedKeys(Db.C4db), FLSlice.Null);
+                var flValue = Native.FLDoc_GetRoot(fleeceDoc);
+                var mArr = new FleeceMutableArray(new MValue(flValue), mRoot);
+                var deserializedArray = new ArrayObject(mArr, false);
+                deserializedArray.GetArray(2).ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                deserializedArray.GetArray(3).ShouldBeNull();
+                deserializedArray.GetBlob(1).ShouldBeNull();
+                deserializedArray.GetDate(3).ShouldBe(now);
+                deserializedArray.GetDate(4).ShouldBe(DateTimeOffset.MinValue);
+                deserializedArray[1].ToString().ShouldBe("str");
+                deserializedArray.GetString(2).ShouldBeNull();
+                deserializedArray.GetDictionary(4).ShouldBeEquivalentToFluent(nestedDict);
+                deserializedArray[0].Dictionary.ShouldBeNull();
 
-                    var list = deserializedArray.ToList();
-                    list[2].ShouldBeAssignableTo<IList<object>>();
-                    list[4].ShouldBeAssignableTo<IDictionary<string, object>>();
+                var list = deserializedArray.ToList();
+                list[2].ShouldBeAssignableTo<IList<object>>();
+                list[4].ShouldBeAssignableTo<IDictionary<string, object>>();
 
-                    var mVal = new MValue();
-                    Native.FLDoc_Release(fleeceDoc);
-                }
+                Native.FLDoc_Release(fleeceDoc);
             } finally {
                 Native.FLSliceResult_Release(flData);
             }
-
-            var mroot = new MRoot();
         }
 
         [Fact]
@@ -203,10 +198,10 @@ namespace Test
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.ShouldBeSameAs(context);
-                    Db.c4db.ShouldNotBeNull();
+                    Db.C4db.ShouldNotBeNull();
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
-                        NativeSafe.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
+                        NativeSafe.c4db_getFLSharedKeys(Db.C4db), FLSlice.Null);
                     var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mDict = new MDict(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
@@ -346,11 +341,13 @@ Transfer-Encoding: chunked";
         [Fact]
         public void TestNewlineInHeader()
         {
-            var logic = new HTTPLogic(new Uri("http://www.couchbase.com"));
-            logic["User-Agent"] = "BadUser/1.0\r\n";
-            logic["Cookie"] = null;
+            var logic = new HTTPLogic(new Uri("http://www.couchbase.com"))
+            {
+                ["User-Agent"] = "BadUser/1.0\r\n",
+                ["Cookie"] = null
+            };
             var dataString = Encoding.ASCII.GetString(logic.HTTPRequestData());
-            dataString.IndexOf("\r\n\r\n").ShouldBe(dataString.Length - 4);
+            dataString.IndexOf("\r\n\r\n", StringComparison.Ordinal).ShouldBe(dataString.Length - 4);
         }
 
         [Fact]
@@ -365,7 +362,7 @@ Transfer-Encoding: chunked";
             logic.Credential.Password = "newpassword";
             logic.Credential.UserName.ShouldBe("newuser");
             logic.Credential.Password.ShouldBe("newpassword");
-            var proxyRequest = logic.ProxyRequest();
+            _ = logic.ProxyRequest();
             logic.HasProxy = false;
         }
 
@@ -422,26 +419,28 @@ Transfer-Encoding: chunked";
                 ["value"] = 1
             };
 
-            IDictionary<string, object> idict = dict;
+            IDictionary<string, object> iDict = dict;
             IReadOnlyDictionary<string, object> roDict = dict;
 
-            idict.TryGetValue("value", out int tmpInt).ShouldBeTrue();
+            iDict.TryGetValue("value", out var tmpInt).ShouldBeTrue();
             tmpInt.ShouldBe(1);
-            idict.TryGetValue("bogus", out tmpInt).ShouldBeFalse();
+            iDict.TryGetValue("bogus", out tmpInt).ShouldBeFalse();
 
+            // ReSharper disable once RedundantAssignment
             tmpInt = 0;
             roDict.TryGetValue("value", out tmpInt).ShouldBeTrue();
             tmpInt.ShouldBe(1);
             roDict.TryGetValue("bogus", out tmpInt).ShouldBeFalse();
 
-            idict.TryGetValue("value", out DateTimeOffset date).ShouldBeFalse();
-            roDict.TryGetValue("value", out date).ShouldBeFalse();
+            iDict.TryGetValue("value", out DateTimeOffset _).ShouldBeFalse();
+            roDict.TryGetValue("value", out DateTimeOffset _).ShouldBeFalse();
 
-            idict.TryGetValue("value", out long tmpLong).ShouldBeTrue();
+            iDict.TryGetValue("value", out long tmpLong).ShouldBeTrue();
             tmpLong.ShouldBe(1L);
 
+            // ReSharper disable once RedundantAssignment
             tmpLong = 0L;
-            idict.TryGetValue("value", out tmpLong).ShouldBeTrue();
+            iDict.TryGetValue("value", out tmpLong).ShouldBeTrue();
             tmpLong.ShouldBe(1L);
         }
 
@@ -522,10 +521,6 @@ Transfer-Encoding: chunked";
 
             var testBool = false;
             queue.DispatchSync<bool>(() => Volatile.Read(ref testBool)).ShouldBeFalse();
-
-            var t = queue.DispatchAfter<bool>(TimeSpan.FromMilliseconds(500), () => Volatile.Read(ref testBool));
-            Volatile.Write(ref testBool, true);
-            (await t).ShouldBeTrue();
         }
 #endif
 
@@ -545,7 +540,7 @@ Transfer-Encoding: chunked";
             var converted = DataOps.ToCouchbaseObject(json) as MutableDictionaryObject;
             converted.ShouldNotBeNull();
 
-            converted!["level1"]["foo"].String.ShouldBe("bar");
+            converted["level1"]["foo"].String.ShouldBe("bar");
             converted["level2"]["list"][0].Int.ShouldBe(1);
             converted["level2"]["list"][1].Double.ShouldBe(3.14);
             converted["level2"]["list"][2].String.ShouldBe("s");
@@ -557,13 +552,13 @@ Transfer-Encoding: chunked";
         {
             var fleeceException = CouchbaseException.Create(new C4Error(FLError.EncodeError)) as CouchbaseFleeceException;
             fleeceException.ShouldNotBeNull();
-            fleeceException!.Error.ShouldBe((int) FLError.EncodeError);
+            fleeceException.Error.ShouldBe((int) FLError.EncodeError);
             fleeceException.Domain.ShouldBe(CouchbaseLiteErrorType.Fleece);
 
             var sqliteException =
                 CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (int) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
             sqliteException.ShouldNotBeNull();
-            sqliteException!.BaseError.ShouldBe(SQLiteStatus.Misuse);
+            sqliteException.BaseError.ShouldBe(SQLiteStatus.Misuse);
             sqliteException.Error.ShouldBe((int) SQLiteStatus.Misuse);
             sqliteException.Domain.ShouldBe(CouchbaseLiteErrorType.SQLite);
 
@@ -574,7 +569,7 @@ Transfer-Encoding: chunked";
             var networkException =
                 CouchbaseException.Create(new C4Error(C4NetworkErrorCode.InvalidURL)) as CouchbaseNetworkException;
             networkException.ShouldNotBeNull();
-            networkException!.Error.ShouldBe(CouchbaseLiteError.InvalidUrl);
+            networkException.Error.ShouldBe(CouchbaseLiteError.InvalidUrl);
             networkException.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
         }
 
@@ -591,7 +586,7 @@ Transfer-Encoding: chunked";
 
             using (var doc = DefaultCollection.GetDocument("test_ulong")) {
                 doc.ShouldNotBeNull("because it was just saved into the database");
-                doc!["nested"]["high_value"].Value.ShouldBe(UInt64.MaxValue);
+                doc["nested"]["high_value"].Value.ShouldBe(UInt64.MaxValue);
             }
         }
 
@@ -634,8 +629,10 @@ Transfer-Encoding: chunked";
                 nameof(TestCBDebugItemsMustNotBeNull),
                 list);
 
+            // ReSharper disable PossibleMultipleEnumeration
             items.Count().ShouldBe(2);
             items.ElementAt(1).ShouldBe("debug");
+            // ReSharper restore PossibleMultipleEnumeration
         }
 
 #if !SANITY_ONLY && DEBUG
@@ -658,11 +655,13 @@ Transfer-Encoding: chunked";
                 var sw = Stopwatch.StartNew();
                 Task.Run(() =>
                 {
-                    queryWrapper.UseSafe(q =>
+                    // ReSharper disable AccessToDisposedClosure
+                    queryWrapper.UseSafe(_ =>
                     {
                         lockEvent.Set();
                         Thread.Sleep(WrapperThreadBlockTime);
                     }, safetyLevel);
+                    // ReSharper restore AccessToDisposedClosure
                 });
 
                 ThreadSafety threadSafety;
@@ -679,7 +678,7 @@ Transfer-Encoding: chunked";
                 }
 
                 lockEvent.WaitOne(TimeSpan.FromMinutes(1)).ShouldBeTrue($"because otherwise UseSafe was not entered {iteration}");
-                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                using(threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
 
@@ -710,12 +709,14 @@ Transfer-Encoding: chunked";
                 var sw = Stopwatch.StartNew();
                 Task.Run(() =>
                 {
-                    documentWrapper.UseSafe(q =>
+                    // ReSharper disable AccessToDisposedClosure
+                    documentWrapper.UseSafe(_ =>
                     {
                         lockEvent.Set();
                         Thread.Sleep(WrapperThreadBlockTime);
                         return true;
                     }, safetyLevel);
+                    // ReSharper restore AccessToDisposedClosure
                 });
 
                 ThreadSafety threadSafety;
@@ -732,7 +733,7 @@ Transfer-Encoding: chunked";
                 }
 
                 lockEvent.WaitOne(TimeSpan.FromMinutes(1)).ShouldBeTrue($"because otherwise UseSafe was not entered {iteration}");
-                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                using(threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
 
@@ -763,12 +764,14 @@ Transfer-Encoding: chunked";
                 var sw = Stopwatch.StartNew();
                 Task.Run(() =>
                 {
-                    indexWrapper.UseSafe(q =>
+                    // ReSharper disable AccessToDisposedClosure
+                    indexWrapper.UseSafe(_ =>
                     {
                         lockEvent.Set();
                         Thread.Sleep(WrapperThreadBlockTime);
                         return true;
                     }, safetyLevel);
+                    // ReSharper restore AccessToDisposedClosure
                 });
 
                 ThreadSafety threadSafety;
@@ -785,7 +788,7 @@ Transfer-Encoding: chunked";
                 }
 
                 lockEvent.WaitOne(TimeSpan.FromMinutes(1)).ShouldBeTrue($"because otherwise UseSafe was not entered {iteration}");
-                using (var threadSafetyScope = threadSafety.BeginLockedScope()) {
+                using (threadSafety.BeginLockedScope()) {
                     sw.Stop();
                 }
 

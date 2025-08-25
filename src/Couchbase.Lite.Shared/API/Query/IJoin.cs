@@ -16,37 +16,29 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a query that has just received a JOIN
+/// clause
+/// </summary>
+public interface IJoins : IQuery, IWhereRouter, IOrderByRouter, ILimitRouter;
+
+/// <summary>
+/// An interface representing an <see cref="IQuery"/> with a JOIN clause
+/// </summary>
+public interface IJoin;
+
+/// <summary>
+/// An interface representing an <see cref="IQuery"/> with a 
+/// partially constructed JOIN clause that has not yet received its ON clause
+/// </summary>
+public interface IJoinOn : IJoin
 {
     /// <summary>
-    /// An interface representing a query that has just received a JOIN
-    /// clause
+    /// Adds the ON clause to the current JOIN clause
     /// </summary>
-    public interface IJoins : IQuery, IWhereRouter, IOrderByRouter, ILimitRouter
-    {}
-
-    /// <summary>
-    /// An interface representing an <see cref="IQuery"/> with a JOIN clause
-    /// </summary>
-    public interface IJoin
-    {
-    }
-
-    /// <summary>
-    /// An interface representing an <see cref="IQuery"/> with a 
-    /// partially constructed JOIN clause that has not yet received its ON clause
-    /// </summary>
-    public interface IJoinOn : IJoin
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Adds the ON clause to the current JOIN clause
-        /// </summary>
-        /// <param name="expression">The expression to use as the ON clause</param>
-        /// <returns>The query for further processing</returns>
-        IJoin On(IExpression expression);
-
-        #endregion
-    }
+    /// <param name="expression">The expression to use as the ON clause</param>
+    /// <returns>The query for further processing</returns>
+    IJoin On(IExpression expression);
 }

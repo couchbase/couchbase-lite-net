@@ -28,236 +28,174 @@ using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// A class representing a readonly ordered collection of objects
+/// </summary>
+public class ArrayObject : IArray, IJSON
 {
-    /// <summary>
-    /// A class representing a readonly ordered collection of objects
-    /// </summary>
-    public class ArrayObject : IArray, IJSON
+    internal readonly FleeceMutableArray Array = [];
+
+    internal readonly ThreadSafety ThreadSafety;
+
+    /// <inheritdoc />
+    public int Count
     {
-        #region Variables
-
-        internal readonly FleeceMutableArray _array = new FleeceMutableArray();
-
-        internal readonly ThreadSafety _threadSafety;
-
-        #endregion
-
-        #region Properties
-
-        /// <inheritdoc />
-        public int Count
-        {
-            get {
-                using var threadSafetyScope = _threadSafety.BeginLockedScope();
-                return _array.Count;
-            }
+        get {
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            return Array.Count;
         }
-
-        /// <inheritdoc />
-        public IFragment this[int index] => index >= Count ? Fragment.Null : new Fragment(this, index);
-
-        #endregion
-
-        #region Constructors
-
-        internal ArrayObject()
-        {
-            _threadSafety = SetupThreadSafety();
-        }
-
-        internal ArrayObject(FleeceMutableArray array, bool isMutable)
-        {
-            _array.InitAsCopyOf(array, isMutable);
-            _threadSafety = SetupThreadSafety();
-        }
-
-        internal ArrayObject(ArrayObject original, bool mutable)
-            : this(original._array, mutable)
-        {
-            _threadSafety = SetupThreadSafety();
-        }
-
-        internal ArrayObject(MValue mv, MCollection? parent)
-        {
-            _array.InitInSlot(mv, parent);
-            _threadSafety = SetupThreadSafety();
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Similar to the LINQ method, but returns all objects converted to standard
-        /// .NET types
-        /// </summary>
-        /// <returns>A list of standard .NET typed objects in the array</returns>
-        public List<object?> ToList()
-        {
-            var count = _array.Count;
-            var result = new List<object?>(count);
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            for (var i = 0; i < count; i++) {
-                result.Add(DataOps.ToNetObject(GetObject(_array, i)));
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Creates a copy of this object that can be mutated
-        /// </summary>
-        /// <returns>A mutable copy of the array</returns>
-        public MutableArrayObject ToMutable()
-        {
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            return new MutableArrayObject(_array, true);
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal virtual ArrayObject ToImmutable()
-        {
-            return this;
-        }
-
-        internal MCollection ToMCollection()
-        {
-            return _array;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private static MValue Get(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null)
-        {
-            using var threadSafetyScope = threadSafety?.BeginLockedScope();
-            var val = array.Get(index);
-            if (val.IsEmpty) {
-                throw new IndexOutOfRangeException();
-            }
-
-            return val;
-        }
-
-        private static object? GetObject(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
-
-        private static T? GetObject<T>(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) where T : class 
-            => GetObject(array, index, threadSafety) as T;
-
-        private ThreadSafety SetupThreadSafety()
-        {
-            Database? db = null;
-            if (_array.Context != null && _array.Context != MContext.Null) {
-                db = (_array.Context as DocContext)?.Db;
-            }
-
-            return db?.ThreadSafety ?? new ThreadSafety();
-        }
-
-        #endregion
-
-        #region IArray
-
-        /// <inheritdoc />
-        public ArrayObject? GetArray(int index) => GetObject<ArrayObject>(_array, index, _threadSafety);
-
-        /// <inheritdoc />
-        public Blob? GetBlob(int index) => GetObject<Blob>(_array, index, _threadSafety);
-
-        /// <inheritdoc />
-        public bool GetBoolean(int index) => DataOps.ConvertToBoolean(GetObject(_array, index, _threadSafety));
-
-        /// <inheritdoc />
-        public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(_array, index, _threadSafety));
-
-        /// <inheritdoc />
-        public DictionaryObject? GetDictionary(int index) => GetObject<DictionaryObject>(_array, index, _threadSafety);
-
-        /// <inheritdoc />
-        public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(_array, index, _threadSafety));
-
-        /// <inheritdoc />
-        public float GetFloat(int index) => DataOps.ConvertToFloat(GetObject(_array, index, _threadSafety));
-
-        /// <inheritdoc />
-        public int GetInt(int index) => DataOps.ConvertToInt(GetObject(_array, index, _threadSafety));
-
-        /// <inheritdoc />
-        public long GetLong(int index) => DataOps.ConvertToLong(GetObject(_array, index, _threadSafety));
-
-        /// <inheritdoc />
-        public object? GetValue(int index) => GetObject(_array, index, _threadSafety);
-
-        /// <inheritdoc />
-        public string? GetString(int index) => GetObject<string>(_array, index, _threadSafety);
-
-        #endregion
-
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        #endregion
-
-        #region IEnumerable<object>
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public virtual IEnumerator<object?> GetEnumerator() => _array.GetEnumerator();
-
-        #endregion
-
-        #region IJSON
-
-        /// <inheritdoc />
-        public string ToJSON()
-        {
-            if (_array.IsMutable) {
-                throw new NotSupportedException();
-            }
-
-            return _array.ToJSON();
-        }
-
-        #endregion
     }
 
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    internal sealed class IArrayConverter : JsonConverter
+    /// <inheritdoc />
+    public IFragment this[int index] => index >= Count ? Fragment.Null : new Fragment(this, index);
+
+    internal ArrayObject()
     {
-        #region Overrides
+        ThreadSafety = SetupThreadSafety();
+    }
 
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-        {
-            var arr = value as IArray ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
-                "Invalid input received in WriteJson (not IArray)");
-            writer.WriteStartArray();
-            foreach (var item in arr) {
-                serializer.Serialize(writer, item);
-            }
+    internal ArrayObject(FleeceMutableArray array, bool isMutable)
+    {
+        Array.InitAsCopyOf(array, isMutable);
+        ThreadSafety = SetupThreadSafety();
+    }
 
-            writer.WriteEndArray();
+    internal ArrayObject(MValue mv, MCollection? parent)
+    {
+        Array.InitInSlot(mv, parent);
+        ThreadSafety = SetupThreadSafety();
+    }
+
+    /// <summary>
+    /// Similar to the LINQ method, but returns all objects converted to standard
+    /// .NET types
+    /// </summary>
+    /// <returns>A list of standard .NET typed objects in the array</returns>
+    public List<object?> ToList()
+    {
+        var count = Array.Count;
+        var result = new List<object?>(count);
+        using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+        for (var i = 0; i < count; i++) {
+            result.Add(DataOps.ToNetObject(GetObject(Array, i)));
         }
 
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-        {
-            var arr = new MutableArrayObject();
-            while (reader.Read()) {
-                if (reader.TokenType == JsonToken.EndObject) {
+        return result;
+    }
+
+    /// <summary>
+    /// Creates a copy of this object that can be mutated
+    /// </summary>
+    /// <returns>A mutable copy of the array</returns>
+    public MutableArrayObject ToMutable()
+    {
+        using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+        return new MutableArrayObject(Array, true);
+    }
+
+    internal MCollection ToMCollection()
+    {
+        return Array;
+    }
+
+    private static MValue Get(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null)
+    {
+        using var threadSafetyScope = threadSafety?.BeginLockedScope();
+        var val = array.Get(index);
+        return val.IsEmpty ? throw new IndexOutOfRangeException() : val;
+    }
+
+    private static object? GetObject(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+
+    private static T? GetObject<T>(FleeceMutableArray array, int index, IThreadSafety? threadSafety = null) where T : class 
+        => GetObject(array, index, threadSafety) as T;
+
+    private ThreadSafety SetupThreadSafety()
+    {
+        Database? db = null;
+        if (Array.Context != null && Array.Context != MContext.Null) {
+            db = (Array.Context as DocContext)?.Db;
+        }
+
+        return db?.ThreadSafety ?? new ThreadSafety();
+    }
+
+    /// <inheritdoc />
+    public ArrayObject? GetArray(int index) => GetObject<ArrayObject>(Array, index, ThreadSafety);
+
+    /// <inheritdoc />
+    public Blob? GetBlob(int index) => GetObject<Blob>(Array, index, ThreadSafety);
+
+    /// <inheritdoc />
+    public bool GetBoolean(int index) => DataOps.ConvertToBoolean(GetObject(Array, index, ThreadSafety));
+
+    /// <inheritdoc />
+    public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(Array, index, ThreadSafety));
+
+    /// <inheritdoc />
+    public DictionaryObject? GetDictionary(int index) => GetObject<DictionaryObject>(Array, index, ThreadSafety);
+
+    /// <inheritdoc />
+    public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(Array, index, ThreadSafety));
+
+    /// <inheritdoc />
+    public float GetFloat(int index) => DataOps.ConvertToFloat(GetObject(Array, index, ThreadSafety));
+
+    /// <inheritdoc />
+    public int GetInt(int index) => DataOps.ConvertToInt(GetObject(Array, index, ThreadSafety));
+
+    /// <inheritdoc />
+    public long GetLong(int index) => DataOps.ConvertToLong(GetObject(Array, index, ThreadSafety));
+
+    /// <inheritdoc />
+    public object? GetValue(int index) => GetObject(Array, index, ThreadSafety);
+
+    /// <inheritdoc />
+    public string? GetString(int index) => GetObject<string>(Array, index, ThreadSafety);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    /// <summary>
+    /// Returns an enumerator that iterates through the collection.
+    /// </summary>
+    /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+    public virtual IEnumerator<object?> GetEnumerator() => Array.GetEnumerator();
+
+    /// <inheritdoc />
+    public string ToJSON() => Array.IsMutable ? throw new NotSupportedException() : Array.ToJSON();
+}
+
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+internal sealed class IArrayConverter : JsonConverter
+{
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+    {
+        var arr = value as IArray ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
+            "Invalid input received in WriteJson (not IArray)");
+        writer.WriteStartArray();
+        foreach (var item in arr) {
+            serializer.Serialize(writer, item);
+        }
+
+        writer.WriteEndArray();
+    }
+
+    public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    {
+        var arr = new MutableArrayObject();
+        while (reader.Read()) {
+            switch (reader.TokenType) {
+                case JsonToken.EndObject:
+                {
                     var val = serializer.Deserialize(reader) as IDictionary<string, object>
                         ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt input received in ReadJson (EndObject != IDictionary)");
-                    if (val.ContainsKey(Constants.ObjectTypeProperty) &&
-                        val[Constants.ObjectTypeProperty].Equals(Constants.ObjectTypeBlob)) {
+                    if (val.TryGetValue(Constants.ObjectTypeProperty, out var value) &&
+                        value.Equals(Constants.ObjectTypeBlob)) {
                         var blob = serializer.Deserialize<Blob>(reader)
                             ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing blob in ReadJson (IArray)");
                         arr.AddBlob(blob);
@@ -266,20 +204,39 @@ namespace Couchbase.Lite
                             ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing dict in ReadJson (IArray)");
                         arr.AddValue(dict);
                     }
-                } else if (reader.TokenType == JsonToken.EndArray) {
+                    break;
+                }
+                case JsonToken.EndArray:
+                {
                     var array = serializer.Deserialize<MutableArrayObject>(reader)
                         ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing array in ReadJson (IArray)");
                     arr.AddValue(array);
-                } else {
-                    arr.AddValue(reader.Value);
+                    break;
                 }
+                case JsonToken.None:
+                case JsonToken.StartObject:
+                case JsonToken.StartArray:
+                case JsonToken.StartConstructor:
+                case JsonToken.PropertyName:
+                case JsonToken.Comment:
+                case JsonToken.Raw:
+                case JsonToken.Integer:
+                case JsonToken.Float:
+                case JsonToken.String:
+                case JsonToken.Boolean:
+                case JsonToken.Null:
+                case JsonToken.Undefined:
+                case JsonToken.EndConstructor:
+                case JsonToken.Date:
+                case JsonToken.Bytes:
+                default:
+                    arr.AddValue(reader.Value);
+                    break;
             }
-
-            return arr;
         }
 
-        public override bool CanConvert(Type objectType) => typeof(IArray).IsAssignableFrom(objectType);
-
-        #endregion
+        return arr;
     }
+
+    public override bool CanConvert(Type objectType) => typeof(IArray).IsAssignableFrom(objectType);
 }

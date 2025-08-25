@@ -15,21 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-namespace Couchbase.Lite.Query
-{
-    /// <summary>
-    /// An interface for an index item for use when creating value based indexes
-    /// </summary>
-    public interface IValueIndexItem
-    {
-        
-    }
+namespace Couchbase.Lite.Query;
 
-    /// <summary>
-    /// An interface for an index item for use when creating FTS based indexes
-    /// </summary>
-    public interface IFullTextIndexItem
-    {
-        
-    }
-}
+/// <summary>
+/// An interface for an index item for use when creating value based indexes
+/// </summary>
+public interface IValueIndexItem;
+
+/// <summary>
+/// An interface for an index item for use when creating FTS based indexes
+/// </summary>
+public interface IFullTextIndexItem;

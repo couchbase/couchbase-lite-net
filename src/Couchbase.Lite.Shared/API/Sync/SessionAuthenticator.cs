@@ -21,69 +21,53 @@ using System.Net;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// A class that will authenticate using a session cookie.  This can be used for things like
+/// Sync Gateway admin created sessions, or implicit authentication flow (e.g. OpenID Connect
+/// where the authentication is done already)
+/// </summary>
+public sealed class SessionAuthenticator : Authenticator
 {
+    private const string Tag = nameof(SessionAuthenticator);
+
     /// <summary>
-    /// A class that will authenticate using a session cookie.  This can be used for things like
-    /// Sync Gateway admin created sessions, or implicit authentication flow (e.g. OpenID Connect
-    /// where the authentication is done already)
+    /// Gets the name of the cookie to store the session in
     /// </summary>
-    public sealed class SessionAuthenticator : Authenticator
+    public string CookieName { get; }
+
+    /// <summary>
+    /// Gets the session ID to set as the cookie value
+    /// </summary>
+    public string SessionID { get; }
+
+    /// <summary>
+    /// Constructor using the given cookie name
+    /// </summary>
+    /// <param name="sessionID"><see cref="SessionID"/></param>
+    /// <param name="cookieName"><see cref="CookieName"/></param>
+    public SessionAuthenticator(string sessionID, string cookieName)
     {
-        #region Constants
+        SessionID = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(sessionID), sessionID);
+        CookieName = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(cookieName), cookieName);
+    }
 
-        private const string Tag = nameof(SessionAuthenticator);
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the name of the cookie to store the session in
-        /// </summary>
-        public string CookieName { get; }
-
-        /// <summary>
-        /// Gets the session ID to set as the cookie value
-        /// </summary>
-        public string SessionID { get; }
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Constructor using the given cookie name
-        /// </summary>
-        /// <param name="sessionID"><see cref="SessionID"/></param>
-        /// <param name="cookieName"><see cref="CookieName"/></param>
-        public SessionAuthenticator(string sessionID, string cookieName)
-        {
-            SessionID = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(sessionID), sessionID);
-            CookieName = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(cookieName), cookieName);
-        }
-
-        /// <summary>
-        /// Constructor using the default cookie name for Sync Gateway ('SyncGatewaySession')
-        /// </summary>
-        /// <param name="sessionID"><see cref="SessionID"/></param>
-        public SessionAuthenticator(string sessionID)
+    /// <summary>
+    /// Constructor using the default cookie name for Sync Gateway ('SyncGatewaySession')
+    /// </summary>
+    /// <param name="sessionID"><see cref="SessionID"/></param>
+    public SessionAuthenticator(string sessionID)
+        // ReSharper disable once IntroduceOptionalParameters.Global
         : this(sessionID, "SyncGatewaySession")
-        {
-        }
+    {
+    }
 
-        #endregion
+    internal override void Authenticate(ReplicatorOptionsDictionary options)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(options), options);
 
-        #region Overrides
-
-        internal override void Authenticate(ReplicatorOptionsDictionary options)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(options), options);
-
-            var cookie = new Cookie(CookieName, SessionID);
-            options.Cookies.Add(cookie);
-        }
-
-        #endregion
+        var cookie = new Cookie(CookieName, SessionID);
+        options.Cookies.Add(cookie);
     }
 }

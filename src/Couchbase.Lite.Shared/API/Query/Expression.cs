@@ -23,141 +23,132 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A factory for unary IExpression operators
+/// </summary>
+public static class Expression
 {
+    private const string Tag = nameof(Expression);
+
     /// <summary>
-    /// A factory for unary IExpression operators
+    /// Returns an expression to represent '*' in things like COUNT(*) and
+    /// SELECT *
     /// </summary>
-    public static class Expression
-    {
-        #region Constants
+    /// <returns>The expression representing '*'</returns>
+    public static IPropertyExpression All() => new QueryTypeExpression("", ExpressionType.KeyPath);
 
-        private const string Tag = nameof(Expression);
+    /// <summary>
+    /// Returns an expression to represent a fixed array value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Array(IList value) => new QueryConstantExpression<IList>(value);
 
-        #endregion
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="bool"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Boolean(bool value) => new QueryConstantExpression<bool>(value);
 
-        #region Public Methods
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="DateTimeOffset"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<string>(value.ToString("o")); //#1052 workaround
 
-        /// <summary>
-        /// Returns an expression to represent '*' in things like COUNT(*) and
-        /// SELECT *
-        /// </summary>
-        /// <returns>The expression representing '*'</returns>
-        public static IPropertyExpression All() => new QueryTypeExpression("", ExpressionType.KeyPath);
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="IDictionary{TKey,TValue}"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Dictionary(IDictionary<string, object> value) => new QueryConstantExpression<IDictionary<string, object>>(value);
 
-        /// <summary>
-        /// Returns an expression to represent a fixed array value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Array(IList value) => new QueryConstantExpression<IList>(value);
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="double"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Double(double value) => new QueryConstantExpression<double>(value);
 
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="bool"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Boolean(bool value) => new QueryConstantExpression<bool>(value);
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="Single"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Float(float value) => new QueryConstantExpression<float>(value);
 
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="DateTimeOffset"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<string>(value.ToString("o")); //#1052 workaround
+    /// <summary>
+    /// Returns an expression to represent a full text index to use when performing FTS queries
+    /// </summary>
+    /// <param name="name">The name of the index</param>
+    /// <returns>An expression representing the index</returns>
+    public static IFullTextIndexExpression FullTextIndex(string name) => new FullTextIndexExpression(name);
 
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="IDictionary{TKey,TValue}"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Dictionary(IDictionary<string, object> value) => new QueryConstantExpression<IDictionary<string, object>>(value);
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="Int32"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Int(int value) => new QueryConstantExpression<int>(value);
 
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="double"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Double(double value) => new QueryConstantExpression<double>(value);
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="Int64"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Long(long value) => new QueryConstantExpression<long>(value);
 
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="Single"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Float(float value) => new QueryConstantExpression<float>(value);
+    /// <summary>
+    /// Returns an expression representing the negated result of an expression
+    /// </summary>
+    /// <param name="expression">The expression to evaluate</param>
+    /// <returns>The negated result of the expression</returns>
+    public static IExpression Negated(IExpression expression) => 
+        new QueryCompoundExpression("NOT", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Returns an expression to represent a full text index to use when performing FTS queries
-        /// </summary>
-        /// <param name="name">The name of the index</param>
-        /// <returns>An expression representing the index</returns>
-        public static IFullTextIndexExpression FullTextIndex(string name) => new FullTextIndexExpression(name);
+    /// <summary>
+    /// Returns an expression representing the negated result of an expression
+    /// </summary>
+    /// <param name="expression">The expression to evaluate</param>
+    /// <returns>The negated result of the expression</returns>
+    public static IExpression Not(IExpression expression) => 
+        Negated(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="Int32"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Int(int value) => new QueryConstantExpression<int>(value);
+    /// <summary>
+    /// Gets an expression representing a named parameter (as set in
+    /// <see cref="IQuery.Parameters"/>) for use in a query
+    /// </summary>
+    /// <param name="name">The name of the parameter in the parameter set</param>
+    /// <returns>The expression representing the parameter</returns>
+    public static IExpression Parameter(string name) => 
+        new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
+            ExpressionType.Parameter);
 
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="Int64"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Long(long value) => new QueryConstantExpression<long>(value);
+    /// <summary>
+    /// Returns an expression representing the value of a named property
+    /// </summary>
+    /// <param name="property">The name of the property to fetch</param>
+    /// <returns>An expression representing the value of a named property</returns>
+    public static IPropertyExpression Property(string property) => 
+        new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(property), property), 
+            ExpressionType.KeyPath);
 
-        /// <summary>
-        /// Returns an expression representing the negated result of an expression
-        /// </summary>
-        /// <param name="expression">The expression to evaluate</param>
-        /// <returns>The negated result of the expression</returns>
-        public static IExpression Negated(IExpression expression) => 
-            new QueryCompoundExpression("NOT", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="string"/> value
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression String(string? value) => new QueryConstantExpression<string?>(value);
 
-        /// <summary>
-        /// Returns an expression representing the negated result of an expression
-        /// </summary>
-        /// <param name="expression">The expression to evaluate</param>
-        /// <returns>The negated result of the expression</returns>
-        public static IExpression Not(IExpression expression) => 
-            Negated(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
-        /// <summary>
-        /// Gets an expression representing a named parameter (as set in
-        /// <see cref="IQuery.Parameters"/>) for use in a query
-        /// </summary>
-        /// <param name="name">The name of the parameter in the parameter set</param>
-        /// <returns>The expression representing the parameter</returns>
-        public static IExpression Parameter(string name) => 
-            new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
-                ExpressionType.Parameter);
-
-        /// <summary>
-        /// Returns an expression representing the value of a named property
-        /// </summary>
-        /// <param name="property">The name of the property to fetch</param>
-        /// <returns>An expression representing the value of a named property</returns>
-        public static IPropertyExpression Property(string property) => 
-            new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(property), property), 
-                ExpressionType.KeyPath);
-
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="string"/> value
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression String(string? value) => new QueryConstantExpression<string?>(value);
-
-        /// <summary>
-        /// Returns an expression to represent a fixed <see cref="Object"/> value.  It must be one
-        /// of the allowed types (i.e. the ones allowed in other methods such as <see cref="String"/>
-        /// </summary>
-        /// <param name="value">The value to use</param>
-        /// <returns>An expression representing the fixed value</returns>
-        public static IExpression Value(object? value) => new QueryConstantExpression<object?>(value);
-
-        #endregion
-    }
+    /// <summary>
+    /// Returns an expression to represent a fixed <see cref="Object"/> value.  It must be one
+    /// of the allowed types (i.e. the ones allowed in other methods such as <see cref="String"/>
+    /// </summary>
+    /// <param name="value">The value to use</param>
+    /// <returns>An expression representing the fixed value</returns>
+    public static IExpression Value(object? value) => new QueryConstantExpression<object?>(value);
 }

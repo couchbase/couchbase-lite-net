@@ -18,37 +18,27 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// The parameters of a collection changed event
+/// </summary>
+public sealed class CollectionChangedEventArgs : EventArgs
 {
     /// <summary>
-    /// The parameters of a collection changed event
+    /// Gets the collection in which the change occurred
     /// </summary>
-    public sealed class CollectionChangedEventArgs : EventArgs
+    public Collection Collection { get; }
+
+    /// <summary>
+    /// Gets the document that was changed
+    /// </summary>
+    public IReadOnlyList<string> DocumentIDs { get; }
+
+    internal CollectionChangedEventArgs(Collection collection, IReadOnlyList<string> documentIDs)
     {
-        #region Properties
-
-        /// <summary>
-        /// Gets the collection in which the change occurred
-        /// </summary>
-        public Collection Collection { get; }
-
-        /// <summary>
-        /// Gets the document that was changed
-        /// </summary>
-        public IReadOnlyList<string> DocumentIDs { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal CollectionChangedEventArgs(Collection collection, IReadOnlyList<string> documentIDs)
-        {
-            DocumentIDs = documentIDs; 
-            Collection = collection;
-        }
-
-        #endregion
+        DocumentIDs = documentIDs; 
+        Collection = collection;
     }
 }

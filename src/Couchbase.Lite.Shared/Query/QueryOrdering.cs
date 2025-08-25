@@ -16,101 +16,80 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal class QueryOrderBy : LimitedQuery, IOrderBy
 {
-    internal class QueryOrderBy : LimitedQuery, IOrderBy
+    internal IList<IOrdering>? Orders { get; }
+
+    internal QueryOrderBy(IList<IOrdering>? orderBy)
     {
-        #region Properties
-
-        internal IList<IOrdering>? Orders { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal QueryOrderBy(IList<IOrdering>? orderBy)
-        {
-            Orders = orderBy;
-            OrderByImpl = this;
-        }
-
-        internal QueryOrderBy(XQuery query, IList<IOrdering> orderBy)
-            : this(orderBy)
-        {
-            Copy(query);
-            OrderByImpl = this;
-        }
-
-        #endregion
-
-        public virtual object? ToJSON()
-        {
-            var obj = new List<object?>();
-            if (Orders != null) {
-                foreach (var o in Orders.OfType<QueryOrderBy>()) {
-                    obj.Add(o.ToJSON());
-                }
-            }
-
-            return obj;
-        }
+        Orders = orderBy;
+        OrderByImpl = this;
     }
 
-    internal sealed class SortOrder : QueryOrderBy, ISortOrder
+    internal QueryOrderBy(XQuery query, IList<IOrdering> orderBy)
+        : this(orderBy)
     {
-        #region Properties
+        Copy(query);
+        OrderByImpl = this;
+    }
 
-        internal IExpression Expression { get; }
-
-        internal bool IsAscending { get; private set; }
-
-        #endregion
-
-        #region Constructors
-
-        internal SortOrder(IExpression expression) : base(null)
-        {
-            IsAscending = true;
-            Expression = expression;
-        }
-
-        #endregion
-
-        public override object? ToJSON()
-        {
-            var obj = new List<object?>();
-            if (Expression is QueryExpression exp) {
-                if (!IsAscending) {
-                    obj.Add("DESC");
-                } else {
-                    return exp.ConvertToJSON();
-                }
-
-                obj.Add(exp.ConvertToJSON());
-            }
-
+    public virtual object? ToJSON()
+    {
+        var obj = new List<object?>();
+        if (Orders == null) {
             return obj;
         }
 
-        #region ISortOrder
+        obj.AddRange(Orders.OfType<QueryOrderBy>().Select(o => o.ToJSON()));
+        return obj;
+    }
+}
 
-        public IOrdering Ascending()
-        {
-            IsAscending = true;
-            return this;
+internal sealed class SortOrder : QueryOrderBy, ISortOrder
+{
+    internal IExpression Expression { get; }
+
+    internal bool IsAscending { get; private set; }
+
+    internal SortOrder(IExpression expression) : base(null)
+    {
+        IsAscending = true;
+        Expression = expression;
+    }
+
+    public override object? ToJSON()
+    {
+        var obj = new List<object?>();
+        if (Expression is not QueryExpression exp) {
+            return obj;
+        }
+        
+        if (!IsAscending) {
+            obj.Add("DESC");
+        } else {
+            return exp.ConvertToJSON();
         }
 
-        public IOrdering Descending()
-        {
-            IsAscending = false;
-            return this;
-        }
+        obj.Add(exp.ConvertToJSON());
 
-        #endregion
+        return obj;
+    }
+
+    public IOrdering Ascending()
+    {
+        IsAscending = true;
+        return this;
+    }
+
+    public IOrdering Descending()
+    {
+        IsAscending = false;
+        return this;
     }
 }

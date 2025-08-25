@@ -16,18 +16,14 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite.Sync
-{
-    /// <summary>
-    /// Represents an endpoint in a replication
-    /// </summary>
-    public interface IEndpoint
-    {
-        
-    }
+namespace Couchbase.Lite.Sync;
 
-    internal interface IEndpointInternal : IEndpoint
-    {
-        void Visit(ReplicatorConfiguration config);
-    }
+/// <summary>
+/// Represents an endpoint in a replication
+/// </summary>
+public interface IEndpoint;
+
+internal interface IEndpointInternal : IEndpoint
+{
+    void Visit(ReplicatorConfiguration config);
 }

@@ -19,44 +19,27 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class Where : LimitedQuery, IWhere
 {
-    internal sealed class Where : LimitedQuery, IWhere
+    private const string Tag = nameof(Where);
+
+    internal Where(XQuery query, IExpression expression)
     {
-        #region Constants
+        Copy(query);
+        WhereImpl = expression as QueryExpression;
+    }
 
-        private const string Tag = nameof(Where);
+    public IGroupBy GroupBy(params IExpression[] expressions)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
+        return new QueryGroupBy(this, expressions);
+    }
 
-        #endregion
-
-        #region Constructors
-
-        internal Where(XQuery query, IExpression expression)
-        {
-            Copy(query);
-            WhereImpl = expression as QueryExpression;
-        }
-
-        #endregion
-
-        #region IGroupByRouter
-
-        public IGroupBy GroupBy(params IExpression[] expressions)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
-            return new QueryGroupBy(this, expressions);
-        }
-
-        #endregion
-
-        #region IOrderByRouter
-
-        public IOrderBy OrderBy(params IOrdering[] orderings)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
-            return new QueryOrderBy(this, orderings);
-        }
-
-        #endregion
+    public IOrderBy OrderBy(params IOrdering[] orderings)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
+        return new QueryOrderBy(this, orderings);
     }
 }

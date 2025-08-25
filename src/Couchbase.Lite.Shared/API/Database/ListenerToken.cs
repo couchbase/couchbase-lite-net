@@ -16,55 +16,63 @@
 //  limitations under the License.
 // 
 
+using System;
+
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite
+using LiteCore.Util;
+
+namespace Couchbase.Lite;
+
+internal enum ListenerTokenType
 {
-    internal enum ListenerTokenType
+    Database,
+    Document,
+    Query,
+    Replicator,
+    DocReplicated,
+    MessageEndpoint
+}
+
+/// <summary>
+/// A token that stores information about an event handler that
+/// is registered on a Couchbase Lite object (for example
+/// <see cref="Collection.AddChangeListener(System.EventHandler{CollectionChangedEventArgs})"/>)
+/// </summary>
+public readonly struct ListenerToken : IEquatable<ListenerToken>
+{
+    internal readonly CouchbaseEventHandler EventHandler;
+
+    internal readonly ListenerTokenType Type;
+
+    private readonly IChangeObservableRemovable _changeObservableRemovable;
+
+    internal ListenerToken(CouchbaseEventHandler handler, ListenerTokenType type,
+        IChangeObservableRemovable changeObservableRemovable)
     {
-        Database,
-        Document,
-        Query,
-        Replicator,
-        DocReplicated,
-        MessageEndpoint
+        EventHandler = handler;
+        Type = type;
+        _changeObservableRemovable = changeObservableRemovable;
     }
 
     /// <summary>
-    /// A token that stores information about an event handler that
-    /// is registered on a Couchbase Lite object (for example
-    /// <see cref="Collection.AddChangeListener(System.EventHandler{CollectionChangedEventArgs})"/>)
+    /// Remove the linked change listener
     /// </summary>
-    public struct ListenerToken
+    public void Remove()
     {
-        #region Variables
+        _changeObservableRemovable.RemoveChangeListener(this);
+    }
+    
+    public bool Equals(ListenerToken other) => EventHandler.Equals(other.EventHandler) && Type == other.Type && _changeObservableRemovable.Equals(other._changeObservableRemovable);
+    
+    public override bool Equals(object? obj) => obj is ListenerToken other && Equals(other);
 
-        internal readonly CouchbaseEventHandler EventHandler;
-
-        internal readonly ListenerTokenType Type;
-
-        internal readonly IChangeObservableRemovable ChangeObservableRemovable;
-
-        #endregion
-
-        #region Constructors
-
-        internal ListenerToken(CouchbaseEventHandler handler, ListenerTokenType type,
-            IChangeObservableRemovable changeObservableRemovable)
-        {
-            EventHandler = handler;
-            Type = type;
-            ChangeObservableRemovable = changeObservableRemovable;
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Remove the linked change listener
-        /// </summary>
-        public void Remove()
-        {
-            ChangeObservableRemovable.RemoveChangeListener(this);
-        }
+    public override int GetHashCode()
+    {
+        var hasher = Hasher.Start;
+        hasher.Add(EventHandler);
+        hasher.Add(Type);
+        hasher.Add(_changeObservableRemovable);
+        return hasher.GetHashCode();
     }
 }

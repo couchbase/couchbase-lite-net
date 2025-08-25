@@ -16,57 +16,32 @@
 // limitations under the License.
 // 
 
-using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class Having : LimitedQuery, IHaving
 {
-    internal sealed class Having : LimitedQuery, IHaving
+    private const string Tag = nameof(IndexBuilder);
+
+    private readonly IExpression _expression;
+
+    internal Having(XQuery source, IExpression expression)
     {
-        #region Constants
+        Copy(source);
 
-        private const string Tag = nameof(IndexBuilder);
+        _expression = expression;
+        HavingImpl = this;
+    }
 
-        #endregion
+    public object? ToJSON() => (_expression as QueryExpression)?.ConvertToJSON();
 
-        #region Variables
-
-        private readonly IExpression _expression;
-
-        #endregion
-
-        #region Constructors
-
-        internal Having(XQuery source, IExpression expression)
-        {
-            Copy(source);
-
-            _expression = expression;
-            HavingImpl = this;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public object? ToJSON()
-        {
-            return (_expression as QueryExpression)?.ConvertToJSON();
-        }
-
-        #endregion
-
-        #region IOrderByRouter
-
-        public IOrderBy OrderBy(params IOrdering[] orderings)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
-            ValidateParams(orderings);
-            return new QueryOrderBy(this, orderings);
-        }
-
-        #endregion
+    public IOrderBy OrderBy(params IOrdering[] orderings)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
+        ValidateParams(orderings);
+        return new QueryOrderBy(this, orderings);
     }
 }

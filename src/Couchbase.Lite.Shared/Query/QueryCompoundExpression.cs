@@ -17,65 +17,33 @@
 // 
 
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal partial class QueryCompoundExpression(string op, params IExpression[] subpredicates) : QueryExpression, IFullTextExpression
 {
-    internal partial class QueryCompoundExpression : QueryExpression, IFullTextExpression
+    private const string Tag = nameof(QueryCompoundExpression);
+
+    protected override object ToJSON()
     {
-        #region Constants
+        var obj = new List<object> { op };
+        obj.AddRange(subpredicates
+            .Select(Misc.TryCast<IExpression, QueryExpression>)
+            .Select(queryExp => 
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(queryExp), queryExp.ConvertToJSON())));
 
-        private const string Tag = nameof(QueryCompoundExpression);
+        return obj;
+    }
 
-        #endregion
-
-        #region Variables
-
-        private readonly string _operation;
-        private IExpression[] _subpredicates;
-
-        #endregion
-
-        #region Constructors
-
-        public QueryCompoundExpression(string op, params IExpression[] subpredicates)
-        {
-            _operation = op;
-            _subpredicates = subpredicates;
-        }
-
-        #endregion
-
-#region Overrides
-
-        protected override object ToJSON()
-        {
-            var obj = new List<object> { _operation };
-            foreach (var subp in _subpredicates) {
-                var queryExp = Misc.TryCast<IExpression, QueryExpression>(subp);
-                var queryExpJson = queryExp.ConvertToJSON();
-                Debug.Assert(queryExpJson != null);
-                obj.Add(queryExpJson!);
-            }
-
-            return obj;
-        }
-
-#endregion
-
-        #region IFullTextExpression
-
-        public IExpression Match(string query)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(query), query);
-            _subpredicates[_subpredicates.Length - 1] = Expression.String(query);
-            return this;
-        }
-
-        #endregion
+    public IExpression Match(string query)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(query), query);
+        subpredicates[^1] = Expression.String(query);
+        return this;
     }
 }

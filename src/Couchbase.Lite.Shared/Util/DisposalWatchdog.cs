@@ -17,50 +17,21 @@
 // 
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Couchbase.Lite.Util
+namespace Couchbase.Lite.Util;
+
+internal sealed class DisposalWatchdog(string name) : IDisposable
 {
-    internal sealed class DisposalWatchdog : IDisposable
+    public bool IsDisposed { get; private set; }
+
+    [SuppressMessage("Maintainability", "CA1513:Use ObjectDisposedException throw helper")]
+    public void CheckDisposed()
     {
-        #region Variables
-
-        private readonly string _name;
-
-        #endregion
-
-        #region Properties
-
-        public bool IsDisposed { get; private set; }
-
-        #endregion
-
-        #region Constructors
-
-        public DisposalWatchdog(string name)
-        {
-            _name = name;
+        if (IsDisposed) {
+            throw new ObjectDisposedException(name);
         }
-
-        #endregion
-
-        #region Public Methods
-
-        public void CheckDisposed()
-        {
-            if (IsDisposed) {
-                throw new ObjectDisposedException(_name);
-            }
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            IsDisposed = true;
-        }
-
-        #endregion
     }
+
+    public void Dispose() => IsDisposed = true;
 }

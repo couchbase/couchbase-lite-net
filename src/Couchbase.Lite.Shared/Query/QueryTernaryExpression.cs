@@ -19,78 +19,53 @@
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using LiteCore.Interop;
+
 using System.Diagnostics;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class QueryTernaryExpression : QueryExpression, IArrayExpressionIn, IArrayExpressionSatisfies
 {
-    internal sealed class QueryTernaryExpression : QueryExpression, IArrayExpressionIn, IArrayExpressionSatisfies
+    private const string Tag = nameof(QueryTernaryExpression);
+
+    private readonly string _function;
+    private readonly IVariableExpression _variableName;
+    private IExpression? _in;
+    private QueryExpression? _predicate;
+
+    internal QueryTernaryExpression(string function, IVariableExpression variableName)
     {
-        #region Constants
+        _function = function;
+        _variableName = variableName;
+    }
 
-        private const string Tag = nameof(QueryTernaryExpression);
+    protected override object ToJSON()
+    {
+        Debug.Assert(_in != null);
+        Debug.Assert(_predicate != null);
 
-        #endregion
+        var inObj = Misc.TryCast<IExpression, QueryExpression>(_in!);
+        var variableName = Misc.TryCast<IVariableExpression, QueryTypeExpression>(_variableName);
 
-        #region Variables
+        return new[] {
+            _function,
+            variableName.KeyPath,
+            inObj.ConvertToJSON(),
+            _predicate?.ConvertToJSON()
+        };
+    }
 
-        private readonly string _function;
-        private readonly IVariableExpression _variableName;
-        private IExpression? _in;
-        private QueryExpression? _predicate;
+    public IArrayExpressionSatisfies In(IExpression expression)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
+        _in = expression;
+        return this;
+    }
 
-        #endregion
-
-        #region Constructors
-
-        internal QueryTernaryExpression(string function, IVariableExpression variableName)
-        {
-            _function = function;
-            _variableName = variableName;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        protected override object ToJSON()
-        {
-            Debug.Assert(_in != null);
-            Debug.Assert(_predicate != null);
-
-            var inObj = Misc.TryCast<IExpression, QueryExpression>(_in!);
-            var variableName = Misc.TryCast<IVariableExpression, QueryTypeExpression>(_variableName);
-
-            return new[] {
-                _function,
-                variableName.KeyPath,
-                inObj.ConvertToJSON(),
-                _predicate?.ConvertToJSON()
-            };
-        }
-
-        #endregion
-
-        #region IArrayExpressionIn
-
-        public IArrayExpressionSatisfies In(IExpression expression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
-            _in = expression;
-            return this;
-        }
-
-        #endregion
-
-        #region IArrayExpressionSatisfies
-
-        public IExpression Satisfies(IExpression expression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
-            _predicate = Misc.TryCast<IExpression, QueryExpression>(expression);
-            return this;
-        }
-
-        #endregion
+    public IExpression Satisfies(IExpression expression)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
+        _predicate = Misc.TryCast<IExpression, QueryExpression>(expression);
+        return this;
     }
 }

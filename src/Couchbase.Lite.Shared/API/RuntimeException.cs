@@ -18,17 +18,16 @@
 
 using System;
 
-namespace Couchbase.Lite
-{
-    /// <summary>
-    /// An exception that is thrown in rare circumstances where the runtime returns
-    /// an unexpected value for a method (usually null)
-    /// </summary>
-    public sealed class RuntimeException : Exception
-    {
-        internal RuntimeException(string message) : base(message)
-        {
+namespace Couchbase.Lite;
 
-        }
+/// <summary>
+/// An exception that is thrown in rare circumstances where the runtime returns
+/// an unexpected value for a method (usually null)
+/// </summary>
+public sealed class RuntimeException : Exception
+{
+    internal RuntimeException(string message) : base(message)
+    {
+
     }
 }

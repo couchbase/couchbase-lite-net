@@ -18,10 +18,9 @@
 
 using System;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+internal interface IThreadSafety
 {
-    internal interface IThreadSafety
-    {
-        IDisposable BeginLockedScope();
-    }
+    IDisposable BeginLockedScope();
 }

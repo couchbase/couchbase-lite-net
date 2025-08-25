@@ -31,46 +31,34 @@ using System.Threading;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency]
+internal sealed class DesktopConsoleLogger : IConsoleLogger
 {
-    [CouchbaseDependency]
-    internal sealed class DesktopConsoleLogger : IConsoleLogger
+    public LogDomain Domains { get; set; } = LogDomain.All;
+
+    public LogLevel Level { get; set; } = LogLevel.Warning;
+
+    private static string MakeMessage(string message, LogLevel level, LogDomain domain)
     {
-        #region Properties
+        var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
+        var threadId = Thread.CurrentThread.Name ?? Environment.CurrentManagedThreadId.ToString();
+        return $"{dateTime} [{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+    }
 
-        public LogDomain Domains { get; set; } = LogDomain.All;
-
-        public LogLevel Level { get; set; } = LogLevel.Warning;
-
-        #endregion
-
-        #region Private Methods
-
-        private static string MakeMessage(string message, LogLevel level, LogDomain domain)
-        {
-            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
-            var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
-            return $"{dateTime} [{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+    public void Log(LogLevel level, LogDomain domain, string message)
+    {
+        if (level < Level || !Domains.HasFlag(domain)) {
+            return;
         }
 
-        #endregion
-
-        #region ILogger
-
-        public void Log(LogLevel level, LogDomain domain, string message)
-        {
-            if (level < Level || !Domains.HasFlag(domain)) {
-                return;
-            }
-
-            var finalStr = MakeMessage(message, level, domain);
-            Console.WriteLine(finalStr);
-            if (Debugger.IsAttached) {
-                Debug.WriteLine(finalStr);
-            }
+        var finalStr = MakeMessage(message, level, domain);
+        Console.WriteLine(finalStr);
+        if (Debugger.IsAttached) {
+            Debug.WriteLine(finalStr);
         }
-
-        #endregion
     }
 }
+
 #endif

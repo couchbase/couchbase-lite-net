@@ -16,59 +16,55 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A base interface for different collations
+/// </summary>
+public interface ICollation;
+
+/// <summary>
+/// An interface that can use 7-bit ASCII rules to do string collation
+/// </summary>
+public interface IASCIICollation : ICollation
 {
     /// <summary>
-    /// A base interface for different collations
+    /// Instructs the object to either ignore lowercase vs uppercase when collating
+    /// or consider it (default is to consider)
     /// </summary>
-    public interface ICollation
-    {
-        
-    }
+    /// <param name="ignoreCase">Whether to ignore casing</param>
+    /// <returns>The collation object for further processing</returns>
+    IASCIICollation IgnoreCase(bool ignoreCase);
+}
+
+/// <summary>
+/// An interface that can use Unicode rules (http://unicode.org/reports/tr10/)
+/// to do string collation
+/// </summary>
+public interface IUnicodeCollation : ICollation
+{
+    /// <summary>
+    /// Instructs the object to either ignore lowercase vs uppercase when collating
+    /// or consider it (default is to consider)
+    /// </summary>
+    /// <param name="ignoreCase">Whether to ignore casing</param>
+    /// <returns>The collation object for further processing</returns>
+    IUnicodeCollation IgnoreCase(bool ignoreCase);
 
     /// <summary>
-    /// An interface that can use 7-bit ASCII rules to do string collation
+    /// Instructs the object to either diacritics (e.g. accents) when collating
+    /// or consider it (default is to consider)
     /// </summary>
-    public interface IASCIICollation : ICollation
-    {
-        /// <summary>
-        /// Instructs the object to either ignore lowercase vs uppercase when collating
-        /// or consider it (default is to consider)
-        /// </summary>
-        /// <param name="ignoreCase">Whether or not to ignore casing</param>
-        /// <returns>The collation object for further processing</returns>
-        IASCIICollation IgnoreCase(bool ignoreCase);
-    }
+    /// <param name="ignoreAccents">Whether to ignore diacritics</param>
+    /// <returns>The collation object for further processing</returns>
+    IUnicodeCollation IgnoreAccents(bool ignoreAccents);
 
     /// <summary>
-    /// An interface that can use Unicode rules (http://unicode.org/reports/tr10/)
-    /// to do string collation
+    /// Sets the locale to use when applying the collation rules
     /// </summary>
-    public interface IUnicodeCollation : ICollation
-    {
-        /// <summary>
-        /// Instructs the object to either ignore lowercase vs uppercase when collating
-        /// or consider it (default is to consider)
-        /// </summary>
-        /// <param name="ignoreCase">Whether or not to ignore casing</param>
-        /// <returns>The collation object for further processing</returns>
-        IUnicodeCollation IgnoreCase(bool ignoreCase);
-
-        /// <summary>
-        /// Instructs the object to either diacritics (e.g. accents) when collating
-        /// or consider it (default is to consider)
-        /// </summary>
-        /// <param name="ignoreAccents">Whether or not to ignore diacritics</param>
-        /// <returns>The collation object for further processing</returns>
-        IUnicodeCollation IgnoreAccents(bool ignoreAccents);
-
-        /// <summary>
-        /// Sets the locale to use when applying the collation rules
-        /// </summary>
-        /// <param name="locale">The POSIX locale code (ISO-639 language code 
-        /// plus an optional underbar [_] and ISO-3166 country code.  Example: 
-        /// 'en', 'en_US', 'fr_CA', etc)</param>
-        /// <returns>The collation object for further processing</returns>
-        IUnicodeCollation Locale(string locale);
-    }
+    /// <param name="locale">The POSIX locale code (ISO-639 language code 
+    /// plus an optional underbar [_] and ISO-3166 country code.  Example: 
+    /// 'en', 'en_US', 'fr_CA', etc.)</param>
+    /// <returns>The collation object for further processing</returns>
+    IUnicodeCollation Locale(string locale);
 }

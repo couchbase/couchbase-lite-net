@@ -16,84 +16,50 @@
 //  limitations under the License.
 // 
 
-using System.Diagnostics;
-
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class From : LimitedQuery, IFrom
 {
-    internal sealed class From : LimitedQuery, IFrom
+    private const string Tag = nameof(From);
+
+    internal From(XQuery query, IDataSource impl)
     {
-        #region Constants
+        Copy(query);
 
-        private const string Tag = nameof(From);
+        FromImpl = Misc.TryCast<IDataSource, QueryDataSource>(impl);
+        Collection = (impl as DatabaseSource)?.Collection;
+    }
 
-        #endregion
+    public object? ToJSON() => FromImpl?.ToJSON();
 
-        #region Constructors
+    public IGroupBy GroupBy(params IExpression[] expressions)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
+        ValidateParams(expressions);
+        return new QueryGroupBy(this, expressions);
+    }
 
-        internal From(XQuery query, IDataSource impl)
-        {
-            Copy(query);
+    public IJoins Join(params IJoin[] joins)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
+        ValidateParams(joins);
+        return new QueryJoin(this, joins);
+    }
 
-            FromImpl = Misc.TryCast<IDataSource, QueryDataSource>(impl);
-            Collection = (impl as DatabaseSource)?.Collection;
-        }
+    public IOrderBy OrderBy(params IOrdering[] orderings)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
+        ValidateParams(orderings);
+        return new QueryOrderBy(this, orderings);
+    }
 
-        #endregion
-
-        #region Public Methods
-
-        public object? ToJSON()
-        {
-            return FromImpl?.ToJSON();
-        }
-
-        #endregion
-
-        #region IGroupByRouter
-
-        public IGroupBy GroupBy(params IExpression[] expressions)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
-            ValidateParams(expressions);
-            return new QueryGroupBy(this, expressions);
-        }
-
-        #endregion
-
-        #region IJoinRouter
-
-        public IJoins Join(params IJoin[] joins)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
-            ValidateParams(joins);
-            return new QueryJoin(this, joins);
-        }
-
-        #endregion
-
-        #region IOrderByRouter
-
-        public IOrderBy OrderBy(params IOrdering[] orderings)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
-            ValidateParams(orderings);
-            return new QueryOrderBy(this, orderings);
-        }
-
-        #endregion
-
-        #region IWhereRouter
-
-        public IWhere Where(IExpression expression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
-            return new Where(this, expression);
-        }
-
-        #endregion
+    public IWhere Where(IExpression expression)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
+        return new Where(this, expression);
     }
 }

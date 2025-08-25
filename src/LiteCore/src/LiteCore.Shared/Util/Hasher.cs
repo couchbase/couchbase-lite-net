@@ -18,39 +18,38 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace LiteCore.Util
+namespace LiteCore.Util;
+
+// https://stackoverflow.com/a/18613926/1155387
+[ExcludeFromCodeCoverage]
+internal struct Hasher
 {
-    // https://stackoverflow.com/a/18613926/1155387
-    [ExcludeFromCodeCoverage]
-    internal struct Hasher
+    private int _hashCode;
+
+    public static readonly Hasher Start = new Hasher(17);
+
+    public Hasher(int hashCode)
     {
-        private int _hashCode;
+        _hashCode = hashCode;
+    }
 
-        public static readonly Hasher Start = new Hasher(17);
+    public Hasher Add<T>(T obj) where T : notnull
+    {
+        var h = EqualityComparer<T>.Default.GetHashCode(obj);
+        _hashCode = _hashCode * 31 + h;
+        return this;
+    }
 
-        public Hasher(int hashCode)
-        {
-            _hashCode = hashCode;
+    public static implicit operator int(Hasher hasher) => hasher.GetHashCode();
+
+    public override int GetHashCode() => _hashCode;
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is Hasher other) {
+            return _hashCode == other._hashCode;
         }
 
-        public Hasher Add<T>(T obj) where T : notnull
-        {
-            var h = EqualityComparer<T>.Default.GetHashCode(obj);
-            _hashCode = _hashCode * 31 + h;
-            return this;
-        }
-
-        public static implicit operator int(Hasher hasher) => hasher.GetHashCode();
-
-        public override int GetHashCode() => _hashCode;
-
-        public override bool Equals(object? obj)
-        {
-            if (obj is Hasher other) {
-                return _hashCode == other._hashCode;
-            }
-
-            return false;
-        }
+        return false;
     }
 }

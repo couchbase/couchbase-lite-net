@@ -28,244 +28,215 @@ using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal class XQuery : QueryBase
 {
-    internal class XQuery : QueryBase
+    private const string Tag = nameof(XQuery);
+
+    private string? _queryExpression;
+
+    protected bool Distinct { get; set; }
+
+    protected QueryDataSource? FromImpl { get; set; }
+
+    protected QueryGroupBy? GroupByImpl { get; set; }
+
+    protected Having? HavingImpl { get; set; }
+
+    protected QueryJoin? JoinImpl { get; set; }
+
+    protected IExpression? LimitValue { get; set; }
+
+    protected QueryOrderBy? OrderByImpl { get; set; }
+
+    protected Select? SelectImpl { get; set; }
+
+    protected IExpression? SkipValue { get; set; }
+
+    protected QueryExpression? WhereImpl { get; set; }
+
+    protected void Copy(XQuery source)
     {
-        #region Constants
+        Database = source.Database;
+        Collection = source.Collection;
+        SelectImpl = source.SelectImpl;
+        Distinct = source.Distinct;
+        FromImpl = source.FromImpl;
+        WhereImpl = source.WhereImpl;
+        OrderByImpl = source.OrderByImpl;
+        JoinImpl = source.JoinImpl;
+        GroupByImpl = source.GroupByImpl;
+        HavingImpl = source.HavingImpl;
+        LimitValue = source.LimitValue;
+        SkipValue = source.SkipValue;
+    }
 
-        private const string Tag = nameof(XQuery);
+    protected void ValidateParams<T>(T[] param, [CallerMemberName] string? tag = null)
+    {
+        if (param.Length == 0) {
+            var message = String.Format(CouchbaseLiteErrorMessage.ExpressionsMustContainOnePlusElement, tag);
+            CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
+        }
+    }
 
-        #endregion
-
-        #region Variables
-
-        private string? _queryExpression;
-
-        #endregion
-
-        #region Properties
-
-        protected bool Distinct { get; set; }
-
-        protected QueryDataSource? FromImpl { get; set; }
-
-        protected QueryGroupBy? GroupByImpl { get; set; }
-
-        protected Having? HavingImpl { get; set; }
-
-        protected QueryJoin? JoinImpl { get; set; }
-
-        protected IExpression? LimitValue { get; set; }
-
-        protected QueryOrderBy? OrderByImpl { get; set; }
-
-        protected Select? SelectImpl { get; set; }
-
-        protected IExpression? SkipValue { get; set; }
-
-        protected QueryExpression? WhereImpl { get; set; }
-
-        #endregion
-
-        #region Protected Methods
-
-        protected void Copy(XQuery source)
-        {
-            Database = source.Database;
-            Collection = source.Collection;
-            SelectImpl = source.SelectImpl;
-            Distinct = source.Distinct;
-            FromImpl = source.FromImpl;
-            WhereImpl = source.WhereImpl;
-            OrderByImpl = source.OrderByImpl;
-            JoinImpl = source.JoinImpl;
-            GroupByImpl = source.GroupByImpl;
-            HavingImpl = source.HavingImpl;
-            LimitValue = source.LimitValue;
-            SkipValue = source.SkipValue;
+    public override unsafe IResultSet Execute()
+    {
+        if (Collection == null) {
+            throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);
         }
 
-        protected void ValidateParams<T>(T[] param, [CallerMemberName] string? tag = null)
-        {
-            if (param.Length == 0) {
-                var message = String.Format(CouchbaseLiteErrorMessage.ExpressionsMustContainOnePlusElement, tag);
-                CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
-            }
+        Database = Collection.Database;
+
+        var fromImpl = FromImpl;
+        if (SelectImpl == null || fromImpl == null) {
+            throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryMissingSelectOrFrom);
         }
 
-        #endregion
 
-        #region Override Methods
-
-        public override unsafe IResultSet Execute()
+        var e = LiteCoreBridge.CheckTyped(err =>
         {
-            if (Collection == null) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);
+            if (DisposalWatchdog.IsDisposed) {
+                return null;
             }
 
-            Database = Collection.Database;
-
-            var fromImpl = FromImpl;
-            if (SelectImpl == null || fromImpl == null) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryMissingSelectOrFrom);
-            }
-
-            var paramJson = Parameters.FLEncode();
-
-            var e = LiteCoreBridge.CheckTyped(err =>
-            {
-                if (_disposalWatchdog.IsDisposed) {
-                    return null;
-                }
-
-                Check();
-                return NativeSafe.c4query_run(_c4Query!, (FLSlice)paramJson, err);
-            });
-
-            paramJson.Dispose();
-
-            if (e == null) {
-                return new NullResultSet();
-            }
-
-            return new QueryResultSet(this, fromImpl.ThreadSafety, e, ColumnNames);
-        }
-
-        public override unsafe string Explain()
-        {
-            const string defaultVal = "(Unable to explain)";
-            _disposalWatchdog.CheckDisposed();
-
-            // Used for debugging
+            using var paramJson = Parameters.FLEncode();
             Check();
+            return NativeSafe.c4query_run(_c4Query!, (FLSlice)paramJson, err);
+        });
 
-            return NativeSafe.c4query_explain(_c4Query!) ?? defaultVal;
+        if (e == null) {
+            return new NullResultSet();
         }
 
-        protected override unsafe void CreateQuery()
-        {
-            if(_c4Query != null) {
-                return;
-            }
+        return new QueryResultSet(this, fromImpl.ThreadSafety, e, ColumnNames);
+    }
 
-            if (Database == null) {
-                Debug.Assert(Collection != null);
-                Database = Collection!.Database;
-            }
+    public override string Explain()
+    {
+        const string defaultVal = "(Unable to explain)";
+        DisposalWatchdog.CheckDisposed();
 
-            _c4Query = LiteCoreBridge.CheckTyped(err =>
-            {
-                Debug.Assert(Database?.c4db != null);
-                _queryExpression = EncodeAsJSON();
-                WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
-                return NativeSafe.c4query_new2(Database!.c4db!, C4QueryLanguage.JSONQuery, _queryExpression, null, err);
-            })!;
+        // Used for debugging
+        Check();
+
+        return NativeSafe.c4query_explain(_c4Query!) ?? defaultVal;
+    }
+
+    protected override unsafe void CreateQuery()
+    {
+        if(_c4Query != null) {
+            return;
         }
 
-        protected override unsafe Dictionary<string, int> CreateColumnNames(C4QueryWrapper query)
-        {
-            var fromImpl = FromImpl;
-            Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
-            ThreadSafety = fromImpl!.ThreadSafety;
-
-            var map = new Dictionary<string, int>();
-
-            var columnCnt = NativeSafe.c4query_columnCount(query);
-            for (int i = 0; i < columnCnt; i++) {
-                var titleStr = NativeSafe.c4query_columnTitle(query, (uint)i).CreateString();
-                Debug.Assert(titleStr != null);
-
-                if (titleStr!.StartsWith("*")) {
-                    titleStr = fromImpl.ColumnName;
-                }
-
-                if (map.ContainsKey(titleStr!)) {
-                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
-                        String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
-                }
-
-                map.Add(titleStr!, i);
-            }
-
-            return map;
+        if (Database == null) {
+            Debug.Assert(Collection != null);
+            Database = Collection!.Database;
         }
 
-        #endregion
-
-        #region Private Methods
-
-        private string EncodeAsJSON()
+        _c4Query = LiteCoreBridge.CheckTyped(err =>
         {
-            var parameters = new Dictionary<string, object?>();
-            if (WhereImpl != null) {
-                parameters["WHERE"] = WhereImpl.ConvertToJSON();
-            }
-
-            if (Distinct) {
-                parameters["DISTINCT"] = true;
-            }
-
-            if (LimitValue != null) {
-                var e = Misc.TryCast<IExpression, QueryExpression>(LimitValue);
-                parameters["LIMIT"] = e.ConvertToJSON();
-            }
-
-            if (SkipValue != null) {
-                var e = Misc.TryCast<IExpression, QueryExpression>(SkipValue);
-                parameters["OFFSET"] = e.ConvertToJSON();
-            }
-
-            if (OrderByImpl != null) {
-                parameters["ORDER_BY"] = OrderByImpl.ToJSON();
-            }
-
-            var selectParam = SelectImpl?.ToJSON();
-            if (selectParam != null) {
-                parameters["WHAT"] = selectParam;
-            }
-
-            if (JoinImpl != null) {
-                var fromJson = FromImpl?.ToJSON();
-                if (fromJson == null) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoAliasInJoin);
-                }
-
-                var joinJson = JoinImpl.ToJSON() as IList<object>;
-                Debug.Assert(joinJson != null);
-                joinJson!.Insert(0, fromJson);
-                parameters["FROM"] = joinJson;
-            } else {
-                var fromJson = FromImpl?.ToJSON();
-                if (fromJson != null) {
-                    parameters["FROM"] = new[] { fromJson };
-                }
-            }
-
-            if (GroupByImpl != null) {
-                parameters["GROUP_BY"] = GroupByImpl.ToJSON();
-            }
-
-            if (HavingImpl != null) {
-                parameters["HAVING"] = HavingImpl.ToJSON();
-            }
-
-            return JsonConvert.SerializeObject(parameters);
-        }
-
-        private unsafe void Check()
-        {
-            var from = FromImpl;
-            Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
-
-            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
-            _disposalWatchdog.CheckDisposed();
+            Debug.Assert(Database?.C4db != null);
             _queryExpression = EncodeAsJSON();
             WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
+            return NativeSafe.c4query_new2(Database!.C4db!, C4QueryLanguage.JSONQuery, _queryExpression, null, err);
+        })!;
+    }
 
-            CreateQuery();
+    protected override Dictionary<string, int> CreateColumnNames(C4QueryWrapper query)
+    {
+        var fromImpl = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(FromImpl), FromImpl);
+        ThreadSafety = fromImpl.ThreadSafety;
+
+        var map = new Dictionary<string, int>();
+
+        var columnCnt = NativeSafe.c4query_columnCount(query);
+        for (var i = 0; i < columnCnt; i++) {
+            var titleStr = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, 
+                "titleStr", NativeSafe.c4query_columnTitle(query, (uint)i).CreateString());
+
+            if (titleStr.StartsWith("*")) {
+                titleStr = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag,
+                    "fromImpl.ColumnName", fromImpl.ColumnName);
+            }
+
+            if (!map.TryAdd(titleStr, i)) {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
+                    String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
+            }
         }
 
-        #endregion
+        return map;
+    }
+
+    private string EncodeAsJSON()
+    {
+        var parameters = new Dictionary<string, object?>();
+        if (WhereImpl != null) {
+            parameters["WHERE"] = WhereImpl.ConvertToJSON();
+        }
+
+        if (Distinct) {
+            parameters["DISTINCT"] = true;
+        }
+
+        if (LimitValue != null) {
+            var e = Misc.TryCast<IExpression, QueryExpression>(LimitValue);
+            parameters["LIMIT"] = e.ConvertToJSON();
+        }
+
+        if (SkipValue != null) {
+            var e = Misc.TryCast<IExpression, QueryExpression>(SkipValue);
+            parameters["OFFSET"] = e.ConvertToJSON();
+        }
+
+        if (OrderByImpl != null) {
+            parameters["ORDER_BY"] = OrderByImpl.ToJSON();
+        }
+
+        var selectParam = SelectImpl?.ToJSON();
+        if (selectParam != null) {
+            parameters["WHAT"] = selectParam;
+        }
+
+        if (JoinImpl != null) {
+            var fromJson = FromImpl?.ToJSON();
+            if (fromJson == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoAliasInJoin);
+            }
+
+            var joinJson = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag,
+                "JoinImpl", JoinImpl.ToJSON() as IList<object>);
+            joinJson.Insert(0, fromJson);
+            parameters["FROM"] = joinJson;
+        } else {
+            var fromJson = FromImpl?.ToJSON();
+            if (fromJson != null) {
+                parameters["FROM"] = new[] { fromJson };
+            }
+        }
+
+        if (GroupByImpl != null) {
+            parameters["GROUP_BY"] = GroupByImpl.ToJSON();
+        }
+
+        if (HavingImpl != null) {
+            parameters["HAVING"] = HavingImpl.ToJSON();
+        }
+
+        return JsonConvert.SerializeObject(parameters);
+    }
+
+    private void Check()
+    {
+        var from = FromImpl;
+        Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
+
+        using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+        DisposalWatchdog.CheckDisposed();
+        _queryExpression = EncodeAsJSON();
+        WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
+
+        CreateQuery();
     }
 }

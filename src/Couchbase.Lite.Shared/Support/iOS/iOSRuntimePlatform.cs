@@ -16,24 +16,27 @@
 // limitations under the License.
 // 
 #if __IOS__
+using System.Diagnostics.CodeAnalysis;
+
 using Couchbase.Lite.DI;
 using Foundation;
 using UIKit;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency]
+[SuppressMessage("ReSharper", "InconsistentNaming")]
+internal sealed class iOSRuntimePlatform : IRuntimePlatform
 {
-    [CouchbaseDependency]
-	internal sealed class iOSRuntimePlatform : IRuntimePlatform
-	{
 #if MACCATALYST
-        public string OSDescription => $"macOS (Catalyst) {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
+    public string OSDescription => $"macOS (Catalyst) {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
 
-        public string HardwareName => "";
+    public string HardwareName => "";
 #else
-		public string OSDescription => $"iOS {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
+	public string OSDescription => $"iOS {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
 
-		public string HardwareName => UIDevice.CurrentDevice.Model;
+	public string HardwareName => UIDevice.CurrentDevice.Model;
 #endif
-    }
 }
+
 #endif

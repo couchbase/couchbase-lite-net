@@ -27,422 +27,393 @@ using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+///  A container for options that have to do with a <see cref="Replicator"/>
+/// </summary>
+internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposable
 {
+    private const string Tag = nameof(ReplicatorOptionsDictionary);
+
+    // Replicator option dictionary keys:
+    private const string ChannelsKey = "channels";
+    private const string CheckpointIntervalKey = "checkpointInterval";
+    private const string ClientCertKey = "clientCert";
+    private const string DocIDsKey = "docIDs";
+    private const string FilterKey = "filter";
+    private const string FilterParamsKey = "filterParams";
+    private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
+    private const string ResetKey = "reset";
+    private const string MaxRetriesKey = "maxRetries";
+    private const string MaxRetryIntervalKey = "maxRetryInterval";
+    private const string EnableAutoPurgeKey = "autoPurge";
+    private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
+    private const string AcceptParentDomainCookiesKey = "acceptParentDomainCookies";
+
+    // HTTP options:
+    private const string HeadersKey = "headers";
+    private const string CookiesKey = "cookies";
+    private const string AuthOption = "auth";
+    private const string ProxyAuthOption = "proxyAuth";
+
+    // TLS options:
+    private const string PinnedCertKey = "pinnedCert";
+    private const string OnlySelfSignedServerCert = "onlySelfSignedServer";
+
+    // WebSocket options:
+    private const string ProtocolsOptionKey = "WS-Protocols";
+    private const string NetworkInterfaceKey = "networkInterface";
+
+    private GCHandle _pinnedCertHandle;
+    private GCHandle _clientCertHandle;
+    private TimeSpan? _heartbeat = Constants.DefaultReplicatorHeartbeat;
+    private int _maxAttempts = Constants.DefaultReplicatorMaxAttemptsSingleShot;
+    private TimeSpan? _maxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
+
     /// <summary>
-    ///  A container for options that have to do with a <see cref="Replicator"/>
+    /// Gets or sets whether a cookie can be set on a parent domain
+    /// of the host that issued it (i.e. foo.bar.com can set a cookie for all
+    /// of bar.com)
     /// </summary>
-    internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposable
+    public bool AcceptParentDomainCookies
     {
-        #region Constants
+        get => this.GetCast<bool>(AcceptParentDomainCookiesKey);
+        set => this[AcceptParentDomainCookiesKey] = value;
+    }
 
-        private const string Tag = nameof(ReplicatorOptionsDictionary);
+    /// <summary>
+    /// Gets or sets the authentication parameters
+    /// </summary>
+    public AuthOptionsDictionary? Auth
+    {
+        get => this.GetCast<AuthOptionsDictionary>(AuthOption);
+        set => this[AuthOption] = value;
+    }
 
-        // Replicator option dictionary keys:
-        private const string ChannelsKey = "channels";
-        private const string CheckpointIntervalKey = "checkpointInterval";
-        private const string ClientCertKey = "clientCert";
-        private const string DocIDsKey = "docIDs";
-        private const string FilterKey = "filter";
-        private const string FilterParamsKey = "filterParams";
-        private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
-        private const string ResetKey = "reset";
-        private const string MaxRetriesKey = "maxRetries";
-        private const string MaxRetryIntervalKey = "maxRetryInterval";
-        private const string EnableAutoPurgeKey = "autoPurge";
-        private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
-        private const string AcceptParentDomainCookiesKey = "acceptParentDomainCookies";
+    public AuthOptionsDictionary? ProxyAuth
+    {
+        get => this.GetCast<AuthOptionsDictionary>(ProxyAuthOption);
+        set => this[ProxyAuthOption] = value;
+    }
 
-        // HTTP options:
-        private const string HeadersKey = "headers";
-        private const string CookiesKey = "cookies";
-        private const string AuthOption = "auth";
-        private const string ProxyAuthOption = "proxyAuth";
+    /// <summary>
+    /// Gets or sets the channels to replicate (pull only)
+    /// </summary>
+    public IList<string>? Channels
+    {
+        get => this.GetCast<IList<string>>(ChannelsKey);
+        set => this[ChannelsKey] = value;
+    }
 
-        // TLS options:
-        private const string PinnedCertKey = "pinnedCert";
-        private const string OnlySelfSignedServerCert = "onlySelfSignedServer";
-
-        // WebSocket options:
-        private const string ProtocolsOptionKey = "WS-Protocols";
-        private const string NetworkInterfaceKey = "networkInterface";
-
-        #endregion
-
-        #region Variables
-
-        private GCHandle _pinnedCertHandle;
-        private GCHandle _clientCertHandle;
-        private TimeSpan? _heartbeat = Constants.DefaultReplicatorHeartbeat;
-        private int _maxAttempts = Constants.DefaultReplicatorMaxAttemptsSingleShot;
-        private TimeSpan? _maxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets or sets whether or not a cookie can be set on a parent domain
-        /// of the host that issued it (i.e. foo.bar.com can set a cookie for all
-        /// of bar.com)
-        /// </summary>
-        public bool AcceptParentDomainCookies
-        {
-            get => this.GetCast<bool>(AcceptParentDomainCookiesKey);
-            set => this[AcceptParentDomainCookiesKey] = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the authentication parameters
-        /// </summary>
-        public AuthOptionsDictionary? Auth
-        {
-            get => this.GetCast<AuthOptionsDictionary>(AuthOption);
-            set => this[AuthOption] = value;
-        }
-
-        public AuthOptionsDictionary? ProxyAuth
-        {
-            get => this.GetCast<AuthOptionsDictionary>(ProxyAuthOption);
-            set => this[ProxyAuthOption] = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the channels to replicate (pull only)
-        /// </summary>
-        public IList<string>? Channels
-        {
-            get => this.GetCast<IList<string>>(ChannelsKey);
-            set => this[ChannelsKey] = value;
-        }
-
-        public TimeSpan CheckpointInterval
-        {
-            get => TimeSpan.FromSeconds(this.GetCast<double>(CheckpointIntervalKey));
-            set {
-                if (value > TimeSpan.Zero) {
-                    this[CheckpointIntervalKey] = value.TotalSeconds;
-                } else {
-                    Remove(CheckpointIntervalKey);
-                }
+    public TimeSpan CheckpointInterval
+    {
+        get => TimeSpan.FromSeconds(this.GetCast<double>(CheckpointIntervalKey));
+        set {
+            if (value > TimeSpan.Zero) {
+                this[CheckpointIntervalKey] = value.TotalSeconds;
+            } else {
+                Remove(CheckpointIntervalKey);
             }
         }
+    }
 
-        /// <summary>
-        /// Gets or set the certificate to be used with client side
-        /// authentication during TLS requests (optional)
-        /// </summary>
-        public X509Certificate2? ClientCert { get; set; }
+    /// <summary>
+    /// Gets or set the certificate to be used with client side
+    /// authentication during TLS requests (optional)
+    /// </summary>
+    public X509Certificate2? ClientCert { get; set; }
 
-        /// <summary>
-        /// Gets or sets a collection of cookie objects to be passed along
-        /// with the initial HTTP request of the <see cref="Replicator"/>
-        /// </summary>
-        public ICollection<Cookie> Cookies { get; set; } = new List<Cookie>();
+    /// <summary>
+    /// Gets or sets a collection of cookie objects to be passed along
+    /// with the initial HTTP request of the <see cref="Replicator"/>
+    /// </summary>
+    public ICollection<Cookie> Cookies { get; set; } = new List<Cookie>();
 
-        /// <summary>
-        /// Gets or sets the docIDs to replicate
-        /// </summary>
-        public IList<string>? DocIDs
-        {
-            get => this.GetCast<IList<string>>(DocIDsKey);
-            set => this[DocIDsKey] = value;
+    /// <summary>
+    /// Gets or sets the docIDs to replicate
+    /// </summary>
+    public IList<string>? DocIDs
+    {
+        get => this.GetCast<IList<string>>(DocIDsKey);
+        set => this[DocIDsKey] = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the filter to use when replicating
+    /// </summary>
+    public string? Filter
+    {
+        get => this.GetCast<string>(FilterKey);
+        set => this[FilterKey] = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the parameters that will be passed along with the filter
+    /// </summary>
+    public IDictionary<string, object>? FilterParams
+    {
+        get => this.GetCast<IDictionary<string, object>>(FilterParamsKey);
+        set => this[FilterParamsKey] = value;
+    }
+
+    /// <summary>
+    /// Gets a mutable collection of headers to be passed along with the initial
+    /// HTTP request that starts replication
+    /// </summary>
+    public IDictionary<string, string?> Headers
+    {
+        get => this.GetCast<IDictionary<string, string?>>(HeadersKey, new Dictionary<string, string?>())!;
+        set => this[HeadersKey] = value;
+    }
+
+    /// <summary>
+    /// Gets or sets a certificate to trust.  All other certificates received
+    /// by a <see cref="Replicator"/> with this configuration will be rejected.
+    /// </summary>
+    internal X509Certificate2? PinnedServerCertificate { get; set; }
+
+    internal string? NetworkInterface
+    {
+        get => this.GetCast<string>(NetworkInterfaceKey);
+        set => this[NetworkInterfaceKey] = value;
+    }
+
+    /// <summary>
+    /// Stable ID for remote db with unstable URL
+    /// </summary>
+    public string? RemoteDBUniqueID
+    {
+        get => this.GetCast<string>(RemoteDBUniqueIDKey);
+        set {
+            if (value != null) {
+                this[RemoteDBUniqueIDKey] = value;
+            } else {
+                Remove(RemoteDBUniqueIDKey);
+            }
         }
+    }
 
-        /// <summary>
-        /// Gets or sets the filter to use when replicating
-        /// </summary>
-        public string? Filter
-        {
-            get => this.GetCast<string>(FilterKey);
-            set => this[FilterKey] = value;
+    /// <summary>
+    /// Checkpoint Reset
+    /// </summary>
+    public bool Reset
+    {
+        get => this.GetCast<bool>(ResetKey);
+        set {
+            if (value) {
+                this[ResetKey] = true;
+            } else {
+                Remove(ResetKey);
+            }
         }
+    }
 
-        /// <summary>
-        /// Gets or sets the parameters that will be passed along with the filter
-        /// </summary>
-        public IDictionary<string, object>? FilterParams
+    internal bool EnableAutoPurge
+    {
+        get => this.GetCast<bool>(EnableAutoPurgeKey);
+        set => this[EnableAutoPurgeKey] = value;
+    }
+
+    internal TimeSpan? Heartbeat
+    {
+        get => _heartbeat;
+        set 
         {
-            get => this.GetCast<IDictionary<string, object>>(FilterParamsKey);
-            set => this[FilterParamsKey] = value;
-        }
-
-        /// <summary>
-        /// Gets a mutable collection of headers to be passed along with the initial
-        /// HTTP request that starts replication
-        /// </summary>
-        public IDictionary<string, string?> Headers
-        {
-            get => this.GetCast<IDictionary<string, string?>>(HeadersKey, new Dictionary<string, string?>())!;
-            set => this[HeadersKey] = value;
-        }
-
-        /// <summary>
-        /// Gets or sets a certificate to trust.  All other certificates received
-        /// by a <see cref="Replicator"/> with this configuration will be rejected.
-        /// </summary>
-        internal X509Certificate2? PinnedServerCertificate { get; set; }
-
-        internal string? NetworkInterface
-        {
-            get => this.GetCast<string>(NetworkInterfaceKey);
-            set => this[NetworkInterfaceKey] = value;
-        }
-
-        /// <summary>
-        /// Stable ID for remote db with unstable URL
-        /// </summary>
-        public string? RemoteDBUniqueID
-        {
-            get => this.GetCast<string>(RemoteDBUniqueIDKey);
-            set {
+            if (_heartbeat != value) {
                 if (value != null) {
-                    this[RemoteDBUniqueIDKey] = value;
-                } else {
-                    Remove(RemoteDBUniqueIDKey);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Checkpoint Reset
-        /// </summary>
-        public bool Reset
-        {
-            get => this.GetCast<bool>(ResetKey);
-            set {
-                if (value) {
-                    this[ResetKey] = true;
-                } else {
-                    Remove(ResetKey);
-                }
-            }
-        }
-
-        internal bool EnableAutoPurge
-        {
-            get => this.GetCast<bool>(EnableAutoPurgeKey);
-            set => this[EnableAutoPurgeKey] = value;
-        }
-
-        internal TimeSpan? Heartbeat
-        {
-            get => _heartbeat;
-            set 
-            {
-                if (_heartbeat != value) {
-                    if (value != null) {
-                        long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
-                        if (sec > 0) {
-                            this[HeartbeatIntervalKey] = sec;
-                        } else {
-                            throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
-                        }
-                    } else { // Backward compatible if null is set
-                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorHeartbeat.TotalSeconds;
+                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                    if (sec > 0) {
+                        this[HeartbeatIntervalKey] = sec;
+                    } else {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
                     }
-                    
-                    _heartbeat = value;
+                } else { // Backward compatible if null is set
+                    this[HeartbeatIntervalKey] = Constants.DefaultReplicatorHeartbeat.TotalSeconds;
                 }
+                    
+                _heartbeat = value;
             }
         }
+    }
 
-        internal int MaxAttempts
+    internal int MaxAttempts
+    {
+        get => _maxAttempts;
+        set
         {
-            get => _maxAttempts;
-            set
-            {
-                if (_maxAttempts != value) {
-                    if (value < 0) {
-                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
-                    } 
+            if (_maxAttempts != value) {
+                if (value < 0) {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
+                } 
                     
-                    this[MaxRetriesKey] = value - 1;
-                    _maxAttempts = value;
-                }
+                this[MaxRetriesKey] = value - 1;
+                _maxAttempts = value;
             }
         }
+    }
 
-        internal TimeSpan? MaxAttemptsWaitTime
+    internal TimeSpan? MaxAttemptsWaitTime
+    {
+        get => _maxAttemptsWaitTime;
+        set
         {
-            get => _maxAttemptsWaitTime;
-            set
-            {
-                if (_maxAttemptsWaitTime != value) {
-                    if (value != null) {
-                        long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
-                        if (sec > 0) {
-                            this[MaxRetryIntervalKey] = sec;
-                        } else {
-                            throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
-                        }
-                    } else { // Backward compatible if null is set
-                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptsWaitTime.TotalSeconds;
+            if (_maxAttemptsWaitTime != value) {
+                if (value != null) {
+                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                    if (sec > 0) {
+                        this[MaxRetryIntervalKey] = sec;
+                    } else {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
                     }
-
-                    _maxAttemptsWaitTime = value;
+                } else { // Backward compatible if null is set
+                    this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptsWaitTime.TotalSeconds;
                 }
+
+                _maxAttemptsWaitTime = value;
             }
         }
+    }
 
         #if COUCHBASE_ENTERPRISE
-        internal bool AcceptOnlySelfSignedServerCertificate
-        {
-            get => this.GetCast<bool>(OnlySelfSignedServerCert);
-            set => this[OnlySelfSignedServerCert] = value;
-        }
+    internal bool AcceptOnlySelfSignedServerCertificate
+    {
+        get => this.GetCast<bool>(OnlySelfSignedServerCert);
+        set => this[OnlySelfSignedServerCert] = value;
+    }
         #endif
 
-        internal string? CookieString => this.GetCast<string>(CookiesKey);
+    internal string? CookieString => this.GetCast<string>(CookiesKey);
 
-        internal string? Protocols => this.GetCast<string>(ProtocolsOptionKey);
+    internal string? Protocols => this.GetCast<string>(ProtocolsOptionKey);
 
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Default constructor
-        /// </summary>
-        public ReplicatorOptionsDictionary()
-        {
-            Headers = new Dictionary<string, string?>();
-            EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
+    /// <summary>
+    /// Default constructor
+    /// </summary>
+    public ReplicatorOptionsDictionary()
+    {
+        Headers = new Dictionary<string, string?>();
+        EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
             #if COUCHBASE_ENTERPRISE
-            AcceptOnlySelfSignedServerCertificate = Constants.DefaultReplicatorSelfSignedCertificateOnly;
+        AcceptOnlySelfSignedServerCertificate = Constants.DefaultReplicatorSelfSignedCertificateOnly;
             #endif
+    }
+
+    ~ReplicatorOptionsDictionary()
+    {
+        Dispose(true);
+    }
+
+    internal ReplicatorOptionsDictionary(Dictionary<string, object?> raw) : base(raw)
+    {
+        if (ContainsKey(AuthOption)) {
+            Auth = new AuthOptionsDictionary((this[AuthOption] as Dictionary<string, object?>)!);
         }
 
-        ~ReplicatorOptionsDictionary()
-        {
-            Dispose(true);
+        if (ContainsKey(ProxyAuthOption)) {
+            ProxyAuth = new AuthOptionsDictionary((this[ProxyAuthOption] as Dictionary<string, object?>)!);
         }
 
-        internal ReplicatorOptionsDictionary(Dictionary<string, object?> raw) : base(raw)
-        {
-            if (ContainsKey(AuthOption)) {
-                Auth = new AuthOptionsDictionary((this[AuthOption] as Dictionary<string, object?>)!);
-            }
-
-            if (ContainsKey(ProxyAuthOption)) {
-                ProxyAuth = new AuthOptionsDictionary((this[ProxyAuthOption] as Dictionary<string, object?>)!);
-            }
-
-            if (ContainsKey(ChannelsKey)) {
-                Channels = (this[ChannelsKey] as IList<object>)?.Cast<string>().ToList();
-            }
-
-            if (ContainsKey(DocIDsKey)) {
-                DocIDs = (this[DocIDsKey] as IList<object>)?.Cast<string>().ToList();
-            }
-
-            if (ContainsKey(HeadersKey)) {
-                Headers = (this[HeadersKey] as IDictionary<string, object?>)?.ToDictionary(x => x.Key,
-                    x => x.Value as string) ?? new Dictionary<string, string?>();
-            }
-
-            if (ContainsKey(PinnedCertKey)) {
-                PinnedServerCertificate = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(PinnedCertKey)).Target as X509Certificate2;
-            }
-
-            if (ContainsKey(ClientCertKey)) {
-                ClientCert = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(ClientCertKey)).Target as X509Certificate2;
-            }
-
-            if (ContainsKey(CookiesKey)) {
-                AddCookies(this[CookiesKey] as string);
-            }
+        if (ContainsKey(ChannelsKey)) {
+            Channels = (this[ChannelsKey] as IList<object>)?.Cast<string>().ToList();
         }
 
-        #endregion
-
-        #region Private Methods
-
-        private void AddCookies(string? cookiesString)
-        {
-            var split = cookiesString?.Split(';') ?? Enumerable.Empty<string>();
-            foreach (var entry in split) {
-                var pieces = entry?.Split('=');
-                if (pieces?.Length != 2) {
-                    WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
-                    continue;
-                }
-
-                Cookies.Add(new Cookie(pieces[0]?.Trim()!, pieces[1]?.Trim()));
-            }
+        if (ContainsKey(DocIDsKey)) {
+            DocIDs = (this[DocIDsKey] as IList<object>)?.Cast<string>().ToList();
         }
 
-        private void Dispose(bool finalizing)
-        {
-            if (_clientCertHandle.IsAllocated) {
-                _clientCertHandle.Free();
-            }
-
-            if (_pinnedCertHandle.IsAllocated) {
-                _pinnedCertHandle.Free();
-            }
+        if (ContainsKey(HeadersKey)) {
+            Headers = (this[HeadersKey] as IDictionary<string, object?>)?.ToDictionary(x => x.Key,
+                x => x.Value as string) ?? new Dictionary<string, string?>();
         }
 
-        #endregion
-
-        #region Overrides
-
-        internal override void BuildInternal()
-        {
-            Auth?.Build();
-
-            // If Headers contain Cookie
-            if(Headers.ContainsKey("Cookie"))
-                AddCookies(Headers["Cookie"]);
-
-            if (Cookies.Count > 0) {
-                this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
-            }
-
-            if (PinnedServerCertificate != null) {
-                if (!_pinnedCertHandle.IsAllocated) {
-                    _pinnedCertHandle = GCHandle.Alloc(PinnedServerCertificate, GCHandleType.Weak);
-                }
-
-                this[PinnedCertKey] = GCHandle.ToIntPtr(_pinnedCertHandle).ToInt64();
-            }
-
-            if (ClientCert != null) {
-                if (!_clientCertHandle.IsAllocated) {
-                    _clientCertHandle = GCHandle.Alloc(ClientCert, GCHandleType.Weak);
-                }
-
-                this[ClientCertKey] = GCHandle.ToIntPtr(_clientCertHandle).ToInt64();
-            }
-
-            Headers["User-Agent"] = HTTPLogic.UserAgent;
+        if (ContainsKey(PinnedCertKey)) {
+            PinnedServerCertificate = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(PinnedCertKey)).Target as X509Certificate2;
         }
 
-        internal override bool Validate(string key, object? value)
-        {
-            switch (key) {
-                case AuthOption:
-                    return value is AuthOptionsDictionary;
-                case CookiesKey:
-                    return value is string;
-                case PinnedCertKey:
-                case ClientCertKey:
-                    return value is long;
-                default:
-                    return true;
+        if (ContainsKey(ClientCertKey)) {
+            ClientCert = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(ClientCertKey)).Target as X509Certificate2;
+        }
+
+        if (ContainsKey(CookiesKey)) {
+            AddCookies(this[CookiesKey] as string);
+        }
+    }
+
+    private void AddCookies(string? cookiesString)
+    {
+        var split = cookiesString?.Split(';') ?? Enumerable.Empty<string>();
+        foreach (var entry in split) {
+            var pieces = entry.Split('=');
+            if (pieces.Length != 2) {
+                WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
+                continue;
             }
+
+            Cookies.Add(new Cookie(pieces[0].Trim(), pieces[1].Trim()));
+        }
+    }
+
+    private void Dispose(bool _)
+    {
+        if (_clientCertHandle.IsAllocated) {
+            _clientCertHandle.Free();
         }
 
-        #endregion
+        if (_pinnedCertHandle.IsAllocated) {
+            _pinnedCertHandle.Free();
+        }
+    }
 
-        #region IDisposable
+    internal override void BuildInternal()
+    {
+        Auth?.Build();
 
-        public void Dispose()
-        {
-            Dispose(false);
-            GC.SuppressFinalize(this);
+        // If Headers contain Cookie
+        if(Headers.ContainsKey("Cookie"))
+            AddCookies(Headers["Cookie"]);
+
+        if (Cookies.Count > 0) {
+            this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
         }
 
-        #endregion
+        if (PinnedServerCertificate != null) {
+            if (!_pinnedCertHandle.IsAllocated) {
+                _pinnedCertHandle = GCHandle.Alloc(PinnedServerCertificate, GCHandleType.Weak);
+            }
+
+            this[PinnedCertKey] = GCHandle.ToIntPtr(_pinnedCertHandle).ToInt64();
+        }
+
+        if (ClientCert != null) {
+            if (!_clientCertHandle.IsAllocated) {
+                _clientCertHandle = GCHandle.Alloc(ClientCert, GCHandleType.Weak);
+            }
+
+            this[ClientCertKey] = GCHandle.ToIntPtr(_clientCertHandle).ToInt64();
+        }
+
+        Headers["User-Agent"] = HTTPLogic.UserAgent;
+    }
+
+    internal override bool Validate(string key, object? value)
+    {
+        switch (key) {
+            case AuthOption:
+                return value is AuthOptionsDictionary;
+            case CookiesKey:
+                return value is string;
+            case PinnedCertKey:
+            case ClientCertKey:
+                return value is long;
+            default:
+                return true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(false);
+        GC.SuppressFinalize(this);
     }
 }

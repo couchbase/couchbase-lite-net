@@ -16,23 +16,17 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
-{
-    /// <summary>
-    /// An interface representing a portion of a query that can be routed
-    /// to a FROM portion
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a portion of a query that can be routed
+/// to a FROM portion
+/// </summary>
+public interface IFromRouter
+{ /// <summary>
+    /// Routes this IExpression to the nexe FROM portion of a query
     /// </summary>
-    public interface IFromRouter
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Routes this IExpression to the nexe FROM portion of a query
-        /// </summary>
-        /// <param name="dataSource">The data source to use in the FROM portion of the query</param>
-        /// <returns>The next FROM portion of the query for further processing</returns>
-        IFrom From(IDataSource dataSource);
-
-        #endregion
-    }
+    /// <param name="dataSource">The data source to use in the FROM portion of the query</param>
+    /// <returns>The next FROM portion of the query for further processing</returns>
+    IFrom From(IDataSource dataSource);
 }

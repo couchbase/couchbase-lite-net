@@ -22,24 +22,20 @@ using System;
 using System.IO;
 using Couchbase.Lite.DI;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+// NOTE: AppContext.BaseDirectory is not entirely reliable, but there is no other choice
+// It seems to usually be in the right place?
+
+[CouchbaseDependency]
+internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
 {
-    // NOTE: AppContext.BaseDirectory is not entirely reliable, but there is no other choice
-    // It seems to usually be in the right place?
-
-    [CouchbaseDependency]
-    internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
+    public string DefaultDirectory()
     {
-        #region IDefaultDirectoryResolver
-
-        public string DefaultDirectory()
-        {
-            var baseDirectory = AppContext.BaseDirectory ??
-                                throw new RuntimeException("BaseDirectory was null, cannot continue...");
-            return Path.Combine(baseDirectory, "CouchbaseLite");
-        }
-
-        #endregion
+        var baseDirectory = AppContext.BaseDirectory ??
+                            throw new RuntimeException("BaseDirectory was null, cannot continue...");
+        return Path.Combine(baseDirectory, "CouchbaseLite");
     }
 }
+
 #endif

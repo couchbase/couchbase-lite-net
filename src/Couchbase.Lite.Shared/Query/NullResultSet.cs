@@ -22,56 +22,31 @@ using System.Collections.Generic;
 
 using Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class NullResultSet : IResultSet, IEnumerator<Result>
 {
-    internal sealed class NullResultSet : IResultSet, IEnumerator<Result>
+    public static int Count => 0;
+
+    object IEnumerator.Current => Current;
+
+    public Result Current => throw new InvalidOperationException("NullResultSet cannot be iterated, it is empty");
+
+    public void Dispose()
     {
-        #region Properties
-
-        public int Count { get; } = 0;
-
-        object? IEnumerator.Current => Current;
-
-        public Result Current => throw new InvalidOperationException("NullResultSet cannot be iterated, it is empty");
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
             
-        }
-
-        #endregion
-
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        #endregion
-
-        #region IEnumerable<Result>
-
-        public IEnumerator<Result> GetEnumerator() => this;
-
-        #endregion
-
-        #region IEnumerator
-
-        public bool MoveNext() => false;
-
-        public void Reset()
-        {
-            
-        }
-
-        #endregion
-
-        #region IResultSet
-
-        public List<Result> AllResults() => new List<Result>();
-
-        #endregion
     }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public IEnumerator<Result> GetEnumerator() => this;
+
+    public bool MoveNext() => false;
+
+    public void Reset()
+    {
+            
+    }
+
+    public List<Result> AllResults() => [];
 }

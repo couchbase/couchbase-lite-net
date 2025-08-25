@@ -24,88 +24,48 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class DatabaseSource : QueryDataSource, IDataSourceAs
 {
-    internal sealed class DatabaseSource : QueryDataSource, IDataSourceAs
+    private const string Tag = nameof(DatabaseSource);
+
+    private string? _as;
+    private readonly string _collection;
+    private readonly string _scope;
+
+    // ReSharper disable once ConvertToAutoPropertyWithPrivateSetter
+    internal override string? ColumnName => _as;
+
+    internal Collection? Collection => Source as Collection;
+
+    internal DatabaseSource(Collection collection, ThreadSafety threadSafety) : base(collection, threadSafety)
     {
-        #region Constants
+        _collection = collection.Name;
+        _scope = collection.Scope.Name;
+    }
 
-        private const string Tag = nameof(DatabaseSource);
-
-        #endregion
-
-        #region Variables
-
-        private string? _as;
-        private string _collection;
-        private string _scope;
-        private bool _legacyColumn;
-
-        #endregion
-
-        #region Properties
-
-        internal override string? ColumnName
-        {
-            get {
-                if (_as != null) {
-                    return _as;
-                }
-
-                return _legacyColumn ? Collection?.Database?.Name : null;
-            }
+    public override object ToJSON()
+    {
+        Dictionary<string, object?> dict = new();
+        if (Collection != null) {
+            dict.Add("SCOPE", _scope);
+            dict.Add("COLLECTION", _collection);
         }
 
-        internal Collection? Collection => Source as Collection;
-
-        #endregion
-
-        #region Constructors
-
-        internal DatabaseSource(Collection collection, ThreadSafety threadSafety) : base(collection, threadSafety)
-        {
-            _collection = collection.Name;
-            _scope = collection.Scope.Name;
+        if (ColumnName != null) {
+            dict.Add("AS", ColumnName);
         }
 
-        internal DatabaseSource(Database database, ThreadSafety threadSafety)
-            : this(database.GetDefaultCollection(), threadSafety)
-        {
-            _legacyColumn = true;
-        }
+        Debug.Assert(dict.Any());
+        return dict;
+    }
 
-        #endregion
+    public IDataSource As(string alias)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
 
-        #region Overrides
-
-        public override object ToJSON()
-        {
-            Dictionary<string, object?> dict = new();
-            if (Collection != null) {
-                dict.Add("SCOPE", _scope);
-                dict.Add("COLLECTION", _collection);
-            }
-
-            if (ColumnName != null) {
-                dict.Add("AS", ColumnName);
-            }
-
-            Debug.Assert(dict.Any());
-            return dict;
-        }
-
-        #endregion
-
-        #region IDataSourceAs
-
-        public IDataSource As(string alias)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
-
-            _as = alias;
-            return this;
-        }
-
-        #endregion
+        _as = alias;
+        return this;
     }
 }

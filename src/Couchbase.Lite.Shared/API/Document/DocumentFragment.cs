@@ -18,38 +18,26 @@
 
 using Couchbase.Lite.Internal.Doc;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// DocumentFragment provides access to a <see cref="Document"/> object.  It also provides subscript access
+/// by key to the data values of the wrapped document.
+/// </summary>
+public sealed class DocumentFragment : IDictionaryFragment
 {
     /// <summary>
-    /// DocumentFragment provides access to a <see cref="Document"/> object.  It also provides subscript access
-    /// by key to the data values of the wrapped document.
+    /// Gets the <see cref="Document"/> from the document fragment
     /// </summary>
-    public sealed class DocumentFragment : IDictionaryFragment
-    {
-        #region Properties
+    public Document? Document { get; }
 
-        /// <summary>
-        /// Gets the <see cref="Document"/> from the document fragment
-        /// </summary>
-        public Document? Document { get; }
+    /// <summary>
+    /// Gets whether this document is in the database
+    /// </summary>
+    public bool Exists => Document != null;
 
-        /// <summary>
-        /// Gets whether or not this document is in the database
-        /// </summary>
-        public bool Exists => Document != null;
+    /// <inheritdoc />
+    public IFragment this[string key] => Document?[key] ?? Fragment.Null;
 
-        /// <inheritdoc />
-        public IFragment this[string key] => Document?[key] ?? Fragment.Null;
-
-        #endregion
-
-        #region Constructors
-
-        internal DocumentFragment(Document? doc)
-        {
-            Document = doc;
-        }
-
-        #endregion
-    }
+    internal DocumentFragment(Document? doc) => Document = doc;
 }

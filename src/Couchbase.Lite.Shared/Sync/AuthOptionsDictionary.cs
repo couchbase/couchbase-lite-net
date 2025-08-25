@@ -19,129 +19,106 @@ using System;
 using System.Collections.Generic;
 using System.Security;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// The type of authentication credentials that an <see cref="AuthOptionsDictionary"/>
+/// holds
+/// </summary>
+internal enum AuthType
 {
     /// <summary>
-    /// The type of authentication credentials that an <see cref="AuthOptionsDictionary"/>
-    /// holds
+    /// HTTP Basic (RFC 2617)
     /// </summary>
-    internal enum AuthType
-    {
-        /// <summary>
-        /// HTTP Basic (RFC 2617)
-        /// </summary>
-        HttpBasic,
+    HttpBasic,
 
-        /// <summary>
-        /// TLS client cert
-        /// </summary>
-        ClientCert = 4
+    /// <summary>
+    /// TLS client cert
+    /// </summary>
+    ClientCert = 4
+}
+
+/// <summary>
+/// A container that stores login information for authenticating with
+/// a remote endpoint
+/// </summary>
+internal sealed class AuthOptionsDictionary : OptionsDictionary
+{
+    private const string PasswordKey = "password";
+    private const string TypeKey = "type";
+    private const string UsernameKey = "username";
+
+    private AuthType _authType;
+
+    /// <summary>
+    /// Gets or sets the password for the credentials (not applicable in all cases)
+    /// </summary>
+    public string? Password
+    {
+        get => this[PasswordKey] as string;
+        set => this[PasswordKey] = value;
     }
 
     /// <summary>
-    /// A container that stores login information for authenticating with
-    /// a remote endpoint
+    /// Gets or sets the password for the credentials (not applicable in all cases)
     /// </summary>
-    internal sealed class AuthOptionsDictionary : OptionsDictionary
+    public SecureString? PasswordSecureString
     {
-        #region Constants
+        get => this[PasswordKey] as SecureString;
+        set => this[PasswordKey] = value;
+    }
 
-        private static readonly string[] AuthTypes = {
-            "Basic", "Session", "OpenID Connect", "Facebook", "Client Cert"
-        };
-
-        private const string PasswordKey = "password";
-        private const string TypeKey = "type";
-        private const string UsernameKey = "username";
-
-        #endregion
-
-        #region Variables
-
-        private AuthType _authType;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// [DEPRECATED] Gets or sets the password for the credentials (not applicable in all cases)
-        /// </summary>
-        public string? Password
-        {
-            get => this[PasswordKey] as string;
-            set => this[PasswordKey] = value;
+    /// <summary>
+    /// Gets or sets the type of authentication to be used
+    /// </summary>
+    public AuthType Type
+    {
+        get => _authType;
+        set {
+            _authType = value;
+            this[TypeKey] = value == AuthType.HttpBasic ? "Basic" : "Client Cert";
         }
+    }
 
-        /// <summary>
-        /// Gets or sets the password for the credentials (not applicable in all cases)
-        /// </summary>
-        public SecureString? PasswordSecureString
-        {
-            get => this[PasswordKey] as SecureString;
-            set => this[PasswordKey] = value;
-        }
+    /// <summary>
+    /// Gets or sets the username to be used
+    /// </summary>
+    public string? Username
+    {
+        get => this[UsernameKey] as string;
+        set => this[UsernameKey] = value;
+    }
 
-        /// <summary>
-        /// Gets or sets the type of authentication to be used
-        /// </summary>
-        public AuthType Type
-        {
-            get => _authType;
-            set {
-                _authType = value;
-                this[TypeKey] = AuthTypes[(int)value];
-            }
-        }
+    /// <summary>
+    /// Default constructor
+    /// </summary>
+    public AuthOptionsDictionary()
+    {
+        Type = AuthType.HttpBasic;
+        Username = String.Empty;
+        Password = String.Empty;
+        PasswordSecureString = new SecureString();
+    }
 
-        /// <summary>
-        /// Gets or sets the username to be used
-        /// </summary>
-        public string? Username
-        {
-            get => this[UsernameKey] as string;
-            set => this[UsernameKey] = value;
-        }
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Default constructor
-        /// </summary>
-        public AuthOptionsDictionary()
-        {
-            Type = AuthType.HttpBasic;
-            Username = String.Empty;
-            Password = String.Empty;
-            PasswordSecureString = new SecureString();
-        }
-
-        internal AuthOptionsDictionary(Dictionary<string, object?> raw) : base(raw)
-        {
+    internal AuthOptionsDictionary(Dictionary<string, object?> raw) : base(raw)
+    {
             
+    }
+
+    internal override bool KeyIsRequired(string key) => 
+        key is TypeKey or UsernameKey or PasswordKey;
+
+    internal override bool Validate(string key, object? value)
+    {
+        switch (key) {
+            case TypeKey:
+                if (value is not string str) {
+                    return false;
+                }
+                
+                return str is "Basic" or "Client Cert";
+            default:
+                return true;
         }
-
-        #endregion
-
-        #region Overrides
-
-        internal override bool KeyIsRequired(string key)
-        {
-            return key == TypeKey || key == UsernameKey || key == PasswordKey;
-        }
-
-        internal override bool Validate(string key, object? value)
-        {
-            switch (key) {
-                case TypeKey:
-                    return Array.IndexOf(AuthTypes, value as string) != -1;
-                default:
-                    return true;
-            }
-        }
-
-        #endregion
     }
 }

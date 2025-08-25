@@ -16,24 +16,19 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a portion of a query that can be routed to
+/// a WHERE portion of the query.
+/// </summary>
+public interface IWhereRouter
 {
     /// <summary>
-    /// An interface representing a portion of a query that can be routed to
-    /// a WHERE portion of the query.
+    /// Routes this portion of the query to the next WHERE portion of the
+    /// query
     /// </summary>
-    public interface IWhereRouter
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Routes this portion of the query to the next WHERE portion of the
-        /// query
-        /// </summary>
-        /// <param name="expression">The expression to evaluate in the WHERE portion</param>
-        /// <returns>The next WHERE portion of the query</returns>
-        IWhere Where(IExpression expression);
-
-        #endregion
-    }
+    /// <param name="expression">The expression to evaluate in the WHERE portion</param>
+    /// <returns>The next WHERE portion of the query</returns>
+    IWhere Where(IExpression expression);
 }

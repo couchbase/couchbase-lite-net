@@ -16,33 +16,32 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// An enum describing states for a <see cref="Replicator"/>
+/// </summary>
+public enum ReplicatorActivityLevel
 {
     /// <summary>
-    /// An enum describing states for a <see cref="Replicator"/>
+    /// The replication is finished or hit a fatal error
     /// </summary>
-    public enum ReplicatorActivityLevel
-    {
-        /// <summary>
-        /// The replication is finished or hit a fatal error
-        /// </summary>
-        Stopped,
-        /// <summary>
-        /// The replicator has detected that there is no Internet connection available
-        /// </summary>
-        Offline,
-        /// <summary>
-        /// The replicator is connecting to the remote host
-        /// </summary>
-        Connecting,
-        /// <summary>
-        /// The replication is inactive; either waiting for changes or offline
-        /// because the remote host is unreachable
-        /// </summary>
-        Idle,
-        /// <summary>
-        /// The replication is actively transferring data
-        /// </summary>
-        Busy
-    }
+    Stopped,
+    /// <summary>
+    /// The replicator has detected that there is no Internet connection available
+    /// </summary>
+    Offline,
+    /// <summary>
+    /// The replicator is connecting to the remote host
+    /// </summary>
+    Connecting,
+    /// <summary>
+    /// The replication is inactive; either waiting for changes or offline
+    /// because the remote host is unreachable
+    /// </summary>
+    Idle,
+    /// <summary>
+    /// The replication is actively transferring data
+    /// </summary>
+    Busy
 }

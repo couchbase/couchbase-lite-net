@@ -25,145 +25,122 @@ using LiteCore.Interop;
 
 using static LiteCore.Constants;
 
-namespace Couchbase.Lite.Internal.Serialization
+namespace Couchbase.Lite.Internal.Serialization;
+
+internal sealed unsafe class MValue : IFLEncodable, IFLSlotSetable
 {
-    internal sealed unsafe class MValue : IFLEncodable, IFLSlotSetable
+    public static readonly MValue Empty = new MValue(true);
+
+    public bool HasNative => NativeObject != null;
+
+    public bool IsEmpty { get; }
+
+    public bool IsMutated => Value == null;
+
+    public object? NativeObject { get; private set; }
+
+    public FLValue* Value { get; private set; }
+
+    public MValue() : this(false)
     {
-        #region Constants
-
-        public static readonly MValue Empty = new MValue(true);
-
-        #endregion
-
-        #region Properties
-
-        public bool HasNative => NativeObject != null;
-
-        public bool IsEmpty { get; }
-
-        public bool IsMutated => Value == null;
-
-        public object? NativeObject { get; private set; }
-
-        public FLValue* Value { get; private set; }
-
-        #endregion
-
-        #region Constructors
-
-        public MValue() : this(false)
-        {
             
+    }
+
+    public MValue(bool empty)
+    {
+        IsEmpty = empty;
+    }
+
+    public MValue(object? o)
+    {
+        NativeObject = DataOps.ToCouchbaseObject(o);
+    }
+
+    public MValue(FLValue* v)
+    {
+        Value = v;
+    }
+
+    public object? AsObject(MCollection parent)
+    {
+        if (NativeObject != null || Value == null) {
+            return NativeObject;
         }
 
-        public MValue(bool empty)
-        {
-            IsEmpty = empty;
+        var cache = false;
+        var obj = ToObject(this, parent, ref cache);
+        if (cache) {
+            NativeObject = obj;
         }
 
-        public MValue(object? o)
-        {
-            NativeObject = DataOps.ToCouchbaseObject(o);
+        return obj;
+    }
+
+    public void Mutate()
+    {
+        Debug.Assert(NativeObject != null);
+        Value = null;
+    }
+
+    private static object? CreateSpecialObject(string? type, FLDict* properties, DocContext context)
+    {
+        return type == ObjectTypeBlob || FLValueConverter.IsOldAttachment(properties)
+            ? context.ToObject((FLValue*) properties, true)
+            : null;
+    }
+
+    private static object? ToObject(MValue mv, MCollection parent, ref bool cache)
+    {
+        var type = Native.FLValue_GetType(mv.Value);
+        switch (type) {
+            case FLValueType.Array:
+                cache = true;
+                return parent.MutableChildren 
+                    ? new MutableArrayObject(mv, parent) 
+                    : new ArrayObject(mv, parent);
+            case FLValueType.Dict:
+                cache = true;
+                var context = (DocContext)parent.Context!;
+                var flDict = Native.FLValue_AsDict(mv.Value);
+                var subType = Native.FLValue_AsString(Native.FLDict_Get(flDict,
+                    Encoding.UTF8.GetBytes(ObjectTypeProperty)));
+                var obj = CreateSpecialObject(subType, flDict, context);
+                if (obj != null) {
+                    return obj;
+                }
+
+                return parent.MutableChildren
+                    ? new MutableDictionaryObject(mv, parent)
+                    : new DictionaryObject(mv, parent);
+            case FLValueType.Undefined:
+            case FLValueType.Null:
+            case FLValueType.Boolean:
+            case FLValueType.Number:
+            case FLValueType.String:
+            case FLValueType.Data:
+            default:
+                return FLSliceExtensions.ToObject(mv.Value);
         }
+    }
 
-        public MValue(FLValue* v)
-        {
-            Value = v;
+    public void FLEncode(FLEncoder* enc)
+    {
+        Debug.Assert(!IsEmpty);
+        if (Value != null) {
+            Native.FLEncoder_WriteValue(enc, Value);
+        } else {
+            NativeObject.FLEncode(enc);
         }
+    }
 
-        #endregion
-
-        #region Public Methods
-
-        public object? AsObject(MCollection parent)
-        {
-            if (NativeObject != null || Value == null) {
-                return NativeObject;
-            }
-
-            var cache = false;
-            var obj = ToObject(this, parent, ref cache);
-            if (cache) {
-                NativeObject = obj;
-            }
-
-            return obj;
-        }
-
-        public void Mutate()
-        {
+    public void FLSlotSet(FLSlot* slot)
+    {
+        Debug.Assert(!IsEmpty);
+        if (Value == null) {
+            Native.FLSlot_SetNull(slot);
+        } else {
             Debug.Assert(NativeObject != null);
-            Value = null;
+            NativeObject!.FLSlotSet(slot);
         }
-
-        #endregion
-
-        #region Private Methods
-
-        private static object? CreateSpecialObject(string? type, FLDict* properties, DocContext context)
-        {
-            return type == ObjectTypeBlob || FLValueConverter.IsOldAttachment(properties)
-                ? context.ToObject((FLValue*) properties, true)
-                : null;
-        }
-
-        private static object? ToObject(MValue mv, MCollection parent, ref bool cache)
-        {
-            var type = Native.FLValue_GetType(mv.Value);
-            switch (type) {
-                case FLValueType.Array:
-                    cache = true;
-                    return parent.MutableChildren 
-                        ? new MutableArrayObject(mv, parent) 
-                        : new ArrayObject(mv, parent);
-                case FLValueType.Dict:
-                    cache = true;
-                    var context = (DocContext)parent.Context!;
-                    var flDict = Native.FLValue_AsDict(mv.Value);
-                    var subType = Native.FLValue_AsString(Native.FLDict_Get(flDict,
-                        Encoding.UTF8.GetBytes(ObjectTypeProperty)));
-                    var obj = CreateSpecialObject(subType, flDict, context);
-                    if (obj != null) {
-                        return obj;
-                    }
-
-                    return parent.MutableChildren == true
-                        ? new MutableDictionaryObject(mv, parent)
-                        : new DictionaryObject(mv, parent);
-                default:
-                    return FLSliceExtensions.ToObject(mv.Value);
-            }
-        }
-
-        #endregion
-
-        #region IFLEncodable
-
-        public void FLEncode(FLEncoder* enc)
-        {
-            Debug.Assert(!IsEmpty);
-            if (Value != null) {
-                Native.FLEncoder_WriteValue(enc, Value);
-            } else {
-                NativeObject.FLEncode(enc);
-            }
-        }
-
-        #endregion
-
-        #region IFLSlotSetable
-
-        public unsafe void FLSlotSet(FLSlot* slot)
-        {
-            Debug.Assert(!IsEmpty);
-            if (Value == null) {
-                Native.FLSlot_SetNull(slot);
-            } else {
-                Debug.Assert(NativeObject != null);
-                NativeObject!.FLSlotSet(slot);
-            }
-        }
-
-        #endregion
     }
 }

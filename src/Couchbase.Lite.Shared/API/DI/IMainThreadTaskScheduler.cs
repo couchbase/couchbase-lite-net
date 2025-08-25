@@ -16,37 +16,31 @@
 //  limitations under the License.
 // 
 
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
-namespace Couchbase.Lite.DI
+namespace Couchbase.Lite.DI;
+
+/// <summary>
+/// An interface for an object that can behave as a <see cref="TaskScheduler"/>
+/// that invokes its tasks on the UI (main) thread of an application.  Not applicable
+/// for all platforms, as some do not have main threads set up in a way that is usable
+/// (e.g. Dotnet Core)
+/// </summary>
+public interface IMainThreadTaskScheduler
 {
     /// <summary>
-    /// An interface for an object that can behave as a <see cref="TaskScheduler"/>
-    /// that invokes its tasks on the UI (main) thread of an application.  Not applicable
-    /// for all platforms, as some do not have main threads set up in a way that is usable
-    /// (e.g. .NET Core)
+    /// Gets if the currently executing thread is the main thread
+    /// of the application
     /// </summary>
-    public interface IMainThreadTaskScheduler
-    {
-        #region Properties
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
+    bool IsMainThread { get; }
 
-        /// <summary>
-        /// Gets if the currently executing thread is the main thread
-        /// of the application
-        /// </summary>
-        bool IsMainThread { get; }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Returns the object as a <see cref="TaskScheduler"/> so that
-        /// it can be used for various .NET framework methods
-        /// </summary>
-        /// <returns>The main thread scheduler cast to a <see cref="TaskScheduler"/></returns>
-        TaskScheduler AsTaskScheduler();
-
-        #endregion
-    }
+    /// <summary>
+    /// Returns the object as a <see cref="TaskScheduler"/> so that
+    /// it can be used for various .NET framework methods
+    /// </summary>
+    /// <returns>The main thread scheduler cast to a <see cref="TaskScheduler"/></returns>
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
+    TaskScheduler AsTaskScheduler();
 }

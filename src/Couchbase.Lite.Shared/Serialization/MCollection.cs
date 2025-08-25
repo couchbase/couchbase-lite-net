@@ -18,104 +18,58 @@
 using System.Diagnostics;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Serialization
+namespace Couchbase.Lite.Internal.Serialization;
+
+internal abstract unsafe class MCollection(MContext context, bool isMutable) : IFLEncodable, IFLSlotSetable
 {
-    internal abstract unsafe class MCollection : IFLEncodable, IFLSlotSetable
+    private MValue? _slot;
+
+    public MContext? Context { get; private set; } = context;
+
+    public bool IsMutable { get; private set; } = isMutable;
+
+    public virtual bool IsMutated { get; private set; }
+
+    public bool MutableChildren { get; set; } = isMutable;
+
+    public MCollection? Parent { get; private set; }
+
+    protected MCollection() : this(MContext.Null, true)
     {
-        #region Variables
-
-        private MValue? _slot;
-
-        #endregion
-
-        #region Properties
-
-        public MContext? Context { get; private set; }
-
-        public bool IsMutable { get; private set; }
-
-        public virtual bool IsMutated { get; private set; }
-
-        public bool MutableChildren { get; set; }
-
-        public MCollection? Parent { get; private set; }
-
-        #endregion
-
-        #region Constructors
-
-        protected MCollection() : this(MContext.Null, true)
-        {
             
-        }
-
-        protected MCollection(MContext context, bool isMutable)
-        {
-            Context = context;
-            IsMutable = isMutable;
-            MutableChildren = isMutable;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public virtual void InitAsCopyOf(MCollection original, bool isMutable)
-        {
-            Debug.Assert(Context == MContext.Null);
-            Context = original.Context;
-            IsMutable = MutableChildren = isMutable;
-        }
-
-        #endregion
-
-        #region Protected Internal Methods
-
-        protected internal void SetSlot(MValue newSlot, MValue oldSlot)
-        {
-            if (_slot == oldSlot) {
-                _slot = newSlot;
-                if (newSlot == null) {
-                    Parent = null;
-                }
-            }
-        }
-
-        #endregion
-
-        #region Protected Methods
-
-        protected virtual void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
-        {
-            Debug.Assert(Context == MContext.Null);
-            _slot = slot;
-            Parent = parent;
-            IsMutable = isMutable;
-            MutableChildren = isMutable;
-            IsMutated = _slot.IsMutated;
-            if (_slot.Value != null) {
-                Context = Parent?.Context;
-            }
-        }
-
-        protected void Mutate()
-        {
-            Debug.Assert(IsMutable);
-            if (!IsMutated) {
-                IsMutated = true;
-                _slot?.Mutate();
-                Parent?.Mutate();
-            }
-        }
-
-        #endregion
-
-        #region IFLEncodable
-
-        public abstract void FLEncode(FLEncoder* enc);
-
-        #endregion
-
-        public abstract void FLSlotSet(FLSlot* slot);
     }
+
+    public virtual void InitAsCopyOf(MCollection original, bool isMutable)
+    {
+        Debug.Assert(Context == MContext.Null);
+        Context = original.Context;
+        IsMutable = MutableChildren = isMutable;
+    }
+
+    protected virtual void InitInSlot(MValue slot, MCollection? parent, bool isMutable)
+    {
+        Debug.Assert(Context == MContext.Null);
+        _slot = slot;
+        Parent = parent;
+        IsMutable = isMutable;
+        MutableChildren = isMutable;
+        IsMutated = _slot.IsMutated;
+        if (_slot.Value != null) {
+            Context = Parent?.Context;
+        }
+    }
+
+    protected void Mutate()
+    {
+        Debug.Assert(IsMutable);
+        if (!IsMutated) {
+            IsMutated = true;
+            _slot?.Mutate();
+            Parent?.Mutate();
+        }
+    }
+
+    public abstract void FLEncode(FLEncoder* enc);
+
+    public abstract void FLSlotSet(FLSlot* slot);
 }

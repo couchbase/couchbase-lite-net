@@ -16,13 +16,10 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
-{
-    /// <summary>
-    /// The base interface used when an index is required to be specified
-    /// in a QueryBuilder query.
-    /// </summary>
-    public interface IIndexExpression
-    {
-    }
-}
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// The base interface used when an index is required to be specified
+/// in a QueryBuilder query.
+/// </summary>
+public interface IIndexExpression;

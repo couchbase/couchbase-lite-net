@@ -20,38 +20,37 @@ using System;
 using Android.OS;
 using Couchbase.Lite.DI;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency]
+internal sealed class AndroidRuntimePlatform : IRuntimePlatform
 {
-    [CouchbaseDependency]
-	internal sealed class AndroidRuntimePlatform : IRuntimePlatform
+	public string OSDescription => $"Android {Build.VERSION.Release} [API {(int)Build.VERSION.SdkInt}]";
+
+	public string HardwareName 
 	{
-		public string OSDescription => $"Android {Build.VERSION.Release} [API {(int)Build.VERSION.SdkInt}]";
-
-		public string HardwareName 
-		{
-			get {
-				var manufacturer = Build.Manufacturer;
-				var model = Build.Model;
-				if(model == null) {
-					return $"{manufacturer ?? "Unknown Manufacturer"} Unknown Model";
-				}
-
-				if (manufacturer == null || model.StartsWith(manufacturer, StringComparison.InvariantCultureIgnoreCase)) {
-					return Capitalize(model);
-				} else {
-					return $"{Capitalize(manufacturer)} {model}";
-				}
-			}
-		}
-
-		private string Capitalize(string input)
-		{
-			if(String.IsNullOrWhiteSpace(input) || Char.IsUpper(input[0])) {
-				return input;
+		get {
+			var manufacturer = Build.Manufacturer;
+			var model = Build.Model;
+			if(model == null) {
+				return $"{manufacturer ?? "Unknown Manufacturer"} Unknown Model";
 			}
 
-			return $"{Char.ToUpperInvariant(input[0])}{input.Substring((1))}";
+			if (manufacturer == null || model.StartsWith(manufacturer, StringComparison.InvariantCultureIgnoreCase)) {
+				return Capitalize(model);
+			}
+			
+			return $"{Capitalize(manufacturer)} {model}";
 		}
+	}
+
+	private string Capitalize(string input)
+	{
+		if(String.IsNullOrWhiteSpace(input) || Char.IsUpper(input[0])) {
+			return input;
+		}
+
+		return $"{Char.ToUpperInvariant(input[0])}{input.Substring((1))}";
 	}
 }
 #endif

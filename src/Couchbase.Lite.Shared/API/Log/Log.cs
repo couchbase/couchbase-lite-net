@@ -18,30 +18,25 @@
 
 using Couchbase.Lite.DI;
 
-namespace Couchbase.Lite.Logging
+namespace Couchbase.Lite.Logging;
+
+/// <summary>
+/// The class that stores the three available logging facilities in Couchbase Lite
+/// </summary>
+public sealed class Log
 {
     /// <summary>
-    /// The class that stores the three available logging facilities in Couchbase Lite
+    /// Gets the logging facility that logs to a debugging console
     /// </summary>
-    public sealed class Log
-    {
-        #region Properties
+    public IConsoleLogger Console { get; } = Service.GetRequiredInstance<IConsoleLogger>();
 
-        /// <summary>
-        /// Gets the logging facility that logs to a debugging console
-        /// </summary>
-        public IConsoleLogger Console { get; } = Service.GetRequiredInstance<IConsoleLogger>();
+    /// <summary>
+    /// Gets or sets the user defined logging facility
+    /// </summary>
+    public ILogger? Custom { get; set; }
 
-        /// <summary>
-        /// Gets or sets the user defined logging facility
-        /// </summary>
-        public ILogger? Custom { get; set; }
-
-        /// <summary>
-        /// Gets the logging facility that logs to files on the disk
-        /// </summary>
-        public FileLogger File { get; } = new FileLogger();
-
-        #endregion
-    }
+    /// <summary>
+    /// Gets the logging facility that logs to files on the disk
+    /// </summary>
+    public FileLogger File { get; } = new FileLogger();
 }

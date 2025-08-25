@@ -19,36 +19,16 @@ using Couchbase.Lite.Internal.Doc;
 
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class QueryResultContext(Database db, C4QueryEnumeratorWrapper enumerator)
+    : DocContext(db, null)
 {
-    internal sealed unsafe class QueryResultContext : DocContext
+    protected override void Dispose(bool disposing)
     {
-        #region Variables
-
-        private readonly C4QueryEnumeratorWrapper _enumerator;
-
-        #endregion
-
-        #region Constructors
-
-        public QueryResultContext(Database db, C4QueryEnumeratorWrapper enumerator)
-            : base(db, null)
-        {
-            _enumerator = enumerator;
+        base.Dispose(disposing);
+        if (disposing) {
+            enumerator.Dispose();
         }
-
-        #endregion
-
-        #region Overrides
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            if (disposing) {
-                _enumerator.Dispose();
-            }
-        }
-
-        #endregion
     }
 }

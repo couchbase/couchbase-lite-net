@@ -20,42 +20,37 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A class for generating instances of <see cref="ISelectResult"/>.  This *will*
+/// be expanded on in the near future.
+/// </summary>
+public static class SelectResult
 {
+    private const string Tag = nameof(SelectResult);
+
     /// <summary>
-    /// A class for generating instances of <see cref="ISelectResult"/>.  This *will*
-    /// be expanded on in the near future.
+    /// Creates an instance based on the given expression
     /// </summary>
-    public static class SelectResult
-    {
-        #region Constants
+    /// <param name="expression">The expression describing what to select from the
+    /// query (e.g. <see cref="Lite.Query.Expression.Property(string)"/>)</param>
+    /// <returns>The instantiated instance</returns>
+    public static ISelectResultAs Expression(IExpression expression) => 
+        new QuerySelectResult(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        private const string Tag = nameof(SelectResult);
+    /// <summary>
+    /// Creates an instanced based on a given property path
+    /// </summary>
+    /// <param name="property">The property path to select</param>
+    /// <returns>The instantiated instance</returns>
+    /// <remarks>Equivalent to <c>SelectResult.Expression(Expression.Property(property))</c></remarks>
+    public static ISelectResultAs Property(string property) => new QuerySelectResult(Query.Expression.Property(property));
 
-        #endregion
-
-        /// <summary>
-        /// Creates an instance based on the given expression
-        /// </summary>
-        /// <param name="expression">The expression describing what to select from the
-        /// query (e.g. <see cref="Lite.Query.Expression.Property(string)"/>)</param>
-        /// <returns>The instantiated instance</returns>
-        public static ISelectResultAs Expression(IExpression expression) => 
-            new QuerySelectResult(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
-        /// <summary>
-        /// Creates an instanced based on a given property path
-        /// </summary>
-        /// <param name="property">The property path to select</param>
-        /// <returns>The instantiated instance</returns>
-        /// <remarks>Equivalent to <c>SelectResult.Expression(Expression.Property(property))</c></remarks>
-        public static ISelectResultAs Property(string property) => new QuerySelectResult(Lite.Query.Expression.Property(property));
-
-        /// <summary>
-        /// Creates a select result instance that will return all of the
-        /// data in the retrieved document
-        /// </summary>
-        /// <returns>The instantiated instance</returns>
-        public static ISelectResultFrom All() => new QuerySelectResult(Lite.Query.Expression.All());
-    }
+    /// <summary>
+    /// Creates a select result instance that will return all the
+    /// data in the retrieved document
+    /// </summary>
+    /// <returns>The instantiated instance</returns>
+    public static ISelectResultFrom All() => new QuerySelectResult(Query.Expression.All());
 }

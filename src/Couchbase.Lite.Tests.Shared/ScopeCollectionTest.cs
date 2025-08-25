@@ -41,13 +41,13 @@ namespace Test
         {
             using (var defaultColl = Db.GetDefaultCollection()) {
                 defaultColl.ShouldNotBeNull("default collection is not null");
-                defaultColl.Name.ShouldBe(Database._defaultCollectionName, $"default collection name is {Database._defaultCollectionName}");
+                defaultColl.Name.ShouldBe(Database.DefaultCollectionName, $"default collection name is {Database.DefaultCollectionName}");
                 var collections = Db.GetCollections();
                 collections.Contains(defaultColl).ShouldBeTrue("the default collection is included in the collection list when calling Database.GetCollections()");
                 var scope = defaultColl.Scope;
                 scope.ShouldNotBeNull("the scope of the default collection is not null");
-                scope.Name.ShouldBe(Database._defaultScopeName, $"default collection name is {Database._defaultScopeName}");
-                using (var col = Db.GetCollection(Database._defaultCollectionName))
+                scope.Name.ShouldBe(Database.DefaultScopeName, $"default collection name is {Database.DefaultScopeName}");
+                using (var col = Db.GetCollection(Database.DefaultCollectionName))
                     col.ShouldBe(defaultColl);
 
                 defaultColl.Count.ShouldBe(0UL, "default collection’s count is 0");
@@ -59,7 +59,7 @@ namespace Test
         {
             var defaultScope = Db.GetDefaultScope();
             defaultScope.ShouldNotBeNull("default scope is not null");
-            defaultScope.Name.ShouldBe(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
+            defaultScope.Name.ShouldBe(Database.DefaultScopeName, $"default scope name is {Database.DefaultScopeName}");
             var scopes = Db.GetScopes();
             scopes.Contains(defaultScope).ShouldBeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
         }
@@ -67,10 +67,10 @@ namespace Test
         [Fact]
         public void TestDeleteDefaultCollection()
         {
-            Action badAction = (() => Db.DeleteCollection(Database._defaultCollectionName));
+            Action badAction = (() => Db.DeleteCollection(Database.DefaultCollectionName));
             Should.Throw<CouchbaseLiteException>(badAction, "Cannot delete the default collection.");
 
-            Db.CreateCollection(Database._defaultCollectionName); //no-op since default collection is already existed and cannot be deleted
+            Db.CreateCollection(Database.DefaultCollectionName); //no-op since default collection is already existed and cannot be deleted
             using (var defaultColl = Db.GetDefaultCollection())
                 defaultColl.ShouldNotBeNull("default collection cannot be deleted, so the value is none null");
         }
@@ -87,11 +87,11 @@ namespace Test
             using(var colC = Db.CreateCollection("colC")) {
                 //the created collection objects have the correct name and scope.
                 colA.Name.ShouldBe("colA", "object colA has the correct name colA");
-                colA.Scope.Name.ShouldBe(Database._defaultScopeName, $"objects colA has the correct scope {Database._defaultScopeName}");
+                colA.Scope.Name.ShouldBe(Database.DefaultScopeName, $"objects colA has the correct scope {Database.DefaultScopeName}");
                 colB.Name.ShouldBe("colB", "object colB has the correct name colB");
-                colB.Scope.Name.ShouldBe(Database._defaultScopeName, $"objects colB has the correct scope {Database._defaultScopeName}");
+                colB.Scope.Name.ShouldBe(Database.DefaultScopeName, $"objects colB has the correct scope {Database.DefaultScopeName}");
                 colC.Name.ShouldBe("colC", "object colC has the correct name colC");
-                colC.Scope.Name.ShouldBe(Database._defaultScopeName, $"objects colC has the correct scope {Database._defaultScopeName}");
+                colC.Scope.Name.ShouldBe(Database.DefaultScopeName, $"objects colC has the correct scope {Database.DefaultScopeName}");
                 
                 //the created collections exist when calling database.GetCollection(name: String)
                 Db.GetCollection("colA").ShouldBe(colA);

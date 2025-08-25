@@ -20,20 +20,20 @@ using System.IO;
 using Couchbase.Lite.DI;
 using Foundation;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency]
+internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
 {
-    [CouchbaseDependency]
-    internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
+    public string DefaultDirectory()
     {
-        public string DefaultDirectory()
-        {
-            var dirID = NSSearchPathDirectory.ApplicationSupportDirectory;
+        const NSSearchPathDirectory dirID = NSSearchPathDirectory.ApplicationSupportDirectory;
 
-            var paths = NSSearchPath.GetDirectories(dirID, NSSearchPathDomain.User, true);
-            var path = paths[0];
+        var paths = NSSearchPath.GetDirectories(dirID, NSSearchPathDomain.User);
+        var path = paths[0];
 
-            return Path.Combine(path, "CouchbaseLite");
-        }
+        return Path.Combine(path, "CouchbaseLite");
     }
 }
+
 #endif

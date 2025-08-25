@@ -20,6 +20,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -27,334 +28,221 @@ using Couchbase.Lite.Support;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+internal sealed class IDictionaryObjectConverter : JsonConverter
 {
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    internal sealed class IDictionaryObjectConverter : JsonConverter
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
-        #region Overrides
+        var dict = value as IDictionaryObject ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
+            "Invalid input received in WriteJson (not IDictionaryObject)"); 
+        writer.WriteStartObject();
+        foreach (var pair in dict) {
+            writer.WritePropertyName(pair.Key);
+            serializer.Serialize(writer, pair.Value);
+        }
+        writer.WriteEndObject();
+    }
 
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-        {
-            var dict = value as IDictionaryObject ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
-                "Invalid input received in WriteJson (not IDictionaryObject)"); 
-            writer.WriteStartObject();
-            foreach (var pair in dict) {
-                writer.WritePropertyName(pair.Key);
-                serializer.Serialize(writer, pair.Value);
-            }
-            writer.WriteEndObject();
+    public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    {
+        var dict = new MutableDictionaryObject();
+        if (reader.TokenType == JsonToken.StartObject) {
+            reader.Read();
         }
 
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-        {
-            var dict = new MutableDictionaryObject();
-            if (reader.TokenType == JsonToken.StartObject) {
-                reader.Read();
+        while (reader.TokenType != JsonToken.EndObject && reader.Read()) {
+            var key = reader.Value as string;
+            if (key == null) {
+                throw new InvalidDataException(CouchbaseLiteErrorMessage.InvalidValueToBeDeserialized);
             }
 
-            while (reader.TokenType != JsonToken.EndObject && reader.Read()) {
-                var key = reader.Value as string;
-                if (key == null) {
-                    throw new InvalidDataException(CouchbaseLiteErrorMessage.InvalidValueToBeDeserialized);
-                }
+            reader.Read();
+            var value = reader.Value;
+            dict.SetValue(key, value);
+        }
 
-                reader.Read();
-                var value = reader.Value;
-                dict.SetValue(key, value);
+        return dict;
+    }
+
+    public override bool CanConvert(Type objectType)
+    {
+        return typeof(IDictionaryObject).IsAssignableFrom(objectType);
+    }
+}
+
+/// <summary>
+/// A class representing a key-value collection that is read only
+/// </summary>
+public class DictionaryObject : IDictionaryObject, IJSON
+{
+    internal readonly MDict Dict = new();
+
+    internal readonly ThreadSafety ThreadSafety;
+    private List<string>? _keys;
+
+    /// <inheritdoc />
+    public IFragment this[string key] => new Fragment(this, key);
+
+    /// <inheritdoc />
+    public int Count
+    {
+        get {
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            return Dict.Count;
+        }
+    }
+
+    /// <inheritdoc />
+    public ICollection<string> Keys
+    {
+        get {
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            if (_keys != null) {
+                return _keys;
             }
-
-            return dict;
+            
+            var retVal = new List<string>(Dict.Count);
+            retVal.AddRange(Dict.AllItems().Select(item => item.Key));
+            return _keys = retVal;
         }
+    }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return typeof(IDictionaryObject).IsAssignableFrom(objectType);
-        }
+    internal DictionaryObject() => ThreadSafety = SetupThreadSafety();
 
-        #endregion
+    internal DictionaryObject(MValue mv, MCollection parent)
+    {
+        Dict.InitInSlot(mv, parent);
+        ThreadSafety = SetupThreadSafety();
+    }
+
+    internal DictionaryObject(MDict dict, bool isMutable)
+    {
+        Dict.InitAsCopyOf(dict, isMutable);
+        ThreadSafety = SetupThreadSafety();
     }
 
     /// <summary>
-    /// A class representing a key-value collection that is read only
+    /// Creates a copy of this object that can be mutated
     /// </summary>
-    public class DictionaryObject : IDictionaryObject, IJSON
+    /// <returns>A mutable copy of the dictionary</returns>
+    public MutableDictionaryObject ToMutable()
     {
-        #region Variables
+        using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+        return new MutableDictionaryObject(Dict, true);
+    }
 
-        internal readonly MDict _dict = new MDict();
+    /// <summary>
+    /// Signal that the keys of this object have changed (not possible for
+    /// this class, but a subclass might)
+    /// </summary>
+    protected void KeysChanged()
+    {
+        using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+        _keys = null;
+    }
 
-        internal readonly ThreadSafety _threadSafety;
-        private List<string>? _keys;
+    internal MCollection ToMCollection() => Dict;
 
-        #endregion
+    private static object? GetObject(MDict dict, string key, IThreadSafety? threadSafety = null)
+    {
+        using var threadSafetyScope = threadSafety?.BeginLockedScope();
+        return dict.Get(key).AsObject(dict);
+    }
 
-        #region Properties
+    private static T? GetObject<T>(MDict dict, string key, IThreadSafety? threadSafety = null) where T : class 
+        => GetObject(dict, key, threadSafety) as T;
 
-        /// <inheritdoc />
-        public IFragment this[string key] => new Fragment(this, key);
-
-        /// <inheritdoc />
-        public int Count
-        {
-            get {
-                using var threadSafetyScope = _threadSafety.BeginLockedScope();
-                return _dict.Count;
-            }
+    private ThreadSafety SetupThreadSafety()
+    {
+        Database? db = null;
+        if (Dict.Context != null && Dict.Context != MContext.Null) {
+            db = (Dict.Context as DocContext)?.Db;
         }
 
-        /// <inheritdoc />
-        public ICollection<string> Keys
-        {
-            get {
-                if (_keys == null) {
-                    using var threadSafetyScope = _threadSafety.BeginLockedScope();
-                    
-                    // Check null once more because the first time wasn't thread safe
-                    var retVal = _keys;
-                    if (retVal == null) {
-                        retVal = new List<string>(_dict.Count);
-                        foreach (var item in _dict.AllItems()) {
-                            retVal.Add(item.Key);
-                        }
-                    }
+        return db?.ThreadSafety ?? new ThreadSafety();
+    }
 
-                    _keys = retVal;
-                }
+    /// <inheritdoc />
+    public bool Contains(string key)
+    {
+        using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+        return !Dict.Get(key).IsEmpty;
+    }
 
-                return _keys;
-            }
+    /// <inheritdoc />
+    public ArrayObject? GetArray(string key) => GetObject<ArrayObject>(Dict, key, ThreadSafety);
+
+    /// <inheritdoc />
+    public Blob? GetBlob(string key) => GetObject<Blob>(Dict, key, ThreadSafety);
+
+    /// <inheritdoc />
+    public bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(Dict, key, ThreadSafety));
+
+    /// <inheritdoc />
+    public DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(Dict, key, ThreadSafety));
+
+    /// <inheritdoc />
+    public DictionaryObject? GetDictionary(string key) => GetObject<DictionaryObject>(Dict, key, ThreadSafety);
+
+    /// <inheritdoc />
+    public double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(Dict, key, ThreadSafety));
+
+    /// <inheritdoc />
+    public float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(Dict, key, ThreadSafety));
+
+    /// <inheritdoc />
+    public int GetInt(string key) => DataOps.ConvertToInt(GetObject(Dict, key, ThreadSafety));
+
+    /// <inheritdoc />
+    public long GetLong(string key) => DataOps.ConvertToLong(GetObject(Dict, key, ThreadSafety));
+
+    /// <inheritdoc />
+    public object? GetValue(string key) => GetObject(Dict, key, ThreadSafety);
+
+    /// <inheritdoc />
+    public string? GetString(string key) => GetObject<string>(Dict, key, ThreadSafety);
+
+    /// <inheritdoc />
+    public Dictionary<string, object?> ToDictionary()
+    {
+        var result = new Dictionary<string, object?>(Dict.Count);
+        using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+        foreach (var item in Dict.AllItems()) {
+            result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(Dict));
         }
 
-        #endregion
+        return result;
+    }
 
-        #region Constructors
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        internal DictionaryObject()
+    /// <summary>
+    /// Returns an enumerator that iterates through the collection.
+    /// </summary>
+    /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+    public virtual IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => new Enumerator(Dict);
+
+    /// <inheritdoc />
+    public string ToJSON() => Dict.IsMutable ? throw new NotSupportedException() : Dict.ToJSON();
+
+    private class Enumerator(MDict parent) : IEnumerator<KeyValuePair<string, object?>>
+    {
+        private readonly IEnumerator<KeyValuePair<string, MValue>> _inner = parent.AllItems().GetEnumerator();
+
+        object IEnumerator.Current => Current;
+
+        public KeyValuePair<string, object?> Current => new KeyValuePair<string, object?>(_inner.Current.Key,
+            _inner.Current.Value.AsObject(parent));
+
+        public void Dispose()
         {
-            _threadSafety = SetupThreadSafety();
+            _inner.Dispose();
         }
 
-        internal DictionaryObject(MValue mv, MCollection parent)
-        {
-            _dict.InitInSlot(mv, parent);
-            _threadSafety = SetupThreadSafety();
-        }
+        public bool MoveNext() => _inner.MoveNext();
 
-        internal DictionaryObject(MDict dict, bool isMutable)
-        {
-            _dict.InitAsCopyOf(dict, isMutable);
-            _threadSafety = SetupThreadSafety();
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Creates a copy of this object that can be mutated
-        /// </summary>
-        /// <returns>A mutable copy of the dictionary</returns>
-        public MutableDictionaryObject ToMutable()
-        {
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            return new MutableDictionaryObject(_dict, true);
-        }
-
-        #endregion
-
-        #region Protected Methods
-
-        /// <summary>
-        /// Signal that the keys of this object have changed (not possible for
-        /// this class, but a subclass might)
-        /// </summary>
-        protected void KeysChanged()
-        {
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            _keys = null;
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal virtual DictionaryObject ToImmutable()
-        {
-            return this;
-        }
-
-        internal MCollection ToMCollection()
-        {
-            return _dict;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private static object? GetObject(MDict dict, string key, IThreadSafety? threadSafety = null)
-        {
-            using var threadSafetyScope = threadSafety?.BeginLockedScope();
-            return dict.Get(key).AsObject(dict);
-        }
-
-        private static T? GetObject<T>(MDict dict, string key, IThreadSafety? threadSafety = null) where T : class 
-            => GetObject(dict, key, threadSafety) as T;
-
-        private ThreadSafety SetupThreadSafety()
-        {
-            Database? db = null;
-            if (_dict.Context != null && _dict.Context != MContext.Null) {
-                db = (_dict.Context as DocContext)?.Db;
-            }
-
-            return db?.ThreadSafety ?? new ThreadSafety();
-        }
-
-        #endregion
-
-        #region IDictionaryObject
-
-        /// <inheritdoc />
-        public bool Contains(string key)
-        {
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            return !_dict.Get(key).IsEmpty;
-        }
-
-        /// <inheritdoc />
-        public ArrayObject? GetArray(string key) => GetObject<ArrayObject>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public Blob? GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public DictionaryObject? GetDictionary(string key) => GetObject<DictionaryObject>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public int GetInt(string key) => DataOps.ConvertToInt(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public object? GetValue(string key) => GetObject(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public string? GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public Dictionary<string, object?> ToDictionary()
-        {
-            var result = new Dictionary<string, object?>(_dict.Count);
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            foreach (var item in _dict.AllItems()) {
-                result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
-            }
-
-            return result;
-        }
-
-        #endregion
-
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        #endregion
-
-        #region IEnumerable<KeyValuePair<string,object>>
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public virtual IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
-        {
-            return new Enumerator(_dict);
-        }
-
-        #endregion
-
-        #region IJSON
-
-        /// <inheritdoc />
-        public string ToJSON()
-        {
-            if (_dict.IsMutable) {
-                throw new NotSupportedException();
-            }
-
-            return _dict.ToJSON();
-        }
-
-        #endregion
-
-        #region Nested
-
-        private class Enumerator : IEnumerator<KeyValuePair<string, object?>>
-        {
-            #region Variables
-
-            private readonly IEnumerator<KeyValuePair<string, MValue>> _inner;
-
-            private readonly MDict _parent;
-
-            #endregion
-
-            #region Properties
-
-            object? IEnumerator.Current => Current;
-
-            public KeyValuePair<string, object?> Current => new KeyValuePair<string, object?>(_inner.Current.Key,
-                _inner.Current.Value.AsObject(_parent));
-
-            #endregion
-
-            #region Constructors
-
-            public Enumerator(MDict parent)
-            {
-                _parent = parent;
-                _inner = parent.AllItems().GetEnumerator();
-            }
-
-            #endregion
-
-            #region IDisposable
-
-            public void Dispose()
-            {
-                _inner.Dispose();
-            }
-
-            #endregion
-
-            #region IEnumerator
-
-            public bool MoveNext() => _inner.MoveNext();
-
-            public void Reset() => _inner.Reset();
-
-            #endregion
-        }
-
-        #endregion
+        public void Reset() => _inner.Reset();
     }
 }

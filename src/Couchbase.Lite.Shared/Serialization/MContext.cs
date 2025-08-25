@@ -17,77 +17,58 @@
 // 
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Serialization
+namespace Couchbase.Lite.Internal.Serialization;
+
+internal class MContext : IDisposable
 {
-    internal unsafe class MContext : IDisposable
+    public static readonly MContext Null = new MContext();
+
+    private bool _disposed;
+
+    private readonly FLSlice _data;
+
+    public FLSlice Data
     {
-        #region Constants
-
-        public static readonly MContext Null = new MContext();
-
-        #endregion
-
-        private bool _disposed;
-
-        private readonly FLSlice _data;
-
-        #region Properties
-
-        public FLSlice Data
-        {
-            get {
-                CheckDisposed();
-                return _data;
-            }
+        get {
+            CheckDisposed();
+            return _data;
         }
+    }
 
-        #endregion
+    private MContext()
+    {
+    }
 
-        #region Constructors
+    public MContext(FLSlice data)
+    {
+        _data = data;
+    }
 
-        private MContext()
-        {
+    ~MContext()
+    {
+        Dispose(false);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        _disposed = true;
+    }
+
+    [SuppressMessage("Maintainability", "CA1513:Use ObjectDisposedException throw helper")]
+    internal void CheckDisposed()
+    {
+        if(_disposed) {
+            throw new ObjectDisposedException("MContext was disposed (probably QueryResultSet or IIndexUpdater)");
         }
+    }
 
-        public MContext(FLSlice data)
-        {
-            _data = data;
-        }
-
-        ~MContext()
-        {
-            Dispose(false);
-        }
-
-        #endregion
-
-        #region Protected Methods
-
-        protected virtual void Dispose(bool disposing)
-        {
-            _disposed = true;
-        }
-
-        #endregion
-
-        internal void CheckDisposed()
-        {
-            if(_disposed) {
-                throw new ObjectDisposedException("MContext was disposed (probably QueryResultSet or IIndexUpdater)");
-            }
-        }
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        #endregion
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

@@ -17,51 +17,44 @@
 // 
 
 using System;
-using System.Diagnostics;
+
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class QuerySelectResult : ISelectResultAs, ISelectResultFrom
 {
-    internal sealed class QuerySelectResult : ISelectResultAs, ISelectResultFrom
+    private const string Tag = nameof(QuerySelectResult);
+
+    internal readonly IExpression Expression;
+    private string? _alias;
+
+    internal QuerySelectResult(IExpression expression)
     {
-        #region Constants
+        Expression = expression;
+    }
 
-        private const string Tag = nameof(QuerySelectResult);
+    public ISelectResult As(string alias)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
+        _alias = alias;
+        return this;
+    }
 
-        #endregion
+    public ISelectResult From(string alias)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
+        Misc.TryCast<IExpression, QueryTypeExpression>(Expression).From(alias);
+        return this;
+    }
 
-        internal readonly IExpression Expression;
-        private string? _alias;
-        private string _from = String.Empty;
-
-        internal QuerySelectResult(IExpression expression)
-        {
-            Expression = expression;
-        }
-
-        public ISelectResult As(string alias)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
-            _alias = alias;
-            return this;
-        }
-
-        public ISelectResult From(string alias)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
-            _from = $"{alias}.";
-            Misc.TryCast<IExpression, QueryTypeExpression>(Expression).From(alias);
-            return this;
-        }
-
-        public object? ToJSON()
-        {
-            var json = Misc.TryCast<IExpression, QueryExpression>(Expression).ConvertToJSON();
-            if (!String.IsNullOrEmpty(_alias))
-                json = new object?[] { "AS", json, _alias };
-            return json;
-        }
+    public object? ToJSON()
+    {
+        var json = Misc.TryCast<IExpression, QueryExpression>(Expression).ConvertToJSON();
+        if (!String.IsNullOrEmpty(_alias))
+            json = new[] { "AS", json, _alias };
+        return json;
     }
 }

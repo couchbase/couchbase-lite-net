@@ -20,35 +20,24 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-using System;
+namespace Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Query
+/// <summary>
+/// A factory class for creating data sources for queries
+/// </summary>
+public static class DataSource
 {
+    private const string Tag = nameof(DataSource);
+
     /// <summary>
-    /// A factory class for creating data sources for queries
+    /// Creates a data source for an <see cref="IQuery" /> that gets results from the given
+    /// <see cref="Collection(Lite.Collection)" />
     /// </summary>
-    public static class DataSource
+    /// <param name="collection">The collection to operate on</param>
+    /// <returns>The source of data for the <see cref="IQuery" /></returns>
+    public static IDataSourceAs Collection(Collection collection)
     {
-        #region Constants
-
-        private const string Tag = nameof(DataSource);
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Creates a data source for an <see cref="IQuery" /> that gets results from the given
-        /// <see cref="Collection(Lite.Collection)" />
-        /// </summary>
-        /// <param name="collection">The collection to operate on</param>
-        /// <returns>The source of data for the <see cref="IQuery" /></returns>
-        public static IDataSourceAs Collection(Collection collection)
-        {
-            var c = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
-            return new DatabaseSource(c, c.ThreadSafety);
-        }
-
-        #endregion
+        var c = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
+        return new DatabaseSource(c, c.ThreadSafety);
     }
 }

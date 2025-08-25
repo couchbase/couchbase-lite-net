@@ -18,34 +18,33 @@
 
 using System;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// A struct describing the current status of a <see cref="Replicator"/>
+/// </summary>
+public struct ReplicatorStatus
 {
     /// <summary>
-    /// A struct describing the current status of a <see cref="Replicator"/>
+    /// Gets the current state of the replication (i.e. whether it is
+    /// actively processing changes)
     /// </summary>
-    public struct ReplicatorStatus
+    public ReplicatorActivityLevel Activity { get; }
+
+    /// <summary>
+    /// Gets the current progress of the replication
+    /// </summary>
+    public ReplicatorProgress Progress { get; }
+
+    /// <summary>
+    /// Gets the last error that occurred, if any
+    /// </summary>
+    public Exception? Error { get; }
+
+    internal ReplicatorStatus(ReplicatorActivityLevel activity, ReplicatorProgress progress, Exception? error)
     {
-        /// <summary>
-        /// Gets the current state of the replication (i.e. whether or not it is
-        /// actively processing changes)
-        /// </summary>
-        public ReplicatorActivityLevel Activity { get; }
-
-        /// <summary>
-        /// Gets the current progress of the replication
-        /// </summary>
-        public ReplicatorProgress Progress { get; }
-
-        /// <summary>
-        /// Gets the last error that occurred, if any
-        /// </summary>
-        public Exception? Error { get; }
-
-        internal ReplicatorStatus(ReplicatorActivityLevel activity, ReplicatorProgress progress, Exception? error)
-        {
-            Activity = activity;
-            Progress = progress;
-            Error = error;
-        }
+        Activity = activity;
+        Progress = progress;
+        Error = error;
     }
 }

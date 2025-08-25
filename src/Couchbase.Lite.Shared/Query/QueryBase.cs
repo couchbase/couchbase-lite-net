@@ -28,190 +28,143 @@ using Couchbase.Lite.Util;
 using Dispatch;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal abstract class QueryBase : IQuery, IStoppable
 {
-    internal abstract class QueryBase : IQuery, IStoppable
+    private const string Tag = nameof(QueryBase);
+
+    protected readonly DisposalWatchdog DisposalWatchdog = new DisposalWatchdog(nameof(IQuery));
+    protected C4QueryWrapper? _c4Query;
+    private Parameters _queryParameters;
+    private readonly Dictionary<ListenerToken, LiveQuerier?> _listenerTokens = new();
+    private int _observingCount;
+
+    public Database? Database { get; protected set; }
+
+    public Collection? Collection { get; protected set; }
+
+    public Parameters Parameters
     {
-        #region Constants
-
-        private const string Tag = nameof(QueryBase);
-
-        #endregion
-
-        #region Variables
-
-        protected readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
-        protected C4QueryWrapper? _c4Query;
-        protected Parameters _queryParameters;
-        protected Dictionary<ListenerToken, LiveQuerier?> _listenerTokens = new Dictionary<ListenerToken, LiveQuerier?>();
-        protected int _observingCount;
-
-        #endregion
-
-        #region Properties
-
-        public Database? Database { get; set; }
-
-        public Collection? Collection { get; set; }
-
-        public Parameters Parameters
+        get => _queryParameters;
+        set
         {
-            get => _queryParameters;
-            set
-            {
-                _queryParameters = value.Freeze();
-                SetParameters(_queryParameters.ToString());
-            }
+            _queryParameters = value.Freeze();
+            SetParameters(_queryParameters.ToString());
         }
+    }
 
-        internal ThreadSafety ThreadSafety { get; set; } = new ThreadSafety();
+    internal ThreadSafety ThreadSafety { get; set; } = new ThreadSafety();
 
-        internal SerialQueue DispatchQueue { get; } = new SerialQueue();
+    internal SerialQueue DispatchQueue { get; } = new SerialQueue();
 
-        internal unsafe Dictionary<string, int> ColumnNames
-        {
-            get {
-                if(_c4Query == null) {
-                    throw new ObjectDisposedException(nameof(QueryBase));
-                }
-
-                return CreateColumnNames(_c4Query);
-            }
-        }
-
-        #endregion
-
-        #region Constructors
-
-        public QueryBase()
-        {
-            _queryParameters = new Parameters(this);
-        }
-
-        ~QueryBase()
-        {
-            Dispose(true);
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public void Stop()
-        {
-            Collection?.Database?.RemoveActiveStoppable(this);
-            foreach (var t in _listenerTokens) {
-                var token = t.Key;
-                var querier = t.Value;
-                querier?.StopObserver(token);
-                querier?.Dispose();
+    internal Dictionary<string, int> ColumnNames
+    {
+        get {
+            if(_c4Query == null) {
+                throw new ObjectDisposedException(nameof(QueryBase));
             }
 
-            _listenerTokens.Clear();
+            return CreateColumnNames(_c4Query);
+        }
+    }
+
+    protected QueryBase()
+    {
+        _queryParameters = new Parameters(this);
+    }
+
+    ~QueryBase()
+    {
+        Dispose(true);
+    }
+
+    public void Stop()
+    {
+        // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
+        Collection?.Database?.RemoveActiveStoppable(this);
+        foreach (var t in _listenerTokens) {
+            var token = t.Key;
+            var querier = t.Value;
+            querier?.StopObserver(token);
+            querier?.Dispose();
         }
 
-        #endregion
+        _listenerTokens.Clear();
+    }
 
-        #region Internal Methods
+    internal void SetParameters(string parameters)
+    {
+        CreateQuery();
+        if (_c4Query != null && !String.IsNullOrEmpty(parameters)) {
+            NativeSafe.c4query_setParameters(_c4Query, parameters);
+        }
+    }
 
-        internal unsafe void SetParameters(string parameters)
-        {
-            CreateQuery();
-            if (_c4Query != null && !String.IsNullOrEmpty(parameters)) {
-                NativeSafe.c4query_setParameters(_c4Query, parameters);
-            }
+    public void Dispose()
+    {
+        Dispose(false);
+    }
+
+    private void Dispose(bool finalizing)
+    {
+        if (!finalizing) {
+            Stop();
+            using var threadSafetyScope = ThreadSafety.BeginLockedScope();
+            _c4Query?.Dispose();
+            _c4Query = null;
+            DisposalWatchdog.Dispose();
+        }
+    }
+
+    public abstract IResultSet Execute();
+
+    public abstract string Explain();
+
+    public ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<QueryChangedEventArgs> handler)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
+        DisposalWatchdog.CheckDisposed();
+
+        if (Interlocked.Increment(ref _observingCount) == 1) {
+            // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
+            Collection?.Database?.AddActiveStoppable(this);
         }
 
-        #endregion
+        var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);
+        var listenerToken = CreateLiveQuerier(cbHandler);
 
-        #region IDisposable
+        return listenerToken;
+    }
 
-        public void Dispose()
-        {
-            Dispose(false);
+    public ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler) => AddChangeListener(null, handler);
+
+    public void RemoveChangeListener(ListenerToken token)
+    {
+        DisposalWatchdog.CheckDisposed();
+        _listenerTokens[token]?.StopObserver(token);
+        _listenerTokens.Remove(token);
+        if (Interlocked.Decrement(ref _observingCount) == 0) {
+            Stop();
         }
+    }
 
-        private unsafe void Dispose(bool finalizing)
-        {
-            if (!finalizing) {
-                Stop();
-                using var threadSafetyScope = ThreadSafety.BeginLockedScope();
-                _c4Query?.Dispose();
-                _c4Query = null;
-                _disposalWatchdog.Dispose();
-            }
+    protected abstract void CreateQuery();
+
+    protected abstract Dictionary<string, int> CreateColumnNames(C4QueryWrapper query);
+
+    private ListenerToken CreateLiveQuerier(CouchbaseEventHandler<QueryChangedEventArgs> cbEventHandler)
+    {
+        CreateQuery();
+        LiveQuerier? liveQuerier = null;
+        if (_c4Query != null) {
+            liveQuerier = new LiveQuerier(this);
+            liveQuerier.CreateLiveQuerier(_c4Query);
         }
-
-        #endregion
-
-        #region IQuery
-
-        public abstract unsafe IResultSet Execute();
-
-        public abstract unsafe string Explain();
-
-        #endregion
-
-        #region IChangeObservable
-
-        public ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<QueryChangedEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
-            _disposalWatchdog.CheckDisposed();
-
-            if (Interlocked.Increment(ref _observingCount) == 1) {
-                Collection?.Database?.AddActiveStoppable(this);
-            }
-
-            var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);
-            var listenerToken = CreateLiveQuerier(cbHandler);
-
-            return listenerToken;
-        }
-
-        public ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler) => AddChangeListener(null, handler);
-
-        #endregion
-
-        #region IChangeObservableRemovable
-
-        public void RemoveChangeListener(ListenerToken token)
-        {
-            _disposalWatchdog.CheckDisposed();
-            _listenerTokens[token]?.StopObserver(token);
-            _listenerTokens.Remove(token);
-            if (Interlocked.Decrement(ref _observingCount) == 0) {
-                Stop();
-            }
-        }
-
-        #endregion
-
-        #region QueryBase
-
-        protected abstract void CreateQuery();
-
-        protected abstract Dictionary<string, int> CreateColumnNames(C4QueryWrapper query);
-
-        #endregion
-
-        #region Protected Methods
-
-        protected unsafe ListenerToken CreateLiveQuerier(CouchbaseEventHandler<QueryChangedEventArgs> cbEventHandler)
-        {
-            CreateQuery();
-            LiveQuerier? liveQuerier = null;
-            if (_c4Query != null) {
-                liveQuerier = new LiveQuerier(this);
-                liveQuerier.CreateLiveQuerier(_c4Query);
-            }
             
-            liveQuerier?.StartObserver(cbEventHandler);
-            var token = new ListenerToken(cbEventHandler, ListenerTokenType.Query, this);
-            _listenerTokens.Add(token, liveQuerier);
-            return token;
-        }
-
-        #endregion
+        liveQuerier?.StartObserver(cbEventHandler);
+        var token = new ListenerToken(cbEventHandler, ListenerTokenType.Query, this);
+        _listenerTokens.Add(token, liveQuerier);
+        return token;
     }
 }

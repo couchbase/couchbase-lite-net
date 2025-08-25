@@ -24,98 +24,72 @@ using Couchbase.Lite.Internal.Logging;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite.Internal.Doc;
+
+internal sealed unsafe class BlobWriteStream : Stream
 {
-    internal sealed unsafe class BlobWriteStream : Stream
+    private const string Tag = nameof(BlobWriteStream);
+
+    private C4WriteStreamWrapper? _writeStream;
+    private long _totalBytes;
+
+    public override bool CanRead => false;
+
+    public override bool CanSeek => false;
+
+    public override bool CanWrite => true;
+
+    public C4BlobKey Key { get; private set; }
+
+    public override long Length => _totalBytes;
+
+    public override long Position
     {
-        private const string Tag = nameof(BlobWriteStream);
+        get => _totalBytes;
+        set => throw new NotSupportedException();
+    }
 
-        #region Variables
+    public BlobWriteStream(C4BlobStore* store)
+    {
+        Debug.Assert(store != null);
 
-        private C4WriteStreamWrapper? _writeStream;
-        private long _totalBytes;
+        _writeStream = LiteCoreBridge.CheckTyped(err => NativeSafe.c4blob_openWriteStream(store, err));
+    }
 
-        #endregion
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
 
-        #region Properties
+        _writeStream?.Dispose();
+        _writeStream = null;
+    }
 
-        public override bool CanRead => false;
-
-        public override bool CanSeek => false;
-
-        public override bool CanWrite => true;
-
-        public C4BlobKey Key { get; private set; }
-
-        public override long Length => _totalBytes;
-
-        public override long Position
-        {
-            get => _totalBytes;
-            set => throw new NotSupportedException();
+    public override void Flush()
+    {
+        if(_writeStream == null) {
+            WriteLog.To.Database.W(Tag, "Native write stream is null, skipping flush");
+            return;
         }
 
-        #endregion
+        Key = NativeSafe.c4stream_computeBlobKey(_writeStream);
+        LiteCoreBridge.Check(err => NativeSafe.c4stream_install(_writeStream, null, err));
+    }
 
-        #region Constructors
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
-        public BlobWriteStream(C4BlobStore* store)
-        {
-            Debug.Assert(store != null);
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
-            _writeStream = LiteCoreBridge.CheckTyped(err => NativeSafe.c4blob_openWriteStream(store, err));
+    public override void SetLength(long value) => throw new NotSupportedException();
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        if (_writeStream == null) {
+            WriteLog.To.Database.W(Tag, "Native write stream is null, skipping write");
+            return;
         }
 
-        #endregion
-
-        #region Overrides
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            _writeStream?.Dispose();
-            _writeStream = null;
-        }
-
-        public override void Flush()
-        {
-            if(_writeStream == null) {
-                WriteLog.To.Database.W(Tag, "Native write stream is null, skipping flush");
-                return;
-            }
-
-            Key = NativeSafe.c4stream_computeBlobKey(_writeStream);
-            LiteCoreBridge.Check(err => NativeSafe.c4stream_install(_writeStream, null, err));
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            if (_writeStream == null) {
-                WriteLog.To.Database.W(Tag, "Native write stream is null, skipping write");
-                return;
-            }
-
-            _totalBytes += count;
-            var actualBytes = buffer.Skip(offset).Take(count).ToArray();
-            LiteCoreBridge.Check(err => NativeSafe.c4stream_write(_writeStream, actualBytes, err));
-        }
-
-        #endregion
+        _totalBytes += count;
+        var actualBytes = buffer.Skip(offset).Take(count).ToArray();
+        LiteCoreBridge.Check(err => NativeSafe.c4stream_write(_writeStream, actualBytes, err));
     }
 }

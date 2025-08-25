@@ -24,75 +24,59 @@ using Couchbase.Lite.Internal.Logging;
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Couchbase.Lite.Util
+namespace Couchbase.Lite.Util;
+
+[ExcludeFromCodeCoverage]
+internal static class CBDebug
 {
-    [ExcludeFromCodeCoverage]
-    internal static class CBDebug
+    public static void AssertAndLog(DomainLogger logger,
+        [DoesNotReturnIf(false)]
+        bool assertion, string tag, string message)
     {
-        public static void AssertAndLog(DomainLogger logger,
-                [DoesNotReturnIf(false)]
-                bool assertion, string tag, string message)
-        {
-            Debug.Assert(assertion, message);
-            logger.W(tag, message);
+        Debug.Assert(assertion, message);
+        logger.W(tag, message);
+    }
+
+    [DoesNotReturn]
+    public static void LogAndThrow(DomainLogger logger, Exception e, string tag, string? message, bool fatal)
+    {
+        if (fatal) {
+            logger.E(tag, message ?? e.Message, e);
+        } else {
+            logger.W(tag, message ?? e.Message, e);
         }
 
-        [DoesNotReturn]
-        public static void LogAndThrow(DomainLogger logger, Exception e, string tag, string? message, bool fatal)
-        {
-            if (fatal) {
-                logger.E(tag, message ?? e.Message, e);
-            } else {
-                logger.W(tag, message ?? e.Message, e);
+        throw e;
+    }
+
+    public static T MustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, T? argumentValue) where T : class
+    {
+        if (argumentValue == null) {
+            ThrowArgumentNullException(logger, tag, argumentName);
+        }
+
+        return argumentValue;
+    }
+
+    [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
+    public static IEnumerable<T> ItemsMustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, IEnumerable<T?> argumentValues) where T : class
+    {
+        var index = 0;
+        foreach(var item in argumentValues) {
+            if (item == null) {
+                ThrowArgumentNullException(logger, tag, $"{argumentName}[{index}]");
             }
-
-            throw e;
+            index++;
         }
 
-        public static T MustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, T? argumentValue) where T : class
-        {
-            Debug.Assert(argumentValue != null);
-            if (argumentValue == null) {
-                ThrowArgumentNullException(logger, tag, argumentName);
-            }
+        return argumentValues!;
+    }
 
-            return argumentValue;
-        }
-
-        public static IEnumerable<T> ItemsMustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, IEnumerable<T?> argumentValues) where T : class
-        {
-            Debug.Assert(argumentValues != null);
-            if (argumentValues == null) {
-                ThrowArgumentNullException(logger, tag, argumentName);
-            } else {
-                int index = 0;
-                foreach(var item in argumentValues) {
-                    if (item == null) {
-                        ThrowArgumentNullException(logger, tag, $"{argumentName}[{index}]");
-                    }
-                    index++;
-                }
-            }
-
-            return argumentValues!;
-        }
-
-        public static unsafe void* MustNotBeNullPointer(DomainLogger logger, string tag, string argumentName, void* argumentValue)
-        {
-            Debug.Assert(argumentValue != null);
-            if (argumentValue == null) {
-                ThrowArgumentNullException(logger, tag, argumentName);
-            }
-
-            return argumentValue;
-        }
-
-        [DoesNotReturn]
-        private static void ThrowArgumentNullException(DomainLogger logger, string tag, string message)
-        {
-            var ex = new ArgumentNullException(message);
-            logger.E(tag, ex.ToString() ?? "");
-            throw ex;
-        }
+    [DoesNotReturn]
+    private static void ThrowArgumentNullException(DomainLogger logger, string tag, string message)
+    {
+        var ex = new ArgumentNullException(message);
+        logger.E(tag, ex.ToString());
+        throw ex;
     }
 }

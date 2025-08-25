@@ -21,203 +21,128 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Couchbase.Lite.Util
+namespace Couchbase.Lite.Util;
+
+[ExcludeFromCodeCoverage]
+internal sealed class CollectionDebuggerView<TKey, TValue>(ICollection<KeyValuePair<TKey, TValue>> col)
 {
-    [ExcludeFromCodeCoverage]
-    internal sealed class CollectionDebuggerView<TKey, TValue>
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    public KeyValuePair<TKey, TValue>[] Items
     {
-        #region Variables
-
-        private readonly ICollection<KeyValuePair<TKey, TValue>> _c;
-
-        #endregion
-
-        #region Properties
-
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public KeyValuePair<TKey, TValue>[] Items
-        {
-            get {
-                var o = new KeyValuePair<TKey, TValue>[_c.Count];
-                _c.CopyTo(o, 0);
-                return o;
-            }
+        get {
+            var o = new KeyValuePair<TKey, TValue>[col.Count];
+            col.CopyTo(o, 0);
+            return o;
         }
-
-        #endregion
-
-        #region Constructors
-
-        public CollectionDebuggerView(ICollection<KeyValuePair<TKey, TValue>> col)
-        {
-            _c = col;
-        }
-
-        #endregion
     }
+}
 
-    /// <summary>
-    /// A dictionary that ignores any attempts to insert a null object into it.
-    /// Usefor for creating JSON objects that should not contain null values
-    /// </summary>
-    // ReSharper disable UseNameofExpression
-    [DebuggerDisplay("Count={Count}")]
-    // ReSharper restore UseNameofExpression
-    [DebuggerTypeProxy(typeof(CollectionDebuggerView<,>))]
-    [ExcludeFromCodeCoverage]
-    internal sealed class NonNullDictionary<TK, TV> : IDictionary<TK, TV>, IReadOnlyDictionary<TK, TV>
-        where TK : notnull
-    {
-        #region Variables
+/// <summary>
+/// A dictionary that ignores any attempts to insert a null object into it.
+/// Usefor for creating JSON objects that should not contain null values
+/// </summary>
+// ReSharper disable UseNameofExpression
+[DebuggerDisplay("Count={Count}")]
+// ReSharper restore UseNameofExpression
+[DebuggerTypeProxy(typeof(CollectionDebuggerView<,>))]
+[ExcludeFromCodeCoverage]
+internal sealed class NonNullDictionary<TK, TV> : IDictionary<TK, TV>, IReadOnlyDictionary<TK, TV>
+    where TK : notnull
+{
+    private readonly IDictionary<TK, TV> _data = new Dictionary<TK, TV>();
 
-        private readonly IDictionary<TK, TV> _data = new Dictionary<TK, TV>();
+    /// <inheritdoc cref="ICollection{T}.Count" />
+    public int Count => _data.Count;
 
-        #endregion
+    /// <inheritdoc />
+    public bool IsReadOnly => _data.IsReadOnly;
 
-        #region Properties
-
-        /// <inheritdoc />
-        public int Count => _data.Count;
-
-        /// <inheritdoc />
-        public bool IsReadOnly => _data.IsReadOnly;
-
-        /// <inheritdoc />
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.this" />
 #if NET6_0_OR_GREATER
-        [property: NotNull]
+    [property: NotNull]
 #endif
-        public TV? this[TK index]
-        {
+    public TV? this[TK index]
+    {
 #pragma warning disable CS8766 // Funky because we want setting null to be a no-op, but returning to not allow null
-            get => _data[index]!;
+        get => _data[index]!;
 #pragma warning restore CS8766
-            set {
-                if(IsAddable(value)) {
-                    _data[index] = value!;
-                }
-            }
-        }
-
-        /// <inheritdoc />
-        public ICollection<TK> Keys => _data.Keys;
-
-        /// <inheritdoc />
-        public ICollection<TV> Values => _data.Values;
-
-        /// <inheritdoc />
-        IEnumerable<TK> IReadOnlyDictionary<TK, TV>.Keys => _data.Keys;
-
-        /// <inheritdoc />
-        IEnumerable<TV> IReadOnlyDictionary<TK, TV>.Values => _data.Values;
-
-        #endregion
-
-        #region Private Methods
-
-        [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse", Justification = "item is a Nullable type during the block")]
-        private static bool IsAddable(TV? item)
-        {
-            if (!(item is ValueType)) {
-                return item != null;
-            }
-
-            var underlyingType = Nullable.GetUnderlyingType(typeof(TV));
-            if(underlyingType != null) {
-                return item != null;
-            }
-
-            return true;
-        }
-
-        #endregion
-
-        #region ICollection<KeyValuePair<TK,TV>>
-
-        /// <inheritdoc />
-        public void Add(KeyValuePair<TK, TV> item)
-        {
-            if(IsAddable(item.Value)) {
-                _data.Add(item);
-            }
-        }
-
-        /// <inheritdoc />
-        public void Clear()
-        {
-            _data.Clear();
-        }
-
-        /// <inheritdoc />
-        public bool Contains(KeyValuePair<TK, TV> item)
-        {
-            return _data.Contains(item);
-        }
-
-        /// <inheritdoc />
-        public void CopyTo(KeyValuePair<TK, TV>[] array, int arrayIndex)
-        {
-            _data.CopyTo(array, arrayIndex);
-        }
-
-        /// <inheritdoc />
-        public bool Remove(KeyValuePair<TK, TV> item)
-        {
-            return _data.Remove(item);
-        }
-
-        #endregion
-
-        #region IDictionary<TK,TV>
-
-        /// <inheritdoc />
-        public void Add(TK key, TV value)
-        {
+        set {
             if(IsAddable(value)) {
-                _data.Add(key, value);
+                _data[index] = value!;
             }
         }
-
-        /// <inheritdoc />
-        public bool ContainsKey(TK key)
-        {
-            return _data.ContainsKey(key);
-        }
-
-        /// <inheritdoc />
-        public bool Remove(TK key)
-        {
-            return _data.Remove(key);
-        }
-
-        /// <inheritdoc />
-        public bool TryGetValue(TK key,
-#if NET6_0_OR_GREATER
-            [MaybeNullWhen(false)]
-#endif
-            out TV value)
-        {
-            return _data.TryGetValue(key, out value);
-        }
-
-        #endregion
-
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        #endregion
-
-        #region IEnumerable<KeyValuePair<TK,TV>>
-
-        /// <inheritdoc />
-        public IEnumerator<KeyValuePair<TK, TV>> GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        #endregion
     }
+
+    /// <inheritdoc />
+    public ICollection<TK> Keys => _data.Keys;
+
+    /// <inheritdoc />
+    public ICollection<TV> Values => _data.Values;
+
+    /// <inheritdoc />
+    IEnumerable<TK> IReadOnlyDictionary<TK, TV>.Keys => _data.Keys;
+
+    /// <inheritdoc />
+    IEnumerable<TV> IReadOnlyDictionary<TK, TV>.Values => _data.Values;
+
+    [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse", Justification = "item is a Nullable type during the block")]
+    private static bool IsAddable(TV? item)
+    {
+        if (item is not ValueType) {
+            return item != null;
+        }
+
+        var underlyingType = Nullable.GetUnderlyingType(typeof(TV));
+        if(underlyingType != null) {
+            return item != null;
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public void Add(KeyValuePair<TK, TV> item)
+    {
+        if(IsAddable(item.Value)) {
+            _data.Add(item);
+        }
+    }
+
+    /// <inheritdoc />
+    public void Clear() => _data.Clear();
+
+    /// <inheritdoc />
+    public bool Contains(KeyValuePair<TK, TV> item) => _data.Contains(item);
+
+    /// <inheritdoc />
+    public void CopyTo(KeyValuePair<TK, TV>[] array, int arrayIndex) => _data.CopyTo(array, arrayIndex);
+
+    /// <inheritdoc />
+    public bool Remove(KeyValuePair<TK, TV> item) => _data.Remove(item);
+
+    /// <inheritdoc />
+    public void Add(TK key, TV value)
+    {
+        if(IsAddable(value)) {
+            _data.Add(key, value);
+        }
+    }
+
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.ContainsKey" />
+    public bool ContainsKey(TK key) => _data.ContainsKey(key);
+
+    /// <inheritdoc />
+    public bool Remove(TK key) => _data.Remove(key);
+
+    /// <inheritdoc cref="IDictionary{TKey,TValue}.TryGetValue" />
+    public bool TryGetValue(TK key,
+#if NET6_0_OR_GREATER
+        [MaybeNullWhen(false)]
+#endif
+        out TV value) => _data.TryGetValue(key, out value);
+
+    IEnumerator IEnumerable.GetEnumerator() => _data.GetEnumerator();
+
+    /// <inheritdoc />
+    public IEnumerator<KeyValuePair<TK, TV>> GetEnumerator() => _data.GetEnumerator();
 }

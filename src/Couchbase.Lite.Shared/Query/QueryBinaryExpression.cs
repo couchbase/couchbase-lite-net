@@ -15,135 +15,117 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
-namespace Couchbase.Lite.Internal.Query
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
+
+namespace Couchbase.Lite.Internal.Query;
+
+internal enum BinaryOpType
 {
-    internal enum BinaryOpType
+    LessThan,
+    LessThanOrEqualTo,
+    GreaterThan,
+    GreaterThanOrEqualTo,
+    EqualTo,
+    NotEqualTo,
+    Is,
+    IsNot,
+    Matches,
+    Like,
+    Between,
+    RegexLike,
+    In,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulus
+}
+
+internal sealed class QueryBinaryExpression(QueryExpression lhs, QueryExpression rhs, BinaryOpType type) 
+    : QueryExpression
+{
+    private const string Tag = nameof(QueryBinaryExpression);
+    
+    protected override object ToJSON()
     {
-        LessThan,
-        LessThanOrEqualTo,
-        GreaterThan,
-        GreaterThanOrEqualTo,
-        EqualTo,
-        NotEqualTo,
-        Is,
-        IsNot,
-        Matches,
-        Like,
-        Between,
-        RegexLike,
-        In,
-        Add,
-        Subtract,
-        Multiply,
-        Divide,
-        Modulus
-    }
-
-    internal sealed class QueryBinaryExpression : QueryExpression
-    {
-        #region Variables
-
-        private readonly QueryExpression _lhs;
-        private readonly QueryExpression _rhs;
-        private readonly BinaryOpType _type;
-
-        #endregion
-
-        #region Constructors
-
-        public QueryBinaryExpression(QueryExpression lhs, QueryExpression rhs, BinaryOpType type)
-        {
-            _lhs = lhs;
-            _rhs = rhs;
-            _type = type;
+        var obj = new List<object?>();
+        var useArrayOp = false;
+        switch (type) {
+            case BinaryOpType.Add:
+                obj.Add("+");
+                break;
+            case BinaryOpType.Between:
+                obj.Add("BETWEEN");
+                break;
+            case BinaryOpType.Divide:
+                obj.Add("/");
+                break;
+            case BinaryOpType.EqualTo:
+                obj.Add("=");
+                break;
+            case BinaryOpType.GreaterThan:
+                obj.Add(">");
+                break;
+            case BinaryOpType.GreaterThanOrEqualTo:
+                obj.Add(">=");
+                break;
+            case BinaryOpType.In:
+                obj.Add("IN");
+                useArrayOp = true;
+                break;
+            case BinaryOpType.Is:
+                obj.Add("IS");
+                break;
+            case BinaryOpType.IsNot:
+                obj.Add("IS NOT");
+                break;
+            case BinaryOpType.LessThan:
+                obj.Add("<");
+                break;
+            case BinaryOpType.LessThanOrEqualTo:
+                obj.Add("<=");
+                break;
+            case BinaryOpType.Like:
+                obj.Add("LIKE");
+                break;
+            case BinaryOpType.Matches:
+                obj.Add("MATCH()");
+                break;
+            case BinaryOpType.Modulus:
+                obj.Add("%");
+                break;
+            case BinaryOpType.Multiply:
+                obj.Add("*");
+                break;
+            case BinaryOpType.NotEqualTo:
+                obj.Add("!=");
+                break;
+            case BinaryOpType.RegexLike:
+                obj.Add("regexp_like()");
+                break;
+            case BinaryOpType.Subtract:
+                obj.Add("-");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
 
-        #endregion
-
-        #region Overrides
-
-        protected override object ToJSON()
-        {
-            var obj = new List<object?>();
-            var useArrayOp = false;
-            switch (_type) {
-                case BinaryOpType.Add:
-                    obj.Add("+");
-                    break;
-                case BinaryOpType.Between:
-                    obj.Add("BETWEEN");
-                    break;
-                case BinaryOpType.Divide:
-                    obj.Add("/");
-                    break;
-                case BinaryOpType.EqualTo:
-                    obj.Add("=");
-                    break;
-                case BinaryOpType.GreaterThan:
-                    obj.Add(">");
-                    break;
-                case BinaryOpType.GreaterThanOrEqualTo:
-                    obj.Add(">=");
-                    break;
-                case BinaryOpType.In:
-                    obj.Add("IN");
-                    useArrayOp = true;
-                    break;
-                case BinaryOpType.Is:
-                    obj.Add("IS");
-                    break;
-                case BinaryOpType.IsNot:
-                    obj.Add("IS NOT");
-                    break;
-                case BinaryOpType.LessThan:
-                    obj.Add("<");
-                    break;
-                case BinaryOpType.LessThanOrEqualTo:
-                    obj.Add("<=");
-                    break;
-                case BinaryOpType.Like:
-                    obj.Add("LIKE");
-                    break;
-                case BinaryOpType.Matches:
-                    obj.Add("MATCH()");
-                    break;
-                case BinaryOpType.Modulus:
-                    obj.Add("%");
-                    break;
-                case BinaryOpType.Multiply:
-                    obj.Add("*");
-                    break;
-                case BinaryOpType.NotEqualTo:
-                    obj.Add("!=");
-                    break;
-                case BinaryOpType.RegexLike:
-                    obj.Add("regexp_like()");
-                    break;
-                case BinaryOpType.Subtract:
-                    obj.Add("-");
-                    break;
-            }
-
-            obj.Add(_lhs.ConvertToJSON());
-            if ((_rhs as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
-                var collection = _rhs.ConvertToJSON() as IList<object>;
-                Debug.Assert(collection != null);
-                if (useArrayOp) {
-                    collection?.Insert(0, "[]");
-                    obj.Add(collection);
-                } else {
-                    obj.AddRange(collection);
-                }
+        obj.Add(lhs.ConvertToJSON());
+        if ((rhs as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
+            var collection = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, "rhs", rhs.ConvertToJSON() as IList<object>);
+            if (useArrayOp) {
+                collection.Insert(0, "[]");
+                obj.Add(collection);
             } else {
-                obj.Add(_rhs.ConvertToJSON());
+                obj.AddRange(collection);
             }
-            return obj;
+        } else {
+            obj.Add(rhs.ConvertToJSON());
         }
-
-        #endregion
+        return obj;
     }
 }

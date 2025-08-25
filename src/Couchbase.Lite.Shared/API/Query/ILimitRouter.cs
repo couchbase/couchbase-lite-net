@@ -16,31 +16,26 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a query that can accept LIMIT as its next clause
+/// </summary>
+public interface ILimitRouter
 {
     /// <summary>
-    /// An interface representing a query that can accept LIMIT as its next clause
+    /// Limits a query to the given count (ulong, parameter, etc.)
     /// </summary>
-    public interface ILimitRouter
-    {
-        #region Public Methods
+    /// <param name="limit">The amount to limit the query to</param>
+    /// <returns>The query for further processing</returns>
+    ILimit Limit(IExpression limit);
 
-        /// <summary>
-        /// Limits a query to the given count (ulong, parameter, etc)
-        /// </summary>
-        /// <param name="limit">The amount to limit the query to</param>
-        /// <returns>The query for further processing</returns>
-        ILimit Limit(IExpression limit);
-
-        /// <summary>
-        /// Limits a query to the given count and also offsets it by
-        /// a given count (ulong, parameter, etc)
-        /// </summary>
-        /// <param name="limit">The amount to limit the query to</param>
-        /// <param name="offset">The amount to offset the query by</param>
-        /// <returns>The query for further processing</returns>
-        ILimit Limit(IExpression limit, IExpression? offset);
-
-        #endregion
-    }
+    /// <summary>
+    /// Limits a query to the given count and also offsets it by
+    /// a given count (ulong, parameter, etc.)
+    /// </summary>
+    /// <param name="limit">The amount to limit the query to</param>
+    /// <param name="offset">The amount to offset the query by</param>
+    /// <returns>The query for further processing</returns>
+    ILimit Limit(IExpression limit, IExpression? offset);
 }

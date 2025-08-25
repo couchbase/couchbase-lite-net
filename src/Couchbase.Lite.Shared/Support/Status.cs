@@ -27,114 +27,108 @@ using Couchbase.Lite.Sync;
 
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+internal static class Status
 {
-    internal static class Status
+    private const string Tag = nameof(Status);
+
+    public static unsafe void ConvertNetworkError(Exception e, C4Error* outError)
     {
-        #region Constants
+        var c4Err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError);
+        var message = default(string);
+        foreach (var inner in FlattenedExceptions(e)) {
+            if (c4Err.code != (int)C4ErrorCode.UnexpectedError || c4Err.domain != C4ErrorDomain.LiteCoreDomain) {
+                break;
+            }
 
-        private const string Tag = nameof(Status);
-
-        #endregion
-
-        #region Public Methods
-
-        public static unsafe void ConvertNetworkError(Exception e, C4Error* outError)
-        {
-            var c4err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError);
-            var message = default(string);
-            foreach (var inner in FlattenedExceptions(e)) {
-                if (c4err.code != (int)C4ErrorCode.UnexpectedError || c4err.domain != C4ErrorDomain.LiteCoreDomain) {
+            switch (inner) {
+                case CouchbaseException ce:
+                    c4Err = ce.LiteCoreError;
+                    message = ce.Message;
                     break;
-                }
+                case TlsCertificateException tlse:
+                    message = tlse.Message;
+                    c4Err.domain = C4ErrorDomain.NetworkDomain;
+                    c4Err.code = (int)tlse.Code;
+                    break;
+                case SocketException se:
+                    switch (se.SocketErrorCode) {
+                        case SocketError.HostNotFound:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.UnknownHost;
+                            break;
+                        case SocketError.TimedOut:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.Timeout;
+                            break;
+                        case SocketError.ConnectionAborted:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.ConnectionAborted;
+                            break;
+                        case SocketError.ConnectionReset:
+                        case SocketError.Shutdown:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.ConnectionReset;
+                            break;
+                        case SocketError.NetworkUnreachable:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.NetworkUnreachable;
+                            break;
+                        case SocketError.ConnectionRefused:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.ConnectionRefused;
+                            break;
+                        case SocketError.NetworkDown:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.NetworkDown;
+                            break;
+                        case SocketError.AddressNotAvailable:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.AddressNotAvailable;
+                            break;
+                        case SocketError.NetworkReset:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.NetworkReset;
+                            break;
+                        case SocketError.NotConnected:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.NotConnected;
+                            break;
+                        case SocketError.HostDown:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.HostDown;
+                            break;
+                        case SocketError.HostUnreachable:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.HostUnreachable;
+                            break;
+                        case SocketError.SocketError:
+                            message = se.Message;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.Unknown;
+                            break;
+                    }
 
-                switch (inner) {
-                    case CouchbaseException ce:
-                        c4err = ce.LiteCoreError;
-                        message = ce.Message;
-                        break;
-                    case TlsCertificateException tlse:
-                        message = tlse.Message;
-                        c4err.domain = C4ErrorDomain.NetworkDomain;
-                        c4err.code = (int)tlse.Code;
-                        break;
-                    case SocketException se:
-                        switch (se.SocketErrorCode) {
-                            case SocketError.HostNotFound:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.UnknownHost;
-                                break;
-                            case SocketError.TimedOut:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.Timeout;
-                                break;
-                            case SocketError.ConnectionAborted:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.ConnectionAborted;
-                                break;
-                            case SocketError.ConnectionReset:
-                            case SocketError.Shutdown:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
-                                break;
-                            case SocketError.NetworkUnreachable:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.NetworkUnreachable;
-                                break;
-                            case SocketError.ConnectionRefused:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.ConnectionRefused;
-                                break;
-                            case SocketError.NetworkDown:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.NetworkDown;
-                                break;
-                            case SocketError.AddressNotAvailable:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.AddressNotAvailable;
-                                break;
-                            case SocketError.NetworkReset:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.NetworkReset;
-                                break;
-                            case SocketError.NotConnected:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.NotConnected;
-                                break;
-                            case SocketError.HostDown:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.HostDown;
-                                break;
-                            case SocketError.HostUnreachable:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.HostUnreachable;
-                                break;
-                            case SocketError.SocketError:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.Unknown;
-                                break;
-                        }
-
-                        break;
-                    case IOException ie:
-                        if (ie.Message == "The handshake failed due to an unexpected packet format.") {
-                            message = ie.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
-                        }
+                    break;
+                case IOException ie:
+                    if (ie.Message == "The handshake failed due to an unexpected packet format.") {
+                        message = ie.Message;
+                        c4Err.domain = C4ErrorDomain.NetworkDomain;
+                        c4Err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
+                    }
 
 #if __IOS__
                         if (ie.Message == "Connection closed.") {
@@ -142,49 +136,41 @@ namespace Couchbase.Lite
                         //case SslStatus.ClosedAbort:
                         //  throw new IOException("Connection closed.");
                         message = ie.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
+                            c4Err.domain = C4ErrorDomain.NetworkDomain;
+                            c4Err.code = (int)C4NetworkErrorCode.ConnectionReset;
                         }
 #endif
-                        break;
-                }
+                    break;
             }
-
-            if (c4err.code == (int) C4ErrorCode.UnexpectedError &&
-                c4err.domain == C4ErrorDomain.LiteCoreDomain) {
-                WriteLog.To.Database.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
-                if(message == null && e is AggregateException ae) {
-                    message = ae.InnerExceptions.Select(x => x.Message).Aggregate((x, y) => $"{x}; {y}");
-                }
-            }
-
-            // Use the message of the top-level exception because it will print out nested ones too
-            *outError = Native.c4error_make(c4err.domain, c4err.code, message ?? e.Message);
         }
 
-#endregion
-
-        #region Private Methods
-
-        private static IEnumerable<Exception> FlattenedExceptions(Exception top)
-        {
-            if (top is AggregateException ae) {
-                foreach (var inner in ae.InnerExceptions) {
-                    foreach (var nested in FlattenedExceptions(inner)) {
-                        yield return nested;
-                    }
-                }
+        if (c4Err is { code: (int) C4ErrorCode.UnexpectedError, domain: C4ErrorDomain.LiteCoreDomain }) {
+            WriteLog.To.Database.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
+            if(message == null && e is AggregateException ae) {
+                message = ae.InnerExceptions.Select(x => x.Message).Aggregate((x, y) => $"{x}; {y}");
             }
-
-            if (top.InnerException != null) {
-                foreach (var inner in FlattenedExceptions(top.InnerException)) {
-                    yield return inner;
-                }
-            }
-
-            yield return top;
         }
 
-        #endregion
+        // Use the message of the top-level exception because it will print out nested ones too
+        *outError = Native.c4error_make(c4Err.domain, c4Err.code, message ?? e.Message);
+    }
+
+    private static IEnumerable<Exception> FlattenedExceptions(Exception top)
+    {
+        if (top is AggregateException ae) {
+            foreach (var inner in ae.InnerExceptions) {
+                foreach (var nested in FlattenedExceptions(inner)) {
+                    yield return nested;
+                }
+            }
+        }
+
+        if (top.InnerException != null) {
+            foreach (var inner in FlattenedExceptions(top.InnerException)) {
+                yield return inner;
+            }
+        }
+
+        yield return top;
     }
 }

@@ -16,23 +16,18 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a portion of a query that can take HAVING
+/// as its next step
+/// </summary>
+public interface IHavingRouter
 {
     /// <summary>
-    /// An interface representing a portion of a query that can take HAVING
-    /// as its next step
+    /// Adds the given expression as a HAVING clause onto this query
     /// </summary>
-    public interface IHavingRouter
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Adds the given expression as a HAVING clause onto this query
-        /// </summary>
-        /// <param name="expression">The expression to use in the HAVING clause</param>
-        /// <returns>The query with the new clause for further processing</returns>
-        IHaving Having(IExpression expression);
-
-        #endregion
-    }
+    /// <param name="expression">The expression to use in the HAVING clause</param>
+    /// <returns>The query with the new clause for further processing</returns>
+    IHaving Having(IExpression expression);
 }

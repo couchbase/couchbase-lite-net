@@ -22,119 +22,95 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal enum ExpressionType
 {
-    internal enum ExpressionType
+    KeyPath,
+    Parameter,
+    Variable,
+    Aggregate
+}
+
+internal sealed class QueryTypeExpression : QueryExpression, IPropertyExpression, IMetaExpression, IVariableExpression
+{
+    private const string Tag = nameof(QueryTypeExpression);
+
+    private readonly IList<IExpression>? _subpredicates;
+    private string? _from;
+    private string? _columnName;
+        
+    internal ExpressionType ExpressionType { get; }
+
+    internal string? KeyPath { get; }
+
+    // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
+    internal string? ColumnName => _columnName ??= KeyPath?.Split('.')?.Last();
+
+    public QueryTypeExpression(IList<IExpression> subpredicates)
     {
-        KeyPath,
-        Parameter,
-        Variable,
-        Aggregate
+        ExpressionType = ExpressionType.Aggregate;
+        _subpredicates = subpredicates;
     }
 
-    internal sealed class QueryTypeExpression : QueryExpression, IPropertyExpression, IMetaExpression, IVariableExpression
+    public QueryTypeExpression(string keyPath, ExpressionType type)
     {
-        #region Constants
+        Debug.Assert(type is >= ExpressionType.KeyPath and <= ExpressionType.Variable,
+            $"Cannot use this constructor for {type}");
+        ExpressionType = type;
+        KeyPath = keyPath;
+    }
 
-        private const string Tag = nameof(QueryTypeExpression);
+    public QueryTypeExpression(string keyPath)
+    {
+        ExpressionType = ExpressionType.KeyPath;
+        KeyPath = keyPath;
+    }
 
-        #endregion
+    private object CalculateKeyPath()
+    {
+        var op = ExpressionType == ExpressionType.Parameter
+            ? '$'
+            : ExpressionType == ExpressionType.Variable
+                ? '?'
+                : '.';
 
-        #region Variables
-
-        private readonly IList<IExpression>? _subpredicates;
-        private string? _from;
-        private string? _columnName;
-
-        #endregion
-
-        #region Properties
-        
-        internal ExpressionType ExpressionType { get; }
-
-        internal string? KeyPath { get; }
-
-        internal string? ColumnName => _columnName ?? (_columnName = KeyPath?.Split('.')?.Last());
-
-        #endregion
-
-        #region Constructors
-
-        public QueryTypeExpression(IList<IExpression> subpredicates)
-        {
-            ExpressionType = ExpressionType.Aggregate;
-            _subpredicates = subpredicates;
+        if (KeyPath?.StartsWith("rank(") == true) {
+            return new object[] {"rank()", new[] {op.ToString(), KeyPath.Substring(5, KeyPath.Length - 6)}};
         }
 
-        public QueryTypeExpression(string keyPath, ExpressionType type)
-        {
-            Debug.Assert(type >= ExpressionType.KeyPath && type <= ExpressionType.Variable,
-                $"Cannot use this constructor for {type}");
-            ExpressionType = type;
-            KeyPath = keyPath;
-        }
+        return _from != null ? new[] { $"{op}{_from}.{KeyPath}" } : new[] { $"{op}{KeyPath}" };
+    }
 
-        public QueryTypeExpression(string keyPath)
-        {
-            ExpressionType = ExpressionType.KeyPath;
-            KeyPath = keyPath;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private object CalculateKeyPath()
-        {
-            var op = ExpressionType == ExpressionType.Parameter
-                ? '$'
-                : ExpressionType == ExpressionType.Variable
-                    ? '?'
-                    : '.';
-
-            if (KeyPath?.StartsWith("rank(") == true) {
-                return new object[] {"rank()", new[] {op.ToString(), KeyPath.Substring(5, KeyPath.Length - 6)}};
-            }
-
-            return _from != null ? new[] { $"{op}{_from}.{KeyPath}" } : new[] { $"{op}{KeyPath}" };
-        }
-
-        #endregion
-
-        #region Overrides
-
-        protected override object? ToJSON()
-        {
-            switch (ExpressionType) {
-                case ExpressionType.KeyPath:
-                case ExpressionType.Parameter:
-                case ExpressionType.Variable:
-                    return CalculateKeyPath();
-                case ExpressionType.Aggregate:
-                {
-                    var obj = new List<object?>();
-                    if (_subpredicates != null) {
-                        foreach (var entry in _subpredicates) {
-                            var queryExp = Misc.TryCast<IExpression, QueryExpression>(entry);
-                            obj.Add(queryExp.ConvertToJSON());
-                        }
+    protected override object? ToJSON()
+    {
+        switch (ExpressionType) {
+            case ExpressionType.KeyPath:
+            case ExpressionType.Parameter:
+            case ExpressionType.Variable:
+                return CalculateKeyPath();
+            case ExpressionType.Aggregate:
+            {
+                var obj = new List<object?>();
+                if (_subpredicates != null) {
+                    foreach (var entry in _subpredicates) {
+                        var queryExp = Misc.TryCast<IExpression, QueryExpression>(entry);
+                        obj.Add(queryExp.ConvertToJSON());
                     }
-
-                    return obj;
                 }
+
+                return obj;
             }
-
-            return null;
         }
 
-        public IExpression From(string alias)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
-            _from = alias;
-            Reset();
-            return this;
-        }
+        return null;
+    }
 
-        #endregion
+    public IExpression From(string alias)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
+        _from = alias;
+        Reset();
+        return this;
     }
 }

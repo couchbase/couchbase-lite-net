@@ -16,188 +16,180 @@
 // limitations under the License.
 // 
 
-using System;
+namespace Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Query
+/// <summary>
+/// An interface representing an abstract expression that can act on
+/// a given piece of data
+/// </summary>
+public interface IExpression
 {
-    
     /// <summary>
-    /// An interface representing an abstract expression that can act on
-    /// a given piece of data
+    /// Mathematically adds the given expression to the current expression
     /// </summary>
-    public interface IExpression
-    {
-        #region Public Methods
+    /// <param name="expression">The expression to add</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Add(IExpression expression);
 
-        /// <summary>
-        /// Mathematically adds the given expression to the current expression
-        /// </summary>
-        /// <param name="expression">The expression to add</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Add(IExpression expression);
+    /// <summary>
+    /// Logically "ands" the given expression with the current expression
+    /// </summary>
+    /// <param name="expression">The expression to "and"</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression And(IExpression expression);
 
-        /// <summary>
-        /// Logically "ands" the given expression with the current expression
-        /// </summary>
-        /// <param name="expression">The expression to "and"</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression And(IExpression expression);
+    /// <summary>
+    /// Determines if the result is between the two given expressions
+    /// </summary>
+    /// <param name="expression1">The expression to use as the first bound</param>
+    /// <param name="expression2">The expression to use as the second bound</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Between(IExpression expression1, IExpression expression2);
 
-        /// <summary>
-        /// Determines if the result is between the two given expressions
-        /// </summary>
-        /// <param name="expression1">The expression to use as the first bound</param>
-        /// <param name="expression2">The expression to use as the second bound</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Between(IExpression expression1, IExpression expression2);
+    /// <summary>
+    /// Collates the previous expression using the given collation instance (normally 
+    /// this is used directly after <see cref="Expression.Property(string)"/> when
+    /// it is part of a <see cref="IWhereRouter.Where(IExpression)"/> or 
+    /// <see cref="IOrderByRouter.OrderBy(IOrdering[])"/>)
+    /// </summary>
+    /// <param name="collation">The collation instance to use when collating</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Collate(ICollation collation);
 
-        /// <summary>
-        /// Collates the previous expression using the given collation instance (normally 
-        /// this is used directly after <see cref="Expression.Property(string)"/> when
-        /// it is part of a <see cref="IWhereRouter.Where(IExpression)"/> or 
-        /// <see cref="IOrderByRouter.OrderBy(IOrdering[])"/>)
-        /// </summary>
-        /// <param name="collation">The collation instance to use when collating</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Collate(ICollation collation);
+    /// <summary>
+    /// Matehematically divides the current and given expressions
+    /// </summary>
+    /// <param name="expression">The expression to divide</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Divide(IExpression expression);
 
-        /// <summary>
-        /// Matehematically divides the current and given expressions
-        /// </summary>
-        /// <param name="expression">The expression to divide</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Divide(IExpression expression);
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// and current expression are equal
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression EqualTo(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// and current expression are equal
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression EqualTo(IExpression expression);
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// expression is greater than the current one
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression GreaterThan(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is greater than the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression GreaterThan(IExpression expression);
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// expression is greater than or equal to the current one
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression GreaterThanOrEqualTo(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is greater than or equal to the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression GreaterThanOrEqualTo(IExpression expression);
+    /// <summary>
+    /// Returns an expression to test whether the given expression is contained
+    /// in the given list of expressions
+    /// </summary>
+    /// <param name="expressions">The list of expressions to check</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression In(params IExpression[] expressions);
 
-        /// <summary>
-        /// Returns an expression to test whether or not the given expression is contained
-        /// in the given list of expressions
-        /// </summary>
-        /// <param name="expressions">The list of expressions to check</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression In(params IExpression[] expressions);
+    /// <summary>
+    /// Returns an expression to test whether the given expression is
+    /// the same as the current expression
+    /// </summary>
+    /// <param name="expression">The expression to compare to</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Is(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression to test whether or not the given expression is
-        /// the same as the current current expression
-        /// </summary>
-        /// <param name="expression">The expression to compare to</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Is(IExpression expression);
+    /// <summary>
+    /// Returns an expression to test whether the given expression is
+    /// NOT the same as the current expression
+    /// </summary>
+    /// <param name="expression">The expression to compare to</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression IsNot(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression to test whether or not the given expression is
-        /// NOT the same as the current current expression
-        /// </summary>
-        /// <param name="expression">The expression to compare to</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression IsNot(IExpression expression);
+    /// <summary>
+    /// Gets an expression representing if the current expression has a value
+    /// </summary>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression IsValued();
 
-        /// <summary>
-        /// Gets an expression representing if the current expression has a value
-        /// </summary>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression IsValued();
+    /// <summary>
+    /// Gets an expression representing if the current expression does not have a value
+    /// </summary>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression IsNotValued();
 
-        /// <summary>
-        /// Gets an expression representing if the current expression does not have a value
-        /// </summary>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression IsNotValued();
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// expression is less than the current one
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression LessThan(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is less than the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression LessThan(IExpression expression);
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// expression is less than or equal to the current one
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression LessThanOrEqualTo(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is less than or equal to the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression LessThanOrEqualTo(IExpression expression);
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// expression is "LIKE" the current one
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Like(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is "LIKE" the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Like(IExpression expression);
+    /// <summary>
+    /// Returns a modulo math expression using the current and given expressions
+    /// as operands
+    /// </summary>
+    /// <param name="expression">The expression to mod with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Modulo(IExpression expression);
 
-        /// <summary>
-        /// Returns an modulo math expression using the current and given expressions
-        /// as operands
-        /// </summary>
-        /// <param name="expression">The expression to mod with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Modulo(IExpression expression);
+    /// <summary>
+    /// Returns a multiply expression using the current and given expressions as 
+    /// operands
+    /// </summary>
+    /// <param name="expression">The expression to multiply with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Multiply(IExpression expression);
 
-        /// <summary>
-        /// Returns a multiply expression using the current and given expressions as 
-        /// operands
-        /// </summary>
-        /// <param name="expression">The expression to multiply with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Multiply(IExpression expression);
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// and current expression are not equal
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression NotEqualTo(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// and current expression are not equal
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotEqualTo(IExpression expression);
+    /// <summary>
+    /// Logically "ors" the given expression with the current expression
+    /// </summary>
+    /// <param name="expression">The expression to "and"</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Or(IExpression expression);
 
-        /// <summary>
-        /// Logically "ors" the given expression with the current expression
-        /// </summary>
-        /// <param name="expression">The expression to "and"</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Or(IExpression expression);
+    /// <summary>
+    /// Returns an expression that will evaluate whether the given
+    /// expression regex matches the current one
+    /// </summary>
+    /// <param name="expression">The expression to compare with the current one</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Regex(IExpression expression);
 
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression regex matches the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Regex(IExpression expression);
-
-        /// <summary>
-        /// Mathematically subtracts the given expression to the current expression
-        /// </summary>
-        /// <param name="expression">The expression to subtract</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Subtract(IExpression expression);
-
-        #endregion
-    }
+    /// <summary>
+    /// Mathematically subtracts the given expression to the current expression
+    /// </summary>
+    /// <param name="expression">The expression to subtract</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Subtract(IExpression expression);
 }

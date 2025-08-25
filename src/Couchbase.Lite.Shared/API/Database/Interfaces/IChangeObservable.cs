@@ -20,87 +20,86 @@ using Couchbase.Lite.Sync;
 using System;
 using System.Threading.Tasks;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// An interface describing an object which contains a change listener that can be removed
+/// </summary>
+public interface IChangeObservableRemovable
 {
     /// <summary>
-    /// An interface describing an object which contains a change listener that can be removed
+    /// Remove a change listener by token
     /// </summary>
-    public interface IChangeObservableRemovable
-    {
-        /// <summary>
-        /// Remove a change listener by token
-        /// </summary>
-        /// <param name="token">The token returned from <see cref="IChangeObservable{TEventType}.AddChangeListener(EventHandler{TEventType})" /></param>
-        void RemoveChangeListener(ListenerToken token);
-    }
+    /// <param name="token">The token returned from <see cref="IChangeObservable{TEventType}.AddChangeListener(EventHandler{TEventType})" /></param>
+    void RemoveChangeListener(ListenerToken token);
+}
+
+/// <summary>
+/// An interface describing an object that can have a change listener added to it
+/// </summary>
+/// <typeparam name="TEventType">The type of arguments used by the change listener</typeparam>
+public interface IChangeObservable<TEventType> : IChangeObservableRemovable where TEventType : EventArgs
+{
+    /// <summary>
+    /// Adds a change listener that executes using the provided TaskScheduler
+    /// </summary>
+    /// <param name="scheduler">The scheduler to use (will use a default if null)</param>
+    /// <param name="handler">The handler that the change listener should use to call back</param>
+    /// <returns>A token to remove the change listener later</returns>
+    ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<TEventType> handler);
 
     /// <summary>
-    /// An interface describing an object that can have a change listener added to it
+    /// Adds a change listener using the default TaskScheduler
     /// </summary>
-    /// <typeparam name="TEventType">The type of arguments used by the change listener</typeparam>
-    public interface IChangeObservable<TEventType> : IChangeObservableRemovable where TEventType : EventArgs
-    {
-        /// <summary>
-        /// Adds a change listener that executes using the provided TaskScheduler
-        /// </summary>
-        /// <param name="scheduler">The scheduler to use (will use a default if null)</param>
-        /// <param name="handler">The handler that the change listener should use to call back</param>
-        /// <returns>A token to remove the change listener later</returns>
-        ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<TEventType> handler);
+    /// <param name="handler">The handler that the change listener should use to call back</param>
+    /// <returns>A token to remove the change listener later</returns>
+    ListenerToken AddChangeListener(EventHandler<TEventType> handler);
+}
 
-        /// <summary>
-        /// Adds a change listener using the default TaskScheduler
-        /// </summary>
-        /// <param name="handler">The handler that the change listener should use to call back</param>
-        /// <returns>A token to remove the change listener later</returns>
-        ListenerToken AddChangeListener(EventHandler<TEventType> handler);
-    }
+/// <summary>
+/// An interface describing an object that can add a change listener at a <see cref="Document"/>
+/// level
+/// </summary>
+public interface IDocumentChangeObservable : IChangeObservableRemovable
+{
+    /// <summary>
+    /// Adds a change listener that executes using the provided TaskScheduler
+    /// </summary>
+    /// <param name="id">The ID of the document to monitor</param>
+    /// <param name="scheduler">The scheduler to use (will use a default if null)</param>
+    /// <param name="handler">The handler that the change listener should use to call back</param>
+    /// <returns>A token to remove the change listener later</returns>
+    ListenerToken AddDocumentChangeListener(string id, TaskScheduler? scheduler,
+        EventHandler<DocumentChangedEventArgs> handler);
 
     /// <summary>
-    /// An interface describing an object that can add a change listener at a <see cref="Document"/>
-    /// level
+    /// Adds a change listener that executes using the default TaskScheduler
     /// </summary>
-    public interface IDocumentChangeObservable : IChangeObservableRemovable
-    {
-        /// <summary>
-        /// Adds a change listener that executes using the provided TaskScheduler
-        /// </summary>
-        /// <param name="id">The ID of the document to monitor</param>
-        /// <param name="scheduler">The scheduler to use (will use a default if null)</param>
-        /// <param name="handler">The handler that the change listener should use to call back</param>
-        /// <returns>A token to remove the change listener later</returns>
-        ListenerToken AddDocumentChangeListener(string id, TaskScheduler? scheduler,
-            EventHandler<DocumentChangedEventArgs> handler);
+    /// <param name="id">The ID of the document to monitor</param>
+    /// <param name="handler">The handler that the change listener should use to call back</param>
+    /// <returns>A token to remove the change listener later</returns>
+    ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler);
+}
 
-        /// <summary>
-        /// Adds a change listener that executes using the default TaskScheduler
-        /// </summary>
-        /// <param name="id">The ID of the document to monitor</param>
-        /// <param name="handler">The handler that the change listener should use to call back</param>
-        /// <returns>A token to remove the change listener later</returns>
-        ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler);
-    }
+/// <summary>
+/// An interface describing an object that can add a change listener for when
+/// a document is replicated
+/// </summary>
+public interface IDocumentReplicatedObservable : IChangeObservableRemovable
+{
+    /// <summary>
+    /// Adds a change listener using the default TaskScheduler
+    /// </summary>
+    /// <param name="handler">The handler that the change listener should use to call back</param>
+    /// <returns>A token to remove the change listener later</returns>
+    ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler);
 
     /// <summary>
-    /// An interface describing an object that can add a change listener for when
-    /// a document is replicated
+    /// Adds a change listener that executes using the provided TaskScheduler
     /// </summary>
-    public interface IDocumentReplicatedObservable : IChangeObservableRemovable
-    {
-        /// <summary>
-        /// Adds a change listener using the default TaskScheduler
-        /// </summary>
-        /// <param name="handler">The handler that the change listener should use to call back</param>
-        /// <returns>A token to remove the change listener later</returns>
-        ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler);
-
-        /// <summary>
-        /// Adds a change listener that executes using the provided TaskScheduler
-        /// </summary>
-        /// <param name="scheduler">The scheduler to use (will use a default if null)</param>
-        /// <param name="handler">The handler that the change listener should use to call back</param>
-        /// <returns>A token to remove the change listener later</returns>
-        ListenerToken AddDocumentReplicationListener(TaskScheduler? scheduler,
-            EventHandler<DocumentReplicationEventArgs> handler);
-    }
+    /// <param name="scheduler">The scheduler to use (will use a default if null)</param>
+    /// <param name="handler">The handler that the change listener should use to call back</param>
+    /// <returns>A token to remove the change listener later</returns>
+    ListenerToken AddDocumentReplicationListener(TaskScheduler? scheduler,
+        EventHandler<DocumentReplicationEventArgs> handler);
 }

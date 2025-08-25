@@ -23,65 +23,30 @@ using System.Text;
 
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Logging
+namespace Couchbase.Lite.Logging;
+
+[ExcludeFromCodeCoverage]
+internal sealed class LogString
 {
-    [ExcludeFromCodeCoverage]
-    internal sealed class LogString
+    private readonly byte[] _unserialized;
+    private string? _serialized;
+
+    public LogString(IEnumerable<byte> utf8Bytes)
     {
-        #region Variables
-
-        private readonly byte[] _unserialized;
-        private string? _serialized;
-
-        #endregion
-
-        #region Constructors
-
-        public LogString(IEnumerable<byte> utf8Bytes)
-        {
-            Debug.Assert(utf8Bytes != null);
-            _unserialized = utf8Bytes.ToArray();
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override string ToString()
-        {
-            return _serialized ?? (_serialized = Encoding.UTF8.GetString(_unserialized));
-        }
-
-        #endregion
+        Debug.Assert(utf8Bytes != null);
+        _unserialized = utf8Bytes.ToArray();
     }
 
-    [ExcludeFromCodeCoverage]
-    internal sealed class LogJsonString
+    public override string ToString()
     {
-        #region Variables
-
-        private readonly object _unserialized;
-        private string? _serialized;
-
-        #endregion
-
-        #region Constructors
-
-        public LogJsonString(object obj)
-        {
-            _unserialized = obj;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override string ToString()
-        {
-            return _serialized ?? (_serialized = JsonConvert.SerializeObject(_unserialized));
-        }
-
-        #endregion
+        return _serialized ??= Encoding.UTF8.GetString(_unserialized);
     }
 }
 
+[ExcludeFromCodeCoverage]
+internal sealed class LogJsonString(object obj)
+{
+    private string? _serialized;
+
+    public override string ToString() => _serialized ??= JsonConvert.SerializeObject(obj);
+}
