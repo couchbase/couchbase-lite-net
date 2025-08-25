@@ -16,12 +16,10 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
-{
-    /// <summary>
-    /// An interface representing a query that has had a limit and optionally an
-    /// offset applied
-    /// </summary>
-    public interface ILimit : IQuery
-    {}
-}
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a query that has had a limit and optionally an
+/// offset applied
+/// </summary>
+public interface ILimit : IQuery;

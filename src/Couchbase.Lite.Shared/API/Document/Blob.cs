@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.Internal.Doc;
@@ -30,488 +29,416 @@ using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// A class representing an arbitrary piece of binary data
+/// </summary>
+public sealed unsafe class Blob : IJSON
 {
+    internal const string ContentTypeKey = "content_type";
+    internal const string DigestKey = "digest";
+    internal const string LengthKey = "length";
+    private const string DataKey = "data";
+
+    private const uint MaxCachedContentLength = 8 * 1024;
+    private const int ReadBufferSize = 8 * 1024;
+    private const string Tag = nameof(Blob);
+
+    private readonly Dictionary<string, object?>? _properties;
+    private byte[]? _content;
+    private Database? _db;
+    private Stream? _initialContentStream;
 
     /// <summary>
-    /// A class representing an arbitrary piece of binary data
+    /// Gets the metadata type of this object (hardcoded to <see cref="Constants.ObjectTypeBlob"/>)
     /// </summary>
-    public sealed unsafe class Blob : IJSON
+    [JsonProperty("@type")]
+    public string Type => Constants.ObjectTypeBlob;
+
+    /// <summary>
+    /// Gets the contents of the blob as an in-memory array
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if this blob has no associated data (unusual)</exception>
+    [JsonIgnore]
+    public byte[]? Content
     {
-        #region Constants
-
-        internal const string ContentTypeKey = "content_type";
-        internal const string DigestKey = "digest";
-        internal const string LengthKey = "length";
-        private const string DataKey = "data";
-
-        private const uint MaxCachedContentLength = 8 * 1024;
-        private const int ReadBufferSize = 8 * 1024;
-        private const string Tag = nameof(Blob);
-
-        #endregion
-
-        #region Variables
-
-        private readonly Dictionary<string, object?>? _properties;
-        private byte[]? _content;
-        private Database? _db;
-        private Stream? _initialContentStream;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the metadata type of this object (hardcoded to <see cref="Constants.ObjectTypeBlob"/>)
-        /// </summary>
-        [JsonProperty("@type")]
-        public string Type => Constants.ObjectTypeBlob;
-
-        /// <summary>
-        /// Gets the contents of the blob as an in-memory array
-        /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown if this blob has no associated data (unusual)</exception>
-        [JsonIgnore]
-        public byte[]? Content
-        {
-            get {
-                if(_content != null) {
-                    return _content;
-                }
-
-                if (_db != null) {
-                    C4BlobStore* blobStore;
-                    C4BlobKey key;
-                    if (!GetBlobStore(&blobStore, &key)) {
-                        return null;
-                    }
-
-                    //TODO: If data is large, can get the file path & memory-map it
-                    C4Error err;
-                    var content = NativeSafe.c4blob_getContents(blobStore, key, &err);
-                    if (err.domain == C4ErrorDomain.LiteCoreDomain && err.code == (int)C4ErrorCode.NotFound) {
-                        WriteLog.To.Database.W(Tag,
-                            "Blob in database has no data (are you calling Blob.Content from a pull filter function?), returning null...");
-                        return null;
-                    }
-
-                    if (err.code > 0) {
-                        throw CouchbaseException.Create(err);
-                    }
-
-                    if (content?.Length <= MaxCachedContentLength) {
-                        _content = content;
-                    }
-
-                    return content;
-                } else if (IsBlob(MutableProperties)) { 
-                    WriteLog.To.Database.W(Tag, CouchbaseLiteErrorMessage.BlobDbNull);
-                    return null;
-                }
-
-                if(_initialContentStream == null) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobContainsNoData);
-                }
-
-                var result = new List<byte>();
-                using(var reader = new BinaryReader(_initialContentStream)) {
-                    byte[] buffer;
-                    do {
-                        buffer = reader.ReadBytes(ReadBufferSize);
-                        result.AddRange(buffer);
-                    } while(buffer.Length == ReadBufferSize);
-                }
-
-                _initialContentStream.Dispose();
-                _initialContentStream = null;
-                _content = result.ToArray();
-                Length = _content.Length;
+        get {
+            if(_content != null) {
                 return _content;
-            }
-        }
-
-        /// <summary>
-        /// Gets the contents of the blob as a <see cref="Stream"/>
-        /// </summary>
-        /// <remarks>
-        /// The caller is responsible for disposing the Stream when finished with it.
-        /// </remarks>
-        [JsonIgnore]
-        public Stream? ContentStream
-        {
-            get {
-                if(_db != null) {
-                    C4BlobStore* blobStore;
-                    C4BlobKey key;
-                    if(GetBlobStore(&blobStore, &key)) {
-                        return new BlobReadStream(blobStore, key);
-                    }
-                }
-                return _content != null ? new MemoryStream(_content) : null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the content type of the blob
-        /// </summary>
-        [JsonProperty("content_type")]
-        public string? ContentType { get; }
-
-        /// <summary>
-        /// Gets the digest of the blob, once it is saved
-        /// </summary>
-        [JsonProperty("digest")]
-        public string? Digest { get; internal set; }
-
-        /// <summary>
-        /// Gets the length of the data that the blob contains
-        /// </summary>
-        [JsonProperty("length")]
-        public int Length { get; private set; }
-
-        /// <summary>
-        /// Gets the metadata of the blob instance
-        /// </summary>
-        [JsonIgnore]
-        public IReadOnlyDictionary<string, object?> Properties => new ReadOnlyDictionary<string, object?>(PropertiesInDict);
-
-        internal IReadOnlyDictionary<string, object?> JsonRepresentation
-        {
-            get {
-                var json = new Dictionary<string, object?>(MutableProperties) {
-                    [Constants.ObjectTypeProperty] = Constants.ObjectTypeBlob,
-                    [LengthKey] = Length > 0 ? Length : null
-                };
-                if (Digest != null) {
-                    json[DigestKey] = Digest;
-                } else {
-                    json[DataKey] = Content;
-                }
-
-                return json;
-            }
-        }
-
-        private IDictionary<string, object?> MutableProperties
-        {
-            get {
-                if(_properties != null) {
-                    return _properties;
-                }
-
-                return PropertiesInDict;
-            }
-        }
-
-        private IDictionary<string, object?> PropertiesInDict
-        {
-            get
-            {
-                return new NonNullDictionary<string, object?>
-                {
-                    [DigestKey] = Digest,
-                    [LengthKey] = Length > 0 ? Length : null,
-                    [ContentTypeKey] = ContentType
-                };
-            }
-        }
-
-        #endregion
-
-        #region Constructors
-
-        private Blob()
-        {
-        }
-
-        /// <summary>
-        /// Creates a blob given a type and in memory content
-        /// </summary>
-        /// <param name="contentType">The binary type of the blob</param>
-        /// <param name="content">The content of the blob</param>
-        /// <returns>An instantiated <see cref="Blob" /> object</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <c>content</c> is <c>null</c></exception>
-        public Blob(string contentType, byte[] content)
-        {
-            ContentType = contentType;
-            _content = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(content), content);
-            Length = content.Length;
-        }
-
-        /// <summary>
-        /// Creates a blob given a type and streaming content
-        /// </summary>
-        /// <param name="contentType">The binary type of the blob</param>
-        /// <param name="stream">The stream containing the blob content</param>
-        /// <returns>An instantiated <see cref="Blob" /> object</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <c>stream</c> is <c>null</c></exception>
-        public Blob(string contentType, Stream stream)
-        {
-            ContentType = contentType;
-            _initialContentStream = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(stream), stream);
-        }
-
-        /// <summary>
-        /// Creates an blob given a type and a URL to a file
-        /// </summary>
-        /// <param name="contentType">The binary type of the blob</param>
-        /// <param name="fileUrl">The url to the file to read</param>
-        /// <returns>An instantiated <see cref="Blob" /> object</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <c>fileUrl</c> is <c>null</c></exception>
-        /// <exception cref="ArgumentException">Thrown if fileUrl is not a file based URL</exception>
-        public Blob(string contentType, Uri fileUrl)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(fileUrl), fileUrl);
-
-            if(!fileUrl.IsFile) {
-                throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.NotFileBasedURL, fileUrl), nameof(fileUrl));
-            }
-
-            ContentType = contentType;
-            _initialContentStream = File.OpenRead(fileUrl.AbsolutePath);
-        }
-
-        internal Blob(Database db, IDictionary<string, object?> properties)
-        {
-            SetupProperties(properties);
-            _db = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(db), db);
-            _properties = new Dictionary<string, object?>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, 
-                nameof(properties), properties));
-            _content = properties.GetCast<byte[]>(DataKey);
-            ContentType = properties.GetCast<string>(ContentTypeKey);
-            if(Digest == null && _content == null) {
-                WriteLog.To.Database.W(Tag, "Blob read from database has neither digest nor data.");
-            }
-        }
-
-        internal Blob(IDictionary<string, object?> properties)
-        {
-            if (!IsBlob(properties)) {
-                throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidJSONDictionaryForBlob);
-            }
-
-            Length = properties.GetCast<int>(LengthKey);
-            Digest = properties.GetCast<string>(DigestKey);
-            _properties = new Dictionary<string, object?>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag,
-                nameof(properties), properties));
-            ContentType = properties.GetCast<string>(ContentTypeKey);
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Return whether the given dictionary represents Blob or not
-        /// </summary>
-        /// <param name="blobDict"> JSON Dictionary represents in the <see cref="Blob"/> :
-        /// Key          | Value                  | Mandatory | Description
-        /// ---------------------------------------------------------------------------------------------------
-        /// @type        | constant string “blob” | Yes       | Indicate Blob data type.
-        /// content_type | String                 | No        | Content type ex. text/plain.
-        /// length       | Number                 | No        | Binary length of the Blob in bytes.
-        /// digest       | String                 | Yes       | The cryptographic digest of the Blob’s content.
-        /// </param>
-        /// <returns>Return true if the given dictionary represents Blob, otherwise return false</returns>
-        public static bool IsBlob(IDictionary<string, object?> blobDict)
-        {
-            if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || blobDict[Constants.ObjectTypeProperty]?.GetType() != typeof(string) 
-                || blobDict[Constants.ObjectTypeProperty] as string != Constants.ObjectTypeBlob
-                || (blobDict.ContainsKey(ContentTypeKey) && blobDict[ContentTypeKey]?.GetType() != typeof(string))
-                || (blobDict.ContainsKey(LengthKey) && Convert.ToInt64(blobDict[LengthKey]).GetType() != typeof(Int64))
-                || blobDict[DigestKey]?.GetType() != typeof(string)) {
-                return false;
-            }
-
-            return true;
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal void FLEncode(FLEncoder* enc)
-        {
-            var extra = Native.FLEncoder_GetExtraInfo(enc);
-            if (extra != null) {
-                // This blob is attached to a document, so save the full metadata
-                var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument
-                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Failed to get MutableDocument from GCHandle");
-                var database = document.Database
-                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Document from FLEncoder doesn't have database set");
-                try {
-                    Install(database);
-                } catch (Exception) {
-                    WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
-                    throw;
-                }
-            }
-
-            JsonRepresentation.FLEncode(enc);
-        }
-
-        internal void FLSlotSet(FLSlot* slot)
-        {
-            JsonRepresentation.FLSlotSet(slot);
-        }
-
-        internal bool JSONEquals(Dictionary<string, object> obj)
-        {
-            if ((obj.ContainsKey(DigestKey) & Digest?.Equals(obj[DigestKey]) == true) && 
-                (obj.ContainsKey(LengthKey) & Length == (Int64)obj[LengthKey]) && 
-                (obj.ContainsKey(ContentTypeKey) & ContentType?.Equals(obj[ContentTypeKey]) == true) &&
-                (obj.ContainsKey(Constants.ObjectTypeProperty) & Type.Equals(obj[Constants.ObjectTypeProperty]))) {
-                return true;
-            }
-
-            return false;
-        }
-
-        internal void Install(Database db)
-        {
-            if (Digest != null && _db == null) {
-                _db = db;
             }
 
             if (_db != null) {
-                if(db != _db) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
+                C4BlobStore* blobStore;
+                C4BlobKey key;
+                if (!GetBlobStore(&blobStore, &key)) {
+                    return null;
                 }
 
-                return;
+                //TODO: If data is large, can get the file path & memory-map it
+                C4Error err;
+                var content = NativeSafe.c4blob_getContents(blobStore, key, &err);
+                if (err is { domain: C4ErrorDomain.LiteCoreDomain, code: (int)C4ErrorCode.NotFound }) {
+                    WriteLog.To.Database.W(Tag,
+                        "Blob in database has no data (are you calling Blob.Content from a pull filter function?), returning null...");
+                    return null;
+                }
+
+                if (err.code > 0) {
+                    throw CouchbaseException.Create(err);
+                }
+
+                if (content?.Length <= MaxCachedContentLength) {
+                    _content = content;
+                }
+
+                return content;
+            } 
+            
+            if (IsBlob(MutableProperties)) { 
+                WriteLog.To.Database.W(Tag, CouchbaseLiteErrorMessage.BlobDbNull);
+                return null;
             }
 
-            var store = db.BlobStore;
+            if(_initialContentStream == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobContainsNoData);
+            }
+
+            var result = new List<byte>();
+            using(var reader = new BinaryReader(_initialContentStream)) {
+                byte[] buffer;
+                do {
+                    buffer = reader.ReadBytes(ReadBufferSize);
+                    result.AddRange(buffer);
+                } while(buffer.Length == ReadBufferSize);
+            }
+
+            _initialContentStream.Dispose();
+            _initialContentStream = null;
+            _content = result.ToArray();
+            Length = _content.Length;
+            return _content;
+        }
+    }
+
+    /// <summary>
+    /// Gets the contents of the blob as a <see cref="Stream"/>
+    /// </summary>
+    /// <remarks>
+    /// The caller is responsible for disposing the Stream when finished with it.
+    /// </remarks>
+    [JsonIgnore]
+    public Stream? ContentStream
+    {
+        get {
+            if (_db == null) {
+                return _content != null ? new MemoryStream(_content) : null;
+            }
+            
+            C4BlobStore* blobStore;
             C4BlobKey key;
-            if(_content != null) {
-                LiteCoreBridge.Check(err =>
-                {
-                    C4BlobKey tmpKey;
-                    var s = NativeSafe.c4blob_create(store, _content, null, &tmpKey, err);
-                    key = tmpKey;
-                    return s;
-                });
+            if(GetBlobStore(&blobStore, &key)) {
+                return new BlobReadStream(blobStore, key);
+            }
+            
+            return _content != null ? new MemoryStream(_content) : null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the content type of the blob
+    /// </summary>
+    [JsonProperty("content_type")]
+    public string? ContentType { get; }
+
+    /// <summary>
+    /// Gets the digest of the blob, once it is saved
+    /// </summary>
+    [JsonProperty("digest")]
+    public string? Digest { get; internal set; }
+
+    /// <summary>
+    /// Gets the length of the data that the blob contains
+    /// </summary>
+    [JsonProperty("length")]
+    public int Length { get; private set; }
+
+    /// <summary>
+    /// Gets the metadata of the blob instance
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyDictionary<string, object?> Properties => new ReadOnlyDictionary<string, object?>(PropertiesInDict);
+
+    internal IReadOnlyDictionary<string, object?> JsonRepresentation
+    {
+        get {
+            var json = new Dictionary<string, object?>(MutableProperties) {
+                [Constants.ObjectTypeProperty] = Constants.ObjectTypeBlob,
+                [LengthKey] = Length > 0 ? Length : null
+            };
+            if (Digest != null) {
+                json[DigestKey] = Digest;
             } else {
-                if(_initialContentStream == null) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobContentNull);
-                }
-
-                Length = 0;
-                var contentStream = _initialContentStream;
-                using(var blobOut = new BlobWriteStream(store)) {
-                    contentStream.CopyTo(blobOut, ReadBufferSize);
-                    blobOut.Flush();
-                    Length = blobOut.Length > Int32.MaxValue ? 0 : (int) blobOut.Length;
-                    key = blobOut.Key;
-                }
-
-                _initialContentStream.Dispose();
-                _initialContentStream = null;
+                json[DataKey] = Content;
             }
 
-            Digest = NativeSafe.c4blob_keyToString(key);
+            return json;
+        }
+    }
+
+    private IDictionary<string, object?> MutableProperties => _properties ?? PropertiesInDict;
+
+    private IDictionary<string, object?> PropertiesInDict => new NonNullDictionary<string, object?>
+    {
+        [DigestKey] = Digest,
+        [LengthKey] = Length > 0 ? Length : null,
+        [ContentTypeKey] = ContentType
+    };
+
+    /// <summary>
+    /// Creates a blob given a type and in memory content
+    /// </summary>
+    /// <param name="contentType">The binary type of the blob</param>
+    /// <param name="content">The content of the blob</param>
+    /// <returns>An instantiated <see cref="Blob" /> object</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <c>content</c> is <c>null</c></exception>
+    public Blob(string contentType, byte[] content)
+    {
+        ContentType = contentType;
+        _content = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(content), content);
+        Length = content.Length;
+    }
+
+    /// <summary>
+    /// Creates a blob given a type and streaming content
+    /// </summary>
+    /// <param name="contentType">The binary type of the blob</param>
+    /// <param name="stream">The stream containing the blob content</param>
+    /// <returns>An instantiated <see cref="Blob" /> object</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <c>stream</c> is <c>null</c></exception>
+    public Blob(string contentType, Stream stream)
+    {
+        ContentType = contentType;
+        _initialContentStream = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(stream), stream);
+    }
+
+    /// <summary>
+    /// Creates a blob given a type and a URL to a file
+    /// </summary>
+    /// <param name="contentType">The binary type of the blob</param>
+    /// <param name="fileUrl">The url to the file to read</param>
+    /// <returns>An instantiated <see cref="Blob" /> object</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <c>fileUrl</c> is <c>null</c></exception>
+    /// <exception cref="ArgumentException">Thrown if fileUrl is not a file based URL</exception>
+    public Blob(string contentType, Uri fileUrl)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(fileUrl), fileUrl);
+
+        if(!fileUrl.IsFile) {
+            throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.NotFileBasedURL, fileUrl), nameof(fileUrl));
+        }
+
+        ContentType = contentType;
+        _initialContentStream = File.OpenRead(fileUrl.AbsolutePath);
+    }
+
+    internal Blob(Database db, IDictionary<string, object?> properties)
+    {
+        SetupProperties(properties);
+        _db = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(db), db);
+        _properties = new Dictionary<string, object?>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, 
+            nameof(properties), properties));
+        _content = properties.GetCast<byte[]>(DataKey);
+        ContentType = properties.GetCast<string>(ContentTypeKey);
+        if(Digest == null && _content == null) {
+            WriteLog.To.Database.W(Tag, "Blob read from database has neither digest nor data.");
+        }
+    }
+
+    internal Blob(IDictionary<string, object?> properties)
+    {
+        if (!IsBlob(properties)) {
+            throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidJSONDictionaryForBlob);
+        }
+
+        Length = properties.GetCast<int>(LengthKey);
+        Digest = properties.GetCast<string>(DigestKey);
+        _properties = new Dictionary<string, object?>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag,
+            nameof(properties), properties));
+        ContentType = properties.GetCast<string>(ContentTypeKey);
+    }
+
+    /// <summary>
+    /// Return whether the given dictionary represents Blob or not
+    /// </summary>
+    /// <param name="blobDict"> JSON Dictionary represents in the <see cref="Blob"/> :
+    /// Key          | Value                  | Mandatory | Description
+    /// ---------------------------------------------------------------------------------------------------
+    /// @type        | constant string “blob” | Yes       | Indicate Blob data type.
+    /// content_type | String                 | No        | Content type ex. text/plain.
+    /// length       | Number                 | No        | Binary length of the Blob in bytes.
+    /// digest       | String                 | Yes       | The cryptographic digest of the Blob’s content.
+    /// </param>
+    /// <returns>Return true if the given dictionary represents Blob, otherwise return false</returns>
+    public static bool IsBlob(IDictionary<string, object?> blobDict)
+    {
+        if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || blobDict[Constants.ObjectTypeProperty]?.GetType() != typeof(string) 
+            || blobDict[Constants.ObjectTypeProperty] as string != Constants.ObjectTypeBlob
+            || (blobDict.ContainsKey(ContentTypeKey) && blobDict[ContentTypeKey]?.GetType() != typeof(string))
+            || (blobDict.ContainsKey(LengthKey) && Convert.ToInt64(blobDict[LengthKey]).GetType() != typeof(Int64))
+            || blobDict[DigestKey]?.GetType() != typeof(string)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    internal void FLEncode(FLEncoder* enc)
+    {
+        var extra = Native.FLEncoder_GetExtraInfo(enc);
+        if (extra != null) {
+            // This blob is attached to a document, so save the full metadata
+            var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument
+                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Failed to get MutableDocument from GCHandle");
+            var database = document.Database
+                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Document from FLEncoder doesn't have database set");
+            try {
+                Install(database);
+            } catch (Exception) {
+                WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
+                throw;
+            }
+        }
+
+        JsonRepresentation.FLEncode(enc);
+    }
+
+    internal void FLSlotSet(FLSlot* slot) => JsonRepresentation.FLSlotSet(slot);
+
+    internal bool JSONEquals(Dictionary<string, object> obj)
+    {
+        return obj.ContainsKey(DigestKey) & Digest?.Equals(obj[DigestKey]) == true && 
+            obj.ContainsKey(LengthKey) & Length == (long)obj[LengthKey] && 
+            obj.ContainsKey(ContentTypeKey) & ContentType?.Equals(obj[ContentTypeKey]) == true &&
+            obj.ContainsKey(Constants.ObjectTypeProperty) & Type.Equals(obj[Constants.ObjectTypeProperty]);
+    }
+
+    internal void Install(Database db)
+    {
+        if (Digest != null && _db == null) {
             _db = db;
         }
 
-        #endregion
-
-        #region IJSON
-
-        /// <inheritdoc />
-        public string ToJSON()
-        {
-            if(this.Digest == null) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
+        if (_db != null) {
+            if(!ReferenceEquals(db, _db)) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
             }
 
-            return JsonConvert.SerializeObject(JsonRepresentation);
+            return;
         }
 
-        #endregion
- 
-        #region Private Methods
+        var store = db.BlobStore;
+        C4BlobKey key;
+        if(_content != null) {
+            LiteCoreBridge.Check(err =>
+            {
+                C4BlobKey tmpKey;
+                var s = NativeSafe.c4blob_create(store, _content, null, &tmpKey, err);
+                key = tmpKey;
+                return s;
+            });
+        } else {
+            if(_initialContentStream == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobContentNull);
+            }
 
-        private void SetupProperties(IDictionary<string, object?> properties)
-        {
-            properties.Remove(Constants.ObjectTypeProperty);
+            Length = 0;
+            var contentStream = _initialContentStream;
+            using(var blobOut = new BlobWriteStream(store)) {
+                contentStream.CopyTo(blobOut, ReadBufferSize);
+                blobOut.Flush();
+                Length = blobOut.Length > Int32.MaxValue ? 0 : (int) blobOut.Length;
+                key = blobOut.Key;
+            }
 
-            Length = properties.GetCast<int>(LengthKey);
-            Digest = properties.GetCast<string>(DigestKey);
+            _initialContentStream.Dispose();
+            _initialContentStream = null;
         }
 
-        private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
-        {
-            try {
-                *outBlobStore = _db != null ? _db.BlobStore : null;
-                return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
-            } catch(InvalidOperationException) {
+        Digest = NativeSafe.c4blob_keyToString(key);
+        _db = db;
+    }
+
+    /// <inheritdoc />
+    public string ToJSON() =>
+        Digest == null 
+            ? throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB) 
+            : JsonConvert.SerializeObject(JsonRepresentation);
+
+    private void SetupProperties(IDictionary<string, object?> properties)
+    {
+        properties.Remove(Constants.ObjectTypeProperty);
+
+        Length = properties.GetCast<int>(LengthKey);
+        Digest = properties.GetCast<string>(DigestKey);
+    }
+
+    private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
+    {
+        try {
+            *outBlobStore = _db != null ? _db.BlobStore : null;
+            return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
+        } catch(InvalidOperationException) {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the specified object is equal to the current object.
+    /// </summary>
+    /// <returns><c>true</c> if the specified object is equal to the current object; otherwise, <c>false</c>.</returns>
+    /// <param name="obj">The object to compare with the current object. </param>
+#pragma warning disable 659
+    public override bool Equals(object? obj)
+#pragma warning restore 659
+    {
+        if (obj is not Blob other) {
+            return false;
+        }
+        
+        if (Digest != null && other.Digest != null) {
+            return Digest.Equals(other.Digest);
+        }
+
+        if (Length != other.Length) {
+            return false;
+        }
+
+        using var stream1 = ContentStream;
+        using var stream2 = other.ContentStream;
+        if (stream1 == null) {
+            return stream2 == null;
+        }
+
+        if (stream2 == null) {
+            return false;
+        }
+
+        int next1;
+        while((next1 = stream1.ReadByte()) != -1) {
+            var next2 = stream2.ReadByte();
+            if (next1 != next2) {
                 return false;
             }
         }
 
-        #endregion
+        return true;
 
-        #region Overrides
-
-        /// <summary>
-        /// Determines whether the specified object is equal to the current object.
-        /// </summary>
-        /// <returns><c>true</c> if the specified object is equal to the current object; otherwise, <c>false</c>.</returns>
-        /// <param name="obj">The object to compare with the current object. </param>
-#pragma warning disable 659
-        public override bool Equals(object? obj)
-#pragma warning restore 659
-        {
-            if (obj is Blob other) {
-                if (Digest != null && other.Digest != null) {
-                    return Digest.Equals(other.Digest);
-                }
-
-                if (Length != other.Length) {
-                    return false;
-                }
-                
-                using (var stream1 = ContentStream)
-                using (var stream2 = other.ContentStream) {
-                    if (stream1 == null) {
-                        return stream2 == null;
-                    }
-
-                    if (stream2 == null) {
-                        return false;
-                    }
-
-                    int next1;
-                    while((next1 = stream1.ReadByte()) != -1) {
-                        var next2 = stream2.ReadByte();
-                        if (next1 != next2) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
-
-        /// <summary>
-        /// Returns a string that represents the current object.
-        /// </summary>
-        /// <returns>A string that represents the current object.</returns>
-        public override string ToString()
-        {
-            return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
-        }
-
-        #endregion
     }
+
+    /// <summary>
+    /// Returns a string that represents the current object.
+    /// </summary>
+    /// <returns>A string that represents the current object.</returns>
+    public override string ToString() => $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
 }

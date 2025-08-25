@@ -18,25 +18,18 @@
 
 using System;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// An interface describing an object that can be serialized to JSON
+/// </summary>
+public interface IJSON
 {
     /// <summary>
-    /// An interface desribing an object that can be serialized to JSON
+    /// Converts this object to JSON format string.
     /// </summary>
-    public interface IJSON
-    {
-        #region Properties 
-
-        /// <summary>
-        /// Converts this object to JSON format string.
-        /// </summary>
-        /// <returns>The contents of this object in JSON format string</returns>
-        /// <exception cref="NotSupportedException">Thrown if ToJSON is called from <see cref="MutableDocument"/>,  
-        /// <see cref="MutableDictionaryObject"/>, or <see cref="MutableArrayObject"/></exception>
-        string ToJSON();
-
-        #endregion
-    }
-
-
+    /// <returns>The contents of this object in JSON format string</returns>
+    /// <exception cref="NotSupportedException">Thrown if ToJSON is called from <see cref="MutableDocument"/>,  
+    /// <see cref="MutableDictionaryObject"/>, or <see cref="MutableArrayObject"/></exception>
+    string ToJSON();
 }

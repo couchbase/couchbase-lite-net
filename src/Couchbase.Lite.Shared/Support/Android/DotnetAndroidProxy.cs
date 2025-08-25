@@ -25,57 +25,50 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Java.Net;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency]
+internal sealed class DotnetAndroidProxy : IProxy
 {
-    [CouchbaseDependency]
-    internal sealed class DotnetAndroidProxy : IProxy
+    public Task<WebProxy?> CreateProxyAsync(Uri destination)
     {
-        #region IProxy
-
-        public Task<WebProxy?> CreateProxyAsync(Uri destination)
-        {
-            WebProxy? webProxy = null;
-            var selector = ProxySelector.Default;
-            if (selector != null) {
-                try {
-                    var javaUri = new URI(EncodeUrl(destination));
-                    var uriSelector = selector.Select(javaUri);
-                    var proxy = uriSelector?.FirstOrDefault();
-                    if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
-                        if (address.HostString == null) {
-                            WriteLog.To.Sync.W("CreateProxyAsync", "The host string returned from the proxy address is null.  Please check your system proxy setting.");
-                        } else {
-                            webProxy = new WebProxy(address.HostString, address.Port);
-                        }
-                    }
-                } catch { // UriFormatException
-                    WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
-                }
-            }
-
+        WebProxy? webProxy = null;
+        var selector = ProxySelector.Default;
+        if (selector == null) {
             return Task.FromResult(webProxy);
         }
-
-        #endregion
-
-        #region Private Methods
-        private string EncodeUrl(Uri url)
-        {
-            // Copied from https://github.com/xamarin/xamarin-android/blob/master/src/Mono.Android/Xamarin.Android.Net/AndroidClientHandler.cs
-            // Fixes an issue where urls with unencoded spaces are not recognized by the Java URI class.
-
-            if (url == null)
-                return string.Empty;
-
-            // UriBuilder takes care of encoding everything properly
-            var bldr = new UriBuilder(url);
-            if (url.IsDefaultPort)
-                bldr.Port = -1; // Avoids adding :80 or :443 to the host name in the result
-
-            // bldr.Uri.ToString () would ruin the good job UriBuilder did
-            return bldr.ToString();
+        
+        try {
+            var javaUri = new URI(EncodeUrl(destination));
+            var uriSelector = selector.Select(javaUri);
+            var proxy = uriSelector?.FirstOrDefault();
+            if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
+                if (address.HostString == null) {
+                    WriteLog.To.Sync.W("CreateProxyAsync", "The host string returned from the proxy address is null.  Please check your system proxy setting.");
+                } else {
+                    webProxy = new WebProxy(address.HostString, address.Port);
+                }
+            }
+        } catch { // UriFormatException
+            WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
         }
-        #endregion
+
+        return Task.FromResult(webProxy);
+    }
+
+    private static string EncodeUrl(Uri url)
+    {
+        // Copied from https://github.com/xamarin/xamarin-android/blob/master/src/Mono.Android/Xamarin.Android.Net/AndroidClientHandler.cs
+        // Fixes an issue where urls with unencoded spaces are not recognized by the Java URI class.
+
+        // UriBuilder takes care of encoding everything properly
+        var bldr = new UriBuilder(url);
+        if (url.IsDefaultPort)
+            bldr.Port = -1; // Avoids adding :80 or :443 to the host name in the result
+
+        // bldr.Uri.ToString () would ruin the good job UriBuilder did
+        return bldr.ToString();
     }
 }
+
 #endif

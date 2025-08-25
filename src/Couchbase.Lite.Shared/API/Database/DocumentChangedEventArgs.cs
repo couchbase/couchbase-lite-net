@@ -17,37 +17,30 @@
 //
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// The arguments for the <see cref="Collection.AddDocumentChangeListener(string, EventHandler{DocumentChangedEventArgs})"/> 
+/// event
+/// </summary>
+public sealed class DocumentChangedEventArgs : EventArgs
 {
     /// <summary>
-    /// The arguments for the <see cref="Database.AddDocumentChangeListener(string, EventHandler{DocumentChangedEventArgs})"/> 
-    /// event
+    /// The ID of the document that changed
     /// </summary>
-    public sealed class DocumentChangedEventArgs : EventArgs
+    public string DocumentID { get; }
+
+    /// <summary>
+    /// The source of the document that changed
+    /// </summary>
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+    public Collection Collection { get; }
+
+    internal DocumentChangedEventArgs(string documentID, Collection collection)
     {
-        #region Properties
-
-        /// <summary>
-        /// The ID of the document that changed
-        /// </summary>
-        public string DocumentID { get; }
-
-        /// <summary>
-        /// The source of the document that changed
-        /// </summary>
-        public Collection Collection { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal DocumentChangedEventArgs(string documentID, Collection collection)
-        {
-            DocumentID = documentID;
-            Collection = collection;
-        }
-
-        #endregion
+        DocumentID = documentID;
+        Collection = collection;
     }
 }

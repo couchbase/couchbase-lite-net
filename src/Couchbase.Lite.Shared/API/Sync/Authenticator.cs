@@ -16,18 +16,13 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Sync
-{
-    /// <summary>
-    /// An abstract base class for authenticator classes.  This class
-    /// has no public methods.
-    /// </summary>
-    public abstract class Authenticator
-    {
-        #region Internal Methods
-        
-        internal abstract void Authenticate(ReplicatorOptionsDictionary options);
+namespace Couchbase.Lite.Sync;
 
-        #endregion
-    }
+/// <summary>
+/// An abstract base class for authenticator classes.  This class
+/// has no public methods.
+/// </summary>
+public abstract class Authenticator
+{
+    internal abstract void Authenticate(ReplicatorOptionsDictionary options);
 }

@@ -16,39 +16,18 @@
 // limitations under the License.
 // 
 
-using System.Diagnostics;
-
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal abstract class QueryDataSource(object source, ThreadSafety threadSafety) : IDataSource
 {
-    internal abstract class QueryDataSource : IDataSource
-    {
-        #region Properties
+    internal virtual string? ColumnName => null;
 
-        internal virtual string? ColumnName => null;
+    internal object Source { get; } = source;
 
-        internal object Source { get; }
+    internal ThreadSafety ThreadSafety { get; } = threadSafety;
 
-        internal ThreadSafety ThreadSafety { get; }
-
-        #endregion
-
-        #region Constructors
-
-        protected QueryDataSource(object source, ThreadSafety threadSafety)
-        {
-            Source = source;
-            ThreadSafety = threadSafety;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public abstract object ToJSON();
-
-        #endregion
-    }
+    public abstract object ToJSON();
 }

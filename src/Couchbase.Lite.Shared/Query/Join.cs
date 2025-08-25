@@ -18,112 +18,83 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class QueryJoin : LimitedQuery, IJoins, IJoinOn
 {
-    internal sealed class QueryJoin : LimitedQuery, IJoins, IJoinOn
+    private const string Tag = nameof(QueryJoin);
+
+    private readonly IList<IJoin>? _joins;
+    private readonly string? _joinType;
+    private readonly IDataSource? _source;
+    private IExpression? _on;
+
+    internal QueryJoin(IList<IJoin> joins)
     {
-        #region Constants
+        _joins = joins;
+        JoinImpl = this;
+    }
 
-        private const string Tag = nameof(QueryJoin);
+    internal QueryJoin(XQuery source, IList<IJoin> joins)
+    {
+        Copy(source);
+        _joins = joins; 
+        JoinImpl = this;
+    }
 
-        #endregion
+    internal QueryJoin(string? joinType, IDataSource dataSource)
+    {
+        _joinType = joinType;
+        _source = dataSource;
+    }
 
-        #region Variables
-
-        private readonly IList<IJoin>? _joins;
-        private readonly string? _joinType;
-        private readonly IDataSource? _source;
-        private IExpression? _on;
-
-        #endregion
-
-        #region Constructors
-
-        internal QueryJoin(IList<IJoin> joins)
-        {
-            _joins = joins;
-            JoinImpl = this;
+    public object ToJSON()
+    {
+        if (_joins != null) {
+            return _joins.OfType<QueryJoin>().Select(o => o.ToJSON()).ToList();
         }
 
-        internal QueryJoin(XQuery source, IList<IJoin> joins)
-        {
-            Copy(source);
-            _joins = joins; 
-            JoinImpl = this;
+        if (!((_source as QueryDataSource)?.ToJSON() is Dictionary<string, object> asObj)) {
+            throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissASforJoin);
         }
 
-        internal QueryJoin(string? joinType, IDataSource dataSource)
-        {
-            _joinType = joinType;
-            _source = dataSource;
+        if (_joinType != "CROSS") {
+            var onObj = _on as QueryExpression;
+            asObj["ON"] = onObj?.ConvertToJSON() ??
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissONforJoin);
         }
 
-        #endregion
-
-        #region Public Methods
-
-        public object ToJSON()
-        {
-            if (_joins != null) {
-                return _joins.OfType<QueryJoin>().Select(o => o.ToJSON()).ToList();
-            }
-
-            if (!((_source as QueryDataSource)?.ToJSON() is Dictionary<string, object> asObj)) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissASforJoin);
-            }
-
-            if (_joinType != "CROSS") {
-                var onObj = _on as QueryExpression;
-                asObj["ON"] = onObj?.ConvertToJSON() ??
-                              throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissONforJoin);
-            }
-
-            if (_joinType != null) {
-                asObj["JOIN"] = _joinType;
-            }
-
-            return asObj;
+        if (_joinType != null) {
+            asObj["JOIN"] = _joinType;
         }
 
-        #endregion
+        return asObj;
+    }
 
-        #region IJoinOn
+    public IJoin On(IExpression expression)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
 
-        public IJoin On(IExpression expression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
+        _on = expression;
+        return this;
+    }
 
-            _on = expression;
-            return this;
-        }
-
-        #endregion
-
-        #region IOrderByRouter
-
-        public IOrderBy OrderBy(params IOrdering[] orderings)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
-            ValidateParams(orderings);
-            return new QueryOrderBy(this, orderings);
-        }
-
-        #endregion
-
-        #region IWhereRouter
-        public IWhere Where(IExpression expression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
-            return new Where(this, expression);
-        }
-
-        #endregion
+    public IOrderBy OrderBy(params IOrdering[] orderings)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
+        ValidateParams(orderings);
+        return new QueryOrderBy(this, orderings);
+    }
+    
+    public IWhere Where(IExpression expression)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
+        return new Where(this, expression);
     }
 }

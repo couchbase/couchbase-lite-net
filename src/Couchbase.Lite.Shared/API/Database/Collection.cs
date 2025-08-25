@@ -16,7 +16,6 @@
 //  limitations under the License.
 // 
 
-using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
@@ -32,1051 +31,972 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// A class representing a Couchbase Lite collection.  A collection is a logical group
+/// of documents segregated in a domain specific way inside a <see cref="Scope"/>.
+/// It is comparable to a SQL table in a document based database world.
+/// </summary>
+public sealed unsafe class Collection : IChangeObservable<CollectionChangedEventArgs>, IDocumentChangeObservable,
+    IDisposable
 {
+    private const string Tag = nameof(Collection);
+
     /// <summary>
-    /// A class representing a Couchbase Lite collection.  A collection is a logical group
-    /// of documents segregated in a domain specific way inside of a <see cref="Scope"/>.
-    /// It is comparable to a SQL table in a document based database world.
+    /// The name of the default <see cref="Scope"/> that exists in every <see cref="Database"/>
     /// </summary>
-    public sealed unsafe class Collection : IChangeObservable<CollectionChangedEventArgs>, IDocumentChangeObservable,
-        IDisposable
+    public static readonly string DefaultScopeName = Database.DefaultScopeName;
+
+    /// <summary>
+    /// The name of the default Collection that exists in every <see cref="Scope"/>
+    /// </summary>
+    public static readonly string DefaultCollectionName = Database.DefaultCollectionName;
+
+    private static readonly C4DocumentObserverCallback DocumentObserverCallback = DoDocObserverCallback;
+    private static readonly C4CollectionObserverCallback DatabaseObserverCallback = DoDbObserverCallback;
+
+    private C4CollectionWrapper? _c4Coll;
+
+    private GCHandle _obsContext;
+
+    private C4CollectionObserver* _obs;
+
+    private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
+        new FilteredEvent<string, DocumentChangedEventArgs>();
+
+    private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
+
+    private readonly Event<CollectionChangedEventArgs> _databaseChanged =
+        new Event<CollectionChangedEventArgs>();
+
+    private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
+
+    // Must be called inside self lock
+    [MemberNotNullWhen(false, nameof(C4Db), nameof(_c4Coll))]
+    private bool IsClosed => C4Db == null || _c4Coll == null || !NativeSafe.c4coll_isValid(_c4Coll);
+
+    // Must be called inside self lock
+    internal bool IsValid => _c4Coll != null && NativeSafe.c4coll_isValid(_c4Coll);
+
+    internal C4DatabaseWrapper? C4Db => Database.C4db;
+
+    internal C4CollectionWrapper C4Coll
     {
-        #region Constants
+        get { 
+            if (_c4Coll == null) 
+                throw new ObjectDisposedException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                    ToString())); 
 
-        private const string Tag = nameof(Collection);
+            return _c4Coll; 
+        }
+    }
 
-        /// <summary>
-        /// The name of the default <see cref="Scope"/> that exists in every <see cref="Database"/>
-        /// </summary>
-        public static readonly string DefaultScopeName = Database._defaultScopeName;
+    internal ThreadSafety ThreadSafety { get; }
 
-        /// <summary>
-        /// The name of the default Collection that exists in every <see cref="Scope"/>
-        /// </summary>
-        public static readonly string DefaultCollectionName = Database._defaultCollectionName;
+    /// <summary>
+    /// Gets the database that this collection belongs to
+    /// </summary>
+    public Database Database { get; internal set; }
 
-        private static readonly C4DocumentObserverCallback _documentObserverCallback = DocObserverCallback;
-        private static readonly C4CollectionObserverCallback _databaseObserverCallback = DbObserverCallback;
+    /// <summary>
+    /// Gets the Collection Name
+    /// </summary>
+    /// <remarks>
+    /// Naming rules:
+    /// Must be between 1 and 251 characters in length.
+    /// Can only contain the characters A-Z, a-z, 0-9, and the symbols _, -, and %. 
+    /// Cannot start with _ or %.
+    /// Case-sensitive.
+    /// </remarks>
+    public string Name { get; }
 
-        #endregion
+    /// <summary>
+    /// Gets the Collection Full Name
+    /// <remark>
+    /// The format of the collection's full name is {scope-name}.{collection-name}.
+    /// </remark>
+    /// </summary>
+    public string FullName => Scope.Name + "." + Name;
 
-        #region Variables
+    /// <summary>
+    /// Gets the Scope of the Collection belongs to
+    /// </summary>
+    public Scope Scope { get; }
 
-        private C4CollectionWrapper? _c4coll;
+    /// <summary>
+    /// Gets the total documents in the Collection
+    /// </summary>
+    public ulong Count => NativeSafe.c4coll_getDocumentCount(C4Coll);
 
-        private GCHandle _obsContext;
+    /// <summary>
+    /// Gets a <see cref="DocumentFragment"/> with the given document ID
+    /// </summary>
+    /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
+    /// <returns>The <see cref="DocumentFragment"/> object</returns>
+    public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
-        private C4CollectionObserver* _obs;
+    internal Collection(Database database, string name, Scope scope, C4CollectionWrapper c4Coll)
+    {
+        Database = database;
+        ThreadSafety = database.ThreadSafety;
 
-        private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
-            new FilteredEvent<string, DocumentChangedEventArgs>();
+        Name = name;
+        Scope = scope;
 
-        private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
+        _c4Coll = c4Coll.Retain<C4CollectionWrapper>();
+    }
 
-        private readonly Event<CollectionChangedEventArgs> _databaseChanged =
-            new Event<CollectionChangedEventArgs>();
+    /// <summary>
+    /// Finalizer
+    /// </summary>
+    ~Collection()
+    {
+        try {
+            Dispose(false);
+        } catch (Exception e) {
+            WriteLog.To.Database.E(Tag, "Error during finalizer, swallowing!", e);
+        }
+    }
 
-        private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
+    /// <summary>
+    /// Adds a change listener for the changes that occur in this collection.  Signatures
+    /// are the same as += style event handlers, but the callbacks will be called using the
+    /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
+    /// scheduler will be used (scheduled via thread pool).
+    /// </summary>
+    /// <param name="scheduler">The scheduler to use when firing the change handler</param>
+    /// <param name="handler">The handler to invoke</param>
+    /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+    public ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<CollectionChangedEventArgs> handler)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
 
-        private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
 
-        #endregion
+        var cbHandler = new CouchbaseEventHandler<CollectionChangedEventArgs>(handler, scheduler);
+        if (_databaseChanged.Add(cbHandler) == 0) {
+            _obsContext = GCHandle.Alloc(this);
+            _obs = (C4CollectionObserver*)LiteCoreBridge.Check(err => NativeSafe.c4dbobs_createOnCollection(C4Coll, DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer(), err));
+        }
 
-        #region Properties
+        return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
+    }
 
-        // Must be called inside self lock
-        [MemberNotNullWhen(false, nameof(c4Db), nameof(_c4coll))]
-        internal bool IsClosed => c4Db == null || _c4coll == null || !NativeSafe.c4coll_isValid(_c4coll);
+    /// <summary>
+    /// Adds a change listener for the changes that occur in this collection.  Signatures
+    /// are the same as += style event handlers.  The callback will be invoked on a thread pool
+    /// thread.
+    /// </summary>
+    /// <param name="handler">The handler to invoke</param>
+    /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+    public ListenerToken AddChangeListener(EventHandler<CollectionChangedEventArgs> handler) => AddChangeListener(null, handler);
 
-        // Must be called inside self lock
-        internal bool IsValid => _c4coll != null && NativeSafe.c4coll_isValid(_c4coll);
+    /// <summary>
+    /// Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
+    /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
+    /// will be used (scheduled via thread pool)
+    /// </summary>
+    /// <param name="id">The document ID</param>
+    /// <param name="scheduler">The scheduler to use when firing the event handler</param>
+    /// <param name="handler">The logic to handle the event</param>
+    /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+    /// is <c>null</c></exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+    /// is called after the collection is closed</exception>
+    public ListenerToken AddDocumentChangeListener(string id, TaskScheduler? scheduler, EventHandler<DocumentChangedEventArgs> handler)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
 
-        internal C4DatabaseWrapper? c4Db => Database.c4db;
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
 
-        internal C4CollectionWrapper c4coll
-        {
-            get { 
-                if (_c4coll == null) 
-                    throw new ObjectDisposedException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
-                                ToString())); 
+        var cbHandler =
+            new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
+        var count = _documentChanged.Add(cbHandler);
+        if (count == 0) {
+            var handle = GCHandle.Alloc(this);
+            var docObs = (C4DocumentObserver*)LiteCoreBridge.Check(err => NativeSafe.c4docobs_createWithCollection(C4Coll, id, DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer(), err));
+            _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
+        }
 
-                return _c4coll; 
+        return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
+    }
+
+    /// <summary>
+    /// Adds a document change listener for the document with the given ID. The callback will be invoked on a thread pool thread.
+    /// </summary>
+    /// <param name="id">The document ID</param>
+    /// <param name="handler">The logic to handle the event</param>
+    /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+    /// is <c>null</c></exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+    /// is called after the collection is closed</exception>
+    public ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+
+    /// <summary>
+    /// Removes a collection changed listener by token
+    /// </summary>
+    /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{CollectionChangedEventArgs})"/>
+    /// and family</param>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+    /// is called after the collection is closed</exception>
+    public void RemoveChangeListener(ListenerToken token)
+    {
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+
+        if (token.Type == ListenerTokenType.Database) {
+            if (_databaseChanged.Remove(token) == 0) {
+                Native.c4dbobs_free(_obs);
+                _obs = null;
+                if (_obsContext.IsAllocated) {
+                    _obsContext.Free();
+                }
+            }
+        } else {
+            if (_documentChanged.Remove(token, out var docID) == 0) {
+                // docID is guaranteed non-null if return of Remove is 0 or higher
+                if (_docObs.TryGetValue(docID!, out var observer)) {
+                    _docObs.Remove(docID!);
+                    Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
+                    observer.Item2.Free();
+                }
             }
         }
+    }
 
-        internal ThreadSafety ThreadSafety { get; }
+    /// <summary>
+    /// Deletes a document from the collection.  When write operations are executed
+    /// concurrently, the last writer will overwrite all other written values.
+    /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
+    /// with <see cref="ConcurrencyControl.LastWriteWins"/>
+    /// </summary>
+    /// <param name="document">The document</param>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+    /// when trying to save a document into a collection other than the one it was previously added to</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
+    /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
-        /// <summary>
-        /// Gets the database that this collection belongs to
-        /// </summary>
-        public Database Database { get; internal set; }
+    /// <summary>
+    /// Deletes the given <see cref="Document"/> from this collection
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
+    /// <returns><c>true</c> if the delete operation succeeded, <c>false</c> if there was a conflict</returns>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+    /// when trying to save a document into a collection other than the one it was previously added to</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
+    /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+    public bool Delete(Document document, ConcurrencyControl concurrencyControl)
+    {
+        var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+        return Save(doc, null, concurrencyControl, true);
+    }
 
-        /// <summary>
-        /// Gets the Collection Name
-        /// </summary>
-        /// <remarks>
-        /// Naming rules:
-        /// Must be between 1 and 251 characters in length.
-        /// Can only contain the characters A-Z, a-z, 0-9, and the symbols _, -, and %. 
-        /// Cannot start with _ or %.
-        /// Case sensitive.
-        /// </remarks>
-        public string Name { get; } = DefaultCollectionName;
+    /// <summary>
+    /// Gets the <see cref="Document"/> with the specified ID
+    /// </summary>
+    /// <param name="id">The ID to use when creating or getting the document</param>
+    /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public Document? GetDocument(string id)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
 
-        /// <summary>
-        /// Gets the Collection Full Name
-        /// <remark>
-        /// The format of the collection's full name is {scope-name}.{collection-name}.
-        /// </remark>
-        /// </summary>
-        public string FullName
-        {
-            get {
-                return Scope.Name + "." + Name;
+        using var scope = ThreadSafety.BeginLockedScope();
+        return GetDocumentInternal(id);
+    }
+
+    /// <summary>
+    /// Gets an existing index in a collection by name.
+    /// </summary>
+    /// <param name="name">The name of the index to retrieve.</param>
+    /// <returns>The index object, or <c>null</c> if nonexistent</returns>
+    public IQueryIndex? GetIndex(string name)
+    {
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        var index = NativeHandler.Create()
+            .AllowError(new C4Error(C4ErrorCode.MissingIndex))
+            .Execute(err => NativeSafe.c4coll_getIndex(_c4Coll, name, err));
+
+        return index == null ? null : new QueryIndexImpl(index, this, name);
+    }
+
+    /// <summary>
+    /// Purges the given <see cref="Document"/> from the collection.  This leaves
+    /// no trace behind and will not be replicated
+    /// </summary>
+    /// <param name="document">The document to purge</param>
+    /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a collection
+    /// other than the one it was previously added to</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public void Purge(Document document)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+        using var scope = ThreadSafety.BeginLockedScope();
+        VerifyCollection(document);
+
+        if (!document.Exists) {
+            throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+        }
+
+        Database.InBatch(() => PurgeDocById(document.Id));
+    }
+
+    /// <summary>
+    /// Purges the given document id of the <see cref="Document"/> 
+    /// from the collection.  This leaves no trace behind and will 
+    /// not be replicated
+    /// </summary>
+    /// <param name="docId">The id of the document to purge</param>
+    /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+    /// of the docId doesn't exist.</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public void Purge(string docId)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
+        Database.InBatch(() => PurgeDocById(docId));
+    }
+
+    /// <summary>
+    /// Saves the given <see cref="MutableDocument"/> into this collection.  This call is equivalent to calling
+    /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
+    /// <see cref="ConcurrencyControl.LastWriteWins"/>
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
+    /// other than the one it was previously added to</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
+
+    /// <summary>
+    /// Saves the given <see cref="MutableDocument"/> into this collection
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
+    /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
+    /// other than the one it was previously added to</exception>
+    /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
+    {
+        var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+        return Save(doc, null, concurrencyControl, false);
+    }
+
+    /// <summary>
+    /// Saves a document to the collection. When write operations are executed concurrently, 
+    /// and if conflicts occur, conflict handler will be called. Use the handler to directly
+    /// edit the document.Returning true, will save the document. Returning false, will cancel
+    /// the save operation.
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
+    /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public bool Save(MutableDocument document, Func<MutableDocument, Document?, bool> conflictHandler)
+    {
+        var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(conflictHandler), conflictHandler);
+        Document? baseDoc = null;
+        bool saved;
+        do {
+            saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
+            baseDoc = new Document(this, doc.Id);
+            if (!baseDoc.Exists) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound);
             }
-        }
-
-        /// <summary>
-        /// Gets the Scope of the Collection belongs to
-        /// </summary>
-        public Scope Scope { get; }
-
-        /// <summary>
-        /// Gets the total documents in the Collection
-        /// </summary>
-        public ulong Count => NativeSafe.c4coll_getDocumentCount(c4coll);
-
-        /// <summary>
-        /// Gets a <see cref="DocumentFragment"/> with the given document ID
-        /// </summary>
-        /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
-        /// <returns>The <see cref="DocumentFragment"/> object</returns>
-        public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
-
-        #endregion
-
-        #region Constructors
-
-        internal Collection(Database database, string name, Scope scope, C4CollectionWrapper c4c)
-        {
-            Database = database;
-            ThreadSafety = database.ThreadSafety;
-
-            Name = name;
-            Scope = scope;
-
-            _c4coll = c4c.Retain<C4CollectionWrapper>();
-        }
-
-        /// <summary>
-        /// Finalizer
-        /// </summary>
-        ~Collection()
-        {
+            
+            if (saved) {
+                continue;
+            }
+            
             try {
-                Dispose(false);
-            } catch (Exception e) {
-                WriteLog.To.Database.E(Tag, "Error during finalizer, swallowing!", e);
-            }
-        }
-
-        #endregion
-
-        #region IChangeObservable
-
-        /// <summary>
-        /// Adds a change listener for the changes that occur in this collection.  Signatures
-        /// are the same as += style event handlers, but the callbacks will be called using the
-        /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
-        /// scheduler will be used (scheduled via thread pool).
-        /// </summary>
-        /// <param name="scheduler">The scheduler to use when firing the change handler</param>
-        /// <param name="handler">The handler to invoke</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddChangeListener(TaskScheduler? scheduler, EventHandler<CollectionChangedEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-
-            var cbHandler = new CouchbaseEventHandler<CollectionChangedEventArgs>(handler, scheduler);
-            if (_databaseChanged.Add(cbHandler) == 0) {
-                _obsContext = GCHandle.Alloc(this);
-                _obs = (C4CollectionObserver*)LiteCoreBridge.Check(err => NativeSafe.c4dbobs_createOnCollection(c4coll, _databaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer(), err));
-            }
-
-            return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
-        }
-
-        /// <summary>
-        /// Adds a change listener for the changes that occur in this collection.  Signatures
-        /// are the same as += style event handlers.  The callback will be invoked on a thread pool
-        /// thread.
-        /// </summary>
-        /// <param name="handler">The handler to invoke</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddChangeListener(EventHandler<CollectionChangedEventArgs> handler) => AddChangeListener(null, handler);
-
-        #endregion
-
-        #region IDocumentChangeObservable
-
-        /// <summary>
-        /// Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
-        /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
-        /// will be used (scheduled via thread pool)
-        /// </summary>
-        /// <param name="id">The document ID</param>
-        /// <param name="scheduler">The scheduler to use when firing the event handler</param>
-        /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
-        /// is called after the collection is closed</exception>
-        public ListenerToken AddDocumentChangeListener(string id, TaskScheduler? scheduler, EventHandler<DocumentChangedEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-
-            var cbHandler =
-                new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
-            var count = _documentChanged.Add(cbHandler);
-            if (count == 0) {
-                var handle = GCHandle.Alloc(this);
-                var docObs = (C4DocumentObserver*)LiteCoreBridge.Check(err => NativeSafe.c4docobs_createWithCollection(c4coll, id, _documentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer(), err));
-                _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
-            }
-
-            return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
-        }
-
-        /// <summary>
-        /// Adds a document change listener for the document with the given ID. The callback will be invoked on a thread pool thread.
-        /// </summary>
-        /// <param name="id">The document ID</param>
-        /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
-        /// is called after the collection is closed</exception>
-        public ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
-
-        #endregion
-
-        #region IChangeObservableRemovable
-
-        /// <summary>
-        /// Removes a collection changed listener by token
-        /// </summary>
-        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{CollectionChangedEventArgs})"/>
-        /// and family</param>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
-        /// is called after the collection is closed</exception>
-        public void RemoveChangeListener(ListenerToken token)
-        {
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-
-            if (token.Type == ListenerTokenType.Database) {
-                if (_databaseChanged.Remove(token) == 0) {
-                    Native.c4dbobs_free(_obs);
-                    _obs = null;
-                    if (_obsContext.IsAllocated) {
-                        _obsContext.Free();
-                    }
+                if (!conflictHandler(doc, baseDoc.IsDeleted ? null : baseDoc)) { // resolve conflict with conflictHandler
+                    return false;
                 }
-            } else {
-                if (_documentChanged.Remove(token, out var docID) == 0) {
-                    // docID is guaranteed non-null if return of Remove is 0 or higher
-                    if (_docObs.TryGetValue(docID!, out var observer)) {
-                        _docObs.Remove(docID!);
-                        Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
-                        observer.Item2.Free();
-                    }
-                }
+            } catch {
+                return false;
             }
+        } while (!saved);// has conflict, save failed
+        return saved;
+    }
+
+    /// <summary>
+    /// Returns the expiration time of the document. <c>null</c> will be returned
+    /// if there is no expiration time set
+    /// </summary>
+    /// <param name="docId"> The ID of the <see cref="Document"/> </param>
+    /// <returns>Nullable expiration timestamp as a <see cref="DateTimeOffset"/> 
+    /// of the document or <c>null</c> if time not set. </returns>
+    /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
+    /// doesn't exist</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public DateTimeOffset? GetDocumentExpiration(string docId)
+    {
+        CheckCollectionValid();
+        using var doc = LiteCoreBridge.CheckTyped(err => NativeSafe.c4coll_getDoc(C4Coll, docId, true, C4DocContentLevel.DocGetCurrentRev, err));
+        if (doc == null) {
+            throw new CouchbaseLiteException(C4ErrorCode.NotFound);
         }
 
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Deletes a document from the collection.  When write operations are executed
-        /// concurrently, the last writer will overwrite all other written values.
-        /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
-        /// with <see cref="ConcurrencyControl.LastWriteWins"/>
-        /// </summary>
-        /// <param name="document">The document</param>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a collection other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
-
-        /// <summary>
-        /// Deletes the given <see cref="Document"/> from this collection
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
-        /// <returns><c>true</c> if the delete succeeded, <c>false</c> if there was a conflict</returns>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a collection other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public bool Delete(Document document, ConcurrencyControl concurrencyControl)
-        {
-            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            return Save(doc, null, concurrencyControl, true);
-        }
-
-        /// <summary>
-        /// Gets the <see cref="Document"/> with the specified ID
-        /// </summary>
-        /// <param name="id">The ID to use when creating or getting the document</param>
-        /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public Document? GetDocument(string id)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
-
-            using var scope = ThreadSafety.BeginLockedScope();
-            return GetDocumentInternal(id);
-        }
-
-        /// <summary>
-        /// Gets an existing index in a collection by name.
-        /// </summary>
-        /// <param name="name">The name of the index to retrieve.</param>
-        /// <returns>The index object, or <c>null</c> if nonexistent</returns>
-        public IQueryIndex? GetIndex(string name)
-        {
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            var index = NativeHandler.Create()
-                .AllowError(new C4Error(C4ErrorCode.MissingIndex))
-                .Execute(err => NativeSafe.c4coll_getIndex(_c4coll, name, err));
-
-            return index == null ? null : new QueryIndexImpl(index, this, name);
-        }
-
-        /// <summary>
-        /// Purges the given <see cref="Document"/> from the collection.  This leaves
-        /// no trace behind and will not be replicated
-        /// </summary>
-        /// <param name="document">The document to purge</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a collection
-        /// other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public void Purge(Document document)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            using var scope = ThreadSafety.BeginLockedScope();
-            VerifyCollection(document);
-
-            if (!document.Exists) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+        C4Error err2 = new C4Error();
+        var res = NativeSafe.c4coll_getDocExpiration(C4Coll, docId, &err2);
+        if (res == 0) {
+            if (err2.code == 0) {
+                return null;
             }
 
-            Database.InBatch(() => PurgeDocById(document.Id));
+            throw CouchbaseException.Create(err2);
         }
 
-        /// <summary>
-        /// Purges the given document id of the <see cref="Document"/> 
-        /// from the collection.  This leaves no trace behind and will 
-        /// not be replicated
-        /// </summary>
-        /// <param name="docId">The id of the document to purge</param>
-        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
-        /// of the docId doesn't exist.</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public void Purge(string docId)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
-            Database.InBatch(() => PurgeDocById(docId));
-        }
+        return DateTimeOffset.FromUnixTimeMilliseconds(res);
+    }
 
-        /// <summary>
-        /// Saves the given <see cref="MutableDocument"/> into this collection.  This call is equivalent to calling
-        /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
-        /// <see cref="ConcurrencyControl.LastWriteWins"/>
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
-        /// other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
-
-        /// <summary>
-        /// Saves the given <see cref="MutableDocument"/> into this collection
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
-        /// other than the one it was previously added to</exception>
-        /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
+    /// <summary>
+    /// Sets an expiration date on a document. After this time, the document
+    /// will be purged from the collection.
+    /// </summary>
+    /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
+    /// <param name="expiration"> Nullable expiration timestamp as a 
+    /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
+    /// to remove expiration date time from doc.</param>
+    /// <returns>Whether successfully sets an expiration date on the document</returns>
+    /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
+    /// doesn't exist</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
+    {
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        return LiteCoreBridge.Check(err =>
         {
-            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            return Save(doc, null, concurrencyControl, false);
-        }
-
-        /// <summary>
-        /// Saves a document to the collection. When write operations are executed concurrently, 
-        /// and if conflicts occur, conflict handler will be called. Use the handler to directly
-        /// edit the document.Returning true, will save the document. Returning false, will cancel
-        /// the save operation.
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
-        /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public bool Save(MutableDocument document, Func<MutableDocument, Document?, bool> conflictHandler)
-        {
-            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(conflictHandler), conflictHandler);
-            Document? baseDoc = null;
-            var saved = false;
-            do {
-                saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
-                baseDoc = new Document(this, doc.Id);
-                if (!baseDoc.Exists) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                } if (!saved) {
-                    try {
-                        if (!conflictHandler(doc, baseDoc.IsDeleted ? null : baseDoc)) { // resolve conflict with conflictHandler
-                            return false;
-                        }
-                    } catch {
-                        return false;
-                    }
-                }
-            } while (!saved);// has conflict, save failed
-            return saved;
-        }
-
-        /// <summary>
-        /// Returns the expiration time of the document. <c>null</c> will be returned
-        /// if there is no expiration time set
-        /// </summary>
-        /// <param name="docId"> The ID of the <see cref="Document"/> </param>
-        /// <returns>Nullable expiration timestamp as a <see cref="DateTimeOffset"/> 
-        /// of the document or <c>null</c> if time not set. </returns>
-        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
-        /// doesn't exist</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public DateTimeOffset? GetDocumentExpiration(string docId)
-        {
-            CheckCollectionValid();
-            using var doc = LiteCoreBridge.CheckTyped(err => NativeSafe.c4coll_getDoc(c4coll, docId, true, C4DocContentLevel.DocGetCurrentRev, err));
-            if (doc == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+            if (expiration == null) {
+                return NativeSafe.c4coll_setDocExpiration(C4Coll, docId, 0, err);
             }
 
-            C4Error err2 = new C4Error();
-            var res = NativeSafe.c4coll_getDocExpiration(c4coll, docId, &err2);
-            if (res == 0) {
-                if (err2.code == 0) {
-                    return null;
-                }
+            var millisSinceEpoch = expiration.Value.ToUnixTimeMilliseconds();
+            return NativeSafe.c4coll_setDocExpiration(C4Coll, docId, millisSinceEpoch, err);
+        });
+    }
 
-                throw CouchbaseException.Create(err2);
-            }
+    /// <summary>
+    /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
+    /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+    /// The name can be used for deleting the index. Creating a new different index with an existing
+    /// index name will replace the old index; creating the same index with the same name will be no-ops.
+    /// </summary>
+    /// <param name="name">The index name</param>
+    /// <param name="index">The index</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
+    /// is <c>null</c></exception>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+    /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+    /// provided ones is used</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public void CreateIndex(string name, IIndex index)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(index), index);
 
-            return DateTimeOffset.FromUnixTimeMilliseconds(res);
-        }
-
-        /// <summary>
-        /// Sets an expiration date on a document. After this time, the document
-        /// will be purged from the collection.
-        /// </summary>
-        /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
-        /// <param name="expiration"> Nullable expiration timestamp as a 
-        /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
-        /// to remove expiration date time from doc.</param>
-        /// <returns>Whether successfully sets an expiration date on the document</returns>
-        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
-        /// doesn't exist</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
+        var jsonObj = concreteIndex.ToJSON();
+        var json = JsonConvert.SerializeObject(jsonObj);
+        LiteCoreBridge.Check(err =>
         {
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            return LiteCoreBridge.Check(err =>
-            {
-                if (expiration == null) {
-                    return NativeSafe.c4coll_setDocExpiration(c4coll, docId, 0, err);
-                }
+            var internalOpts = concreteIndex.Options;
 
-                var millisSinceEpoch = expiration.Value.ToUnixTimeMilliseconds();
-                return NativeSafe.c4coll_setDocExpiration(c4coll, docId, millisSinceEpoch, err);
-            });
-        }
-
-        #endregion
-
-        #region Public Method - Query / Index Builder CreateIndex
-
-        /// <summary>
-        /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
-        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
-        /// The name can be used for deleting the index. Creating a new different index with an existing
-        /// index name will replace the old index; creating the same index with the same name will be no-ops.
-        /// </summary>
-        /// <param name="name">The index name</param>
-        /// <param name="index">The index</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
-        /// provided ones is used</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public void CreateIndex(string name, IIndex index)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(index), index);
-
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
-            var jsonObj = concreteIndex.ToJSON();
-            var json = JsonConvert.SerializeObject(jsonObj);
-            LiteCoreBridge.Check(err =>
-            {
-                var internalOpts = concreteIndex.Options;
-
-                // For some reason a "using" statement here causes a compiler error
-                try {
-                    return NativeSafe.c4coll_createIndex(c4coll, name, json, C4QueryLanguage.JSONQuery, concreteIndex.IndexType, &internalOpts, err);
-                } finally {
-                    internalOpts.Dispose();
-                }
-            });
-        }
-
-        #endregion
-
-        #region Public Methods - Indexable
-
-        /// <summary>
-        /// Gets a list of index names that are present in the collection
-        /// </summary>
-        /// <returns>The list of created index names</returns>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public IList<string> GetIndexes()
-        {
-            List<string> retVal = new List<string>();
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            var result = new FLSliceResult();
-            LiteCoreBridge.Check(err =>
-            {
-                result = NativeSafe.c4coll_getIndexesInfo(c4coll, err);
-                return result.buf != null;
-            });
-
-            var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
-            if (val == null) {
-                Native.FLSliceResult_Release(result);
-                throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "FLValue_FromData failed...");
+            // For some reason a "using" statement here causes a compiler error
+            try {
+                return NativeSafe.c4coll_createIndex(C4Coll, name, json, C4QueryLanguage.JSONQuery, concreteIndex.IndexType, &internalOpts, err);
+            } finally {
+                internalOpts.Dispose();
             }
+        });
+    }
 
-            var indexesInfo = FLValueConverter.ToCouchbaseObject(val, Database, true) as IList<object> 
-                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "ToCouchbaseObject failed...");
+    /// <summary>
+    /// Gets a list of index names that are present in the collection
+    /// </summary>
+    /// <returns>The list of created index names</returns>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public IList<string> GetIndexes()
+    {
+        List<string> retVal = new List<string>();
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        var result = new FLSliceResult();
+        LiteCoreBridge.Check(err =>
+        {
+            result = NativeSafe.c4coll_getIndexesInfo(C4Coll, err);
+            return result.buf != null;
+        });
 
-            foreach (var a in indexesInfo) {
-                var indexInfo = a as Dictionary<string, object>
-                    ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt entry in indexesInfo");
-                retVal.Add(indexInfo["name"] as string ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt index data..."));
-            }
-
+        var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
+        if (val == null) {
             Native.FLSliceResult_Release(result);
-
-            return retVal;
+            throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "FLValue_FromData failed...");
         }
 
-        /// <summary>
-        /// Creates an index with the given name, using one of the various specializations of <see cref="IndexConfiguration" />
-        /// The name can be used for deleting the index. Creating a new different index with an existing
-        /// index name will replace the old index; creating the same index with the same name will be no-ops.
-        /// </summary>
-        /// <param name="name">The index name</param>
-        /// <param name="indexConfig">The index configuration</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="indexConfig"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
-        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
-        /// provided ones is used</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public void CreateIndex(string name, IndexConfiguration indexConfig)
+        var indexesInfo = FLValueConverter.ToCouchbaseObject(val, Database, true) as IList<object> 
+            ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "ToCouchbaseObject failed...");
+
+        foreach (var a in indexesInfo) {
+            var indexInfo = a as Dictionary<string, object>
+                ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt entry in indexesInfo");
+            retVal.Add(indexInfo["name"] as string ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt index data..."));
+        }
+
+        Native.FLSliceResult_Release(result);
+
+        return retVal;
+    }
+
+    /// <summary>
+    /// Creates an index with the given name, using one of the various specializations of <see cref="IndexConfiguration" />
+    /// The name can be used for deleting the index. Creating a new different index with an existing
+    /// index name will replace the old index; creating the same index with the same name will be no-ops.
+    /// </summary>
+    /// <param name="name">The index name</param>
+    /// <param name="indexConfig">The index configuration</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="indexConfig"/>
+    /// is <c>null</c></exception>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
+    /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+    /// provided ones is used</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public void CreateIndex(string name, IndexConfiguration indexConfig)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(indexConfig), indexConfig);
+
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        indexConfig.Validate();
+        LiteCoreBridge.Check(err =>
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(indexConfig), indexConfig);
+            var internalOpts = indexConfig.Options;
+            // For some reason a "using" statement here causes a compiler error
+            try {
+                return NativeSafe.c4coll_createIndex(C4Coll, name, indexConfig.ToSqlpp(), C4QueryLanguage.N1QLQuery, indexConfig.IndexType, &internalOpts, err);
+            } finally {
+                internalOpts.Dispose();
+            }
+        });
+    }
 
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            indexConfig.Validate();
-            LiteCoreBridge.Check(err =>
-            {
-                var internalOpts = indexConfig.Options;
-                // For some reason a "using" statement here causes a compiler error
-                try {
-                    return NativeSafe.c4coll_createIndex(c4coll, name, indexConfig.ToN1QL(), C4QueryLanguage.N1QLQuery, indexConfig.IndexType, &internalOpts, err);
-                } finally {
-                    internalOpts.Dispose();
-                }
-            });
-        }
+    /// <summary>
+    /// Deletes the index with the given name
+    /// </summary>
+    /// <param name="name">The name of the index to delete</param>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+    /// if this method is called after the collection is closed</exception>
+    public void DeleteIndex(string name)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
-        /// <summary>
-        /// Deletes the index with the given name
-        /// </summary>
-        /// <param name="name">The name of the index to delete</param>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
-        /// if this method is called after the collection is closed</exception>
-        public void DeleteIndex(string name)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        LiteCoreBridge.Check(err => NativeSafe.c4coll_deleteIndex(C4Coll, name, err));
+    }
 
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            LiteCoreBridge.Check(err => NativeSafe.c4coll_deleteIndex(c4coll, name, err));
-        }
+    /// <summary>
+    /// Create an <see cref="IQuery"/> object using the given SQL++ query
+    /// expression.
+    /// </summary>
+    /// <param name="queryExpression">The SQL++ query expression (e.g. SELECT * FROM _)</param>
+    /// <returns>THe initialized query object, ready to execute</returns>
+    public IQuery CreateQuery(string queryExpression)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
+        CheckCollectionValid();
 
-        #endregion
-
-        #region Public Methods - QueryFactory
-
-        /// <summary>
-        /// Create an <see cref="IQuery"/> object using the given SQL++ query
-        /// expression.
-        /// </summary>
-        /// <param name="queryExpression">The SQL++ query expression (e.g. SELECT * FROM _)</param>
-        /// <returns>THe initialized query object, ready to execute</returns>
-        public IQuery CreateQuery(string queryExpression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
-            CheckCollectionValid();
-
-            var query = new NQuery(queryExpression, this.Database);
-            return query;
-        }
-
-        #endregion
-
-        #region Private Methods - Observers
+        var query = new NQuery(queryExpression, this.Database);
+        return query;
+    }
 
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
         #endif
-        private static void DbObserverCallback(C4CollectionObserver* db, void* context)
+    private static void DoDbObserverCallback(C4CollectionObserver* db, void* context)
+    {
+        var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
+        dbObj?._callbackFactory.StartNew(() =>
         {
-            var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
-            dbObj?._callbackFactory.StartNew(() =>
-            {
-                dbObj.PostDatabaseChanged();
-            });
-        }
+            dbObj.PostDatabaseChanged();
+        });
+    }
 
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
         #endif
-        private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
-        {
-            if (docId.buf == null) {
-                return;
-            }
-
-            var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
-            dbObj?._callbackFactory.StartNew(() =>
-            {
-                dbObj.PostDocChanged(docId.CreateString()!);
-            });
+    private static void DoDocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
+    {
+        if (docId.buf == null) {
+            return;
         }
 
-        private void PostDocChanged(string documentID)
+        var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
+        dbObj?._callbackFactory.StartNew(() =>
         {
-            using var scope = ThreadSafety.BeginLockedScope();
-            if (!IsClosed && _docObs.ContainsKey(documentID)) {
-                var change = new DocumentChangedEventArgs(documentID, this);
-                _documentChanged.Fire(documentID, this, change);
-            }
+            dbObj.PostDocChanged(docId.CreateString()!);
+        });
+    }
+
+    private void PostDocChanged(string documentID)
+    {
+        using var scope = ThreadSafety.BeginLockedScope();
+        if (!IsClosed && _docObs.ContainsKey(documentID)) {
+            var change = new DocumentChangedEventArgs(documentID, this);
+            _documentChanged.Fire(documentID, this, change);
+        }
+    }
+
+    private void FreeC4DbObserver()
+    {
+        if (_obs != null) {
+            Native.c4dbobs_free(_obs);
+            _obsContext.Free();
+        }
+    }
+
+    private void ClearUnsavedDocsAndFreeDocObservers()
+    {
+        foreach (var obs in _docObs) {
+            Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
+            obs.Value.Item2.Free();
         }
 
-        private void FreeC4DbObserver()
-        {
-            if (_obs != null) {
-                Native.c4dbobs_free(_obs);
-                _obsContext.Free();
-            }
+        _docObs.Clear();
+    }
+
+    private Document? GetDocumentInternal(string docID)
+    {
+        CheckCollectionValid();
+        var doc = new Document(this, docID);
+
+        if (!doc.Exists || doc.IsDeleted) {
+            doc.Dispose();
+            WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
+                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+            return null;
         }
 
-        private void ClearUnsavedDocsAndFreeDocObservers()
-        {
-            foreach (var obs in _docObs) {
-                Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
-                obs.Value.Item2.Free();
-            }
+        return doc;
+    }
 
-            _docObs.Clear();
+    private void VerifyCollection(Document document)
+    {
+        if (document.Collection == null) {
+            document.Collection = this;
+        } else if (!document.Collection.Equals(this)) {
+            throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
+                "The collection being used for Save does not match the one on the document being saved (" +
+                "either it is a different collection or a collection from a different database instance).");
+        }
+    }
 
-            if (_unsavedDocuments.Count > 0) {
-                WriteLog.To.Database.W(Tag,
-                    $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
-            }
+    private void PurgeDocById(string id)
+    {
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        LiteCoreBridge.Check(err => NativeSafe.c4coll_purgeDoc(C4Coll, id, err));
+    }
 
-            _unsavedDocuments.Clear();
+    private bool Save(Document document, Document? baseDocument,
+        ConcurrencyControl concurrencyControl, bool deletion)
+    {
+        if (deletion && document.RevisionID == null) {
+            throw new CouchbaseLiteException(C4ErrorCode.NotFound,
+                CouchbaseLiteErrorMessage.DeleteDocFailedNotSaved);
         }
 
-        #endregion
+        using var scope = ThreadSafety.BeginLockedScope();
+        CheckCollectionValid();
+        VerifyCollection(document);
+        C4DocumentWrapper? curDoc = null;
+        C4DocumentWrapper? newDoc = null;
+        var committed = false;
+        try {
+            LiteCoreBridge.Check(err => NativeSafe.c4db_beginTransaction(C4Db, err));
+            var baseDoc = baseDocument?.C4Doc;
+            Save(document, ref newDoc, baseDoc, deletion);
+            if (newDoc == null) {
+                // Handle conflict:
+                if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
+                    committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+                    LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(C4Db, true, e));
+                    return false;
+                }
 
-        #region Private Methods - Documents
+                C4Error err;
+                curDoc = NativeSafe.c4coll_getDoc(C4Coll, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
 
-        private Document? GetDocumentInternal(string docID)
-        {
-            CheckCollectionValid();
-            var doc = new Document(this, docID);
-
-            if (!doc.Exists || doc.IsDeleted) {
-                doc.Dispose();
-                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
-                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                return null;
-            }
-
-            return doc;
-        }
-
-        private void VerifyCollection(Document document)
-        {
-            if (document.Collection == null) {
-                document.Collection = this;
-            } else if (!document.Collection.Equals(this)) {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
-                    "The collection being used for Save does not match the one on the document being saved (" +
-                    "either it is a different collection or a collection from a different database instance).");
-            }
-        }
-
-        private void PurgeDocById(string id)
-        {
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            LiteCoreBridge.Check(err => NativeSafe.c4coll_purgeDoc(c4coll, id, err));
-        }
-
-        private bool Save(Document document, Document? baseDocument,
-            ConcurrencyControl concurrencyControl, bool deletion)
-        {
-            if (deletion && document.RevisionID == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotFound,
-                    CouchbaseLiteErrorMessage.DeleteDocFailedNotSaved);
-            }
-
-            using var scope = ThreadSafety.BeginLockedScope();
-            CheckCollectionValid();
-            VerifyCollection(document);
-            C4DocumentWrapper? curDoc = null;
-            C4DocumentWrapper? newDoc = null;
-            var committed = false;
-            try {
-                LiteCoreBridge.Check(err => NativeSafe.c4db_beginTransaction(c4Db, err));
-                var baseDoc = baseDocument?.c4Doc;
-                Save(document, ref newDoc, baseDoc, deletion);
-                if (newDoc == null) {
-                    // Handle conflict:
-                    if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
-                        committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
-                        LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, true, e));
-                        return false;
-                    }
-
-                    C4Error err;
-                    curDoc = NativeSafe.c4coll_getDoc(c4coll, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
-
-                    // If deletion and the current doc has already been deleted
-                    // or doesn't exist:
-                    if (deletion) {
-                        if (curDoc == null) {
-                            if (err.code == (int)C4ErrorCode.NotFound) {
-                                return true;
-                            }
-
-                            throw CouchbaseException.Create(err);
-                        } else if (curDoc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
-                            document.ReplaceC4Doc(curDoc);
-                            curDoc = null;
-                            return true;
-
-                        }
-                    }
-
-                    // Save changes on the current branch:
+                // If deletion and the current doc has already been deleted
+                // or doesn't exist:
+                if (deletion) {
                     if (curDoc == null) {
+                        if (err.code == (int)C4ErrorCode.NotFound) {
+                            return true;
+                        }
+
                         throw CouchbaseException.Create(err);
+                    } else if (curDoc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
+                        document.ReplaceC4Doc(curDoc);
+                        curDoc = null;
+                        return true;
+
                     }
-
-                    Save(document, ref newDoc, curDoc, deletion);
                 }
 
-                Debug.Assert(newDoc != null);
-                committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
-                LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, true, e));
-                document.ReplaceC4Doc(newDoc!);
-                newDoc = null;
-            } catch (Exception) {
-                if (!committed) {
-                    LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(c4Db, false, e));
+                // Save changes on the current branch:
+                if (curDoc == null) {
+                    throw CouchbaseException.Create(err);
                 }
 
-                throw;
-            } finally {
-                curDoc?.Dispose();
-                newDoc?.Dispose();
+                Save(document, ref newDoc, curDoc, deletion);
             }
 
-            return true;
+            committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+            LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(C4Db, true, e));
+            document.ReplaceC4Doc(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(newDoc), newDoc));
+            newDoc = null;
+        } catch (Exception) {
+            if (!committed) {
+                LiteCoreBridge.Check(e => NativeSafe.c4db_endTransaction(C4Db, false, e));
+            }
+
+            throw;
+        } finally {
+            curDoc?.Dispose();
+            newDoc?.Dispose();
         }
 
-        private void SaveFinal(Document doc, C4DocumentWrapper? baseDoc, ref C4DocumentWrapper? outDoc, FLSliceResult body, C4RevisionFlags revFlags)
-        {
-            var rawDoc = baseDoc != null ? baseDoc :
-                doc.c4Doc?.HasValue == true ? doc.c4Doc : null;
-            if (rawDoc != null) {
-                outDoc = NativeHandler.Create()
-                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeSafe.c4doc_update(rawDoc, (FLSlice)body, revFlags, err))!;
-            } else {
-                using var docID_ = new C4String(doc.Id);
-                outDoc = NativeHandler.Create()
-                    .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                        err => NativeSafe.c4coll_createDoc(c4coll, docID_.AsFLSlice(), (FLSlice)body, revFlags, err))!;
-            }
+        return true;
+    }
+
+    private C4DocumentWrapper SaveFinal(Document doc, C4DocumentWrapper? baseDoc, FLSliceResult body, C4RevisionFlags revFlags)
+    {
+        var rawDoc = baseDoc ?? (doc.C4Doc?.HasValue == true ? doc.C4Doc : null);
+        if (rawDoc != null) {
+            return NativeHandler.Create()
+                .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                    err => NativeSafe.c4doc_update(rawDoc, (FLSlice)body, revFlags, err))!;
+        }
+        
+        return NativeHandler.Create()
+            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                err =>
+                {
+                    using var docID = new C4String(doc.Id);
+                    return NativeSafe.c4coll_createDoc(C4Coll, docID.AsFLSlice(), (FLSlice)body, revFlags, err);
+                })!;
+    }
+
+    private void Save(Document doc, ref C4DocumentWrapper? outDoc, C4DocumentWrapper? baseDoc, bool deletion)
+    {
+        var revFlags = (C4RevisionFlags)0;
+        if (deletion) {
+            revFlags = C4RevisionFlags.Deleted;
         }
 
-        private void Save(Document doc, ref C4DocumentWrapper? outDoc, C4DocumentWrapper? baseDoc, bool deletion)
-        {
-            var revFlags = (C4RevisionFlags)0;
-            if (deletion) {
-                revFlags = C4RevisionFlags.Deleted;
-            }
-
-            var body = (FLSliceResult)FLSlice.Null;
-            if (!deletion && !doc.IsEmpty) {
-                try {
-                    body = doc.Encode();
-                } catch (ObjectDisposedException) {
-                    WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
-                    return;
-                }
-
-                using var scope = ThreadSafety.BeginLockedScope();
-                Debug.Assert(c4Db != null);
-                FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
-                FLTrust.Trusted,
-                NativeSafe.c4db_getFLSharedKeys(c4Db!), FLSlice.Null);
-                if (NativeSafe.c4doc_dictContainsBlobs(c4Db!, (FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
-                    revFlags |= C4RevisionFlags.HasAttachments;
-                }
-
-                Native.FLDoc_Release(fleeceDoc);
-            } else if (doc.IsEmpty) {
-                body = EmptyFLSliceResult();
-            }
-
+        var body = (FLSliceResult)FLSlice.Null;
+        if (!deletion && !doc.IsEmpty) {
             try {
-                SaveFinal(doc, baseDoc, ref outDoc, body, revFlags);
-            } finally {
-                Native.FLSliceResult_Release(body);
-            }
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal bool IsIndexTrained(string name)
-        {
-            CheckCollectionValid();
-            using var index = LiteCoreBridge.CheckTyped(err => NativeSafe.c4coll_getIndex(_c4coll, name, err));
-            if(index == null) {
-                WriteLog.To.Query.W(Tag, "Index {0} does not exist, returning false for IsIndexTrained", name);
-                return false;
-            }
-
-            return LiteCoreBridge.Check(err => NativeSafe.c4index_isTrained(index, err));
-        }
-
-        /// <summary>
-        /// Throws if this collection has been deleted, or its database closed.
-        /// </summary>
-        [MemberNotNull(nameof(c4Db), nameof(_c4coll))]
-        internal void CheckCollectionValid()
-        {
-            using var scope = ThreadSafety.BeginLockedScope();
-            if (c4Db == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
-                    new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed));
-            }
-
-            if (_c4coll == null || !NativeSafe.c4coll_isValid(_c4coll)) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
-                    new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable, ToString())));
-            }
-
-        }
-
-        internal void PostDatabaseChanged()
-        {
-            using var scope = ThreadSafety.BeginLockedScope();
-            if (_obs == null || IsClosed) {
+                body = doc.Encode();
+            } catch (ObjectDisposedException) {
+                WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
                 return;
             }
 
-            const uint maxChanges = 100u;
-            var external = false;
-            uint nChanges;
-            var changes = new C4CollectionChange[maxChanges];
-            var docIDs = new List<string>();
-            do {
-                // Read changes in batches of MaxChanges:
-                bool newExternal;
-                var collectionObservation = NativeSafe.c4dbobs_getChanges(_obs, changes, maxChanges);
-                newExternal = collectionObservation.external;
-                nChanges = collectionObservation.numChanges;
-                if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
-                    if (docIDs.Count > 0) {
-                        // Only notify if there are actually changes to send
-                        var args = new CollectionChangedEventArgs(this, docIDs);
-                        _databaseChanged.Fire(this, args);
-                        docIDs = new List<string>();
-                    }
-                }
-
-                external = newExternal;
-                for (var i = 0; i < nChanges; i++) {
-                    docIDs.Add(changes[i].docID.CreateString()!);
-                }
-
-                NativeSafe.c4dbobs_releaseChanges(changes, nChanges);
-            } while (nChanges > 0);
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private FLSliceResult EmptyFLSliceResult()
-        {
-            using var encoder = Database.SharedEncoder;
-            encoder.BeginDict(0);
-            encoder.EndDict();
-            var body = encoder.Finish();
-            encoder.Reset();
-
-            return body;
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (IsClosed) {
-                return;
+            using var scope = ThreadSafety.BeginLockedScope();
+            Debug.Assert(C4Db != null);
+            FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
+                FLTrust.Trusted,
+                NativeSafe.c4db_getFLSharedKeys(C4Db!), FLSlice.Null);
+            if (NativeSafe.c4doc_dictContainsBlobs(C4Db!, (FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
+                revFlags |= C4RevisionFlags.HasAttachments;
             }
 
-            if (disposing) {
-                ClearUnsavedDocsAndFreeDocObservers();
-                _c4coll.Dispose();
-                _c4coll = null;
-            }
-
-            FreeC4DbObserver();
+            Native.FLDoc_Release(fleeceDoc);
+        } else if (doc.IsEmpty) {
+            body = EmptyFLSliceResult();
         }
 
-        #endregion
-
-        #region object
-        /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            var hasher = Hasher.Start;
-            hasher.Add(Name);
-            hasher.Add(Scope);
-            return hasher.GetHashCode();
+        try {
+            outDoc = SaveFinal(doc, baseDoc, body, revFlags);
+        } finally {
+            Native.FLSliceResult_Release(body);
         }
+    }
 
-        /// <inheritdoc />
-        public override bool Equals(object? obj)
+    internal bool IsIndexTrained(string name)
+    {
+        CheckCollectionValid();
+        return LiteCoreBridge.Check(err =>
         {
-            if (obj == null)
-                return false;
-
-            if (obj is not Collection other) {
-                return false;
+            using var index = NativeSafe.c4coll_getIndex(_c4Coll, name, err);
+            if (index != null) {
+                return NativeSafe.c4index_isTrained(index, err);
             }
             
-            return IsValid == other.IsValid
-                && String.Equals(Name, other.Name, StringComparison.Ordinal)
-                && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal)
-                && ReferenceEquals(Database, other.Database);
+            WriteLog.To.Query.W(Tag, "Index {0} does not exist, returning false for IsIndexTrained", name);
+            return false;
+        });
+    }
+
+    /// <summary>
+    /// Throws if this collection has been deleted, or its database closed.
+    /// </summary>
+    [MemberNotNull(nameof(C4Db), nameof(_c4Coll))]
+    internal void CheckCollectionValid()
+    {
+        using var scope = ThreadSafety.BeginLockedScope();
+        if (C4Db == null) {
+            throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
+                new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed));
         }
 
-        /// <inheritdoc />
-        public override string ToString() => $"COLLECTION[{Name}] of SCOPE[{Scope.Name}]";
-        #endregion
+        if (_c4Coll == null || !NativeSafe.c4coll_isValid(_c4Coll)) {
+            throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
+                new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable, ToString())));
+        }
 
-        #region IDisposable
+    }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
+    private void PostDatabaseChanged()
+    {
+        using var scope = ThreadSafety.BeginLockedScope();
+        if (_obs == null || IsClosed) {
+            return;
+        }
 
-            using var scope = ThreadSafety.BeginLockedScope();
-            if(IsClosed) {
-                return;
+        const uint maxChanges = 100u;
+        var external = false;
+        uint nChanges;
+        var changes = new C4CollectionChange[maxChanges];
+        var docIDs = new List<string>();
+        do {
+            // Read changes in batches of MaxChanges:
+            var collectionObservation = NativeSafe.c4dbobs_getChanges(_obs, changes, maxChanges);
+            var newExternal = collectionObservation.external;
+            nChanges = collectionObservation.numChanges;
+            if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
+                if (docIDs.Count > 0) {
+                    // Only notify if there are actually changes to send
+                    var args = new CollectionChangedEventArgs(this, docIDs);
+                    _databaseChanged.Fire(this, args);
+                    docIDs = new List<string>();
+                }
             }
 
-            Dispose(true);
+            external = newExternal;
+            for (var i = 0; i < nChanges; i++) {
+                docIDs.Add(changes[i].docID.CreateString()!);
+            }
+
+            NativeSafe.c4dbobs_releaseChanges(changes, nChanges);
+        } while (nChanges > 0);
+    }
+
+    private FLSliceResult EmptyFLSliceResult()
+    {
+        using var encoder = Database.SharedEncoder;
+        encoder.BeginDict(0);
+        encoder.EndDict();
+        var body = encoder.Finish();
+        encoder.Reset();
+
+        return body;
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (IsClosed) {
+            return;
         }
 
-        #endregion
+        if (disposing) {
+            ClearUnsavedDocsAndFreeDocObservers();
+            _c4Coll.Dispose();
+            _c4Coll = null;
+        }
+
+        FreeC4DbObserver();
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var hasher = Hasher.Start;
+        hasher.Add(Name);
+        hasher.Add(Scope);
+        return hasher.GetHashCode();
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj)
+    {
+        if (obj is not Collection other) {
+            return false;
+        }
+            
+        return IsValid == other.IsValid
+            && String.Equals(Name, other.Name, StringComparison.Ordinal)
+            && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal)
+            && ReferenceEquals(Database, other.Database);
+    }
+
+    /// <inheritdoc />
+    public override string ToString() => $"COLLECTION[{Name}] of SCOPE[{Scope.Name}]";
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+    /// </summary>
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+
+        using var scope = ThreadSafety.BeginLockedScope();
+        if(IsClosed) {
+            return;
+        }
+
+        Dispose(true);
     }
 }

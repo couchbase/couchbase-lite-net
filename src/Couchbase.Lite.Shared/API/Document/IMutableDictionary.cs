@@ -19,155 +19,146 @@
 using System;
 using System.Collections.Generic;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// An interface representing a writeable key value collection
+/// </summary>
+public interface IMutableDictionary : IDictionaryObject, IMutableDictionaryFragment
 {
     /// <summary>
-    /// An interface representing a writeable key value collection
+    /// Gets the value of the given key, or lack thereof,
+    /// wrapped inside a <see cref="IMutableFragment"/>
     /// </summary>
-    public interface IMutableDictionary : IDictionaryObject, IMutableDictionaryFragment
-    {
-        #region Properties
+    /// <param name="key">The key to check</param>
+    /// <returns>The value of the given key, or lack thereof</returns>
+    new IMutableFragment this[string key] { get; }
 
-        /// <summary>
-        /// Gets the value of the given key, or lack thereof,
-        /// wrapped inside of a <see cref="IMutableFragment"/>
-        /// </summary>
-        /// <param name="key">The key to check</param>
-        /// <returns>The value of the given key, or lack thereof</returns>
-        new IMutableFragment this[string key] { get; }
+    /// <summary>
+    /// Gets the value of a given key as an <see cref="IMutableArray"/>
+    /// </summary>
+    /// <param name="key">The key to check the value for</param>
+    /// <returns>The contained value, or <c>null</c></returns>
+    new MutableArrayObject? GetArray(string key);
 
-        #endregion
+    /// <summary>
+    /// Gets the value of a given key as a dictionary
+    /// </summary>
+    /// <param name="key">The key to check the value for</param>
+    /// <returns>The contained value, or <c>null</c></returns>
+    new MutableDictionaryObject? GetDictionary(string key);
 
-        #region Public Methods
+    /// <summary>
+    /// Removes the given key from this dictionary
+    /// </summary>
+    /// <param name="key">The key to remove</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary Remove(string key);
 
-        /// <summary>
-        /// Gets the value of a given key as an <see cref="IMutableArray"/>
-        /// </summary>
-        /// <param name="key">The key to check the value for</param>
-        /// <returns>The contained value, or <c>null</c></returns>
-        new MutableArrayObject? GetArray(string key);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetValue(string key, object? value);
 
-        /// <summary>
-        /// Gets the value of a given key as a dictionary
-        /// </summary>
-        /// <param name="key">The key to check the value for</param>
-        /// <returns>The contained value, or <c>null</c></returns>
-        new MutableDictionaryObject? GetDictionary(string key);
+    /// <summary>
+    /// Replaces the contents of this dictionary with the contents of the
+    /// given one
+    /// </summary>
+    /// <param name="dictionary">The dictionary to replace the current contents with</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetData(IDictionary<string, object?> dictionary);
 
-        /// <summary>
-        /// Removes the given key from this dictionary
-        /// </summary>
-        /// <param name="key">The key to remove</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary Remove(string key);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetString(string key, string? value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetValue(string key, object? value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetInt(string key, int value);
 
-        /// <summary>
-        /// Replaces the contents of this dictionary with the contents of the
-        /// given one
-        /// </summary>
-        /// <param name="dictionary">The dictionary to replace the current contents with</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetData(IDictionary<string, object?> dictionary);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetLong(string key, long value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetString(string key, string? value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetFloat(string key, float value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetInt(string key, int value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetDouble(string key, double value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetLong(string key, long value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetBoolean(string key, bool value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetFloat(string key, float value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetBlob(string key, Blob? value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetDouble(string key, double value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetDate(string key, DateTimeOffset value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetBoolean(string key, bool value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetArray(string key, ArrayObject? value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetBlob(string key, Blob? value);
+    /// <summary>
+    /// Sets the given key to the given value
+    /// </summary>
+    /// <param name="key">The key to set</param>
+    /// <param name="value">The value to set</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetDictionary(string key, DictionaryObject? value);
 
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetDate(string key, DateTimeOffset value);
-
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetArray(string key, ArrayObject? value);
-
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetDictionary(string key, DictionaryObject? value);
-
-        /// <summary>
-        /// Replaces the contents of this dictionary with the contents of the
-        /// given json string
-        /// </summary>
-        /// <remarks>
-        /// json string must be constructed from <see cref="IJSON.ToJSON">ToJSON</see>
-        /// </remarks>
-        /// <param name="json">The json string to replace the current contents with</param>
-        /// <returns>Itself for further processing</returns>
-        IMutableDictionary SetJSON(string json);
-
-        #endregion
-    }
+    /// <summary>
+    /// Replaces the contents of this dictionary with the contents of the
+    /// given json string
+    /// </summary>
+    /// <remarks>
+    /// json string must be constructed from <see cref="IJSON.ToJSON">ToJSON</see>
+    /// </remarks>
+    /// <param name="json">The json string to replace the current contents with</param>
+    /// <returns>Itself for further processing</returns>
+    IMutableDictionary SetJSON(string json);
 }

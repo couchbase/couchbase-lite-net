@@ -20,26 +20,18 @@ using Android.Content;
 using Couchbase.Lite.DI;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+internal sealed class DefaultDirectoryResolver(Context context) : IDefaultDirectoryResolver
 {
-    internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
+    public string DefaultDirectory()
     {
-        private readonly Context _context;
-
-        public DefaultDirectoryResolver(Context context)
-        {
-            _context = context;   
+        if(context.FilesDir == null) {
+            throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
+                "Android files directory is null, cannot calculate default directory!");
         }
 
-        public string DefaultDirectory()
-        {
-            if(_context.FilesDir == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
-                    "Android files directory is null, cannot calculate default directory!");
-            }
-
-            return _context.FilesDir.AbsolutePath;
-        }
+        return context.FilesDir.AbsolutePath;
     }
 }
+
 #endif

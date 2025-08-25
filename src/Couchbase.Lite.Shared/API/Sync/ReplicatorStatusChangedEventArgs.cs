@@ -18,60 +18,43 @@
 using System;
 using System.Collections.Generic;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// Event arguments for the <see cref="Replicator.AddChangeListener(EventHandler{ReplicatorStatusChangedEventArgs})" /> event
+/// </summary>
+public sealed class ReplicatorStatusChangedEventArgs : EventArgs
 {
     /// <summary>
-    /// Event arguments for the <see cref="Replicator.AddChangeListener(EventHandler{ReplicatorStatusChangedEventArgs})" /> event
+    /// The new status for the <see cref="Replicator"/> in question.
     /// </summary>
-    public sealed class ReplicatorStatusChangedEventArgs : EventArgs
+    public ReplicatorStatus Status { get; }
+
+    internal ReplicatorStatusChangedEventArgs(ReplicatorStatus status)
     {
-        #region Properties
-
-        /// <summary>
-        /// The new status for the <see cref="Replicator"/> in question.
-        /// </summary>
-        public ReplicatorStatus Status { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal ReplicatorStatusChangedEventArgs(ReplicatorStatus status)
-        {
-            Status = status;
-        }
-
-        #endregion
+        Status = status;
     }
+}
+
+/// <summary>
+/// Event arguments for the <see cref="Replicator.AddDocumentReplicationListener(EventHandler{DocumentReplicationEventArgs})" /> event
+/// </summary>
+public sealed class DocumentReplicationEventArgs : EventArgs
+{
+    /// <summary>
+    /// The new status for the <see cref="Replicator"/> in question.
+    /// </summary>
+    public IReadOnlyList<ReplicatedDocument> Documents { get; }
 
     /// <summary>
-    /// Event arguments for the <see cref="Replicator.AddDocumentReplicationListener(EventHandler{DocumentReplicationEventArgs})" /> event
+    /// Gets whether the replicated document was in
+    /// a push replication (<c>false</c> means pull)
     /// </summary>
-    public sealed class DocumentReplicationEventArgs : EventArgs
+    public bool IsPush { get; }
+
+    internal DocumentReplicationEventArgs(IReadOnlyList<ReplicatedDocument> documents, bool isPush)
     {
-        #region Properties
-
-        /// <summary>
-        /// The new status for the <see cref="Replicator"/> in question.
-        /// </summary>
-        public IReadOnlyList<ReplicatedDocument> Documents { get; }
-
-        /// <summary>
-        /// Gets whether or not the replicated document was in
-        /// a push replication (<c>false</c> means pull)
-        /// </summary>
-        public bool IsPush { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal DocumentReplicationEventArgs(IReadOnlyList<ReplicatedDocument> documents, bool isPush)
-        {
-            Documents = documents;
-            IsPush = isPush;
-        }
-
-        #endregion
+        Documents = documents;
+        IsPush = isPush;
     }
 }

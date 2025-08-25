@@ -16,10 +16,9 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+internal interface IStoppable
 {
-    interface IStoppable
-    {
-        void Stop();
-    }
+    void Stop();
 }

@@ -734,9 +734,6 @@ namespace Test
             array!.AddString("item4");
             array.AddString("item5");
             SaveDocument(doc, d => { d.GetArray("array")?.ToList().ShouldBe(array.ToList()); });
-
-            var imarr = new ArrayObject(array, false);
-            imarr.ShouldBeEquivalentToFluent(array.ToImmutable());
         }
 
         [Fact]

@@ -16,23 +16,18 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing a portion of an <see cref="IQuery"/> that can accept JOIN
+/// as its next clause
+/// </summary>
+public interface IJoinRouter
 {
     /// <summary>
-    /// An interface representing a portion of an <see cref="IQuery"/> that can accept JOIN
-    /// as its next clause
+    /// Create and appends the list of JOINS to the current <see cref="IQuery"/>
     /// </summary>
-    public interface IJoinRouter
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Create and appends the list of JOINS to the current <see cref="IQuery"/>
-        /// </summary>
-        /// <param name="joins">The join clauses to add</param>
-        /// <returns>The query with the join statement, for further processing</returns>
-        IJoins Join(params IJoin[] joins);
-
-        #endregion
-    }
+    /// <param name="joins">The join clauses to add</param>
+    /// <returns>The query with the join statement, for further processing</returns>
+    IJoins Join(params IJoin[] joins);
 }

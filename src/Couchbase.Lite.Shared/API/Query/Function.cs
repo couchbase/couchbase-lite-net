@@ -19,439 +19,430 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A class for creating <see cref="IExpression"/> instances that represent functions
+/// </summary>
+public static partial class Function
 {
+    private const string Tag = nameof(Function);
+
     /// <summary>
-    /// A class for creating <see cref="IExpression"/> instances that represent functions
+    /// Creates a function that will get the absolute value of the expression
+    /// in question
     /// </summary>
-    public static partial class Function
-    {
-        #region Constants
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the absolute value of the expression in question</returns>
+    public static IExpression Abs(IExpression expression) => 
+        new QueryCompoundExpression("ABS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        private const string Tag = nameof(Function);
+    /// <summary>
+    /// Creates a function that will get the inverse cosine of the expression
+    /// in question
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the inverse cosine of the expression in question</returns>
+    public static IExpression Acos(IExpression expression) => 
+        new QueryCompoundExpression("ACOS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        #endregion
+    /// <summary>
+    /// Creates a function that will get the inverse sin of the expression
+    /// in question
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the inverse sin of the expression in question</returns>
+    public static IExpression Asin(IExpression expression) => 
+        new QueryCompoundExpression("ASIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        #region Public Methods
+    /// <summary>
+    /// Creates a function that will get the inverse tangent of the expression
+    /// in question
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the  inverse tangent of the expression in question</returns>
+    public static IExpression Atan(IExpression expression) => 
+        new QueryCompoundExpression("ATAN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will get the absolute value of the expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the absolute value of the expression in question</returns>
-        public static IExpression Abs(IExpression expression) => 
-            new QueryCompoundExpression("ABS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will get the arctangent of the point expressed by
+    /// expressions calculating X and Y of the point for the formula
+    /// </summary>
+    /// <param name="expressionX">An expression or literal to evaluate to get the X coordinate to use</param>
+    /// <param name="expressionY">An expression or literal to evaluate to get the Y coordinate to use</param>
+    /// <returns>A function that will get the arctangent of the point in question</returns>
+    public static IExpression Atan2(IExpression expressionY, IExpression expressionX) => 
+        new QueryCompoundExpression("ATAN2()", 
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionX), expressionX), 
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionY), expressionY));
 
-        /// <summary>
-        /// Creates a function that will get the inverse cosine of the expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the inverse cosine of the expression in question</returns>
-        public static IExpression Acos(IExpression expression) => 
-            new QueryCompoundExpression("ACOS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will calculate the average of the
+    /// expression in question across the results in a particular query
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will calculate the average</returns>
+    public static IExpression Avg(IExpression expression) => 
+        new QueryCompoundExpression("AVG()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will get the inverse sin of the expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the inverse sin of the expression in question</returns>
-        public static IExpression Asin(IExpression expression) => 
-            new QueryCompoundExpression("ASIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will get the ceiling value of the expression
+    /// in question
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the ceiling value of the expression in question</returns>
+    public static IExpression Ceil(IExpression expression) => 
+        new QueryCompoundExpression("CEIL()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will get the inverse tangent of the expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the  inverse tangent of the expression in question</returns>
-        public static IExpression Atan(IExpression expression) => 
-            new QueryCompoundExpression("ATAN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will calculate if a given string is inside another
+    /// in question
+    /// </summary>
+    /// <param name="expression">The string or expression that evaluates to a string to search</param>
+    /// <param name="substring">The string or expression that evaluates to a string to search for</param>
+    /// <returns>A function that will return true if the string contains the other, or false if it does not</returns>
+    public static IExpression Contains(IExpression expression, IExpression substring) => 
+        new QueryCompoundExpression("CONTAINS()", 
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(substring), substring));
 
-        /// <summary>
-        /// Creates a function that will get the arctangent of the point expressed by
-        /// expressions calculating X and Y of the point for the formula
-        /// </summary>
-        /// <param name="expressionX">An expression or literal to evaluate to get the X coordinate to use</param>
-        /// <param name="expressionY">An expression or literal to evaluate to get the Y coordinate to use</param>
-        /// <returns>A function that will get the arctangent of the point in question</returns>
-        public static IExpression Atan2(IExpression expressionY, IExpression expressionX) => 
-            new QueryCompoundExpression("ATAN2()", 
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionX), expressionX), 
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionY), expressionY));
+    /// <summary>
+    /// Creates a function that will get the cosine of the expression
+    /// in question
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the cosine of the expression in question</returns>
+    public static IExpression Cos(IExpression expression) => 
+        new QueryCompoundExpression("COS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will calculate the average of the
-        /// expression in question across the results in a particular query
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will calculate the average</returns>
-        public static IExpression Avg(IExpression expression) => 
-            new QueryCompoundExpression("AVG()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will count the occurrences of 
+    /// expression in question across the results in a particular query
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will calculate the count</returns>
+    public static IExpression Count(IExpression? expression) => 
+        new QueryCompoundExpression("COUNT()", expression ?? Expression.All());
 
-        /// <summary>
-        /// Creates a function that will get the ceiling value of the expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the ceiling value of the expression in question</returns>
-        public static IExpression Ceil(IExpression expression) => 
-            new QueryCompoundExpression("CEIL()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will convert a numeric expression to degrees from radians
+    /// in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the value of the expression in question expressed in degrees</returns>
+    public static IExpression Degrees(IExpression expression) => 
+        new QueryCompoundExpression("DEGREES()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will calculate if a given string is inside of another
-        /// in question
-        /// </summary>
-        /// <param name="expression">The string or expression that evaluates to a string to search</param>
-        /// <param name="substring">The string or expression that evaluates to a string to search for</param>
-        /// <returns>A function that will return true if the string contains the other, or false if it does not</returns>
-        public static IExpression Contains(IExpression expression, IExpression substring) => 
-            new QueryCompoundExpression("CONTAINS()", 
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(substring), substring));
+    /// <summary>
+    /// Creates a function that will return the value of the mathemetical constant 'e'
+    /// </summary>
+    /// <returns>The value of 'e'</returns>
+    public static IExpression E() => new QueryCompoundExpression("E()");
 
-        /// <summary>
-        /// Creates a function that will get the cosine of the expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the cosine of the expression in question</returns>
-        public static IExpression Cos(IExpression expression) => 
-            new QueryCompoundExpression("COS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Returns the mathematical constant 'e' raised to the given power
+    /// </summary>
+    /// <param name="expression">The numerical expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the mathematical constant 'e' raised to the given power</returns>
+    public static IExpression Exp(IExpression expression) => 
+        new QueryCompoundExpression("EXP()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will count the occurrences of 
-        /// expression in question across the results in a particular query
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will calculate the count</returns>
-        public static IExpression Count(IExpression? expression) => 
-            new QueryCompoundExpression("COUNT()", expression ?? Expression.All());
+    /// <summary>
+    /// Creates a function that will get the floor value of the expression
+    /// in question
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the floor value of the expression in question</returns>
+    public static IExpression Floor(IExpression expression) => 
+        new QueryCompoundExpression("FLOOR()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will convert a numeric expression to degrees from radians
-        /// in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the value of the expression in question expressed in degrees</returns>
-        public static IExpression Degrees(IExpression expression) => 
-            new QueryCompoundExpression("DEGREES()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that gets the length of a string
+    /// in question
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result (must be or evaluate to a string)</param>
+    /// <returns>The length of the string in question</returns>
+    public static IExpression Length(IExpression expression) => 
+        new QueryCompoundExpression("LENGTH()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will return the value of the mathemetical constant 'e'
-        /// </summary>
-        /// <returns>The value of 'e'</returns>
-        public static IExpression E() => new QueryCompoundExpression("E()");
+    /// <summary>
+    /// Creates a function that gets the natural log of the numerical expression
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that gets the natural log of the expression</returns>
+    public static IExpression Ln(IExpression expression) => 
+        new QueryCompoundExpression("LN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Returns the mathematical constant 'e' raised to the given power
-        /// </summary>
-        /// <param name="expression">The numerical expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the mathematical constant 'e' raised to the given power</returns>
-        public static IExpression Exp(IExpression expression) => 
-            new QueryCompoundExpression("EXP()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that gets the base 10 log of the numerical expression
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that gets the base 10 log of the expression</returns>
+    public static IExpression Log(IExpression expression) => 
+        new QueryCompoundExpression("LOG()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will get the floor value of the expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the floor value of the expression in question</returns>
-        public static IExpression Floor(IExpression expression) => 
-            new QueryCompoundExpression("FLOOR()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that converts a string to lower case
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that converts a string to lower case</returns>
+    public static IExpression Lower(IExpression expression) => 
+        new QueryCompoundExpression("LOWER()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that gets the length of a string
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result (must be or evaluate to a string)</param>
-        /// <returns>The length of the string in question</returns>
-        public static IExpression Length(IExpression expression) => 
-            new QueryCompoundExpression("LENGTH()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that removes whitespace from the beginning of a string
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that removes whitespace from the beginning of a string</returns>
+    public static IExpression Ltrim(IExpression expression) => 
+        new QueryCompoundExpression("LTRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that gets the natural log of the numerical expression
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that gets the natural log of the expression</returns>
-        public static IExpression Ln(IExpression expression) => 
-            new QueryCompoundExpression("LN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will calculate the max value of the
+    /// expression in question across the results in a particular query
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will calculate the max value</returns>
+    public static IExpression Max(IExpression expression) => 
+        new QueryCompoundExpression("MAX()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that gets the base 10 log of the numerical expression
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that gets the base 10 log of the expression</returns>
-        public static IExpression Log(IExpression expression) => 
-            new QueryCompoundExpression("LOG()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will convert a numeric input representing
+    /// milliseconds since the Unix epoch into a full ISO8601 date and time
+    /// string in the device local time zone.
+    /// </summary>
+    /// <param name="expression">The expression to take data from when converting</param>
+    /// <returns>A function that will convert the timestamp to a string</returns>
+    public static IExpression MillisToString(IExpression expression) => 
+        new QueryCompoundExpression("MILLIS_TO_STR()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that converts a string to lower case
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that converts a string to lower case</returns>
-        public static IExpression Lower(IExpression expression) => 
-            new QueryCompoundExpression("LOWER()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will convert a numeric input representing
+    /// milliseconds since the Unix epoch into a full ISO8601 date and time
+    /// string in UTC time.
+    /// </summary>
+    /// <param name="expression">The expression to take data from when converting</param>
+    /// <returns>A function that will convert the timestamp to a string</returns>
+    public static IExpression MillisToUTC(IExpression expression) => 
+        new QueryCompoundExpression("MILLIS_TO_UTC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that removes whitespace from the beginning of a string
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that removes whitespace from the beginning of a string</returns>
-        public static IExpression Ltrim(IExpression expression) => 
-            new QueryCompoundExpression("LTRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will calculate the min value of the
+    /// expression in question across the results in a particular query
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will calculate the min value</returns>
+    public static IExpression Min(IExpression expression) => 
+        new QueryCompoundExpression("MIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will calculate the max value of the
-        /// expression in question across the results in a particular query
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will calculate the max value</returns>
-        public static IExpression Max(IExpression expression) => 
-            new QueryCompoundExpression("MAX()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will return the value of the mathemetical constant 'π'
+    /// </summary>
+    /// <returns>The value of 'π'</returns>
+    public static IExpression Pi() => new QueryCompoundExpression("PI()");
 
-        /// <summary>
-        /// Creates a function that will convert a numeric input representing
-        /// milliseconds since the Unix epoch into a full ISO8601 date and time
-        /// string in the device local time zone.
-        /// </summary>
-        /// <param name="expression">The expression to take data from when converting</param>
-        /// <returns>A function that will convert the timestamp to a string</returns>
-        public static IExpression MillisToString(IExpression expression) => 
-            new QueryCompoundExpression("MILLIS_TO_STR()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will raise the given numeric expression
+    /// to an expression that determines the exponent
+    /// </summary>
+    /// <param name="b">A numeric literal or expression that provides the base</param>
+    /// <param name="exponent">A numeric literal or expression that provides the exponent</param>
+    /// <returns>A function that will raise the base to the given exponent</returns>
+    public static IExpression Power(IExpression b, IExpression exponent) => 
+        new QueryCompoundExpression("POWER()",
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(b), b),
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(exponent), exponent));
 
-        /// <summary>
-        /// Creates a function that will convert a numeric input representing
-        /// milliseconds since the Unix epoch into a full ISO8601 date and time
-        /// string in UTC time.
-        /// </summary>
-        /// <param name="expression">The expression to take data from when converting</param>
-        /// <returns>A function that will convert the timestamp to a string</returns>
-        public static IExpression MillisToUTC(IExpression expression) => 
-            new QueryCompoundExpression("MILLIS_TO_UTC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will convert a numeric expression to radians from degrees
+    /// in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will get the value of the expression in question expressed in radians</returns>
+    public static IExpression Radians(IExpression expression) => 
+        new QueryCompoundExpression("RADIANS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will calculate the min value of the
-        /// expression in question across the results in a particular query
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will calculate the min value</returns>
-        public static IExpression Min(IExpression expression) => 
-            new QueryCompoundExpression("MIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will round the given expression
+    /// in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will round the expression (using midpoint rounding)</returns>
+    public static IExpression Round(IExpression expression) => 
+        new QueryCompoundExpression("ROUND()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will return the value of the mathemetical constant 'π'
-        /// </summary>
-        /// <returns>The value of 'π'</returns>
-        public static IExpression Pi() => new QueryCompoundExpression("PI()");
+    /// <summary>
+    /// Creates a function that will round the given expression to the number of digits indicated
+    /// in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to take data from when calculating
+    /// the result</param>
+    /// <param name="digits">The number of digits to round to</param>
+    /// <returns>A function that will round the expression (using midpoint rounding)</returns>
+    public static IExpression Round(IExpression expression, IExpression digits) => 
+        new QueryCompoundExpression("ROUND()",
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(digits), digits));
 
-        /// <summary>
-        /// Creates a function that will raise the given numeric expression
-        /// to an expression that determines the exponent
-        /// </summary>
-        /// <param name="b">A numeric literal or expression that provides the base</param>
-        /// <param name="exponent">A numeric literal or expression that provides the exponent</param>
-        /// <returns>A function that will raise the base to the given exponent</returns>
-        public static IExpression Power(IExpression b, IExpression exponent) => 
-            new QueryCompoundExpression("POWER()",
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(b), b),
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(exponent), exponent));
+    /// <summary>
+    /// Creates a function that removes whitespace from the end of a string
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that removes whitespace from the end of a string</returns>
+    public static IExpression Rtrim(IExpression expression) => 
+        new QueryCompoundExpression("RTRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will convert a numeric expression to radians from degrees
-        /// in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will get the value of the expression in question expressed in radians</returns>
-        public static IExpression Radians(IExpression expression) => 
-            new QueryCompoundExpression("RADIANS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that returns the sign (positive, negative, or neither) of
+    /// the expression in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to evaluate</param>
+    /// <returns>A function that returns the sign of the expression in question</returns>
+    public static IExpression Sign(IExpression expression) => 
+        new QueryCompoundExpression("SIGN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will round the given expression
-        /// in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will round the expression (using midpoint rounding)</returns>
-        public static IExpression Round(IExpression expression) => 
-            new QueryCompoundExpression("ROUND()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that returns the sin of the expression in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to evaluate</param>
+    /// <returns>A function that returns the sin of the expression in question</returns>
+    public static IExpression Sin(IExpression expression) => 
+        new QueryCompoundExpression("SIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will round the given expression to the number of digits indicated
-        /// in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to take data from when calculating
-        /// the result</param>
-        /// <param name="digits">The number of digits to round to</param>
-        /// <returns>A function that will round the expression (using midpoint rounding)</returns>
-        public static IExpression Round(IExpression expression, IExpression digits) => 
-            new QueryCompoundExpression("ROUND()",
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(digits), digits));
+    /// <summary>
+    /// Creates a function that returns the square root of the expression in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to evaluate</param>
+    /// <returns>A function that returns the square root of the expression in question</returns>
+    public static IExpression Sqrt(IExpression expression) => 
+        new QueryCompoundExpression("SQRT()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that removes whitespace from the end of a string
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that removes whitespace from the end of a string</returns>
-        public static IExpression Rtrim(IExpression expression) => 
-            new QueryCompoundExpression("RTRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will convert an ISO8601 datetime string
+    /// into the number of milliseconds since the unix epoch.
+    /// </summary>
+    /// <param name="expression">The expression to take data from when converting</param>
+    /// <returns>A function that will convert the string to a timestamp</returns>
+    /// <remarks>
+    /// Valid date strings must start with a date in the form YYYY-MM-DD (time
+    /// only strings are not supported).
+    ///
+    /// Times can be of the form HH:MM, HH:MM:SS, or HH:MM:SS.FFF.  Leading zero is
+    /// not optional (i.e. 02 is ok, 2 is not).  Hours are in 24-hour format.  FFF
+    /// represents milliseconds, and *trailing* zeros are optional (i.e. 5 == 500).
+    ///
+    /// Time zones can be in one of three forms:
+    /// (+/-)HH:MM
+    /// (+/-)HHMM
+    /// Z (which represents UTC)
+    ///
+    /// No time zone present will default to the device local time zone
+    /// </remarks>
+    public static IExpression StringToMillis(IExpression expression) => 
+        new QueryCompoundExpression("STR_TO_MILLIS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that returns the sign (positive, negative, or neither) of
-        /// the expression in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to evaluate</param>
-        /// <returns>A function that returns the sign of the expression in question</returns>
-        public static IExpression Sign(IExpression expression) => 
-            new QueryCompoundExpression("SIGN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will convert an ISO8601 datetime string
+    /// into a full ISO8601 UTC datetime string.
+    /// </summary>
+    /// <param name="expression">The expression to take data from when converting</param>
+    /// <returns>A function that will convert the string to a timestamp</returns>
+    /// <remarks>
+    /// Valid date strings must start with a date in the form YYYY-MM-DD (time
+    /// only strings are not supported).
+    ///
+    /// Times can be of the form HH:MM, HH:MM:SS, or HH:MM:SS.FFF.  Leading zero is
+    /// not optional (i.e. 02 is ok, 2 is not).  Hours are in 24-hour format.  FFF
+    /// represents milliseconds, and *trailing* zeros are optional (i.e. 5 == 500).
+    ///
+    /// Time zones can be in one of three forms:
+    /// (+/-)HH:MM
+    /// (+/-)HHMM
+    /// Z (which represents UTC)
+    ///
+    /// No time zone present will default to the device local time zone
+    /// </remarks>
+    public static IExpression StringToUTC(IExpression expression) => 
+        new QueryCompoundExpression("STR_TO_UTC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that returns the sin of the expression in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to evaluate</param>
-        /// <returns>A function that returns the sin of the expression in question</returns>
-        public static IExpression Sin(IExpression expression) => 
-            new QueryCompoundExpression("SIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will calculate the sum of the
+    /// expression in question across the results in a particular query
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will calculate the sum</returns>
+    public static IExpression Sum(IExpression expression) => 
+        new QueryCompoundExpression("SUM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that returns the square root of the expression in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to evaluate</param>
-        /// <returns>A function that returns the square root of the expression in question</returns>
-        public static IExpression Sqrt(IExpression expression) => 
-            new QueryCompoundExpression("SQRT()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that returns the tangent of the expression in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to evaluate</param>
+    /// <returns>A function that returns the tangent of the expression in question</returns>
+    public static IExpression Tan(IExpression expression) => 
+        new QueryCompoundExpression("TAN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will convert an ISO8601 datetime string
-        /// into the number of milliseconds since the unix epoch.
-        /// </summary>
-        /// <param name="expression">The expression to take data from when converting</param>
-        /// <returns>A function that will convert the string to a timestamp</returns>
-        /// <remarks>
-        /// Valid date strings must start with a date in the form YYYY-MM-DD (time
-        /// only strings are not supported).
-        ///
-        /// Times can be of the form HH:MM, HH:MM:SS, or HH:MM:SS.FFF.  Leading zero is
-        /// not optional (i.e. 02 is ok, 2 is not).  Hours are in 24-hour format.  FFF
-        /// represents milliseconds, and *trailing* zeros are optional (i.e. 5 == 500).
-        ///
-        /// Time zones can be in one of three forms:
-        /// (+/-)HH:MM
-        /// (+/-)HHMM
-        /// Z (which represents UTC)
-        ///
-        /// No time zone present will default to the device local time zone
-        /// </remarks>
-        public static IExpression StringToMillis(IExpression expression) => 
-            new QueryCompoundExpression("STR_TO_MILLIS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that removes whitespace from the start and end of a string
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that removes whitespace from the start and end of a string</returns>
+    public static IExpression Trim(IExpression expression) => 
+        new QueryCompoundExpression("TRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will convert an ISO8601 datetime string
-        /// into a full ISO8601 UTC datetime string.
-        /// </summary>
-        /// <param name="expression">The expression to take data from when converting</param>
-        /// <returns>A function that will convert the string to a timestamp</returns>
-        /// <remarks>
-        /// Valid date strings must start with a date in the form YYYY-MM-DD (time
-        /// only strings are not supported).
-        ///
-        /// Times can be of the form HH:MM, HH:MM:SS, or HH:MM:SS.FFF.  Leading zero is
-        /// not optional (i.e. 02 is ok, 2 is not).  Hours are in 24-hour format.  FFF
-        /// represents milliseconds, and *trailing* zeros are optional (i.e. 5 == 500).
-        ///
-        /// Time zones can be in one of three forms:
-        /// (+/-)HH:MM
-        /// (+/-)HHMM
-        /// Z (which represents UTC)
-        ///
-        /// No time zone present will default to the device local time zone
-        /// </remarks>
-        public static IExpression StringToUTC(IExpression expression) => 
-            new QueryCompoundExpression("STR_TO_UTC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will truncate the given expression (i.e. remove all the
+    /// digits after the decimal place)
+    /// in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that will truncate the expression</returns>
+    public static IExpression Trunc(IExpression expression) => 
+        new QueryCompoundExpression("TRUNC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        /// <summary>
-        /// Creates a function that will calculate the sum of the
-        /// expression in question across the results in a particular query
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will calculate the sum</returns>
-        public static IExpression Sum(IExpression expression) => 
-            new QueryCompoundExpression("SUM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    /// <summary>
+    /// Creates a function that will truncate the given expression to the number of digits indicated
+    /// in question
+    /// </summary>
+    /// <param name="expression">The numeric expression to take data from when calculating 
+    /// the result</param>
+    /// <param name="digits">The number of digits to truncate to</param>
+    /// <returns>A function that will truncate the expression</returns>
+    public static IExpression Trunc(IExpression expression, IExpression digits) => 
+        new QueryCompoundExpression("TRUNC()",
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(digits), digits));
 
-        /// <summary>
-        /// Creates a function that returns the tangent of the expression in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to evaluate</param>
-        /// <returns>A function that returns the tangent of the expression in question</returns>
-        public static IExpression Tan(IExpression expression) => 
-            new QueryCompoundExpression("TAN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
-        /// <summary>
-        /// Creates a function that removes whitespace from the start and end of a string
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that removes whitespace from the start and end of a string</returns>
-        public static IExpression Trim(IExpression expression) => 
-            new QueryCompoundExpression("TRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
-        /// <summary>
-        /// Creates a function that will truncate the given expression (i.e remove all the
-        /// digits after the decimal place)
-        /// in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will truncate the expression</returns>
-        public static IExpression Trunc(IExpression expression) => 
-            new QueryCompoundExpression("TRUNC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
-        /// <summary>
-        /// Creates a function that will truncate the given expression to the number of digits indicated
-        /// in question
-        /// </summary>
-        /// <param name="expression">The numeric expression to take data from when calculating 
-        /// the result</param>
-        /// <param name="digits">The number of digits to truncate to</param>
-        /// <returns>A function that will truncate the expression</returns>
-        public static IExpression Trunc(IExpression expression, IExpression digits) => 
-            new QueryCompoundExpression("TRUNC()",
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
-                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(digits), digits));
-
-        /// <summary>
-        /// Creates a function that converts a string to upper case
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that converts a string to upper case</returns>
-        public static IExpression Upper(IExpression expression) => 
-            new QueryCompoundExpression("UPPER()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
-        #endregion
-    }
+    /// <summary>
+    /// Creates a function that converts a string to upper case
+    /// </summary>
+    /// <param name="expression">The expression to take data from when calculating
+    /// the result</param>
+    /// <returns>A function that converts a string to upper case</returns>
+    public static IExpression Upper(IExpression expression) => 
+        new QueryCompoundExpression("UPPER()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 }

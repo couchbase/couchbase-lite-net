@@ -19,75 +19,58 @@ using System;
 
 using Couchbase.Lite.Internal.Query;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// Arguments for the <see cref="IChangeObservable{TEventType}.AddChangeListener(EventHandler{TEventType})" /> event
+/// </summary>
+public sealed class QueryChangedEventArgs : EventArgs
 {
     /// <summary>
-    /// Arguments for the <see cref="IChangeObservable{TEventType}.AddChangeListener(EventHandler{TEventType})" /> event
+    /// Gets the error that occurred, if any
     /// </summary>
-    public sealed class QueryChangedEventArgs : EventArgs
-    {
-        #region Properties
-
-        /// <summary>
-        /// Gets the error that occurred, if any
-        /// </summary>
-        public Exception? Error { get; }
-
-        /// <summary>
-        /// Gets the updated rows of the query
-        /// </summary>
-        public IResultSet Results { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal QueryChangedEventArgs(IResultSet? rows, Exception? e = null)
-        {
-            Results = rows ?? new NullResultSet();
-            Error = e;
-        }
-
-        #endregion
-    }
+    public Exception? Error { get; }
 
     /// <summary>
-    /// An interface representing a runnable query over a data source
+    /// Gets the updated rows of the query
     /// </summary>
-    public interface IQuery : IChangeObservable<QueryChangedEventArgs>, IDisposable
+    public IResultSet Results { get; }
+
+    internal QueryChangedEventArgs(IResultSet? rows, Exception? e = null)
     {
-        #region Properties
-
-        /// <summary>
-        /// Gets or sets the parameter collection for this query so that parameters may be
-        /// added for substitution into the query API (via <see cref="Expression.Parameter(string)"/>)
-        /// </summary>
-        /// <remarks>
-        /// The returned collection is a copy, and must be reset onto the query instance.
-        /// Doing so will trigger a re-run and update any listeners.
-        /// </remarks>
-        Parameters Parameters { get; set; }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Runs the query
-        /// </summary>
-        /// <returns>The results of running the query</returns>
-        /// <exception cref="InvalidOperationException">Thrown if this query has
-        /// no database to operate on, or if it is missing SELECT or FROM statements (unusual)</exception>
-        IResultSet Execute();
-
-        /// <summary>
-        /// Gets an explanation of what the query will do
-        /// </summary>
-        /// <returns>The explanation of the query</returns>
-        /// <exception cref="ObjectDisposedException">Thrown if this method is
-        /// called after disposal</exception>
-        string Explain();
-
-        #endregion
+        Results = rows ?? new NullResultSet();
+        Error = e;
     }
+}
+
+/// <summary>
+/// An interface representing a runnable query over a data source
+/// </summary>
+public interface IQuery : IChangeObservable<QueryChangedEventArgs>, IDisposable
+{
+    /// <summary>
+    /// Gets or sets the parameter collection for this query so that parameters may be
+    /// added for substitution into the query API (via <see cref="Expression.Parameter(string)"/>)
+    /// </summary>
+    /// <remarks>
+    /// The returned collection is a copy, and must be reset onto the query instance.
+    /// Doing so will trigger a re-run and update any listeners.
+    /// </remarks>
+    Parameters Parameters { get; set; }
+
+    /// <summary>
+    /// Runs the query
+    /// </summary>
+    /// <returns>The results of running the query</returns>
+    /// <exception cref="InvalidOperationException">Thrown if this query has
+    /// no database to operate on, or if it is missing SELECT or FROM statements (unusual)</exception>
+    IResultSet Execute();
+
+    /// <summary>
+    /// Gets an explanation of what the query will do
+    /// </summary>
+    /// <returns>The explanation of the query</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if this method is
+    /// called after disposal</exception>
+    string Explain();
 }

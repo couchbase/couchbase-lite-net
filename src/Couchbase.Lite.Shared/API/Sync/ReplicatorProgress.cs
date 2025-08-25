@@ -19,113 +19,110 @@
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
-using System;
-using System.Diagnostics.CodeAnalysis;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// A struct describing the current progress of a <see cref="Replicator"/>
+/// </summary>
+public struct ReplicatorProgress
 {
     /// <summary>
-    /// A struct describing the current progress of a <see cref="Replicator"/>
+    /// Gets the number of changes that have finished processing
     /// </summary>
-    public struct ReplicatorProgress
-    {
-        /// <summary>
-        /// Gets the number of changes that have finished processing
-        /// </summary>
-        public ulong Completed { get; }
-
-        /// <summary>
-        /// Gets the current count of changes that have been received for
-        /// processing
-        /// </summary>
-        public ulong Total { get; }
-
-        internal ReplicatorProgress(ulong completed, ulong total)
-        {
-            Completed = completed;
-            Total = total;
-        }
-    }
+    public ulong Completed { get; }
 
     /// <summary>
-    /// A struct describing the current <see cref="Document"/> ended progress 
-    /// of a <see cref="Replicator"/>
+    /// Gets the current count of changes that have been received for
+    /// processing
     /// </summary>
-    public struct ReplicatedDocument
+    public ulong Total { get; }
+
+    internal ReplicatorProgress(ulong completed, ulong total)
     {
-        /// <summary>
-        /// Gets the collection name of replicated document
-        /// </summary>
-        public string CollectionName { get; }
+        Completed = completed;
+        Total = total;
+    }
+}
 
-        /// <summary>
-        /// Gets the scope name of replicated document
-        /// </summary>
-        public string ScopeName { get; }
+/// <summary>
+/// A struct describing the current <see cref="Document"/> ended progress 
+/// of a <see cref="Replicator"/>
+/// </summary>
+public struct ReplicatedDocument
+{
+    /// <summary>
+    /// Gets the collection name of replicated document
+    /// </summary>
+    public string CollectionName { get; }
 
-        /// <summary>
-        /// Gets the special flags, if any, for this replicated document
-        /// </summary>
-        public DocumentFlags Flags { get; }
+    /// <summary>
+    /// Gets the scope name of replicated document
+    /// </summary>
+    public string ScopeName { get; }
 
-        /// <summary>
-        /// Gets the document ID of the document that was replicated
-        /// </summary>
-        public string Id { get; }
+    /// <summary>
+    /// Gets the special flags, if any, for this replicated document
+    /// </summary>
+    public DocumentFlags Flags { get; }
 
-        /// <summary>
-        /// Gets the error that occurred during replication, if any.
-        /// </summary>
-        public CouchbaseException? Error { get; internal set; }
+    /// <summary>
+    /// Gets the document ID of the document that was replicated
+    /// </summary>
+    public string Id { get; }
 
-        internal bool IsTransient { get; }
+    /// <summary>
+    /// Gets the error that occurred during replication, if any.
+    /// </summary>
+    public CouchbaseException? Error { get; internal set; }
 
-        internal C4Error NativeError { get; }
+    internal bool IsTransient { get; }
 
-        internal ReplicatedDocument(string docID, C4CollectionSpec collectionSpec, C4RevisionFlags flags, C4Error error,
-            bool isTransient)
-        {
-            Id = docID;
-            CollectionName = collectionSpec.name.CreateString()!;
-            ScopeName = collectionSpec.scope.CreateString()!;
-            Flags = flags.ToDocumentFlags();
-            NativeError = error;
-            Error = error.domain == 0 ? null : CouchbaseException.Create(error);
-            IsTransient = isTransient;
-        }
+    internal C4Error NativeError { get; }
 
-        private ReplicatedDocument(string docID, string collectionName, string scopeName, DocumentFlags flags, C4Error error,
-            bool isTransient)
-        {
-            Id = docID;
-            CollectionName = collectionName;
-            ScopeName = scopeName;
-            Flags = flags;
-            NativeError = error;
-            Error = error.domain == 0 ? null : CouchbaseException.Create(error);
-            IsTransient = isTransient;
-        }
+    internal ReplicatedDocument(string docID, C4CollectionSpec collectionSpec, C4RevisionFlags flags, C4Error error,
+        bool isTransient)
+    {
+        Id = docID;
+        CollectionName = collectionSpec.name.CreateString()!;
+        ScopeName = collectionSpec.scope.CreateString()!;
+        Flags = flags.ToDocumentFlags();
+        NativeError = error;
+        Error = error.domain == 0 ? null : CouchbaseException.Create(error);
+        IsTransient = isTransient;
+    }
 
-        internal ReplicatedDocument ClearError()
-        {
-            return new ReplicatedDocument(Id, CollectionName, ScopeName, Flags, new C4Error(), IsTransient);
-        }
+    private ReplicatedDocument(string docID, string collectionName, string scopeName, DocumentFlags flags, C4Error error,
+        bool isTransient)
+    {
+        Id = docID;
+        CollectionName = collectionName;
+        ScopeName = scopeName;
+        Flags = flags;
+        NativeError = error;
+        Error = error.domain == 0 ? null : CouchbaseException.Create(error);
+        IsTransient = isTransient;
+    }
 
-        /// <inheritdoc />
-        public override string ToString()
-        {
-            var retVal = $"ReplicatedDocument[ Doc ID: {Id}; " +
-                   $"Flags: {Flags};" +
-                   $"Collection Name: {CollectionName};" +
-                   $"Scope Name: {ScopeName};";
+    internal ReplicatedDocument ClearError()
+    {
+        return new ReplicatedDocument(Id, CollectionName, ScopeName, Flags, new C4Error(), IsTransient);
+    }
 
-            if (Error != null) {
-                retVal += $"Error domain: {Error.Domain}; " +
+    /// <inheritdoc />
+    public override string ToString()
+    {
+        var retVal = $"ReplicatedDocument[ Doc ID: {Id}; " +
+            $"Flags: {Flags};" +
+            $"Collection Name: {CollectionName};" +
+            $"Scope Name: {ScopeName};";
+
+        if (Error != null) {
+            retVal += $"Error domain: {Error.Domain}; " +
                 $"Error code: {Error.Error}; " +
                 $"IsTransient: {IsTransient} ]";
-            }
-
-            return retVal;
         }
+
+        return retVal;
     }
 }

@@ -16,67 +16,66 @@
 // limitations under the License.
 // 
 
+using System;
+
 using Couchbase.Lite.Internal.Query;
 using LiteCore.Interop;
 using System.Globalization;
 using Couchbase.Lite.Info;
 
-namespace Couchbase.Lite.Query
+#if !NET8_0_OR_GREATER
+#pragma warning disable CS8601 // Possible null reference assignment.
+#endif
+
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A class for an index based on full text searching
+/// </summary>
+public sealed record FullTextIndexConfiguration : IndexConfiguration
 {
     /// <summary>
-    /// An class for an index based on full text searching
+    /// Gets whether to ignore accents when performing 
+    /// the full text search
+    /// Default value is <see cref="Constants.DefaultFullTextIndexIgnoreAccents" />
     /// </summary>
-    public sealed record FullTextIndexConfiguration : IndexConfiguration
+    public bool IgnoreAccents { get; }
+
+    /// <summary>
+    /// Gets the locale to use when performing full text searching
+    /// </summary>
+    public string Language { get; } = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+
+    internal override C4IndexOptions Options => new C4IndexOptions
     {
-        #region Properties
+        ignoreDiacritics = IgnoreAccents,
+        language = Language
+    };
 
-        /// <summary>
-        /// Gets whether or not to ignore accents when performing 
-        /// the full text search
-        /// Default value is <see cref="Constants.DefaultFullTextIndexIgnoreAccents" />
-        /// </summary>
-        public bool IgnoreAccents { get; }
-
-        /// <summary>
-        /// Gets the locale to use when performing full text searching
-        /// </summary>
-        public string Language { get; } = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
-
-        internal override C4IndexOptions Options => new C4IndexOptions {
-            ignoreDiacritics = IgnoreAccents,
-            language = Language
-        };
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Starts the creation of an index based on a full text search
-        /// </summary>
-        /// <param name="expressions">The expressions to use to create the index</param>
-        /// <param name="ignoreAccents">The boolean value to ignore accents when performing the full text search</param>
-        /// <param name="locale">The locale to use when performing full text searching</param>
-        /// <returns>The beginning of an FTS based index</returns>
-        public FullTextIndexConfiguration(string[] expressions, bool ignoreAccents = false, 
-            string? locale = null)
-            : base(C4IndexType.FullTextIndex, expressions)
-        {
-            IgnoreAccents = ignoreAccents;
-            if (!string.IsNullOrEmpty(locale)) {
-                Language = locale!;
-            }
+    /// <summary>
+    /// Starts the creation of an index based on a full text search
+    /// </summary>
+    /// <param name="expressions">The expressions to use to create the index</param>
+    /// <param name="ignoreAccents">The boolean value to ignore accents when performing the full text search</param>
+    /// <param name="locale">The locale to use when performing full text searching</param>
+    /// <returns>The beginning of an FTS based index</returns>
+    public FullTextIndexConfiguration(string[] expressions, bool ignoreAccents = false,
+        string? locale = null)
+        : base(C4IndexType.FullTextIndex, expressions)
+    {
+        IgnoreAccents = ignoreAccents;
+        if (!String.IsNullOrEmpty(locale)) {
+            Language = locale;
         }
+    }
 
-        /// <summary>
-        /// Starts the creation of an index based on a full text search
-        /// </summary>
-        /// <param name="expressions">The expressions to use to create the index</param>
-        /// <returns>The beginning of an FTS based index</returns>
-        public FullTextIndexConfiguration(params string[] expressions)
-            : base(C4IndexType.FullTextIndex, expressions)
-        {
-        }
-
-        #endregion
+    /// <summary>
+    /// Starts the creation of an index based on a full text search
+    /// </summary>
+    /// <param name="expressions">The expressions to use to create the index</param>
+    /// <returns>The beginning of an FTS based index</returns>
+    public FullTextIndexConfiguration(params string[] expressions)
+        : base(C4IndexType.FullTextIndex, expressions)
+    {
     }
 }

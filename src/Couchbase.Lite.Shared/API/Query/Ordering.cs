@@ -20,38 +20,29 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A factory class for generating <see cref="ISortOrder"/> objects
+/// </summary>
+public static class Ordering
 {
+    private const string Tag = nameof(Ordering);
+    
     /// <summary>
-    /// A factory class for generating <see cref="ISortOrder"/> objects
+    /// Creates an object that will sort based on the given expression
     /// </summary>
-    public static class Ordering
-    {
-        #region Constants
+    /// <param name="expression">The expression to use when sorting</param>
+    /// <returns>The object that will perform the sort</returns>
+    public static ISortOrder Expression(IExpression expression) => 
+        new SortOrder(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        private const string Tag = nameof(Ordering);
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Creates an object that will sort based on the given expression
-        /// </summary>
-        /// <param name="expression">The expression to use when sorting</param>
-        /// <returns>The object that will perform the sort</returns>
-        public static ISortOrder Expression(IExpression expression) => 
-            new SortOrder(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
-        /// <summary>
-        /// Creates an object that will sort based on the value in the given
-        /// property path
-        /// </summary>
-        /// <param name="property">The path of the property whose value will be used
-        /// to sort the results of the query</param>
-        /// <returns>The object that will perform the sort</returns>
-        public static ISortOrder Property(string property) => Expression(Lite.Query.Expression.Property(property));
-
-        #endregion
-    }
+    /// <summary>
+    /// Creates an object that will sort based on the value in the given
+    /// property path
+    /// </summary>
+    /// <param name="property">The path of the property whose value will be used
+    /// to sort the results of the query</param>
+    /// <returns>The object that will perform the sort</returns>
+    public static ISortOrder Property(string property) => Expression(Query.Expression.Property(property));
 }

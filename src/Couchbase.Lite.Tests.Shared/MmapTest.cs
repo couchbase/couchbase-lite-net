@@ -99,7 +99,7 @@ namespace Test
             Database.Delete("test", null);
             using var db = new Database("test", config);
             db.Config.MmapEnabled.ShouldBe(useMmap, "because otherwise MmapEnabled was not saved to the db's config");
-            var c4db = db.c4db;
+            var c4db = db.C4db;
             c4db.ShouldNotBeNull();
             var nativeConfig = TestNative.c4db_getConfig2(c4db!.RawDatabase);
             var hasFlag = (nativeConfig->flags & C4DatabaseFlags.MmapDisabled) == C4DatabaseFlags.MmapDisabled;

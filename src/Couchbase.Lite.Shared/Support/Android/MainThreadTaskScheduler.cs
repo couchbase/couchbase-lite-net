@@ -18,7 +18,6 @@
 #if __ANDROID__
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Android.Content;
@@ -28,78 +27,48 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
 {
-    internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
+    private const string Tag = nameof(MainThreadTaskScheduler);
+
+    private readonly Handler _handler;
+
+    public bool IsMainThread => Looper.MainLooper == Looper.MyLooper();
+
+    public MainThreadTaskScheduler(Context context)
     {
-        #region Constants
-
-        private const string Tag = nameof(MainThreadTaskScheduler);
-
-        #endregion
-
-        #region Variables
-
-        private Handler _handler;
-
-        #endregion
-
-        #region Properties
-
-        public bool IsMainThread => Looper.MainLooper == Looper.MyLooper();
-
-        #endregion
-
-        #region Constructors
-
-        public MainThreadTaskScheduler(Context context)
-        {
-            if(context.MainLooper == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
-                    "Context Main Looper is null, cannot create MainTaskScheduler!");
-            }
-
-            _handler = new Handler(context.MainLooper);
+        if(context.MainLooper == null) {
+            throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
+                "Context Main Looper is null, cannot create MainTaskScheduler!");
         }
 
-        #endregion
-
-        #region Overrides
-
-        protected override IEnumerable<Task> GetScheduledTasks()
-        {
-            throw new NotSupportedException();
-        }
-
-        protected override void QueueTask(Task task)
-        {
-            _handler.Post(() =>
-            {
-                if (!TryExecuteTask(task)) {
-                    WriteLog.To.Database.W(Tag, "Failed to execute a task in MainThreadTaskScheduler");
-                }
-            });
-        }
-
-        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
-        {
-            if (taskWasPreviouslyQueued || !IsMainThread) {
-                return false;
-            }
-
-            return TryExecuteTask(task);
-        }
-
-        #endregion
-
-        #region IMainThreadTaskScheduler
-
-        public TaskScheduler AsTaskScheduler()
-        {
-            return this;
-        }
-
-        #endregion
+        _handler = new Handler(context.MainLooper);
     }
+
+    protected override IEnumerable<Task> GetScheduledTasks() => throw new NotSupportedException();
+
+    protected override void QueueTask(Task task)
+    {
+        _handler.Post(() =>
+        {
+            if (!TryExecuteTask(task)) {
+                WriteLog.To.Database.W(Tag, "Failed to execute a task in MainThreadTaskScheduler");
+            }
+        });
+    }
+
+    protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
+    {
+        if (taskWasPreviouslyQueued || !IsMainThread) {
+            return false;
+        }
+
+        return TryExecuteTask(task);
+    }
+
+    public TaskScheduler AsTaskScheduler() => this;
 }
+
 #endif

@@ -24,153 +24,122 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// An enum describing the state of network connectivity
+/// </summary>
+public enum NetworkReachabilityStatus
 {
     /// <summary>
-    /// An enum describing the state of network connectivity
+    /// Unable to determine
     /// </summary>
-    public enum NetworkReachabilityStatus
-    {
-        /// <summary>
-        /// Unable to determine
-        /// </summary>
-        Unknown,
+    Unknown,
         
-        /// <summary>
-        /// The network endpoint is reachable
-        /// </summary>
-        Reachable,
-
-        /// <summary>
-        /// The network endpoint is not reachable
-        /// </summary>
-        Unreachable
-    }
+    /// <summary>
+    /// The network endpoint is reachable
+    /// </summary>
+    Reachable,
 
     /// <summary>
-    /// Arguments to the <see cref="IReachability.StatusChanged" /> event
+    /// The network endpoint is not reachable
     /// </summary>
-    public sealed class NetworkReachabilityChangeEventArgs : EventArgs
+    Unreachable
+}
+
+/// <summary>
+/// Arguments to the <see cref="IReachability.StatusChanged" /> event
+/// </summary>
+public sealed class NetworkReachabilityChangeEventArgs : EventArgs
+{
+    /// <summary>
+    /// The new reachability status
+    /// </summary>
+    public NetworkReachabilityStatus Status { get; }
+
+    /// <summary>
+    /// Default Constructor
+    /// </summary>
+    /// <param name="status">The network status to send</param>
+    public NetworkReachabilityChangeEventArgs(NetworkReachabilityStatus status)
     {
-        #region Properties
+        Status = status;
+    }
+}
 
-        /// <summary>
-        /// The new reachability status
-        /// </summary>
-        public NetworkReachabilityStatus Status { get; }
+internal sealed class Reachability : IReachability
+{
+    private const string Tag = nameof(Reachability);
 
-        #endregion
+    // ReSharper disable once FieldCanBeMadeReadOnly.Global
+    // ReSharper disable once MemberCanBePrivate.Global
+    internal static bool AllowLoopback = false; // For unit tests
 
-        #region Constructors
+    public event EventHandler<NetworkReachabilityChangeEventArgs>? StatusChanged;
 
-        /// <summary>
-        /// Default Constructor
-        /// </summary>
-        /// <param name="status">The network status to send</param>
-        public NetworkReachabilityChangeEventArgs(NetworkReachabilityStatus status)
-        {
-            Status = status;
-        }
+    public Uri? Url { get; set; }
 
-        #endregion
+    internal void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
+    {
+        var eventArgs = new NetworkReachabilityChangeEventArgs(status);
+        StatusChanged?.Invoke(this, eventArgs);
     }
 
-    internal sealed class Reachability : IReachability
+    private static bool IsInterfaceValid(NetworkInterface ni)
     {
-        #region Constants
-
-        private const string Tag = nameof(Reachability);
-
-        #endregion
-
-        #region Variables
-
-        internal static bool AllowLoopback = false; // For unit tests
-
-        public event EventHandler<NetworkReachabilityChangeEventArgs>? StatusChanged;
-
-        #endregion
-
-        #region Properties
-
-        public Uri? Url { get; set; }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
-        {
-            var eventArgs = new NetworkReachabilityChangeEventArgs(status);
-            StatusChanged?.Invoke(this, eventArgs);
+        WriteLog.To.Sync.V(Tag, "    Testing {0} ({1})...", ni.Name, ni.Description);
+        if (ni.OperationalStatus != OperationalStatus.Up) {
+            WriteLog.To.Sync.V(Tag, "    NIC invalid (not up)");
+            return false;
         }
 
-        #endregion
-
-        #region Private Methods
-
-        private static bool IsInterfaceValid(NetworkInterface ni)
-        {
-            WriteLog.To.Sync.V(Tag, "    Testing {0} ({1})...", ni.Name, ni.Description);
-            if (ni.OperationalStatus != OperationalStatus.Up) {
-                WriteLog.To.Sync.V(Tag, "    NIC invalid (not up)");
-                return false;
-            }
-
-            if ((!AllowLoopback && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) || ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel
-                || ni.Description.IndexOf("Loopback", StringComparison.OrdinalIgnoreCase) >= 0) {
-                WriteLog.To.Sync.V(Tag, "    NIC invalid (not outward facing)");
-                return false;
-            }
-
-            if (ni.Description.IndexOf("virtual", StringComparison.OrdinalIgnoreCase) >= 0) {
-                WriteLog.To.Sync.V(Tag, "    NIC invalid (virtual)");
-                return false;
-            }
-
-            WriteLog.To.Sync.I(Tag, "Found Acceptable NIC {0} ({1})", ni.Name, ni.Description);
-            return true;
+        if ((!AllowLoopback && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) || ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel
+            || ni.Description.IndexOf("Loopback", StringComparison.OrdinalIgnoreCase) >= 0) {
+            WriteLog.To.Sync.V(Tag, "    NIC invalid (not outward facing)");
+            return false;
         }
 
-        private void OnNetworkChange(object? sender, EventArgs e)
-        {
-            WriteLog.To.Sync.I(Tag, "Network change detected, analyzing connection status...");
-            NetworkReachabilityStatus status;
-            // https://social.msdn.microsoft.com/Forums/vstudio/en-US/a6b3541b-b7de-49e2-a7a6-ba0687761af5/networkavailabilitychanged-event-does-not-fire
-            if (!NetworkInterface.GetIsNetworkAvailable()) {
-                WriteLog.To.Sync.I(Tag, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
+        if (ni.Description.IndexOf("virtual", StringComparison.OrdinalIgnoreCase) >= 0) {
+            WriteLog.To.Sync.V(Tag, "    NIC invalid (virtual)");
+            return false;
+        }
+
+        WriteLog.To.Sync.I(Tag, "Found Acceptable NIC {0} ({1})", ni.Name, ni.Description);
+        return true;
+    }
+
+    private void OnNetworkChange(object? sender, EventArgs e)
+    {
+        WriteLog.To.Sync.I(Tag, "Network change detected, analyzing connection status...");
+        NetworkReachabilityStatus status;
+        // https://social.msdn.microsoft.com/Forums/vstudio/en-US/a6b3541b-b7de-49e2-a7a6-ba0687761af5/networkavailabilitychanged-event-does-not-fire
+        if (!NetworkInterface.GetIsNetworkAvailable()) {
+            WriteLog.To.Sync.I(Tag, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
+            status = NetworkReachabilityStatus.Unreachable;
+        } else {
+            var firstValidIP = NetworkInterface.GetAllNetworkInterfaces().Where(IsInterfaceValid)
+                .SelectMany(x => x.GetIPProperties().UnicastAddresses)
+                .Select(x => x.Address).FirstOrDefault();
+
+            if (firstValidIP == null) {
+                WriteLog.To.Sync.I(Tag, "No acceptable IP addresses found, signaling network unreachable");
                 status = NetworkReachabilityStatus.Unreachable;
             } else {
-                var firstValidIP = NetworkInterface.GetAllNetworkInterfaces().Where(IsInterfaceValid)
-                    .SelectMany(x => x.GetIPProperties().UnicastAddresses)
-                    .Select(x => x.Address).FirstOrDefault();
-
-                if (firstValidIP == null) {
-                    WriteLog.To.Sync.I(Tag, "No acceptable IP addresses found, signaling network unreachable");
-                    status = NetworkReachabilityStatus.Unreachable;
-                } else {
-                    WriteLog.To.Sync.I(Tag, "At least one acceptable IP address found ({0}), signaling network reachable", new SecureLogString(firstValidIP, LogMessageSensitivity.PotentiallyInsecure));
-                    status = NetworkReachabilityStatus.Reachable;
-                }
+                WriteLog.To.Sync.I(Tag, "At least one acceptable IP address found ({0}), signaling network reachable", new SecureLogString(firstValidIP, LogMessageSensitivity.PotentiallyInsecure));
+                status = NetworkReachabilityStatus.Reachable;
             }
-
-            InvokeNetworkChangeEvent(status);
         }
 
-        #endregion
+        InvokeNetworkChangeEvent(status);
+    }
 
-        #region IReachability
+    public void Start()
+    {
+        NetworkChange.NetworkAddressChanged += OnNetworkChange;
+    }
 
-        public void Start()
-        {
-            NetworkChange.NetworkAddressChanged += OnNetworkChange;
-        }
-
-        public void Stop()
-        {
-            NetworkChange.NetworkAddressChanged -= OnNetworkChange;
-        }
-
-        #endregion
+    public void Stop()
+    {
+        NetworkChange.NetworkAddressChanged -= OnNetworkChange;
     }
 }

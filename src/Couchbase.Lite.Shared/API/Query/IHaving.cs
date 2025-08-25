@@ -16,12 +16,10 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
-{
-    /// <summary>
-    /// An interface representing the HAVING portion of a query (i.e. WHERE clause
-    /// intended for a GROUP BY clause)
-    /// </summary>
-    public interface IHaving : IQuery, IOrderByRouter, ILimitRouter
-    {}
-}
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing the HAVING portion of a query (i.e. WHERE clause
+/// intended for a GROUP BY clause)
+/// </summary>
+public interface IHaving : IQuery, IOrderByRouter, ILimitRouter;

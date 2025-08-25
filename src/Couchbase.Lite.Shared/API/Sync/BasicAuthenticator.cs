@@ -17,89 +17,71 @@
 // 
 
 using System;
-using System.Diagnostics;
 using System.Security;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite.Sync;
+
+/// <summary>
+/// An object that will authenticate a <see cref="Replicator"/> using
+/// HTTP Basic authentication
+/// </summary>
+public sealed class BasicAuthenticator : Authenticator
 {
+    private const string Tag = nameof(BasicAuthenticator);
+
     /// <summary>
-    /// An object that will authenticate a <see cref="Replicator"/> using
-    /// HTTP Basic authentication
+    /// Gets the username that this object holds
     /// </summary>
-    public sealed class BasicAuthenticator : Authenticator
+    public string Username { get; }
+
+    /// <summary>
+    /// Gets the password that this object holds
+    /// </summary>
+    public string Password { get; } = "";
+
+    /// <summary>
+    /// Gets the password that this object holds
+    /// </summary>
+    public SecureString PasswordSecureString { get; } = new SecureString();
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="username">The username to send through HTTP Basic authentication</param>
+    /// <param name="password">The password to send through HTTP Basic authentication</param>
+    public BasicAuthenticator(string username, string password)
     {
-        #region Constants
+        Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
+        Password = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
+    }
 
-        private const string Tag = nameof(BasicAuthenticator);
+    /// <summary>
+    /// Construct a basic authenticator with username and password
+    /// </summary>
+    /// <param name="username">The username to send through HTTP Basic authentication</param>
+    /// <param name="password">The password to send through HTTP Basic authentication</param>
+    public BasicAuthenticator(string username, SecureString password)
+    {
+        Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
+        PasswordSecureString = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
+    }
 
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the username that this object holds
-        /// </summary>
-        public string Username { get; }
-
-        /// <summary>
-        /// [DEPRECATED] Gets the password that this object holds
-        /// </summary>
-        public string Password { get; } = "";
-
-        /// <summary>
-        /// Gets the password that this object holds
-        /// </summary>
-        public SecureString PasswordSecureString { get; } = new SecureString();
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="username">The username to send through HTTP Basic authentication</param>
-        /// <param name="password">The password to send through HTTP Basic authentication</param>
-        public BasicAuthenticator(string username, string password)
+    internal override void Authenticate(ReplicatorOptionsDictionary options)
+    {
+        var authDict = new AuthOptionsDictionary
         {
-            Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
-            Password = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
+            Username = Username,
+            Type = AuthType.HttpBasic
+        };
+
+        if (String.IsNullOrEmpty(Password)) {
+            authDict.PasswordSecureString = PasswordSecureString;
+        } else {
+            authDict.Password = Password;
         }
 
-        /// <summary>
-        /// Construct a basic authenticator with username and password
-        /// </summary>
-        /// <param name="username">The username to send through HTTP Basic authentication</param>
-        /// <param name="password">The password to send through HTTP Basic authentication</param>
-        public BasicAuthenticator(string username, SecureString password)
-        {
-            Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
-            PasswordSecureString = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
-        }
-
-        #endregion
-
-        #region Overrides
-
-        internal override void Authenticate(ReplicatorOptionsDictionary options)
-        {
-            var authDict = new AuthOptionsDictionary
-            {
-                Username = Username,
-                Type = AuthType.HttpBasic
-            };
-
-            // TODO string Password will be deprecated and replaced with byte array password
-            if (String.IsNullOrEmpty(Password))
-                authDict.PasswordSecureString = PasswordSecureString;
-            else
-                authDict.Password = Password;
-
-            options.Auth = authDict;
-        }
-
-        #endregion
+        options.Auth = authDict;
     }
 }

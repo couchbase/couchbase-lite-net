@@ -16,84 +16,51 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class QueryGroupBy : LimitedQuery, IGroupBy
 {
-    internal sealed class QueryGroupBy : LimitedQuery, IGroupBy
+    private const string Tag = nameof(QueryGroupBy);
+
+    private readonly IList<IExpression> _expressions;
+
+    internal QueryGroupBy(IList<IExpression> expressions)
     {
-        #region Constants
+        _expressions = expressions;
+        GroupByImpl = this;
+    }
 
-        private const string Tag = nameof(QueryGroupBy);
+    internal QueryGroupBy(XQuery query, IList<IExpression> expressions)
+        : this(expressions)
+    {
+        Copy(query);
+        GroupByImpl = this;
+    }
 
-        #endregion
+    internal QueryGroupBy(IExpression expression)
+    {
+        _expressions = [expression];
+        GroupByImpl = this;
+    }
 
-        #region Variables
+    public object ToJSON() =>
+        _expressions.OfType<QueryExpression>()
+            .Select(o => o.ConvertToJSON()).ToList();
 
-        private readonly IList<IExpression> _expressions;
+    public IHaving Having(IExpression expression)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
+        return new Having(this, expression);
+    }
 
-        #endregion
-
-        #region Constructors
-
-        internal QueryGroupBy(IList<IExpression> expressions)
-        {
-            _expressions = expressions;
-            GroupByImpl = this;
-        }
-
-        internal QueryGroupBy(XQuery query, IList<IExpression> expressions)
-            : this(expressions)
-        {
-            Copy(query);
-            GroupByImpl = this;
-        }
-
-        internal QueryGroupBy(IExpression expression)
-        {
-            _expressions = [expression];
-            GroupByImpl = this;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public object ToJSON()
-        {
-            var obj = new List<object?>();
-            foreach (var o in _expressions.OfType<QueryExpression>()) {
-                obj.Add(o.ConvertToJSON());
-            }
-
-            return obj;
-        }
-
-        #endregion
-
-        #region IHavingRouter
-
-        public IHaving Having(IExpression expression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
-            return new Having(this, expression);
-        }
-
-        #endregion
-
-        #region IOrderByRouter
-
-        public IOrderBy OrderBy(params IOrdering[] orderings)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
-            return new QueryOrderBy(this, orderings);
-        }
-
-        #endregion
+    public IOrderBy OrderBy(params IOrdering[] orderings)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
+        return new QueryOrderBy(this, orderings);
     }
 }

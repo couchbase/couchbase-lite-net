@@ -15,28 +15,22 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Text;
+namespace Couchbase.Lite;
 
-namespace Couchbase.Lite
+internal static partial class CouchbaseLiteErrorMessage
 {
-    internal static partial class CouchbaseLiteErrorMessage
-    {
-        //Database - Copy
-        internal const string ResolveDefaultDirectoryFailed = "Failed to resolve a default directory! If you have overriden the default directory, please check it.  Otherwise please file a bug report.";
-        //Replicator Start()
-        internal const string ReplicatorDisposed = "Replication cannot be started after disposal";
-        //MArray MDict <--- in the future, we will replace them with LiteCore Mutable Fleece API
-        internal const string CannotRemoveItemsFromNonMutableMArray = "Cannot remove items from a non-mutable array";
-        internal const string CannotRemoveStartingFromIndexLessThan = "Cannot remove starting from an index less than 0 (got {0})";
-        internal const string CannotRemoveRangeEndsBeforeItStarts = "Cannot remove a range that ends before it starts (got start= {0}, count = {1} )";
-        internal const string RangeEndForRemoveExceedsArrayLength = "Range end for remove exceeds the length of the array(got start = {0}, count = {1} )";
-        internal const string CannotSetItemsInNonMutableMArray = "Cannot set items in a non-mutable array";
-        internal const string CannotClearNonMutableMArray = "Cannot clear a non-mutable array";
-        internal const string CannotInsertItemsInNonMutableMArray = "Cannot insert items in a non-mutable array";
-        internal const string CannotClearNonMutableMDict = "Cannot clear a non-mutable MDict";
-        internal const string CannotSetItemsInNonMutableInMDict = "Cannot set items in a non-mutable MDict";
-        internal const string CreateCertAttributeEmpty = "Attribute used to create TLSIdentity cannot be null or empty";
-    }
+    //Database - Copy
+    internal const string ResolveDefaultDirectoryFailed = "Failed to resolve a default directory! If you have overriden the default directory, please check it.  Otherwise please file a bug report.";
+    //Replicator Start()
+    internal const string ReplicatorDisposed = "Replication cannot be started after disposal";
+    //MArray MDict <--- in the future, we will replace them with LiteCore Mutable Fleece API
+    internal const string CannotRemoveItemsFromNonMutableMArray = "Cannot remove items from a non-mutable array";
+    internal const string CannotRemoveStartingFromIndexLessThan = "Cannot remove starting from an index less than 0 (got {0})";
+    internal const string CannotRemoveRangeEndsBeforeItStarts = "Cannot remove a range that ends before it starts (got start= {0}, count = {1} )";
+    internal const string RangeEndForRemoveExceedsArrayLength = "Range end for remove exceeds the length of the array(got start = {0}, count = {1} )";
+    internal const string CannotSetItemsInNonMutableMArray = "Cannot set items in a non-mutable array";
+    internal const string CannotClearNonMutableMArray = "Cannot clear a non-mutable array";
+    internal const string CannotClearNonMutableMDict = "Cannot clear a non-mutable MDict";
+    internal const string CannotSetItemsInNonMutableInMDict = "Cannot set items in a non-mutable MDict";
+    internal const string CreateCertAttributeEmpty = "Attribute used to create TLSIdentity cannot be null or empty";
 }

@@ -20,33 +20,28 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A factory class for creating <see cref="IIndex"/> instances
+/// </summary>
+public static partial class IndexBuilder
 {
+    private const string Tag = nameof(IndexBuilder);
+
     /// <summary>
-    /// A factory class for creating <see cref="IIndex"/> instances
+    /// Starts the creation of an index based on a simple property
     /// </summary>
-    public static partial class IndexBuilder
-    {
-        #region Constants
+    /// <param name="items">The items to use to create the index</param>
+    /// <returns>The beginning of a value based index</returns>
+    public static IValueIndex ValueIndex(params IValueIndexItem[] items) => 
+        new QueryIndex((IValueIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
 
-        private const string Tag = nameof(IndexBuilder);
-
-        #endregion
-
-        /// <summary>
-        /// Starts the creation of an index based on a simple property
-        /// </summary>
-        /// <param name="items">The items to use to create the index</param>
-        /// <returns>The beginning of a value based index</returns>
-        public static IValueIndex ValueIndex(params IValueIndexItem[] items) => 
-            new QueryIndex((IValueIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
-
-        /// <summary>
-        /// Starts the creation of an index based on a full text search
-        /// </summary>
-        /// <param name="items">The items to use to create the index</param>
-        /// <returns>The beginning of an FTS based index</returns>
-        public static IFullTextIndex FullTextIndex(params IFullTextIndexItem[] items) => 
-            new QueryIndex((IFullTextIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
-    }
+    /// <summary>
+    /// Starts the creation of an index based on a full text search
+    /// </summary>
+    /// <param name="items">The items to use to create the index</param>
+    /// <returns>The beginning of an FTS based index</returns>
+    public static IFullTextIndex FullTextIndex(params IFullTextIndexItem[] items) => 
+        new QueryIndex((IFullTextIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
 }

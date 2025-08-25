@@ -18,21 +18,20 @@
 
 using System;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface describing an object that is capable of creating an <see cref="IQuery"/> object
+/// </summary>
+public interface IQueryFactory
 {
     /// <summary>
-    /// An interface describing an object that is capable of creating an <see cref="IQuery"/> object
+    /// Creates a Query object from the given SQL string.
     /// </summary>
-    public interface IQueryFactory
-    {
-        /// <summary>
-        /// Creates a Query object from the given SQL string.
-        /// </summary>
-        /// <param name="queryExpression">SQL Expression</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="queryExpression"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="CouchbaseLiteException">Throw if compiling <paramref name="queryExpression"/> returns an error</exception>
-        IQuery CreateQuery(string queryExpression);
-    }
+    /// <param name="queryExpression">SQL Expression</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="queryExpression"/>
+    /// is <c>null</c></exception>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="CouchbaseLiteException">Throw if compiling <paramref name="queryExpression"/> returns an error</exception>
+    IQuery CreateQuery(string queryExpression);
 }

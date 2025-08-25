@@ -20,49 +20,23 @@ using Couchbase.Lite.Internal.Serialization;
 
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite.Internal.Doc;
+
+internal unsafe class DocContext(Database database, C4DocumentWrapper? doc) : MContext(new FLSlice())
 {
-    internal unsafe class DocContext : MContext
+    public Database Db { get; } = database;
+
+    public C4DocumentWrapper? Doc { get; } = doc?.Retain<C4DocumentWrapper>();
+
+    public object? ToObject(FLValue* value, bool dotNetType) => 
+        FLValueConverter.ToCouchbaseObject(value, Db, dotNetType);
+
+    protected override void Dispose(bool disposing)
     {
-        #region Properties
+        base.Dispose(disposing);
 
-        public Database Db { get; }
-
-        public C4DocumentWrapper? Doc { get; }
-
-        #endregion
-
-        #region Constructors
-
-        public DocContext(Database database, C4DocumentWrapper? doc)
-            : base(new FLSlice())
-        {
-            Db = database;
-            Doc = doc?.Retain<C4DocumentWrapper>();
+        if (disposing) {
+            Doc?.Dispose();
         }
-
-        #endregion
-
-        #region Public Methods
-
-        public object? ToObject(FLValue* value, bool dotNetType)
-        {
-            return FLValueConverter.ToCouchbaseObject(value, Db, dotNetType);
-        }
-
-        #endregion
-
-        #region Overrides
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            if (disposing) {
-                Doc?.Dispose();
-            }
-        }
-
-        #endregion
     }
 }

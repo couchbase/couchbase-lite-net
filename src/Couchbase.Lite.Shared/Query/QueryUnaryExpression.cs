@@ -15,79 +15,69 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal enum UnaryOpType
 {
-    internal enum UnaryOpType
+    Missing,
+    NotMissing,
+    NotNull,
+    Null,
+    Valued,
+    NotValued
+}
+
+internal sealed class QueryUnaryExpression : QueryExpression
+{
+    private readonly IExpression _argument;
+    private readonly UnaryOpType _type;
+
+    internal QueryUnaryExpression(IExpression argument, UnaryOpType type)
     {
-        Missing,
-        NotMissing,
-        NotNull,
-        Null,
-        Valued,
-        NotValued
+        _argument = argument;
+        _type = type;
     }
 
-    internal sealed class QueryUnaryExpression : QueryExpression
+    protected override object ToJSON()
     {
-        #region Variables
-
-        private readonly IExpression _argument;
-        private readonly UnaryOpType _type;
-
-        #endregion
-
-        #region Constructors
-
-        internal QueryUnaryExpression(IExpression argument, UnaryOpType type)
-        {
-            _argument = argument;
-            _type = type;
+        var obj = new List<object?>();
+        switch (_type) {
+            case UnaryOpType.Missing:
+            case UnaryOpType.Null:
+                obj.Add("IS");
+                obj.Add(_type == UnaryOpType.Null ? null : MissingValue );
+                break;
+            case UnaryOpType.NotMissing:
+            case UnaryOpType.NotNull:
+                obj.Add("IS NOT");
+                obj.Add(_type == UnaryOpType.NotNull ? null : MissingValue );
+                break;
+            case UnaryOpType.Valued:
+                obj.Add("IS VALUED");
+                break;
+            case UnaryOpType.NotValued:
+                obj.Add("IS NOT VALUED");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
 
-        #endregion
+        var operand = Misc.TryCast<IExpression, QueryExpression>(_argument);
 
-        #region Overrides
-
-        protected override object? ToJSON()
-        {
-            var obj = new List<object?>();
-            switch (_type) {
-                case UnaryOpType.Missing:
-                case UnaryOpType.Null:
-                    obj.Add("IS");
-                    obj.Add(_type == UnaryOpType.Null ? null : MissingValue );
-                    break;
-                case UnaryOpType.NotMissing:
-                case UnaryOpType.NotNull:
-                    obj.Add("IS NOT");
-                    obj.Add(_type == UnaryOpType.NotNull ? null : MissingValue );
-                    break;
-                case UnaryOpType.Valued:
-                    obj.Add("IS VALUED");
-                    break;
-                case UnaryOpType.NotValued:
-                    obj.Add("IS NOT VALUED");
-                    break;
-            }
-
-            var operand = Misc.TryCast<IExpression, QueryExpression>(_argument);
-
-            if ((operand as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
-                obj.InsertRange(1, (operand.ConvertToJSON() as IList<object?>)!);
-            } else {
-                obj.Insert(1, operand.ConvertToJSON());
-            }
-
-
-
-            return obj;
+        if ((operand as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
+            obj.InsertRange(1, (operand.ConvertToJSON() as IList<object?>)!);
+        } else {
+            obj.Insert(1, operand.ConvertToJSON());
         }
 
-        #endregion
+
+
+        return obj;
     }
 }

@@ -21,66 +21,36 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal abstract class QueryConstantExpressionBase : QueryExpression
 {
-    internal abstract class QueryConstantExpressionBase : QueryExpression
-    {
 
+}
+
+internal sealed class QueryConstantExpression<T>(T obj) : QueryConstantExpressionBase
+{
+    private Dictionary<string, object?> DictAsJson(IDictionary<string, object> dictionary) => 
+        dictionary.ToDictionary(x => x.Key, x => ToJSON(x.Value));
+
+    private List<object?> ListAsJson(IList list)
+    {
+        var retVal = new List<object?> { "[]" };
+        retVal.AddRange(list.Cast<object>().Select(ToJSON));
+        return retVal;
     }
 
-    internal sealed class QueryConstantExpression<T> : QueryConstantExpressionBase
+    private object? ToJSON(object? input)
     {
-        #region Variables
-
-        private readonly T _internal;
-
-        #endregion
-
-        #region Constructors
-
-        public QueryConstantExpression(T obj)
+        return input switch
         {
-            _internal = obj;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private object? DictAsJson(IDictionary<string, object> dictionary)
-        {
-            return dictionary.ToDictionary(x => x.Key, x => ToJSON(x.Value));
-        }
-
-        private object? ListAsJson(IList list)
-        {
-            var retVal = new List<object?> { "[]" };
-            retVal.AddRange(list.Cast<object>().Select(ToJSON));
-            return retVal;
-        }
-
-        private object? ToJSON(object? input)
-        {
-            switch (input) {
-                case IDictionary<string, object> d:
-                    return DictAsJson(d);
-                case IList e:
-                    return ListAsJson(e);
-                case IExpression qe when qe is QueryExpression qe2:
-                    return qe2.ConvertToJSON();
-                default:
-                    return DataOps.ToCouchbaseObject(input);
-            }
-        }
-
-        #endregion
-
-        #region Overrides
-
-        protected override object? ToJSON() => ToJSON(_internal);
-
-        #endregion
+            IDictionary<string, object> d => DictAsJson(d),
+            IList e => ListAsJson(e),
+            QueryExpression qe2 => qe2.ConvertToJSON(),
+            _ => DataOps.ToCouchbaseObject(input)
+        };
     }
+
+    protected override object? ToJSON() => ToJSON(obj);
 }

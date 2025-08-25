@@ -20,44 +20,35 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A factory class for generating the initial portion of a query
+/// </summary>
+public static class QueryBuilder
 {
+    private const string Tag = nameof(QueryBuilder);
+
     /// <summary>
-    /// A factory class for generating the initial portion of a query
+    /// Selects the given property path from the query under construction
     /// </summary>
-    public static class QueryBuilder
+    /// <param name="results">The results to select</param>
+    /// <returns>The initial SELECT portion of the query</returns>
+    public static ISelect Select(params ISelectResult[] results)
     {
-        #region Constants
-
-        private const string Tag = nameof(QueryBuilder);
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Selects the given property path from the query under construction
-        /// </summary>
-        /// <param name="results">The results to select</param>
-        /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect Select(params ISelectResult[] results)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
-            return new Select(results, false);
-        }
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
+        return new Select(results, false);
+    }
 
 
-        /// <summary>
-        /// Selects only the distinct results of the query
-        /// </summary>
-        /// <param name="results">The results to select</param>
-        /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect SelectDistinct(params ISelectResult[] results)
-        {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
-            return new Select(results, true);
-        }
-
-        #endregion
+    /// <summary>
+    /// Selects only the distinct results of the query
+    /// </summary>
+    /// <param name="results">The results to select</param>
+    /// <returns>The initial SELECT portion of the query</returns>
+    public static ISelect SelectDistinct(params ISelectResult[] results)
+    {
+        CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
+        return new Select(results, true);
     }
 }

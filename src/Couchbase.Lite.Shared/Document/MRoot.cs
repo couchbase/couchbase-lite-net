@@ -18,121 +18,87 @@
 using System;
 using Couchbase.Lite.Internal.Serialization;
 
-using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite.Internal.Doc;
+
+internal sealed unsafe class MRoot : MCollection, IDisposable
 {
-    internal sealed unsafe class MRoot : MCollection, IDisposable
+    private readonly MValue _slot;
+
+    public override bool IsMutated => _slot.IsMutated;
+
+    public MRoot()
     {
-        #region Variables
+        _slot = new MValue(default(object));
+    }
 
-        private readonly MValue _slot;
+    public MRoot(MContext context, FLValue* value, bool isMutable)
+        : base(context, isMutable)
+    {
+        _slot = new MValue(value);
+    }
 
-        #endregion
-
-        #region Properties
-
-        public override bool IsMutated => _slot.IsMutated;
-
-        #endregion
-
-        #region Constructors
-
-        public MRoot()
-        {
-            _slot = new MValue(default(object));
-        }
-
-        public MRoot(MContext context, FLValue* value, bool isMutable)
-            : base(context, isMutable)
-        {
-            _slot = new MValue(value);
-        }
-
-        public MRoot(MContext context, bool isMutable = true)
-            : this(context, NativeRaw.FLValue_FromData(context.Data, FLTrust.Untrusted), isMutable)
-        {
+    public MRoot(MContext context, bool isMutable = true)
+        : this(context, NativeRaw.FLValue_FromData(context.Data, FLTrust.Untrusted), isMutable)
+    {
             
-        }
+    }
 
-        public MRoot(FLSlice fleeceData, FLValue* value, bool isMutable = true)
-            : this(new MContext(fleeceData), isMutable)
-        {
+    public MRoot(FLSlice fleeceData, bool isMutable = true)
+        : this(new MContext(fleeceData), isMutable)
+    {
             
+    }
+
+    public MRoot(MRoot other)
+        : this(other.Context?.Data ?? FLSlice.Null, other.IsMutable)
+    {
+
+    }
+
+    public static object? AsObject(FLSlice fleeceData, bool mutableContainers = true)
+    {
+        using var root = new MRoot(fleeceData, mutableContainers);
+        return root.AsObject();
+    }
+
+    public static implicit operator bool(MRoot root)
+    {
+        return !root._slot.IsEmpty;
+    }
+
+    public object? AsObject()
+    {
+        return _slot.AsObject(this);
+    }
+
+    public FLSliceResult Encode()
+    {
+        var enc = Native.FLEncoder_New();
+        FLEncode(enc);
+
+        FLError error;
+        var result = NativeRaw.FLEncoder_Finish(enc, &error);
+        if (result.buf == null) {
+            throw new CouchbaseFleeceException(error);
         }
 
-        public MRoot(FLSlice fleeceData, bool isMutable = true)
-            : this(fleeceData, NativeRaw.FLValue_FromData(fleeceData, FLTrust.Untrusted), isMutable)
-        {
-            
-        }
+        return result;
+    }
 
-        public MRoot(MRoot other)
-            : this(other?.Context?.Data ?? FLSlice.Null,
-                other?.IsMutable == true)
-        {
+    public void Dispose()
+    {
+        Context?.Dispose();
+    }
 
-        }
+    public override void FLEncode(FLEncoder* enc)
+    {
+        _slot.FLEncode(enc);
+    }
 
-        #endregion
-
-        #region Public Methods
-
-        public static object? AsObject(FLSlice fleeceData, bool mutableContainers = true)
-        {
-            using (var root = new MRoot(fleeceData, mutableContainers)) {
-                return root.AsObject();
-            }
-        }
-
-        public static implicit operator bool(MRoot root)
-        {
-            return !root._slot.IsEmpty;
-        }
-
-        public object? AsObject()
-        {
-            return _slot.AsObject(this);
-        }
-
-        public FLSliceResult Encode()
-        {
-            var enc = Native.FLEncoder_New();
-            FLEncode(enc);
-
-            FLError error;
-            var result = NativeRaw.FLEncoder_Finish(enc, &error);
-            if (result.buf == null) {
-                throw new CouchbaseFleeceException(error);
-            }
-
-            return result;
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            Context?.Dispose();
-        }
-
-        #endregion
-
-        #region IFLEncodable
-
-        public override void FLEncode(FLEncoder* enc)
-        {
-            _slot.FLEncode(enc);
-        }
-
-        #endregion
-
-        public override void FLSlotSet(FLSlot* slot)
-        {
-            _slot.FLSlotSet(slot);
-        }
+    public override void FLSlotSet(FLSlot* slot)
+    {
+        _slot.FLSlotSet(slot);
     }
 }

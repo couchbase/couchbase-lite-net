@@ -17,7 +17,7 @@
 // 
 #if __IOS__
 using System;
-using System.Net;
+using System.Diagnostics.CodeAnalysis;
 
 using SystemConfiguration;
 
@@ -27,128 +27,137 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Sync;
 
-namespace Couchbase.Lite.Support
+using Foundation;
+
+using Network;
+
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency(Lazy = true, Transient = true)]
+[SuppressMessage("ReSharper", "InconsistentNaming")]
+internal sealed class iOSReachability : IReachability
 {
-    [CouchbaseDependency(Lazy = true, Transient = true)]
-    internal sealed class iOSReachability : IReachability
+    private const string Tag = nameof(iOSReachability);
+
+    private readonly DispatchQueue _queue = new("Reachability", false);
+
+    private readonly NWPathMonitor _pathMonitor = new();
+    private bool _started;
+    private bool _disposed;
+
+    public event EventHandler<NetworkReachabilityChangeEventArgs>? StatusChanged;
+
+    public NetworkReachabilityFlags ReachabilityFlags { get; private set; }
+
+    public bool ReachabilityKnown { get; private set; }
+
+    public Uri? Url { get; set; }
+
+    private void FlagsChanged(NetworkReachabilityFlags flags)
     {
-#region Constants
-
-        private const string Tag = nameof(iOSReachability);
-
-#endregion
-
-#region Variables
-
-        private DispatchQueue _queue;
-
-        private NetworkReachability? _ref;
-        private bool _started;
-
-        public event EventHandler<NetworkReachabilityChangeEventArgs>? StatusChanged;
-
-#endregion
-
-#region Properties
-
-        public NetworkReachabilityFlags ReachabilityFlags { get; private set; }
-
-        public bool ReachabilityKnown { get; private set; }
-
-        public Uri? Url { get; set; }
-
-#endregion
-
-#region Constructors
-
-        public iOSReachability()
-        {
-            _queue = new DispatchQueue("Reachability", false);
+        if (ReachabilityKnown && flags == ReachabilityFlags) {
+            return;
         }
+        
+        ReachabilityFlags = flags;
+        ReachabilityKnown = true;
+        WriteLog.To.Sync.I(Tag, $"{this}: flags <-- {flags}");
+        var status = flags.HasFlag(NetworkReachabilityFlags.Reachable) && !flags.HasFlag(NetworkReachabilityFlags.InterventionRequired) ?
+            NetworkReachabilityStatus.Reachable : NetworkReachabilityStatus.Unreachable;
+        StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status));
+    }
 
-#endregion
-
-#region Private Methods
-
-        private void ClientCallback(NetworkReachabilityFlags flags)
+    private void NotifyFlagsChanged(NetworkReachabilityFlags flags)
+    {
+        _queue.DispatchAsync(() =>
         {
             FlagsChanged(flags);
+        });
+    }
+
+    private NetworkReachabilityFlags ConvertPathToFlags(NWPath path)
+    {
+        var flags = default(NetworkReachabilityFlags);
+        if (path.Status != NWPathStatus.Satisfied) {
+            return flags;
+        }
+        
+        flags |= NetworkReachabilityFlags.Reachable;
+        if (path.IsExpensive) {
+            flags |= NetworkReachabilityFlags.IsWWAN;
         }
 
-        private void FlagsChanged(NetworkReachabilityFlags flags)
+        if (path.IsConstrained) {
+            flags |= NetworkReachabilityFlags.InterventionRequired;
+        }
+
+        return flags;
+    }
+    
+    private void ValidateHostReachability(NetworkReachabilityFlags baseFlags)
+    {
+        if (Url == null) {
+            NotifyFlagsChanged(baseFlags);
+            return;
+        }
+
+        using var session = NSUrlSession.SharedSession;
+        var request = new NSUrlRequest(new NSUrl(Url.AbsoluteUri));
+
+        var task = session.CreateDataTask(request, (_, response, error) =>
         {
-            if (!ReachabilityKnown || flags != ReachabilityFlags)
-            {
-                ReachabilityFlags = flags;
-                ReachabilityKnown = true;
-                WriteLog.To.Sync.I(Tag, $"{this}: flags <-- {flags}");
-                var status = flags.HasFlag(NetworkReachabilityFlags.Reachable) && !flags.HasFlag(NetworkReachabilityFlags.InterventionRequired) ?
-                                  NetworkReachabilityStatus.Reachable : NetworkReachabilityStatus.Unreachable;
-                StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status));
+            var flags = baseFlags;
+            if (error.Code != 0 || response is NSHttpUrlResponse { StatusCode: >= 400 }) {
+                flags &= ~NetworkReachabilityFlags.Reachable;
             }
-        }
+            
+            NotifyFlagsChanged(flags);
+        });
+        
+        task.Resume();
+    }
 
-        private void NotifyFlagsChanged(NetworkReachabilityFlags flags)
+    public void Start()
+    {
+        _queue.DispatchSync(() =>
         {
-            _queue.DispatchAsync(() =>
+            ObjectDisposedException.ThrowIf(_disposed, typeof(iOSReachability));
+            if (_started || Url?.IsLoopback == true) {
+                return;
+            }
+
+            _started = true;
+            _pathMonitor.SetQueue(_queue);
+            _pathMonitor.SnapshotHandler = path =>
             {
-                FlagsChanged(flags);
-            });
-        }
-
-#endregion
-
-#region IReachability
-
-        public void Start()
-        {
-            _queue.DispatchSync(() =>
-            {
-                if (_started || Url?.IsLoopback == true) {
-                    return;
-                }
-
-                _started = true;
-
-                if (String.IsNullOrEmpty(Url?.Host))
-                {
-                    _ref = new NetworkReachability(new IPAddress(0));
-                }
-                else
-                {
-                    _ref = new NetworkReachability(Url.Host);
-                }
-
-                _ref.SetDispatchQueue(_queue);
-                _ref.SetNotification(ClientCallback);
-                if (_ref.GetFlags(out var flags) == StatusCode.OK)
-                {
-                    WriteLog.To.Sync.I(Tag, $"{this}: flags={flags}; starting...");
+                var flags = ConvertPathToFlags(path);
+                WriteLog.To.Sync.I(Tag, $"{this}: path status={path.Status}, flags={flags}");
+                if (!String.IsNullOrEmpty(Url?.Host) && path.Status == NWPathStatus.Satisfied) {
+                    ValidateHostReachability(flags);
+                } else {
                     NotifyFlagsChanged(flags);
                 }
-                else
-                {
-                    WriteLog.To.Sync.I(Tag, $"{this}: starting...");
-                }
-            });
-        }
+            };
+            
+            _pathMonitor.Start();
+            WriteLog.To.Sync.I(Tag, $"{this}: starting path monitor");
+        });
+    }
 
-        public void Stop()
+    public void Stop()
+    {
+        _queue.DispatchSync(() =>
         {
-            _queue.DispatchSync(() =>
-            {
-                if (!_started) {
-                    return;
-                }
+            if (!_started || _disposed) {
+                return;
+            }
 
-                _started = false;
-                ReachabilityKnown = false;
-                _ref?.Dispose();
-                _ref = null;
-            });
-        }
-
-#endregion
+            _started = false;
+            _disposed = true;
+            ReachabilityKnown = false;
+            _pathMonitor.Dispose();
+        });
     }
 }
+
 #endif

@@ -53,7 +53,7 @@ public partial class Replicator
         }
     }
 
-    internal unsafe bool Suspended
+    internal bool Suspended
     {
         get => _suspended;
         set {

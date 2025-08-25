@@ -28,222 +28,149 @@ using Couchbase.Lite.Support;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed unsafe class QueryResultSet : IResultSet
 {
-    internal sealed unsafe class QueryResultSet : IResultSet
+    private const string Tag = nameof(QueryResultSet);
+
+    private readonly C4QueryEnumeratorWrapper _c4Enum;
+    private readonly QueryResultContext _context;
+    private readonly QueryBase _query;
+    private readonly ThreadSafety _threadSafety;
+    private bool _disposed;
+    private bool _enumeratorGenerated;
+
+    internal IDictionary<string, int> ColumnNames { get; }
+
+    internal Collection? Collection => _query.Collection;
+
+    internal Result this[int index]
     {
-        #region Constants
+        get {
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(QueryResultSet));
+            }
 
-        private const string Tag = nameof(QueryResultSet);
+            LiteCoreBridge.Check(err => NativeSafe.c4queryenum_seek(_c4Enum, index, err));
 
-        #endregion
+            return new Result(this, _c4Enum, _context);
+        }
+    }
 
-        #region Variables
+    internal QueryResultSet(QueryBase query, ThreadSafety threadSafety, C4QueryEnumeratorWrapper e,
+        IDictionary<string, int> columnNames)
+    {
+        _query = query;
+        _c4Enum = e;
+        ColumnNames = columnNames;
+        _threadSafety = threadSafety;
+        Debug.Assert(query.Database != null);
+        _context = new QueryResultContext(query.Database!, e);
+    }
 
-        private readonly C4QueryEnumeratorWrapper _c4Enum;
-        private readonly QueryResultContext _context;
-        private readonly QueryBase _query;
-        private readonly ThreadSafety _threadSafety;
-        private bool _disposed;
-        private bool _enumeratorGenerated;
+    public QueryResultSet? Refresh()
+    {
+        var newEnum = LiteCoreBridge.CheckTyped(err => 
+            _disposed ? null : NativeSafe.c4queryenum_refresh(_c4Enum, err));
 
-        #endregion
+        return newEnum != null ? new QueryResultSet(_query, _threadSafety, newEnum, ColumnNames) : null;
+    }
 
-        #region Properties
+    public void Dispose()
+    {
+        using var threadSafetyScope = _threadSafety.BeginLockedScope();
+        if (_disposed) {
+            return;
+        }
 
-        internal IDictionary<string, int> ColumnNames { get; }
+        _disposed = true;
+        _context.Dispose();
+    }
 
-        internal Collection? Collection => _query?.Collection;
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        internal Result this[int index]
+    public IEnumerator<Result> GetEnumerator()
+    {
+        using var threadSafetyScope = _threadSafety.BeginLockedScope();
+        if (_disposed) {
+            throw new ObjectDisposedException(nameof(QueryResultSet));
+        }
+        
+        if (_enumeratorGenerated) {
+            throw new InvalidOperationException(CouchbaseLiteErrorMessage.ResultSetAlreadyEnumerated);
+        }
+
+        _enumeratorGenerated = true;
+            
+        return new Enumerator(this);
+    }
+
+    public List<Result> AllResults()
+    {
+        if (_disposed) {
+            throw new ObjectDisposedException(nameof(QueryResultSet));
+        }
+        
+        return this.ToList();
+    }
+
+    private sealed class Enumerator : IEnumerator<Result>
+    {
+        private readonly C4QueryEnumeratorWrapper _enum;
+        private readonly QueryResultSet _parent;
+
+        object IEnumerator.Current => Current;
+
+        public Result Current
         {
             get {
-                using var threadSafetyScope = _threadSafety.BeginLockedScope();
-                if (_disposed) {
+                if (_parent._disposed) {
                     throw new ObjectDisposedException(nameof(QueryResultSet));
                 }
-
-                LiteCoreBridge.Check(err => NativeSafe.c4queryenum_seek(_c4Enum, index, err));
-
-                return new Result(this, _c4Enum, _context);
+                
+                return new Result(_parent, _enum, _parent._context);
             }
         }
 
-        #endregion
-
-        #region Constructors
-
-        internal QueryResultSet(QueryBase query, ThreadSafety threadSafety, C4QueryEnumeratorWrapper e,
-            IDictionary<string, int> columnNames)
+        public Enumerator(QueryResultSet parent)
         {
-            _query = query;
-            _c4Enum = e;
-            ColumnNames = columnNames;
-            _threadSafety = threadSafety;
-            Debug.Assert(query.Database != null);
-            _context = new QueryResultContext(query.Database!, e);
+            _parent = parent;
+            _enum = _parent._c4Enum;
+            WriteLog.To.Query.I(Tag, $"Beginning query enumeration ({(long) _enum.RawEnumerator:x})");
         }
-
-        #endregion
-
-        #region Public Methods
-
-        public QueryResultSet? Refresh()
-        {
-            var query = _query;
-            if (query == null) {
-                return null;
-            }
-
-            var newEnum = LiteCoreBridge.CheckTyped(err =>
-            {
-                if (_disposed) {
-                    return null;
-                }
-
-                return NativeSafe.c4queryenum_refresh(_c4Enum, err);
-            });
-
-            return newEnum != null ? new QueryResultSet(query, _threadSafety, newEnum, ColumnNames) : null;
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal void CheckDisposed()
-        {
-            if(_disposed) {
-                throw new ObjectDisposedException("QueryResultSet was disposed");
-            }
-        }
-
-        #endregion
 
         public void Dispose()
         {
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            if (_disposed) {
-                return;
-            }
-
-            _disposed = true;
-            _context.Dispose();
+            // No-op
         }
 
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        #endregion
-
-        #region IEnumerable<Result>
-
-        public IEnumerator<Result> GetEnumerator()
+        public bool MoveNext()
         {
-            using var threadSafetyScope = _threadSafety.BeginLockedScope();
-            CheckDisposed();
-            if (_enumeratorGenerated) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.ResultSetAlreadyEnumerated);
-            }
-
-            _enumeratorGenerated = true;
-            
-            return new Enumerator(this);
-        }
-
-        #endregion
-
-        #region IResultSet
-
-        public List<Result> AllResults()
-        {
-            CheckDisposed();
-            return this.ToList();
-        }
-
-        #endregion
-
-        #region Nested
-
-        private sealed class Enumerator : IEnumerator<Result>
-        {
-            #region Variables
-
-            private readonly C4QueryEnumeratorWrapper _enum;
-            private readonly QueryResultSet _parent;
-
-            #endregion
-
-            #region Properties
-
-            object IEnumerator.Current => Current;
-
-            public Result Current
-            {
-                get {
-                    if (_parent._disposed) {
-                        throw new ObjectDisposedException(nameof(QueryResultSet));
-                    }
-
-                    return new Result(_parent, _enum, _parent._context);
-                }
-            }
-
-            #endregion
-
-            #region Constructors
-
-            public Enumerator(QueryResultSet parent)
-            {
-                _parent = parent;
-                _enum = _parent._c4Enum;
-                WriteLog.To.Query.I(Tag, $"Beginning query enumeration ({(long) _enum.RawEnumerator:x})");
-            }
-
-            #endregion
-
-            #region IDisposable
-
-            public void Dispose()
-            {
-                // No-op
-            }
-
-            #endregion
-
-            #region IEnumerator
-
-            public bool MoveNext()
-            {
-                using var threadSafetyScope = _parent._threadSafety.BeginLockedScope();
-                if (_parent._disposed) {
-                    return false;
-                }
-
-                C4Error err;
-                var moved = NativeSafe.c4queryenum_next(_enum, &err);
-                if (moved) {
-                    return true;
-                }
-
-                if (err.code != 0) {
-                    WriteLog.To.Query.W(Tag, $"{this} error: {err.domain}/{err.code}");
-                } else {
-                    WriteLog.To.Query.I(Tag, $"End of query enumeration ({(long) _enum.RawEnumerator:x})");
-                }
-
+            using var threadSafetyScope = _parent._threadSafety.BeginLockedScope();
+            if (_parent._disposed) {
                 return false;
             }
 
-            public void Reset()
-            {
-                
+            C4Error err;
+            var moved = NativeSafe.c4queryenum_next(_enum, &err);
+            if (moved) {
+                return true;
             }
 
-            #endregion
+            if (err.code != 0) {
+                WriteLog.To.Query.W(Tag, $"{this} error: {err.domain}/{err.code}");
+            } else {
+                WriteLog.To.Query.I(Tag, $"End of query enumeration ({(long) _enum.RawEnumerator:x})");
+            }
+
+            return false;
         }
 
-        #endregion
+        public void Reset()
+        {
+                
+        }
     }
 }

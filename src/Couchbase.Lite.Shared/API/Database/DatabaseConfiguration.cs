@@ -19,12 +19,11 @@
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using LiteCore.Interop;
-using System;
-using System.Runtime.InteropServices;
+
+#if NET8_0_OR_GREATER
 using System.Runtime.Versioning;
+#endif
 
 namespace Couchbase.Lite
 {
@@ -33,19 +32,9 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed record DatabaseConfiguration
     {
-        #region Constants
-
         private const string Tag = nameof(DatabaseConfiguration);
 
-        #endregion
-
-        #region Variables
-
         private readonly string? _directory;
-
-        #endregion
-
-        #region Properties
 
         /// <summary>
         /// Gets or sets the directory to use when creating or opening the data
@@ -63,9 +52,9 @@ namespace Couchbase.Lite
         /// database to appear as it did immediately before that transaction.
         /// Setting this mode true ensures that an operating system crash or
         /// power failure will not cause the loss of any data.  FULL
-        /// synchronous is very safe but it is also dramatically slower.
+        /// synchronous is very safe, but it is also dramatically slower.
         /// </summary>
-        /// <returns>A boolean representing whether or not full sync is enabled</returns>
+        /// <returns>A boolean representing whether full sync is enabled</returns>
         public bool FullSync { get; init; } = Constants.DefaultDatabaseFullSync;
 
         /// <summary>
@@ -91,8 +80,6 @@ namespace Couchbase.Lite
         /// </summary>
         public EncryptionKey? EncryptionKey { get; init; }
         #endif
-
-        #endregion
     }
 }
 

@@ -15,29 +15,24 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-namespace Couchbase.Lite.Logging
+namespace Couchbase.Lite.Logging;
+
+/// <summary>
+/// An interface for an object that will log messages to the
+/// relevant debug console.  For desktop this is the terminal,
+/// WinUI uses the visual studio debug output pane, iOS uses os_log
+/// and Android uses logcat.
+/// </summary>
+public interface IConsoleLogger : ILogger
 {
     /// <summary>
-    /// An interface for an object that will log messages to the
-    /// relevant debug console.  For desktop this is the terminal,
-    /// WinUI uses the visual studio debug output pane, iOS uses os_log
-    /// and Android uses logcat.
+    /// Gets or sets the domains that this logger will output
     /// </summary>
-    public interface IConsoleLogger : ILogger
-    {
-        #region Properties
+    LogDomain Domains { get; set; }
 
-        /// <summary>
-        /// Gets or sets the domains that this logger will output
-        /// </summary>
-        LogDomain Domains { get; set; }
-
-        /// <summary>
-        /// Overrides the <see cref="ILogger"/> Level property
-        /// with a public setter.
-        /// </summary>
-        new LogLevel Level { get; set; }
-
-        #endregion
-    }
+    /// <summary>
+    /// Overrides the <see cref="ILogger"/> Level property
+    /// with a public setter.
+    /// </summary>
+    new LogLevel Level { get; set; }
 }

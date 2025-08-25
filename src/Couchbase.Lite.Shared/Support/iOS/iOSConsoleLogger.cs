@@ -16,62 +16,51 @@
 // limitations under the License.
 // 
 #if __IOS__
-using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency]
+[SuppressMessage("ReSharper", "InconsistentNaming")]
+internal sealed class iOSConsoleLogger : IConsoleLogger
 {
-    [CouchbaseDependency]
-    internal sealed class iOSConsoleLogger : IConsoleLogger
+    private readonly CoreFoundation.OSLog _logger = new("CouchbaseLite", "dotnet");
+
+    private static readonly IReadOnlyDictionary<LogLevel, CoreFoundation.OSLogLevel> LevelMap
+        = new Dictionary<LogLevel, CoreFoundation.OSLogLevel>
+        {
+            [LogLevel.Debug] = CoreFoundation.OSLogLevel.Debug,
+            [LogLevel.Verbose] = CoreFoundation.OSLogLevel.Info, // No verbose level in Apple
+            [LogLevel.Info] = CoreFoundation.OSLogLevel.Info,
+            [LogLevel.Warning] = CoreFoundation.OSLogLevel.Error, // No warning level in Apple
+            [LogLevel.Error] = CoreFoundation.OSLogLevel.Error,
+        };
+
+    public LogDomain Domains { get; set; } = LogDomain.All;
+
+    public LogLevel Level { get; set; } = LogLevel.Warning;
+
+    private static string MakeMessage(string message, LogLevel level, LogDomain domain)
     {
-        private CoreFoundation.OSLog _logger = new CoreFoundation.OSLog("CouchbaseLite", "dotnet");
+        var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
+        return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+    }
 
-        private static readonly IReadOnlyDictionary<LogLevel, CoreFoundation.OSLogLevel> LevelMap
-            = new Dictionary<LogLevel, CoreFoundation.OSLogLevel>
-            {
-                [LogLevel.Debug] = CoreFoundation.OSLogLevel.Debug,
-                [LogLevel.Verbose] = CoreFoundation.OSLogLevel.Info, // No verbose level in Apple
-                [LogLevel.Info] = CoreFoundation.OSLogLevel.Info,
-                [LogLevel.Warning] = CoreFoundation.OSLogLevel.Error, // No warning level in Apple
-                [LogLevel.Error] = CoreFoundation.OSLogLevel.Error,
-            };
-
-#region Properties
-
-        public LogDomain Domains { get; set; } = LogDomain.All;
-
-        public LogLevel Level { get; set; } = LogLevel.Warning;
-
-#endregion
-
-#region Private Methods
-
-        private static string MakeMessage(string message, LogLevel level, LogDomain domain)
-        {
-            var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
-            return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+    public void Log(LogLevel level, LogDomain domain, string message)
+    {
+        if (level < Level || !Domains.HasFlag(domain)) {
+            return;
         }
 
-#endregion
-
-#region ILogger
-
-        public void Log(LogLevel level, LogDomain domain, string message)
-        {
-            if (level < Level || !Domains.HasFlag(domain)) {
-                return;
-            }
-
-            var finalStr = MakeMessage(message, level, domain);
-            var appleLevel = LevelMap[level];
-            _logger.Log(appleLevel, finalStr);
-        }
-
-#endregion
+        var finalStr = MakeMessage(message, level, domain);
+        var appleLevel = LevelMap[level];
+        _logger.Log(appleLevel, finalStr);
     }
 }
+
 #endif

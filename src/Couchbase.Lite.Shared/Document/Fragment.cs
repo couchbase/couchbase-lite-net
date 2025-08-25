@@ -21,189 +21,160 @@ using System.Diagnostics;
 
 using Couchbase.Lite.Internal.Logging;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite.Internal.Doc;
+
+internal sealed class Fragment : IFragment, IMutableFragment
 {
-    internal sealed class Fragment : IFragment, IMutableFragment
+    private const string Tag = nameof(Fragment);
+
+    public static readonly Fragment Null = new Fragment(null, null);
+
+    private int _index;
+    private string? _key;
+    private object? _parent;
+
+    IFragment IArrayFragment.this[int index] => GetForIndex(index);
+
+    IFragment IDictionaryFragment.this[string key] => GetForKey(key);
+
+    public Blob? Blob
     {
-        #region Constants
-
-        private const string Tag = nameof(Fragment);
-
-        public static readonly Fragment Null = new Fragment(null, null);
-
-        #endregion
-
-        #region Variables
-
-        private int _index;
-        private string? _key;
-        private object? _parent;
-
-        #endregion
-
-        #region Properties
-
-        IFragment IArrayFragment.this[int index] => GetForIndex(index);
-
-        IFragment IDictionaryFragment.this[string key] => GetForKey(key);
-
-        public Blob? Blob
-        {
-            get => Value as Blob;
-            set => Value = value;
-        }
-
-
-        public bool Boolean
-        {
-            get => DataOps.ConvertToBoolean(Value);
-            set => Value = value;
-        }
-
-        public DateTimeOffset Date
-        {
-            get => DataOps.ConvertToDate(Value);
-            set => Value = value;
-        }
-
-        public double Double
-        {
-            get => DataOps.ConvertToDouble(Value);
-            set => Value = value;
-        }
-
-        public bool Exists => Value != null;
-
-        public float Float
-        {
-            get => DataOps.ConvertToFloat(Value);
-            set => Value = value;
-        }
-
-        public int Int
-        {
-            get => DataOps.ConvertToInt(Value);
-            set => Value = value;
-        }
-
-        public long Long
-        {
-            get => DataOps.ConvertToLong(Value);
-            set => Value = value;
-        }
-
-        public string? String
-        {
-            get => Value as string;
-            set => Value = value;
-        }
-
-        public object? Value
-        {
-            get {
-                if (_parent == null) {
-                    return null;
-                }
-
-                return _key != null
-                    ? ((IDictionaryObject) _parent).GetValue(_key)
-                    : ((IArray) _parent).GetValue(_index);
-            }
-            set {
-                if (this == Null) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.FragmentPathNotExist);
-                }
-
-                if (_parent == null) {
-                    WriteLog.To.Database.W(Tag, "Attempt to set value on a parentless fragment, ignoring...");
-                    return;
-                }
-
-                if (_key != null) {
-                    ((IMutableDictionary) _parent).SetValue(_key, value);
-                } else {
-                    ((IMutableArray) _parent).SetValue(_index, value);
-                }
-            }
-
-        }
-
-        ArrayObject? IFragment.Array => Value as ArrayObject;
-
-        DictionaryObject? IFragment.Dictionary => Value as DictionaryObject;
-
-        IMutableFragment IMutableArrayFragment.this[int index] => GetForIndex(index);
-
-        IMutableFragment IMutableDictionaryFragment.this[string key] => GetForKey(key);
-
-        MutableArrayObject? IMutableFragment.Array
-        {
-            get => Value as MutableArrayObject;
-            set => Value = value;
-        }
-
-        MutableDictionaryObject? IMutableFragment.Dictionary
-        {
-            get => Value as MutableDictionaryObject;
-            set => Value = value;
-        }
-
-        #endregion
-
-        #region Constructors
-
-        internal Fragment(IDictionaryObject? parent, string? parentKey)
-        {
-            _parent = parent;
-            _key = parentKey;
-        }
-
-        internal Fragment(IArray parent, int index)
-        {
-            _parent = parent;
-            _index = index;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private Fragment GetForIndex(int index)
-        {
-            var value = Value;
-            if (!(value is IArray a)) {
-                return Null;
-            }
-
-            if (index < 0 || index >= a.Count) {
-                return Null;
-            }
-
-            _parent = value;
-            _index = index;
-            _key = null;
-            return this;
-        }
-
-        private Fragment GetForKey(string key)
-        {
-            Debug.Assert(key != null);
-            var value = Value;
-            if (!(value is IDictionaryObject)) {
-                return Null;
-            }
-
-            _parent = value;
-            _key = key;
-            return this;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override string? ToString() => Value?.ToString();
-
-        #endregion
+        get => Value as Blob;
+        set => Value = value;
     }
+
+
+    public bool Boolean
+    {
+        get => DataOps.ConvertToBoolean(Value);
+        set => Value = value;
+    }
+
+    public DateTimeOffset Date
+    {
+        get => DataOps.ConvertToDate(Value);
+        set => Value = value;
+    }
+
+    public double Double
+    {
+        get => DataOps.ConvertToDouble(Value);
+        set => Value = value;
+    }
+
+    public bool Exists => Value != null;
+
+    public float Float
+    {
+        get => DataOps.ConvertToFloat(Value);
+        set => Value = value;
+    }
+
+    public int Int
+    {
+        get => DataOps.ConvertToInt(Value);
+        set => Value = value;
+    }
+
+    public long Long
+    {
+        get => DataOps.ConvertToLong(Value);
+        set => Value = value;
+    }
+
+    public string? String
+    {
+        get => Value as string;
+        set => Value = value;
+    }
+
+    public object? Value
+    {
+        get {
+            if (_parent == null) {
+                return null;
+            }
+
+            return _key != null
+                ? ((IDictionaryObject) _parent).GetValue(_key)
+                : ((IArray) _parent).GetValue(_index);
+        }
+        set {
+            if (this == Null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.FragmentPathNotExist);
+            }
+
+            if (_parent == null) {
+                WriteLog.To.Database.W(Tag, "Attempt to set value on a parentless fragment, ignoring...");
+                return;
+            }
+
+            if (_key != null) {
+                ((IMutableDictionary) _parent).SetValue(_key, value);
+            } else {
+                ((IMutableArray) _parent).SetValue(_index, value);
+            }
+        }
+
+    }
+
+    ArrayObject? IFragment.Array => Value as ArrayObject;
+
+    DictionaryObject? IFragment.Dictionary => Value as DictionaryObject;
+
+    IMutableFragment IMutableArrayFragment.this[int index] => GetForIndex(index);
+
+    IMutableFragment IMutableDictionaryFragment.this[string key] => GetForKey(key);
+
+    MutableArrayObject? IMutableFragment.Array
+    {
+        get => Value as MutableArrayObject;
+        set => Value = value;
+    }
+
+    MutableDictionaryObject? IMutableFragment.Dictionary
+    {
+        get => Value as MutableDictionaryObject;
+        set => Value = value;
+    }
+
+    internal Fragment(IDictionaryObject? parent, string? parentKey)
+    {
+        _parent = parent;
+        _key = parentKey;
+    }
+
+    internal Fragment(IArray parent, int index)
+    {
+        _parent = parent;
+        _index = index;
+    }
+
+    private Fragment GetForIndex(int index)
+    {
+        var value = Value;
+        if (value is not IArray a || index < 0 || index >= a.Count) {
+            return Null;
+        }
+
+        _parent = value;
+        _index = index;
+        _key = null;
+        return this;
+    }
+
+    private Fragment GetForKey(string key)
+    {
+        Debug.Assert(key != null);
+        var value = Value;
+        if (value is not IDictionaryObject) {
+            return Null;
+        }
+
+        _parent = value;
+        _key = key;
+        return this;
+    }
+
+    public override string? ToString() => Value?.ToString();
 }

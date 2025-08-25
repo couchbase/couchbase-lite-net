@@ -16,14 +16,10 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
-{
-    /// <summary>
-    /// A type of expression that represents the variable portion of an
-    /// array based expression such as <see cref="ArrayExpression.Any"/>
-    /// </summary>
-    public interface IVariableExpression : IExpression
-    {
-        
-    }
-}
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A type of expression that represents the variable portion of an
+/// array based expression such as <see cref="ArrayExpression.Any"/>
+/// </summary>
+public interface IVariableExpression : IExpression;

@@ -21,121 +21,112 @@ using System.Collections.Generic;
 
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// An interface representing a read-only linear collection of objects
+/// </summary>
+[JsonConverter(typeof(IArrayConverter))]
+public interface IArray : IArrayFragment, IEnumerable<object?>
 {
     /// <summary>
-    /// An interface representing a read-only linear collection of objects
+    /// Gets the number of elements in this array
     /// </summary>
-    [JsonConverter(typeof(IArrayConverter))]
-    public interface IArray : IArrayFragment, IEnumerable<object?>
-    {
-        #region Properties
+    int Count { get; }
 
-        /// <summary>
-        /// Gets the number of elements in this array
-        /// </summary>
-        int Count { get; }
+    /// <summary>
+    /// Gets the value at the given index as a read only array
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or <c>null</c></returns>
+    ArrayObject? GetArray(int index);
 
-        #endregion
+    /// <summary>
+    /// Gets the value at the given index as a <see cref="Blob"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or <c>null</c></returns>
+    Blob? GetBlob(int index);
 
-        #region Public Methods
+    /// <summary>
+    /// Gets the value at the given index as a <see cref="bool"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or its converted equivalent</returns>
+    /// <remarks>Any non-zero object will be treated as true, so don't rely on 
+    /// any sort of parsing</remarks>
+    bool GetBoolean(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as a read only array
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
-        ArrayObject? GetArray(int index);
+    /// <summary>
+    /// Gets the value at the given index as a <see cref="DateTimeOffset"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or a default</returns>
+    DateTimeOffset GetDate(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as a <see cref="Blob"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
-        Blob? GetBlob(int index);
+    /// <summary>
+    /// Gets the value at the given index as a <see cref="DictionaryObject"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or <c>null</c></returns>
+    DictionaryObject? GetDictionary(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as a <see cref="bool"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or its converted equivalent</returns>
-        /// <remarks>Any non-zero object will be treated as true, so don't rely on 
-        /// any sort of parsing</remarks>
-        bool GetBoolean(int index);
+    /// <summary>
+    /// Gets the value at the given index as a <see cref="Double"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or its converted equivalent</returns>
+    /// <remarks><c>true</c> will be converted to 1.0, and everything else that
+    /// is non-numeric will be 0.0</remarks>
+    double GetDouble(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as a <see cref="DateTimeOffset"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or a default</returns>
-        DateTimeOffset GetDate(int index);
+    /// <summary>
+    /// Gets the value at the given index as a <see cref="Single"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or its converted equivalent</returns>
+    /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
+    /// is non-numeric will be 0.0f</remarks>
+    float GetFloat(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as a <see cref="DictionaryObject"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
-        DictionaryObject? GetDictionary(int index);
+    /// <summary>
+    /// Gets the value at the given index as an <see cref="Int32"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or its converted equivalent</returns>
+    /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+    /// will be rounded, and everything else non-numeric will be 0</remarks>
+    int GetInt(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as a <see cref="Double"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or its converted equivalent</returns>
-        /// <remarks><c>true</c> will be converted to 1.0, and everything else that
-        /// is non-numeric will be 0.0</remarks>
-        double GetDouble(int index);
+    /// <summary>
+    /// Gets the value at the given index as an <see cref="Int64"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or its converted equivalent</returns>
+    /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+    /// will be rounded, and everything else non-numeric will be 0</remarks>
+    long GetLong(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as a <see cref="Single"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or its converted equivalent</returns>
-        /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
-        /// is non-numeric will be 0.0f</remarks>
-        float GetFloat(int index);
+    /// <summary>
+    /// Gets the value at the given index as a <see cref="String"/>
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or <c>null</c></returns>
+    string? GetString(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as an <see cref="Int32"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or its converted equivalent</returns>
-        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
-        /// will be rounded, and everything else non-numeric will be 0</remarks>
-        int GetInt(int index);
+    /// <summary>
+    /// Gets the value at the given index as an untyped object
+    /// </summary>
+    /// <param name="index">The index to lookup</param>
+    /// <returns>The value at the index, or <c>null</c></returns>
+    /// <remarks>This method should be avoided for numeric types, whose
+    /// underlying representation is subject to change and thus
+    /// <see cref="InvalidCastException"/>s </remarks>
+    object? GetValue(int index);
 
-        /// <summary>
-        /// Gets the value at the given index as an <see cref="Int64"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or its converted equivalent</returns>
-        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
-        /// will be rounded, and everything else non-numeric will be 0</remarks>
-        long GetLong(int index);
-
-        /// <summary>
-        /// Gets the value at the given index as a <see cref="String"/>
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
-        string? GetString(int index);
-
-        /// <summary>
-        /// Gets the value at the given index as an untyped object
-        /// </summary>
-        /// <param name="index">The index to lookup</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
-        /// <remarks>This method should be avoided for numeric types, whose
-        /// underlying representation is subject to change and thus
-        /// <see cref="InvalidCastException"/>s </remarks>
-        object? GetValue(int index);
-
-        /// <summary>
-        /// Converts the contents of the array to a .NET list type
-        /// </summary>
-        /// <returns>The contents of the array as a .NET list</returns>
-        List<object?> ToList();
-
-        #endregion
-    }
+    /// <summary>
+    /// Converts the contents of the array to a .NET list type
+    /// </summary>
+    /// <returns>The contents of the array as a .NET list</returns>
+    List<object?> ToList();
 }

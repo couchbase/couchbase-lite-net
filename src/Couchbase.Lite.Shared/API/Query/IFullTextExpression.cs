@@ -16,20 +16,19 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// [DEPRECATED] An interface that represents an expression that is eligible to receive
+/// full-text related query clauses
+/// </summary>
+public interface IFullTextExpression
 {
     /// <summary>
-    /// [DEPRECATED] An interface that represents an expression that is eligible to receive
-    /// full-text related query clauses
+    /// [DEPRECATED] Returns an expression that will evaluate whether or not the given
+    /// expression full text matches the current one
     /// </summary>
-    public interface IFullTextExpression
-    {
-        /// <summary>
-        /// [DEPRECATED] Returns an expression that will evaluate whether or not the given
-        /// expression full text matches the current one
-        /// </summary>
-        /// <param name="query">The text to use for the match operation</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Match(string query);
-    }
+    /// <param name="query">The text to use for the match operation</param>
+    /// <returns>The expression representing the new operation</returns>
+    IExpression Match(string query);
 }

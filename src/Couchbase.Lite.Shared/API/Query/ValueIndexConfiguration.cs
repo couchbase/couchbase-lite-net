@@ -19,29 +19,22 @@
 using Couchbase.Lite.Internal.Query;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A class for an index based on a simple property value
+/// </summary>
+public sealed record ValueIndexConfiguration : IndexConfiguration
 {
+    internal override C4IndexOptions Options => new C4IndexOptions();
+    
     /// <summary>
-    /// An class for an index based on a simple property value
+    /// Starts the creation of an index based on a simple property
     /// </summary>
-    public sealed record ValueIndexConfiguration : IndexConfiguration
+    /// <param name="expressions">The expressions to use to create the index</param>
+    /// <returns>The beginning of a value based index</returns>
+    public ValueIndexConfiguration(params string[] expressions)
+        : base(C4IndexType.ValueIndex, expressions)
     {
-        #region Properties
-        internal override C4IndexOptions Options => new C4IndexOptions();
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Starts the creation of an index based on a simple property
-        /// </summary>
-        /// <param name="expressions">The expressions to use to create the index</param>
-        /// <returns>The beginning of a value based index</returns>
-        public ValueIndexConfiguration(params string[] expressions)
-            : base(C4IndexType.ValueIndex, expressions)
-        {
-        }
-
-        #endregion
     }
 }

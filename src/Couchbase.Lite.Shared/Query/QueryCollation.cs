@@ -18,90 +18,67 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Internal.Query;
+
+internal sealed class QueryCollation : QueryExpression, IASCIICollation, IUnicodeCollation
 {
-    internal sealed class QueryCollation : QueryExpression, IASCIICollation, IUnicodeCollation
+    private const string Tag = nameof(QueryCollation);
+    
+    private readonly Dictionary<string, object> _collation = new();
+    private List<object>? _json;
+
+    // Copy constructor.
+    public QueryCollation(QueryCollation collationCopy)
     {
-        #region Variables
-        
-        private readonly Dictionary<string, object> _collation = new Dictionary<string, object>();
-        private List<object>? _json;
+        _collation = new Dictionary<string, object>(collationCopy._collation);
+    }
 
-        #endregion
-
-        #region Constructors
-
-        // Copy constructor.
-        public QueryCollation(QueryCollation collationCopy)
-        {
-            _collation = new Dictionary<string, object>(collationCopy._collation);
+    public QueryCollation(bool unicodeAware)
+    {
+        if (unicodeAware) {
+            _collation["UNICODE"] = true;
+            _collation["LOCALE"] = Collation.DefaultLocale;
         }
+    }
 
-        public QueryCollation(bool unicodeAware)
-        {
-            if (unicodeAware) {
-                _collation["UNICODE"] = true;
-				_collation["LOCALE"] = Collation.DefaultLocale;
-            }
-        }
+    public void SetOperand(QueryExpression op)
+    {
+        var opJson = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(op), op.ConvertToJSON());
+        _json = ["COLLATE", _collation, opJson];
+    }
 
-        #endregion
+    protected override object ToJSON()
+    {
+        Debug.Assert(_json != null);
+        return _json!;
+    }
 
-        #region Public Methods
+    IASCIICollation IASCIICollation.IgnoreCase(bool ignoreCase)
+    {
+        _collation["CASE"] = !ignoreCase;
+        return this;
+    }
 
-        public void SetOperand(QueryExpression op)
-        {
-            var opJson = op?.ConvertToJSON();
-            Debug.Assert(opJson != null);
+    public IUnicodeCollation IgnoreAccents(bool ignoreAccents)
+    {
+        _collation["DIAC"] = !ignoreAccents;
+        return this;
+    }
 
-            _json = new List<object> {"COLLATE", _collation, opJson!};
-        }
+    IUnicodeCollation IUnicodeCollation.IgnoreCase(bool ignoreCase)
+    {
+        _collation["CASE"] = !ignoreCase;
+        return this;
+    }
 
-        #endregion
-
-        #region Overrides
-
-        protected override object ToJSON()
-        {
-            Debug.Assert(_json != null);
-            return _json!;
-        }
-
-        #endregion
-
-        #region IASCIICollation
-
-        IASCIICollation IASCIICollation.IgnoreCase(bool ignoreCase)
-        {
-            _collation["CASE"] = !ignoreCase;
-            return this;
-        }
-
-        #endregion
-
-        #region IUnicodeCollation
-
-        public IUnicodeCollation IgnoreAccents(bool ignoreAccents)
-        {
-            _collation["DIAC"] = !ignoreAccents;
-            return this;
-        }
-
-        IUnicodeCollation IUnicodeCollation.IgnoreCase(bool ignoreCase)
-        {
-            _collation["CASE"] = !ignoreCase;
-            return this;
-        }
-
-        public IUnicodeCollation Locale(string locale)
-        {
-            _collation["LOCALE"] = locale;
-            return this;
-        }
-
-        #endregion
+    public IUnicodeCollation Locale(string locale)
+    {
+        _collation["LOCALE"] = locale;
+        return this;
     }
 }

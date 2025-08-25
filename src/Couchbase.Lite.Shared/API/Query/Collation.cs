@@ -19,28 +19,28 @@
 using System.Globalization;
 using Couchbase.Lite.Internal.Query;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A factory class for creating <see cref="ICollation"/> instances
+/// </summary>
+public static class Collation
 {
     /// <summary>
-    /// A factory class for creating <see cref="ICollation"/> instances
+    /// The default locale for the current program,  for use with Unicode collation
     /// </summary>
-    public static class Collation
-    {
-        /// <summary>
-        /// The default locale for the current program,  for use with Unicode collation
-        /// </summary>
-		internal static readonly string DefaultLocale = CultureInfo.CurrentCulture.Name == "" ?
-																 "en" : CultureInfo.CurrentCulture.Name.Replace('-', '_');
-        /// <summary>
-        /// Creates an ASCII based collation instance
-        /// </summary>
-        /// <returns>An ASCII based collation instance</returns>
-        public static IASCIICollation ASCII() => new QueryCollation(false);
+    internal static readonly string DefaultLocale = CultureInfo.CurrentCulture.Name == "" ?
+        "en" : CultureInfo.CurrentCulture.Name.Replace('-', '_');
+    
+    /// <summary>
+    /// Creates an ASCII based collation instance
+    /// </summary>
+    /// <returns>An ASCII based collation instance</returns>
+    public static IASCIICollation ASCII() => new QueryCollation(false);
 
-        /// <summary>
-        /// Creates a Unicode based collation instance (http://unicode.org/reports/tr10/)
-        /// </summary>
-        /// <returns>A Unicode based collation instance</returns>
-        public static IUnicodeCollation Unicode() => new QueryCollation(true);
-    }
+    /// <summary>
+    /// Creates a Unicode based collation instance (http://unicode.org/reports/tr10/)
+    /// </summary>
+    /// <returns>A Unicode based collation instance</returns>
+    public static IUnicodeCollation Unicode() => new QueryCollation(true);
 }

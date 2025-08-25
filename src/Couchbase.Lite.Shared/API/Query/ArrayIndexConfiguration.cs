@@ -19,6 +19,7 @@
 using Couchbase.Lite.Internal.Query;
 using LiteCore.Interop;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Couchbase.Lite.Query;
@@ -29,8 +30,6 @@ namespace Couchbase.Lite.Query;
 /// </summary>
 public sealed record ArrayIndexConfiguration : IndexConfiguration
 {
-    private const string Tag = nameof(ArrayIndexConfiguration);
-
     /// <summary>
     /// Constructor
     /// </summary>
@@ -81,5 +80,6 @@ public sealed record ArrayIndexConfiguration : IndexConfiguration
     /// <summary>
     /// Path to the array, which can be nested.
     /// </summary>
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public string Path { get; }
 }

@@ -30,363 +30,277 @@ using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A class representing information about a "row" in the result of an
+/// <see cref="IQuery"/><br /><br />
+/// 
+/// > [!WARNING]
+/// > The data inside this class is tied to the lifetime of its parent 
+/// > <see cref="IResultSet"/> and will become invalid if the parent is 
+/// > disposed or garbage collected, unless the data is first converted to
+/// > .NET objects via ToList, ToDictionary, etc.
+/// </summary>
+public sealed unsafe class Result : IArray, IDictionaryObject, IJSON
 {
+    private const string Tag = nameof(Result);
+
+    private readonly Dictionary<string, int> _columnNames;
+    private readonly MContext _context;
+    private readonly object?[] _deserialized;
+    private readonly BitArray _missingColumns;
+    private readonly QueryResultSet _rs;
+
+    private FLArrayIterator _columns;
+
     /// <summary>
-    /// A class representing information about a "row" in the result of an
-    /// <see cref="IQuery"/><br /><br />
-    /// 
-    /// > [!WARNING]
-    /// > The data inside this class is tied to the lifetime of its parent 
-    /// > <see cref="IResultSet"/> and will become invalid if the parent is 
-    /// > disposed or garbage collected, unless the data is first converted to
-    /// > .NET objects via ToList, ToDictionary, etc.
+    /// Gets the number of entries in the result
     /// </summary>
-    public sealed unsafe class Result : IArray, IDictionaryObject, IJSON
+    public int Count => _columnNames.Count;
+
+    /// <inheritdoc />
+    public IFragment this[int index]
     {
-        #region Constants
-
-        private const string Tag = nameof(Result);
-
-        #endregion
-
-        #region Variables
-
-        private readonly Dictionary<string, int> _columnNames;
-        private readonly MContext _context;
-        private readonly object?[] _deserialized;
-        private readonly BitArray _missingColumns;
-        private readonly QueryResultSet _rs;
-
-        private FLArrayIterator _columns;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the number of entries in the result
-        /// </summary>
-        public int Count => _columnNames.Count;
-
-        /// <inheritdoc />
-        public IFragment this[int index]
-        {
-            get {
-                _context.CheckDisposed();
-                if (index >= Count) {
-                    return Fragment.Null;
-                }
-
-                return new Fragment(this, index);
-            }
-        }
-
-        /// <inheritdoc />
-        public IFragment this[string key]
-        {
-            get {
-                _context.CheckDisposed();
-                return this[IndexForColumnName(key)];
-            }
-        }
-
-        /// <inheritdoc />
-        public ICollection<string> Keys => _columnNames.Keys;
-
-        #endregion
-
-        #region Constructors
-
-        internal Result(QueryResultSet rs, C4QueryEnumeratorWrapper e, MContext context)
-        {
-            _rs = rs;
-            _context = context;
-            _columns = e.RawEnumerator->columns;
-            _missingColumns = new BitArray(BitConverter.GetBytes(e.RawEnumerator->missingColumns));
-            _columnNames = new Dictionary<string, int>(_rs.ColumnNames);
-            foreach (var pair in _rs.ColumnNames) {
-                if (pair.Value < _missingColumns.Length && _missingColumns.Get(pair.Value)) {
-                    _columnNames.Remove(pair.Key);
-                }
-            }
-
-            _deserialized = new object[_rs.ColumnNames.Count];
-            for (int i = 0; i < _rs.ColumnNames.Count; i++) {
-                if (!_missingColumns.Get(i)) {
-                    _deserialized[i] = FleeceValueToObject(i);
-                }
-            }
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private object? FleeceValueToObject(int index)
-        {
-            var value = FLValueAtIndex(index);
-            if (value == null) {
-                return null;
-            }
-
-            var root = new MRoot(_context, value, false);
-            return root.AsObject();
-        }
-
-        private FLValue* FLValueAtIndex(int index)
-        {
-            fixed (FLArrayIterator* columns = &_columns) {
-                return Native.FLArrayIterator_GetValueAt(columns, (uint) index);
-            }
-        }
-
-        private int IndexForColumnName(string columnName)
-        {
-            if (_columnNames.TryGetValue(columnName, out var index)) {
-                return index;
-            }
-
-            return -1;
-        }
-
-        #endregion
-
-        #region IArray
-
-        /// <inheritdoc />
-        public ArrayObject? GetArray(int index)
-        {
+        get {
             _context.CheckDisposed();
-            return _deserialized[index] as ArrayObject;
+            return index >= Count ? Fragment.Null : new Fragment(this, index);
         }
-
-        /// <inheritdoc />
-        public Blob? GetBlob(int index)
-        {
-            _context.CheckDisposed();
-            return _deserialized[index] as Blob;  
-        }
-
-        /// <inheritdoc />
-        public bool GetBoolean(int index)
-        {
-            return Convert.ToBoolean(_deserialized[index]);
-        }
-
-        /// <inheritdoc />
-        public DateTimeOffset GetDate(int index)
-        {
-            return DataOps.ConvertToDate(_deserialized[index]);
-        }
-
-        /// <inheritdoc />
-        public DictionaryObject? GetDictionary(int index)
-        {
-            _context.CheckDisposed();
-            return _deserialized[index] as DictionaryObject;
-        }
-
-        /// <inheritdoc />
-        public double GetDouble(int index)
-        {
-            return Convert.ToDouble(_deserialized[index]);
-        }
-
-        /// <inheritdoc />
-        public float GetFloat(int index)
-        {
-            return Convert.ToSingle(_deserialized[index]);
-        }
-
-        /// <inheritdoc />
-        public int GetInt(int index)
-        {
-            return Convert.ToInt32(_deserialized[index]);
-        }
-
-        /// <inheritdoc />
-        public long GetLong(int index)
-        {
-            return Convert.ToInt64(_deserialized[index]);
-        }
-
-        /// <inheritdoc />
-        public object? GetValue(int index)
-        {
-            _context.CheckDisposed();
-            return _deserialized[index];
-        }
-
-        /// <inheritdoc />
-        public string? GetString(int index)
-        {
-            return _deserialized[index] as string;
-        }
-
-        /// <inheritdoc />
-        public List<object?> ToList()
-        {
-            return _deserialized.Select(DataOps.ToNetObject).ToList();
-        }
-
-        #endregion
-
-        #region IDictionaryObject
-
-        /// <inheritdoc />
-        public bool Contains(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            return IndexForColumnName(key) >= 0;
-        }
-
-        /// <inheritdoc />
-        public ArrayObject? GetArray(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetArray(index) : null;
-        }
-
-        /// <inheritdoc />
-        public Blob? GetBlob(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetBlob(index) : null;
-        }
-
-        /// <inheritdoc />
-        public bool GetBoolean(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 && GetBoolean(index);
-        }
-
-        /// <inheritdoc />
-        public DateTimeOffset GetDate(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetDate(index) : DateTimeOffset.MinValue;
-        }
-
-        /// <inheritdoc />
-        public DictionaryObject? GetDictionary(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetDictionary(index) : null;
-        }
-
-        /// <inheritdoc />
-        public double GetDouble(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetDouble(index) : 0.0;
-        }
-
-        /// <inheritdoc />
-        public float GetFloat(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetFloat(index) : 0.0f;
-        }
-
-        /// <inheritdoc />
-        public int GetInt(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetInt(index) : 0;
-        }
-
-        /// <inheritdoc />
-        public long GetLong(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetLong(index) : 0L;
-        }
-
-        /// <inheritdoc />
-        public object? GetValue(string key)
-        {
-            _context.CheckDisposed();
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetValue(index) : null;
-        }
-
-        /// <inheritdoc />
-        public string? GetString(string key)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
-            var index = IndexForColumnName(key);
-            return index >= 0 ? GetString(index) : null;
-        }
-
-        /// <inheritdoc />
-        public Dictionary<string, object?> ToDictionary()
-        {
-            var dict = new Dictionary<string, object?>();
-            foreach (var key in Keys) {
-                dict[key] = DataOps.ToNetObject(GetValue(key));
-            }
-
-            return dict;
-        }
-
-        #endregion
-
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<object?>) this).GetEnumerator();
-        }
-
-        #endregion
-
-        #region IEnumerable<KeyValuePair<string,object>>
-
-        IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator()
-        {
-            int index = 0;
-            foreach (var column in _rs.ColumnNames.Keys) {
-                if (!_missingColumns.Get(index++)) {
-                    yield return new KeyValuePair<string, object?>(column, GetValue(column));
-                }
-            }
-        }
-
-        #endregion
-
-        #region IEnumerable<object>
-
-        IEnumerator<object?> IEnumerable<object?>.GetEnumerator()
-        {
-            for (var i = 0; i < _rs.ColumnNames.Count; i++) {
-                if (!_missingColumns.Get(i)) {
-                    yield return GetValue(i);
-                }
-            }
-        }
-
-        #endregion
-
-        #region IJSON
-
-        /// <inheritdoc />
-        public string ToJSON()
-        {
-            return JsonConvert.SerializeObject(ToDictionary());
-        }
-
-        #endregion
     }
+
+    /// <inheritdoc />
+    public IFragment this[string key]
+    {
+        get {
+            _context.CheckDisposed();
+            return this[IndexForColumnName(key)];
+        }
+    }
+
+    /// <inheritdoc />
+    public ICollection<string> Keys => _columnNames.Keys;
+
+    internal Result(QueryResultSet rs, C4QueryEnumeratorWrapper e, MContext context)
+    {
+        _rs = rs;
+        _context = context;
+        _columns = e.RawEnumerator->columns;
+        _missingColumns = new BitArray(BitConverter.GetBytes(e.RawEnumerator->missingColumns));
+        _columnNames = new Dictionary<string, int>(_rs.ColumnNames);
+        foreach (var pair in _rs.ColumnNames) {
+            if (pair.Value < _missingColumns.Length && _missingColumns.Get(pair.Value)) {
+                _columnNames.Remove(pair.Key);
+            }
+        }
+
+        _deserialized = new object[_rs.ColumnNames.Count];
+        for (var i = 0; i < _rs.ColumnNames.Count; i++) {
+            if (!_missingColumns.Get(i)) {
+                _deserialized[i] = FleeceValueToObject(i);
+            }
+        }
+    }
+
+    private object? FleeceValueToObject(int index)
+    {
+        var value = FLValueAtIndex(index);
+        if (value == null) {
+            return null;
+        }
+
+        var root = new MRoot(_context, value, false);
+        return root.AsObject();
+    }
+
+    private FLValue* FLValueAtIndex(int index)
+    {
+        fixed (FLArrayIterator* columns = &_columns) {
+            return Native.FLArrayIterator_GetValueAt(columns, (uint) index);
+        }
+    }
+
+    private int IndexForColumnName(string columnName) => _columnNames.GetValueOrDefault(columnName, -1);
+
+    /// <inheritdoc />
+    public ArrayObject? GetArray(int index)
+    {
+        _context.CheckDisposed();
+        return _deserialized[index] as ArrayObject;
+    }
+
+    /// <inheritdoc />
+    public Blob? GetBlob(int index)
+    {
+        _context.CheckDisposed();
+        return _deserialized[index] as Blob;  
+    }
+
+    /// <inheritdoc />
+    public bool GetBoolean(int index) => Convert.ToBoolean(_deserialized[index]);
+
+    /// <inheritdoc />
+    public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(_deserialized[index]);
+
+    /// <inheritdoc />
+    public DictionaryObject? GetDictionary(int index)
+    {
+        _context.CheckDisposed();
+        return _deserialized[index] as DictionaryObject;
+    }
+
+    /// <inheritdoc />
+    public double GetDouble(int index) => Convert.ToDouble(_deserialized[index]);
+
+    /// <inheritdoc />
+    public float GetFloat(int index) => Convert.ToSingle(_deserialized[index]);
+
+    /// <inheritdoc />
+    public int GetInt(int index) => Convert.ToInt32(_deserialized[index]);
+
+    /// <inheritdoc />
+    public long GetLong(int index) => Convert.ToInt64(_deserialized[index]);
+
+    /// <inheritdoc />
+    public object? GetValue(int index)
+    {
+        _context.CheckDisposed();
+        return _deserialized[index];
+    }
+
+    /// <inheritdoc />
+    public string? GetString(int index) => _deserialized[index] as string;
+
+    /// <inheritdoc />
+    public List<object?> ToList() => _deserialized.Select(DataOps.ToNetObject).ToList();
+
+    /// <inheritdoc />
+    public bool Contains(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        return IndexForColumnName(key) >= 0;
+    }
+
+    /// <inheritdoc />
+    public ArrayObject? GetArray(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetArray(index) : null;
+    }
+
+    /// <inheritdoc />
+    public Blob? GetBlob(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetBlob(index) : null;
+    }
+
+    /// <inheritdoc />
+    public bool GetBoolean(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 && GetBoolean(index);
+    }
+
+    /// <inheritdoc />
+    public DateTimeOffset GetDate(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetDate(index) : DateTimeOffset.MinValue;
+    }
+
+    /// <inheritdoc />
+    public DictionaryObject? GetDictionary(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetDictionary(index) : null;
+    }
+
+    /// <inheritdoc />
+    public double GetDouble(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetDouble(index) : 0.0;
+    }
+
+    /// <inheritdoc />
+    public float GetFloat(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetFloat(index) : 0.0f;
+    }
+
+    /// <inheritdoc />
+    public int GetInt(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetInt(index) : 0;
+    }
+
+    /// <inheritdoc />
+    public long GetLong(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetLong(index) : 0L;
+    }
+
+    /// <inheritdoc />
+    public object? GetValue(string key)
+    {
+        _context.CheckDisposed();
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetValue(index) : null;
+    }
+
+    /// <inheritdoc />
+    public string? GetString(string key)
+    {
+        CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
+        var index = IndexForColumnName(key);
+        return index >= 0 ? GetString(index) : null;
+    }
+
+    /// <inheritdoc />
+    public Dictionary<string, object?> ToDictionary()
+    {
+        var dict = new Dictionary<string, object?>();
+        foreach (var key in Keys) {
+            dict[key] = DataOps.ToNetObject(GetValue(key));
+        }
+
+        return dict;
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<object?>) this).GetEnumerator();
+
+    IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator()
+    {
+        int index = 0;
+        foreach (var column in _rs.ColumnNames.Keys) {
+            if (!_missingColumns.Get(index++)) {
+                yield return new KeyValuePair<string, object?>(column, GetValue(column));
+            }
+        }
+    }
+
+    IEnumerator<object?> IEnumerable<object?>.GetEnumerator()
+    {
+        for (var i = 0; i < _rs.ColumnNames.Count; i++) {
+            if (!_missingColumns.Get(i)) {
+                yield return GetValue(i);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public string ToJSON() => JsonConvert.SerializeObject(ToDictionary());
 }

@@ -16,36 +16,35 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface that represents a portion of a query that chooses
+/// a collection to be used in a query of each of its elements
+/// </summary>
+public interface IArrayExpressionIn
 {
     /// <summary>
-    /// An interface that represents a portion of a query that chooses
-    /// a collection to be used in a query of each of its elements
+    /// Chooses a collection to be used in a query of each of
+    /// its elements
     /// </summary>
-    public interface IArrayExpressionIn
-    {
-        /// <summary>
-        /// Chooses a collection to be used in a query of each of
-        /// its elements
-        /// </summary>
-        /// <param name="expression">An expression that evaluates to a collection type</param>
-        /// <returns>An object that will determine the predicate for the contents
-        /// of the collection</returns>
-        IArrayExpressionSatisfies In(IExpression expression);
-    }
+    /// <param name="expression">An expression that evaluates to a collection type</param>
+    /// <returns>An object that will determine the predicate for the contents
+    /// of the collection</returns>
+    IArrayExpressionSatisfies In(IExpression expression);
+}
 
+/// <summary>
+/// An interface representing an object that can accept a predicate to use
+/// on each item in a collection
+/// </summary>
+public interface IArrayExpressionSatisfies
+{
     /// <summary>
-    /// An interface representing an object that can accept a predicate to use
-    /// on each item in a collection
+    /// Accepts a predicate to apply to each item of a collection
+    /// received from <see cref="IArrayExpressionIn"/>
     /// </summary>
-    public interface IArrayExpressionSatisfies
-    {
-        /// <summary>
-        /// Accepts a predicate to apply to each item of a collection
-        /// received from <see cref="IArrayExpressionIn"/>
-        /// </summary>
-        /// <param name="expression">The predicate expression to apply</param>
-        /// <returns>The overall expression for further processing</returns>
-        IExpression Satisfies(IExpression expression);
-    }
+    /// <param name="expression">The predicate expression to apply</param>
+    /// <returns>The overall expression for further processing</returns>
+    IExpression Satisfies(IExpression expression);
 }

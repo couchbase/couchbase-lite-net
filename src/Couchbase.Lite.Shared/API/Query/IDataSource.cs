@@ -16,31 +16,23 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// An interface representing the source of data for a query
+/// </summary>
+public interface IDataSource;
+
+/// <summary>
+/// An interface representing a source of data that comes from
+/// an <see cref="Database"/>
+/// </summary>
+public interface IDataSourceAs : IDataSource
 {
     /// <summary>
-    /// An interface representing the source of data for a query
+    /// Attaches an alias to a given data source
     /// </summary>
-    public interface IDataSource
-    {
-        
-    }
-
-    /// <summary>
-    /// An interface representing a source of data that comes from
-    /// an <see cref="Database"/>
-    /// </summary>
-    public interface IDataSourceAs : IDataSource
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Attaches an alias to a given data source
-        /// </summary>
-        /// <param name="alias">The alias to attach</param>
-        /// <returns>The datasource, for further operations</returns>
-        IDataSource As(string alias);
-
-        #endregion
-    }
+    /// <param name="alias">The alias to attach</param>
+    /// <returns>The datasource, for further operations</returns>
+    IDataSource As(string alias);
 }

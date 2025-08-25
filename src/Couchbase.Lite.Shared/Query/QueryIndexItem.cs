@@ -19,15 +19,14 @@
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Internal.Query
-{
-    internal sealed class QueryIndexItem : IValueIndexItem, IFullTextIndexItem
-    {
-        public readonly QueryExpression Expression;
+namespace Couchbase.Lite.Internal.Query;
 
-        internal QueryIndexItem(IExpression expression)
-        {
-            Expression = Misc.TryCast<IExpression, QueryExpression>(expression);
-        }
+internal sealed class QueryIndexItem : IValueIndexItem, IFullTextIndexItem
+{
+    public readonly QueryExpression Expression;
+
+    internal QueryIndexItem(IExpression expression)
+    {
+        Expression = Misc.TryCast<IExpression, QueryExpression>(expression);
     }
 }

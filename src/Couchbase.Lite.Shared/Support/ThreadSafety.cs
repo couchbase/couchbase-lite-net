@@ -16,44 +16,53 @@
 // limitations under the License.
 // 
 using System;
+
+#if NET9_0_OR_GREATER
+using LockType = System.Threading.Lock;
+#else
 using System.Threading;
+using LockType = object;
+#endif
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+// TODO: After .NET 8.0 is EOL, switch to use System.Threading.Lock always
+internal sealed class ThreadSafety : IThreadSafety
 {
-    internal sealed class ThreadSafety : IThreadSafety
+    private readonly LockType _lock = new();
+
+    public IDisposable BeginLockedScope()
     {
-
-        private readonly object _lock = new object();
-
-        public IDisposable BeginLockedScope()
-        {
-            bool lockTaken = false;
 #if !NO_THREADSAFE
-            Monitor.Enter(_lock, ref lockTaken);
+#if NET9_0_OR_GREATER
+        const bool lockTaken = true;
+        _lock.Enter();
+#else
+        var lockTaken = false;
+        Monitor.Enter(_lock, ref lockTaken);
 #endif
-            return new ScopeExit(_lock, lockTaken);
-        }
+#endif
+        return new ScopeExit(_lock, lockTaken);
+    }
 
-        private sealed class ScopeExit : IDisposable
+    private sealed class ScopeExit(LockType locker, bool mustUnlock) : IDisposable
+    {
+        private bool _mustUnlock = mustUnlock;
+
+        public void Dispose()
         {
-            private readonly object _lock;
-            private bool _mustUnlock;
-
-            public ScopeExit(object locker, bool mustUnlock)
-            {
-                _lock = locker;
-                _mustUnlock = mustUnlock;
-            }
-
-            public void Dispose()
-            {
 #if !NO_THREADSAFE
-                if (_mustUnlock) {
-                    Monitor.Exit(_lock);
-                    _mustUnlock = false;
-                }
-#endif
+            if (!_mustUnlock) {
+                return;
             }
+            
+#if NET9_0_OR_GREATER
+            locker.Exit();
+#else
+            Monitor.Exit(locker);
+#endif
+            _mustUnlock = false;
+#endif
         }
     }
 }

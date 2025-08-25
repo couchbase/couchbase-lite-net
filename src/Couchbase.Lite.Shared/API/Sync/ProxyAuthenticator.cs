@@ -17,7 +17,6 @@
 // 
 
 using Couchbase.Lite.Sync;
-using System;
 
 /// <summary>
 /// A class for storing credentials for a proxy that needs authentication

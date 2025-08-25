@@ -179,12 +179,13 @@ namespace Test
 
                 seekrit.InBatch(() =>
                 {
+                    // ReSharper disable AccessToDisposedClosure
                     for (var i = 0; i < 100; i++) {
-                        using (var doc = new MutableDocument(new Dictionary<string, object?>
-                            { ["seq"] = i })) {
-                            seekrit.GetDefaultCollection().Save(doc);
-                        }
+                        using var doc = new MutableDocument(new Dictionary<string, object?>
+                            { ["seq"] = i });
+                        seekrit.GetDefaultCollection().Save(doc);
                     }
+                    // ReSharper restore AccessToDisposedClosure
                 });
 
                 var newKey = newPass != null ? new EncryptionKey(newPass) : null;
@@ -195,7 +196,7 @@ namespace Test
             using(var seekrit = OpenSeekrit(newPass)) {
                 using (var doc = seekrit.GetDefaultCollection().GetDocument("att")) {
                     doc.ShouldNotBeNull("because it was saved at the beginning of the test");
-                    var blob = doc!.GetBlob("blob");
+                    var blob = doc.GetBlob("blob");
                     blob.ShouldNotBeNull("because the blob was saved to the document");
                     blob.Digest.ShouldNotBeNull("because the blob should have a digest upon save");
                     blob.Content.ShouldNotBeNull("because the blob should not be empty");
@@ -249,7 +250,7 @@ namespace Test
             using (var savedDoc = seekrit.GetDefaultCollection().GetDocument("att")) {
                 blob = savedDoc?.GetBlob("blob");
                 blob.ShouldNotBeNull("because the document and blob were saved earlier in the test");
-                blob!.Digest.ShouldNotBeNull();
+                blob.Digest.ShouldNotBeNull();
                 blob.Content.ShouldNotBeNull("because the blob should not be empty");
                 var content = Encoding.UTF8.GetString(blob.Content!);
                 content.ShouldBe("This is a blob!");

@@ -16,24 +16,19 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// Represents an expression that is meant to retrieve metadata information
+/// inside an <see cref="IQuery"/>
+/// </summary>
+public interface IMetaExpression : IExpression
 {
     /// <summary>
-    /// Represents an expression that is meant to retrieve metadata information
-    /// inside of an <see cref="IQuery"/>
+    /// Specifies the source to retrieve the information from
+    /// if multiple sources are used in a query
     /// </summary>
-    public interface IMetaExpression : IExpression
-    {
-        #region Public Methods
-
-        /// <summary>
-        /// Specifies the source to retrieve the information from
-        /// if multiple sources are used in a query
-        /// </summary>
-        /// <param name="alias">The name of the data source</param>
-        /// <returns>The expression with the alias added</returns>
-        IExpression From(string alias);
-
-        #endregion
-    }
+    /// <param name="alias">The name of the data source</param>
+    /// <returns>The expression with the alias added</returns>
+    IExpression From(string alias);
 }

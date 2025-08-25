@@ -18,41 +18,26 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 
-namespace Couchbase.Lite.Util
+namespace Couchbase.Lite.Util;
+
+internal static class Run
 {
-    internal static class Run
+    private static readonly ConcurrentDictionary<string, byte> Instances = new();
+
+    public static void Once(string identifier, Action a)
     {
-        #region Constants
-
-        private static readonly ConcurrentDictionary<string, byte> Instances =
-            new ConcurrentDictionary<string, byte>();
-
-        #endregion
-
-        #region Public Methods
-
-        public static void Once(string identifier, Action a)
-        {
-            if (Instances.TryAdd(identifier, 0)) {
-                a();
-            }
+        if (Instances.TryAdd(identifier, 0)) {
+            a();
         }
-
-        #endregion
-
-        #region Internal Methods
+    }
 
 #if DEBUG
 
-        internal static void Clear(string identifier)
-        {
-            Instances.TryRemove(identifier, out var tmp);
-        }
+    internal static void Clear(string identifier)
+    {
+        Instances.TryRemove(identifier, out _);
+    }
 
 #endif
-
-        #endregion
-    }
 }

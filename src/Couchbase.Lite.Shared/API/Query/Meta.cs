@@ -18,53 +18,44 @@
 
 using Couchbase.Lite.Internal.Query;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// A class that generates expressions for retrieving metadata
+/// during a query
+/// </summary>
+public static class Meta
 {
+    private const string IDKeyPath = "_id";
+    private const string RevIDKeyPath = "_revisionID";
+    private const string SequenceKeyPath = "_sequence";
+    private const string IsDeletedKeyPath = "_deleted";
+    private const string ExpirationKeyPath = "_expiration";
+
     /// <summary>
-    /// A class that generates expressions for retrieving metadata
-    /// during a query
+    /// A query expression that retrieves the document ID from 
+    /// an entry in the database
     /// </summary>
-    public static class Meta
-    {
-        #region Constants
+    public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath);
 
-        private const string IDKeyPath = "_id";
-        private const string RevIDKeyPath = "_revisionID";
-        private const string SequenceKeyPath = "_sequence";
-        private const string IsDeletedKeyPath = "_deleted";
-        private const string ExpirationKeyPath = "_expiration";
+    /// <summary>
+    /// A query expression that retrieves the document sequence from
+    /// an entry in the database
+    /// </summary>
+    public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath);
 
-        #endregion
+    /// <summary>
+    /// A metadata expression refering to the deleted boolean flag of the document.
+    /// </summary>
+    public static IMetaExpression IsDeleted => new QueryTypeExpression(IsDeletedKeyPath);
 
-        #region Properties
+    /// <summary>
+    /// A metadata expression refering to the expiration date of the document.
+    /// </summary>
+    public static IMetaExpression Expiration => new QueryTypeExpression(ExpirationKeyPath);
 
-        /// <summary>
-        /// A query expression that retrieves the document ID from 
-        /// an entry in the database
-        /// </summary>
-        public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath);
-
-        /// <summary>
-        /// A query expression that retrieves the document sequence from
-        /// an entry in the database
-        /// </summary>
-        public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath);
-
-        /// <summary>
-        /// A metadata expression refering to the deleted boolean flag of the document.
-        /// </summary>
-        public static IMetaExpression IsDeleted => new QueryTypeExpression(IsDeletedKeyPath);
-
-        /// <summary>
-        /// A metadata expression refering to the expiration date of the document.
-        /// </summary>
-        public static IMetaExpression Expiration => new QueryTypeExpression(ExpirationKeyPath);
-
-        /// <summary>
-        /// A metadata expression refering to the revision ID of the document.
-        /// </summary>
-        public static IMetaExpression RevisionID => new QueryTypeExpression(RevIDKeyPath);
-
-        #endregion
-    }
+    /// <summary>
+    /// A metadata expression refering to the revision ID of the document.
+    /// </summary>
+    public static IMetaExpression RevisionID => new QueryTypeExpression(RevIDKeyPath);
 }

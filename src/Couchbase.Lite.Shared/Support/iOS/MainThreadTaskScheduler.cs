@@ -25,56 +25,40 @@ using Couchbase.Lite.Internal.Logging;
 
 using Foundation;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support;
+
+[CouchbaseDependency(Lazy = true, Transient = true)]
+internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
 {
-    [CouchbaseDependency(Lazy = true, Transient = true)]
-    internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
+    private const string Tag = nameof(MainThreadTaskScheduler);
+
+    public bool IsMainThread => NSThread.IsMain;
+
+    protected override IEnumerable<Task> GetScheduledTasks()
     {
-#region Constants
-
-        private const string Tag = nameof(MainThreadTaskScheduler);
-
-#endregion
-
-#region Properties
-
-        public bool IsMainThread => NSThread.IsMain;
-
-#endregion
-
-#region Overrides
-
-        protected override IEnumerable<Task> GetScheduledTasks()
-        {
-            throw new NotSupportedException();
-        }
-
-        protected override void QueueTask(Task task)
-        {
-            NSRunLoop.Main.BeginInvokeOnMainThread(() =>
-            {
-                if (!TryExecuteTask(task)) {
-                    WriteLog.To.Database.W(Tag, "Failed to execute task");
-                }
-            });
-        }
-
-        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
-        {
-            if (taskWasPreviouslyQueued || !IsMainThread) {
-                return false;
-            }
-
-            return TryExecuteTask(task);
-        }
-
-#endregion
-
-#region IMainThreadTaskScheduler
-
-        public TaskScheduler AsTaskScheduler() => this;
-
-#endregion
+        throw new NotSupportedException();
     }
+
+    protected override void QueueTask(Task task)
+    {
+        NSRunLoop.Main.BeginInvokeOnMainThread(() =>
+        {
+            if (!TryExecuteTask(task)) {
+                WriteLog.To.Database.W(Tag, "Failed to execute task");
+            }
+        });
+    }
+
+    protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
+    {
+        if (taskWasPreviouslyQueued || !IsMainThread) {
+            return false;
+        }
+
+        return TryExecuteTask(task);
+    }
+
+    public TaskScheduler AsTaskScheduler() => this;
 }
+
 #endif

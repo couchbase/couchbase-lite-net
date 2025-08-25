@@ -18,37 +18,36 @@
 
 using System.Diagnostics;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+/// <summary>
+/// Conflict contains information of the conflicted documents, including local and 
+/// remote document’s content. The null content means that the document is deleted.
+/// </summary>
+public class Conflict
 {
     /// <summary>
-    /// Conflict contains information of the conflicted documents, including local and 
-    /// remote document’s content. The null content means that the document is deleted.
+    /// The conflict resolved document id.
     /// </summary>
-    public class Conflict
+    public string DocumentID { get; }
+
+    /// <summary>
+    /// The document in local database. If null, the document is deleted.
+    /// </summary>
+    public Document? LocalDocument { get; }
+
+    /// <summary>
+    /// The document in remote database. If null, the document is deleted.
+    /// </summary>
+    public Document? RemoteDocument { get; }
+
+    internal Conflict(string docID, Document? localDoc, Document? remoteDoc)
     {
-        /// <summary>
-        /// The conflict resolved document id.
-        /// </summary>
-        public string DocumentID { get; }
+        Debug.Assert(localDoc != null || remoteDoc != null,
+            "Local and remote document shouldn't be empty at same time, when resolving conflict.");
 
-        /// <summary>
-        /// The document in local database. If null, the document is deleted.
-        /// </summary>
-        public Document? LocalDocument { get; }
-
-        /// <summary>
-        /// The document in remote database. If null, the document is deleted.
-        /// </summary>
-        public Document? RemoteDocument { get; }
-
-        internal Conflict(string docID, Document? localDoc, Document? remoteDoc)
-        {
-            Debug.Assert(localDoc != null || remoteDoc != null,
-                "Local and remote document shouldn't be empty at same time, when resolving conflict.");
-
-            DocumentID = docID;
-            LocalDocument = localDoc;
-            RemoteDocument = remoteDoc;
-        }
+        DocumentID = docID;
+        LocalDocument = localDoc;
+        RemoteDocument = remoteDoc;
     }
 }

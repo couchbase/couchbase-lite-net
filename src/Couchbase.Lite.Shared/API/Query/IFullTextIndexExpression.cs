@@ -16,62 +16,33 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Query;
+
+/// <summary>
+/// Specifies an unambiguous full text index to use when building a query via QueryBuilder.
+/// </summary>
+public interface IFullTextIndexExpression : IIndexExpression
 {
     /// <summary>
-    /// Specifies an unambiguous full text index to use when building a query via QueryBuilder.
+    /// Specifies the data source of the index (i.e. collection).  The alias must
+    /// match the alias of a data source in the query.
     /// </summary>
-    public interface IFullTextIndexExpression : IIndexExpression
+    /// <param name="alias">The alias of the data source in the query</param>
+    /// <returns>An alias aware full text index expression for use in a QueryBuilder query</returns>
+    IIndexExpression From(string alias);
+}
+
+internal sealed class FullTextIndexExpression(string name) : IFullTextIndexExpression
+{
+
+    private string? _alias;
+
+    public IIndexExpression From(string alias)
     {
-        /// <summary>
-        /// Specifies the data source of the index (i.e. collection).  The alias must
-        /// match the alias of a data source in the query.
-        /// </summary>
-        /// <param name="alias">The alias of the data source in the query</param>
-        /// <returns>An alias aware full text index expression for use in a QueryBuilder query</returns>
-        IIndexExpression From(string alias);
+        _alias = alias;
+        return this;
     }
 
-    internal sealed class FullTextIndexExpression : IFullTextIndexExpression
-    {
-
-        #region Variables
-
-        private string? _alias;
-        private readonly string _name;
-
-        #endregion
-
-        #region Constructors
-
-        public FullTextIndexExpression(string name)
-        {
-            _name = name;
-        }
-
-        #endregion
-
-        #region IFullTextIndexExpression
-
-        public IIndexExpression From(string alias)
-        {
-            _alias = alias;
-            return this;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override string ToString()
-        {
-            if (_alias != null) {
-                return $"{_alias}.{_name}";
-            }
-
-            return _name;
-        }
-
-        #endregion
-    }
+    public override string ToString() => 
+        _alias != null ? $"{_alias}.{name}" : name;
 }
