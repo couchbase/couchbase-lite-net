@@ -25,44 +25,15 @@ using Xunit.Abstractions;
 
 namespace Test.Util
 {
-    internal sealed class XunitLogger : ILogger
+    internal sealed class XunitLogSink(LogLevel level, ITestOutputHelper output) : BaseLogSink(level)
     {
-        #region Variables
-
-        private readonly ITestOutputHelper _output;
-
-        #endregion
-
-        #region Properties
-
-        public LogLevel Level { get; set; } = LogLevel.Warning;
-
-        #endregion
-
-        #region Constructors
-
-        public XunitLogger(ITestOutputHelper output)
+        protected override void WriteLog(LogLevel level, LogDomain domain, string message)
         {
-            _output = output;
-        }
-
-        #endregion
-
-        #region ILogger
-
-        public void Log(LogLevel level, LogDomain domain, string message)
-        {
-            if (level < Level) {
-                return;
-            }
-
             try {
-                _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
+                output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
             } catch (Exception) {
                 // _output is busted, the test is probably already finished.  Nothing we can do
             }
         }
-
-        #endregion
     }
 }

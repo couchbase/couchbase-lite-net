@@ -143,20 +143,20 @@ internal sealed class DomainLogger
 
     private void SendToLoggers(LogLevel level, string msg)
     {
-        Database.Log.Console.Log(level, Domain, msg);
         var fileSucceeded = false;
+        LogSinks.Console?.Log(level, Domain, msg);
         try {
-            Database.Log.File.Log(level, Domain, msg);
+            LogSinks.File?.Log(level, Domain, msg);
             fileSucceeded = true;
-            Database.Log.Custom?.Log(level, Domain, msg);
+            LogSinks.Custom?.Log(level, Domain, msg);
         } catch (Exception e) {
             var logType = fileSucceeded
-                ? Database.Log.Custom?.GetType().Name
+                ? LogSinks.Custom?.GetType()?.Name
                 : "log file";
             var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
-            Database.Log.Console.Log(LogLevel.Error, LogDomain.None, errMsg);
+            LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
             if (!fileSucceeded) {
-                Database.Log.Custom?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
             }
         }
     }

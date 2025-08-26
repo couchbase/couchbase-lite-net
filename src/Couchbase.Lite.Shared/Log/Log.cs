@@ -34,11 +34,6 @@ internal static unsafe class WriteLog
 {
     // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
     private static readonly LogTo ToObj;
-
-    internal static readonly C4LogDomain* LogDomainBLIP = Native.c4log_getDomain("BLIP", false);
-    internal static readonly C4LogDomain* LogDomainWebSocket = Native.c4log_getDomain("WS", false);
-    internal static readonly C4LogDomain* LogDomainSyncBusy = Native.c4log_getDomain("SyncBusy", false);
-    private static LogLevel CurrentLevel = LogLevel.Warning;
     private static AtomicBool Initialized = new(false);
 
     private static readonly C4LogCallback LogCallback = LiteCoreLog;
@@ -47,16 +42,14 @@ internal static unsafe class WriteLog
     internal static LogTo To
     {
         get {
-            if (!Initialized.Set(true)) {
-                var oldLevel = Database.Log.Console.Level;
-                Database.Log.Console.Level = LogLevel.Info;
-                ToObj.Database.I("Startup", HTTPLogic.UserAgent);
-                Database.Log.Console.Level = oldLevel;
+            if (Initialized.Set(true)) {
+                return ToObj;
             }
-
-            // Not the best place to do this, but otherwise we have to require the developer
-            // To signal us when they change the log level
-            RecalculateLevel();
+            
+            var oldConsole = LogSinks.Console;
+            LogSinks.Console = new ConsoleLogSink(LogLevel.Info);
+            ToObj.Database.I("Startup", HTTPLogic.UserAgent);
+            LogSinks.Console = oldConsole;
             return ToObj;
         }
     }
@@ -66,33 +59,19 @@ internal static unsafe class WriteLog
         ToObj = new LogTo();
         Native.c4log_writeToCallback(C4LogLevel.Warning, LogCallback, true);
     }
+    
+    internal static void SetCallbackLevel(LogLevel level) => 
+        Native.c4log_writeToCallback((C4LogLevel)level, LogCallback, true);
 
-    internal static void RecalculateLevel()
-    {
-        var effectiveLevel = (LogLevel)Math.Min((int) Database.Log.Console.Level,
-            (int?) Database.Log.Custom?.Level ?? (int) LogLevel.Error);
-        if (effectiveLevel == CurrentLevel) {
-            return;
-        }
-
-        CurrentLevel = effectiveLevel;
-        Task.Factory.StartNew(() => 
-            Native.c4log_writeToCallback((C4LogLevel) effectiveLevel, LogCallback, true));
-    }
-
-        #if __IOS__
+#if __IOS__
     [ObjCRuntime.MonoPInvokeCallback(typeof(C4LogCallback))]
-        #endif
+#endif
     private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr ignored)
     {
-        // Not the best place to do this, but otherwise we have to require the developer
-        // To signal us when they change the log level
-        RecalculateLevel();
-
         var domainName = Native.c4log_getDomainName(domain) ?? "";
         var logDomain = To.DomainForString(domainName);
         var actualMessage = message.ToUTF8String();
-        Database.Log.Console.Log((LogLevel)level, logDomain, actualMessage);
-        Database.Log.Custom?.Log((LogLevel)level, logDomain, actualMessage);
+        LogSinks.Console?.Log((LogLevel)level, logDomain, actualMessage);
+        LogSinks.Custom?.Log((LogLevel)level, logDomain, actualMessage);
     }
 }

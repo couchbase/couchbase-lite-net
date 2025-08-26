@@ -90,9 +90,9 @@ namespace Test
         }
 #endif
 
-        public TestCase(ITestOutputHelper output)
+        protected TestCase(ITestOutputHelper output)
         {
-            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
+            LogSinks.Custom = new XunitLogSink(LogLevel.Info, output);
             _output = output;
             var nextCounter = Interlocked.Increment(ref _counter);
             Database.Delete($"{DatabaseName}{nextCounter}", Directory);
@@ -444,7 +444,7 @@ namespace Test
             var name = Db.Name;
             Db.Close();
 
-            Database.Log.Custom = null;
+            LogSinks.Custom = null;
 
             var success = Try.Condition(() =>
             {

@@ -126,12 +126,6 @@ public sealed unsafe partial class Database : IDisposable
     public DatabaseConfiguration Config { get; }
 
     /// <summary>
-    /// Gets the object that stores the available logging methods
-    /// for Couchbase Lite
-    /// </summary>
-    public static Log Log { get; } = new Log();
-
-    /// <summary>
     /// Gets the database's name
     /// </summary>
     public string Name { get; }
@@ -218,15 +212,7 @@ public sealed unsafe partial class Database : IDisposable
         }
 
         Config = configuration ?? new DatabaseConfiguration();
-        Run.Once(nameof(CheckFileLogger), CheckFileLogger);
         Open();
-    }
-
-    private void CheckFileLogger()
-    {
-        if (Log.File.Config == null) {
-            WriteLog.To.Database.W("Logging", "Database.Log.File.Config is null, meaning file logging is disabled.  Log files required for product support are not being generated.");
-        }
     }
 
     internal Database(Database other)
