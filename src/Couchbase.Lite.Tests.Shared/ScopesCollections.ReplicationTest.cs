@@ -18,32 +18,19 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Couchbase.Lite;
-using Couchbase.Lite.Logging;
 
+using Couchbase.Lite;
 using Couchbase.Lite.Sync;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Query;
 
 using Shouldly;
-using LiteCore;
-using LiteCore.Interop;
 
 using Newtonsoft.Json;
 using System.Collections.Immutable;
-using System.Reflection;
 
 using Test.Util;
 #if COUCHBASE_ENTERPRISE
-using Couchbase.Lite.P2P;
-using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 #endif
 
 using Xunit;
@@ -63,9 +50,32 @@ namespace Test
         }
 #if COUCHBASE_ENTERPRISE
 
-        #region 8.13 ReplicatorConfiguration 
+        #region 8.13 ReplicatorConfiguration
 
         [Fact]
+        public void TestCollectionsWithoutCollectionConfig()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var colB = Db.CreateCollection("colB", "scopeA");
+            var collectionConfigs = CollectionConfiguration.FromCollections(colA, colB);
+            var config = new ReplicatorConfiguration(collectionConfigs, new DatabaseEndpoint(OtherDb));
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
+            config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
+            var colAConfig = config.GetCollectionConfig(colA);
+            var colBConfig = config.GetCollectionConfig(colB);
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig.ShouldNotBeSameAs(colBConfig, "Because the returned configs should be different instances.");
+            colAConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
+            colAConfig.PushFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colAConfig.PullFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colBConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
+            colBConfig.PushFilter.ShouldBeNull("Property was never assigned and default value was null.");
+            colBConfig.PullFilter.ShouldBeNull("Property was never assigned and default value was null.");
+        }
+
+        [Fact]
+        [Obsolete]
         public void TestAddCollectionsWithoutCollectionConfig()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
@@ -89,19 +99,20 @@ namespace Test
         }
 
         [Fact]
-        public void TestAddCollectionsWithCollectionConfig()
+        public void TestCollectionsWithCollectionConfig()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
-            var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
-            var colConfig = new CollectionConfiguration()
+            var resolver = new FakeConflictResolver();
+            var collectionConfigs = new List<Collection> { colA, colB }.Select(x => new CollectionConfiguration
             {
-                ConflictResolver = new FakeConflictResolver(),
+                Collection = x,
+                ConflictResolver = resolver,
                 PullFilter = _replicator__filterCallbackTrue,
                 PushFilter = _replicator__filterCallbackTrue
-            };
-            config.AddCollection(colA, colConfig);
-            config.AddCollection(colB, colConfig);
+            });
+            
+            var config = new ReplicatorConfiguration(collectionConfigs, new DatabaseEndpoint(OtherDb));
             config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
             config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
             var colAConfig = config.GetCollectionConfig(colA);
@@ -114,14 +125,44 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
+        public void TestAddCollectionsWithCollectionConfig()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var colB = Db.CreateCollection("colB", "scopeA");
+            var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
+            var colConfig = new CollectionConfiguration
+            {
+                Collection = colA,
+                ConflictResolver = new FakeConflictResolver(),
+                PullFilter = _replicator__filterCallbackTrue,
+                PushFilter = _replicator__filterCallbackTrue
+            };
+            config.AddCollection(colA, colConfig);
+            config.AddCollection(colB, colConfig with { Collection = colB });
+            
+            config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
+            config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
+            var colAConfig = config.GetCollectionConfig(colA);
+            var colBConfig = config.GetCollectionConfig(colB);
+            colAConfig.ShouldNotBeNull("because it was just set");
+            colBConfig.ShouldNotBeNull("because it was just set");
+            colAConfig.ConflictResolver.ShouldBe(colBConfig!.ConflictResolver, "Both properties were assigned with same value.");
+            colAConfig.PushFilter.ShouldBe(colBConfig.PushFilter, "Both properties were assigned with same value.");
+            colAConfig.PullFilter.ShouldBe(colBConfig.PullFilter, "Both properties were assigned with same value.");
+        }
+
+        [Fact]
+        [Obsolete]
         public void TestAddCollection()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
             config.AddCollection(colA);
-            var colConfig = new CollectionConfiguration()
+            var colConfig = new CollectionConfiguration
             {
+                Collection = colB,
                 ConflictResolver = new FakeConflictResolver(),
                 PullFilter = _replicator__filterCallbackTrue,
                 PushFilter = _replicator__filterCallbackTrue
@@ -133,28 +174,30 @@ namespace Test
             var colBConfig = config.GetCollectionConfig(colB);
             colAConfig.ShouldNotBeNull("because it was just set");
             colBConfig.ShouldNotBeNull("because it was just set");
-            colAConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
+            colAConfig.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
             colAConfig.PushFilter.ShouldBeNull("Property was never assigned and default value was null.");
             colAConfig.PullFilter.ShouldBeNull("Property was never assigned and default value was null.");
-            colBConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver, "Property was just updated via AddCollection.");
+            colBConfig.ConflictResolver.ShouldBe(colConfig.ConflictResolver, "Property was just updated via AddCollection.");
             colBConfig.PushFilter.ShouldBe(colConfig.PushFilter, "Property was just updated via AddCollection.");
             colBConfig.PullFilter.ShouldBe(colConfig.PullFilter, "Property was just updated via AddCollection.");
         }
 
         [Fact]
+        [Obsolete]
         public void TestUpdateCollectionConfig()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
-            var colConfig = new CollectionConfiguration()
+            var colConfig = new CollectionConfiguration
             {
+                Collection = colA,
                 ConflictResolver = new FakeConflictResolver(),
                 PullFilter = _replicator__filterCallbackTrue,
                 PushFilter = _replicator__filterCallbackTrue
             };
             config.AddCollection(colA, colConfig);
-            config.AddCollection(colB, colConfig);
+            config.AddCollection(colB, colConfig with { Collection = colB });
             config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
             config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
 
@@ -162,17 +205,18 @@ namespace Test
             var colBConfig = config.GetCollectionConfig(colB);
             colAConfig.ShouldNotBeNull("because it was just set");
             colBConfig.ShouldNotBeNull("because it was just set");
-            colAConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
-            colBConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colAConfig.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colBConfig.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
             colAConfig.PullFilter.ShouldBe(colConfig.PullFilter);
             colBConfig.PullFilter.ShouldBe(colConfig.PullFilter);
             colAConfig.PushFilter.ShouldBe(colConfig.PushFilter);
             colBConfig.PushFilter.ShouldBe(colConfig.PushFilter);
 
             config.AddCollection(colA);
-            colConfig = new CollectionConfiguration()
+            colConfig = new CollectionConfiguration
             {
-                ConflictResolver = new TestConflictResolver((conflict) => { return conflict.LocalDocument; }),
+                Collection = colB,
+                ConflictResolver = new TestConflictResolver(conflict => conflict.LocalDocument),
                 PullFilter = _replicator__filterCallbackFalse,
                 PushFilter = _replicator__filterCallbackFalse
             };
@@ -182,8 +226,8 @@ namespace Test
             colBConfig = config.GetCollectionConfig(colB);
             colAConfig.ShouldNotBeNull("because it was just set");
             colBConfig.ShouldNotBeNull("because it was just set");
-            colAConfig!.ConflictResolver.ShouldBe(ConflictResolver.Default);
-            colBConfig!.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
+            colAConfig.ConflictResolver.ShouldBe(ConflictResolver.Default);
+            colBConfig.ConflictResolver.ShouldBe(colConfig.ConflictResolver);
             colAConfig.PullFilter.ShouldBe(null);
             colBConfig.PullFilter.ShouldBe(colConfig.PullFilter);
             colAConfig.PushFilter.ShouldBe(null);
@@ -191,19 +235,21 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
         public void TestRemoveCollection()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
-            var colConfig = new CollectionConfiguration()
+            var colConfig = new CollectionConfiguration
             {
+                Collection = colA,
                 ConflictResolver = new FakeConflictResolver(),
                 PullFilter = _replicator__filterCallbackTrue,
                 PushFilter = _replicator__filterCallbackTrue
             };
             config.AddCollection(colA, colConfig);
-            config.AddCollection(colB, colConfig);
+            config.AddCollection(colB, colConfig with { Collection = colB });
             config.Collections.Contains(colA).ShouldBeTrue("Because collection colA just added via AddCollection method");
             config.Collections.Contains(colB).ShouldBeTrue("Because collection colB just added via AddCollection method");
 
@@ -227,6 +273,18 @@ namespace Test
         }
 
         [Fact]
+        public void TestCollectionsFromDifferentDatabaseInstance()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var colB = OtherDb.CreateCollection("colB", "scopeA");
+            var collectionConfigs = CollectionConfiguration.FromCollections(colA, colB);
+            var ex = Should.Throw<CouchbaseLiteException>(() => new ReplicatorConfiguration(collectionConfigs, new DatabaseEndpoint(OtherDb)));
+            ex.Error.ShouldBe(CouchbaseLiteError.InvalidParameter);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
+        }
+
+        [Fact]
+        [Obsolete]
         public void TestAddCollectionsFromDifferentDatabaseInstances()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
@@ -240,6 +298,19 @@ namespace Test
         }
 
         [Fact]
+        public void TestDeletedCollections()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var colB = OtherDb.CreateCollection("colB", "scopeA");
+            OtherDb.DeleteCollection("colB", "scopeA");
+            var collectionConfigs = CollectionConfiguration.FromCollections(colA, colB);
+            var ex = Should.Throw<CouchbaseLiteException>(() => new ReplicatorConfiguration(collectionConfigs, new DatabaseEndpoint(OtherDb)));
+            ex.Error.ShouldBe(CouchbaseLiteError.InvalidParameter);
+            ex.Domain.ShouldBe(CouchbaseLiteErrorType.CouchbaseLite);
+        }
+
+        [Fact]
+        [Obsolete]
         public void TestAddDeletedCollections()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
@@ -260,8 +331,12 @@ namespace Test
         [Fact]
         public void TestCollectionSingleShotPushReplication()
         {
-            var config = CreateConfig(ReplicatorType.Push);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Push);
+            LoadCollectionsDocs();
             RunReplication(config, 0, 0);
 
             // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
@@ -269,9 +344,9 @@ namespace Test
             using (var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA")) {
                 colAInOtherDb.ShouldNotBeNull("because it was just created");
                 colBInOtherDb.ShouldNotBeNull("because it was just created");
-                colAInOtherDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInOtherDb.GetDocument("doc")?.GetString("str").ShouldBe("string");
                 colAInOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
-                colBInOtherDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInOtherDb.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
                 colBInOtherDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
                 colAInOtherDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
                 colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
@@ -283,8 +358,12 @@ namespace Test
         [Fact]
         public void TestCollectionSingleShotPullReplication()
         {
-            var config = CreateConfig(ReplicatorType.Pull);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Pull);
+            LoadCollectionsDocs();
             RunReplication(config, 0, 0);
 
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
@@ -292,9 +371,9 @@ namespace Test
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
                 colAInDb.ShouldNotBeNull("because it was just created");
                 colBInDb.ShouldNotBeNull("because it was just created");
-                colAInDb!.GetDocument("doc")?.GetString("str").ShouldBe("string");
+                colAInDb.GetDocument("doc")?.GetString("str").ShouldBe("string");
                 colAInDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
-                colBInDb!.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+                colBInDb.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
                 colBInDb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
                 colAInDb.GetDocument("doc4")?.GetString("str4").ShouldBe("string4");
                 colAInDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
@@ -306,9 +385,13 @@ namespace Test
         [Fact]
         public void TestCollectionSingleShotPushPullReplicationCRUD()
         {
-            var config = CreateConfig(ReplicatorType.PushAndPull);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.PushAndPull);
             //Test Add and Read docs in replication
-            LoadCollectionsDocs(config);
+            LoadCollectionsDocs();
             RunReplication(config, 0, 0);
 
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
@@ -386,8 +469,12 @@ namespace Test
         [Fact]
         public void TestCollectionContinuousPushReplication()
         {
-            var config = CreateConfig(ReplicatorType.Push, true);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Push, true);
+            LoadCollectionsDocs();
             RunReplication(config, 0, 0);
 
             // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
@@ -409,8 +496,12 @@ namespace Test
         [Fact]
         public void TestCollectionContinuousPullReplication()
         {
-            var config = CreateConfig(ReplicatorType.Pull, true);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Pull, true);
+            LoadCollectionsDocs();
             RunReplication(config, 0, 0);
 
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
@@ -432,8 +523,12 @@ namespace Test
         [Fact]
         public void TestCollectionContinuousPushPullReplication()
         {
-            var config = CreateConfig(ReplicatorType.PushAndPull, true);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.PushAndPull, true);
+            LoadCollectionsDocs();
 
             RunReplication(config, 0, 0);
 
@@ -471,8 +566,12 @@ namespace Test
         [Fact]
         public void TestCollectionResetReplication()
         {
-            var config = CreateConfig(ReplicatorType.Pull);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Pull);
+            LoadCollectionsDocs();
             RunReplication(config, 0, 0);
 
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
@@ -529,10 +628,10 @@ namespace Test
         [Fact]
         public void TestMismatchedCollectionReplication()
         {
-            var config = CreateConfig(ReplicatorType.Pull);
             using (var colA = Db.CreateCollection("colA", "scopeA"))
             using (var colB = OtherDb.CreateCollection("colB", "scopeA")) {
-                config.AddCollection(colA);
+                var collectionConfigs = CollectionConfiguration.FromCollections(colA);
+                var config = CreateConfig(collectionConfigs, ReplicatorType.Pull);
                 RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
             }
         }
@@ -540,8 +639,12 @@ namespace Test
         [Fact]
         public void TestCollectionDocumentReplicationEvents()
         {
-            var config = CreateConfig(ReplicatorType.PushAndPull);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.PushAndPull);
+            LoadCollectionsDocs();
 
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA"))
@@ -588,8 +691,12 @@ namespace Test
         [Fact]
         public void TestCollectionDefaultConflictResolver()
         {
-            var config = CreateConfig(ReplicatorType.PushAndPull);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = CollectionConfiguration.FromCollections(
+                Db.CreateCollection("colA", "scopeA"),
+                Db.CreateCollection("colB", "scopeA"));
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.PushAndPull);
+            LoadCollectionsDocs();
             RunReplication(config, 0, 0);
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA")) {
@@ -626,9 +733,7 @@ namespace Test
         [Fact]
         public void TestCollectionConflictResolver()
         {
-            var config = CreateConfig(ReplicatorType.PushAndPull);
-            LoadCollectionsDocs(config);
-            RunReplication(config, 0, 0);
+            LoadCollectionsDocs();
             
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA"))
@@ -638,17 +743,23 @@ namespace Test
                 colBInDb.ShouldNotBeNull("because it was just created");
                 colAInOtherDb.ShouldNotBeNull("because it was just created");
                 colBInOtherDb.ShouldNotBeNull("because it was just created");
-                
-                
-                config.AddCollection(colAInDb, new CollectionConfiguration
-                {
-                    ConflictResolver = new TestConflictResolver(conflict => conflict.LocalDocument)
-                });
 
-                config.AddCollection(colBInDb, new CollectionConfiguration
+                var collectionConfigs = new List<CollectionConfiguration>
                 {
-                    ConflictResolver = new TestConflictResolver(conflict => conflict.RemoteDocument)
-                });
+                    new()
+                    {
+                        Collection = colAInDb,
+                        ConflictResolver = new TestConflictResolver(conflict => conflict.LocalDocument)
+                    },
+                    new()
+                    {
+                        Collection = colBInDb,
+                        ConflictResolver = new TestConflictResolver(conflict => conflict.RemoteDocument)
+                    }
+                };
+                
+                var config = CreateConfig(collectionConfigs, ReplicatorType.PushAndPull);
+                RunReplication(config, 0, 0);
 
                 using (var doc = colAInDb!.GetDocument("doc1"))
                 using (var mdoc = doc?.ToMutable()) {
@@ -688,19 +799,18 @@ namespace Test
         [Fact]
         public void TestCollectionPushFilter()
         {
-            var config = CreateConfig(ReplicatorType.Push);
-            LoadCollectionsDocs(config);
-            
-            config.AddCollection(Db.GetCollection("colA", "scopeA")!, new CollectionConfiguration
+            LoadCollectionsDocs();
+            var collectionConfigs = new List<Collection>
             {
-                PushFilter = _replicator__filterAllowsOddDocIdsCallback
-            });
-
-            config.AddCollection(Db.GetCollection("colB", "scopeA")!, new CollectionConfiguration
+                Db.GetCollection("colA", "scopeA")!,
+                Db.GetCollection("colB", "scopeA")!
+            }.Select(x => new CollectionConfiguration
             {
+                Collection = x,
                 PushFilter = _replicator__filterAllowsOddDocIdsCallback
             });
             
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Push);
             RunReplication(config, 0, 0);
 
             // Check docs in OtherDb - make sure docs with odd doc ids are pushed to the OtherDb from the Db
@@ -720,18 +830,18 @@ namespace Test
         [Fact]
         public void TestCollectionPullFilter()
         {
-            var config = CreateConfig(ReplicatorType.Pull);
-            LoadCollectionsDocs(config);
+            LoadCollectionsDocs();
+            var collectionConfigs = new List<Collection>
+            {
+                Db.GetCollection("colA", "scopeA")!,
+                Db.GetCollection("colB", "scopeA")!
+            }.Select(x => new CollectionConfiguration
+            {
+                Collection = x,
+                PullFilter = _replicator__filterAllowsOddDocIdsCallback
+            });
             
-            config.AddCollection(Db.GetCollection("colA", "scopeA")!, new CollectionConfiguration
-            {
-                PullFilter = _replicator__filterAllowsOddDocIdsCallback
-            });
-
-            config.AddCollection(Db.GetCollection("colB", "scopeA")!, new CollectionConfiguration
-            {
-                PullFilter = _replicator__filterAllowsOddDocIdsCallback
-            });
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Pull);
             
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
@@ -754,19 +864,18 @@ namespace Test
         [Fact]
         public void TestCollectionDocumentIDsPushFilter()
         {
-            var config = CreateConfig(ReplicatorType.Push);
-            LoadCollectionsDocs(config);
+            LoadCollectionsDocs();
+            var collectionConfigs = new List<Collection>
+            {
+                Db.GetCollection("colA", "scopeA")!,
+                Db.GetCollection("colB", "scopeA")!
+            }.Select(x => new CollectionConfiguration
+            {
+                Collection = x,
+                DocumentIDs = allowOddIds
+            });
             
-            config.AddCollection(Db.GetCollection("colA", "scopeA")!, new CollectionConfiguration
-            {
-                DocumentIDs = allowOddIds
-            });
-
-            config.AddCollection(Db.GetCollection("colB", "scopeA")!, new CollectionConfiguration
-            {
-                DocumentIDs = allowOddIds
-            });
-
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Push);
             RunReplication(config, 0, 0);
 
             // Check docs in OtherDb - make sure docs with odd doc ids are pushed to the OtherDb from the Db
@@ -786,19 +895,18 @@ namespace Test
         [Fact]
         public void TestCollectionDocumentIDsPullFilter()
         {
-            var config = CreateConfig(ReplicatorType.Pull);
-            LoadCollectionsDocs(config);
+            LoadCollectionsDocs();
+            var collectionConfigs = new List<Collection>
+            {
+                Db.GetCollection("colA", "scopeA")!,
+                Db.GetCollection("colB", "scopeA")!
+            }.Select(x => new CollectionConfiguration
+            {
+                Collection = x,
+                DocumentIDs = allowOddIds
+            });
             
-            config.AddCollection(Db.GetCollection("colA", "scopeA")!, new CollectionConfiguration
-            {
-                DocumentIDs = allowOddIds
-            });
-
-            config.AddCollection(Db.GetCollection("colB", "scopeA")!, new CollectionConfiguration
-            {
-                DocumentIDs = allowOddIds
-            });
-
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Pull);
             RunReplication(config, 0, 0);
 
             // Check docs in Db - make sure all docs with odd doc ids are pulled from the OtherDb to the Db
@@ -848,18 +956,21 @@ namespace Test
         [Fact]
         public void TestCreateReplicatorWithNoCollections()
         {
-            var config = CreateConfig(ReplicatorType.PushAndPull);
-            config.AddCollections(new List<Collection>());
-            Action badAction = (() => new Replicator(config));
-            Should.Throw<CouchbaseLiteException>(badAction, "Replicator Configuration must contain at least one collection.");
+            void BadAction()
+            {
+                _ = new ReplicatorConfiguration(new List<CollectionConfiguration>(), new DatabaseEndpoint(OtherDb));
+            }
+
+            Should.Throw<CouchbaseLiteException>(BadAction, "Replicator Configuration must contain at least one collection.");
         }
 
         [Fact]
+        [Obsolete]
         public void TestAddCollectionsToDatabaseInitiatedConfig()
         {
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
             config.AddCollection(DefaultCollection);
-            LoadCollectionsDocs(config);
+            LoadCollectionsDocs();
 
             RunReplication(config, 0, 0);
 
@@ -894,23 +1005,34 @@ namespace Test
 
         private void ValidatePendingDocumentIds(PENDING_DOC_ID_SEL selection)
         {
+            LoadCollectionsDocs();
             IImmutableSet<string> pendingDocIds;
             var colADocId = "doc";
             var colBDocId = "doc2";
 
-            var config = CreateConfig(ReplicatorType.Push);
-            LoadCollectionsDocs(config);
+            var collectionConfigs = default(List<CollectionConfiguration>);
             if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                config.AddCollection(Db.GetCollection("colA", "scopeA")!, new CollectionConfiguration
-                {
-                    PushFilter = (doc, isPush) => doc.Id.Equals(colADocId)
-                });
-                
-                config.AddCollection(Db.GetCollection("colB", "scopeA")!, new CollectionConfiguration
-                {
-                    PushFilter = (doc, isPush) => doc.Id.Equals(colBDocId)
-                });
+                collectionConfigs =
+                [
+                    new()
+                    {
+                        Collection = Db.GetCollection("colA", "scopeA")!,
+                        PushFilter = (doc, isPush) => doc.Id.Equals(colADocId)
+                    },
+
+                    new()
+                    {
+                        Collection = Db.GetCollection("colB", "scopeA")!,
+                        PushFilter = (doc, isPush) => doc.Id.Equals(colBDocId)
+                    }
+                ];
+            } else {
+                collectionConfigs = CollectionConfiguration.FromCollections(
+                    Db.GetCollection("colA", "scopeA")!,
+                    Db.GetCollection("colB", "scopeA")!);
             }
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Push);
             
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
@@ -1004,21 +1126,31 @@ namespace Test
             bool docIdIsPending;
             var colADocId = "doc";
             var colBDocId = "doc2";
+            LoadCollectionsDocs();
 
-            var config = CreateConfig(ReplicatorType.Push);
-            LoadCollectionsDocs(config);
-            
+            var collectionConfigs = default(List<CollectionConfiguration>);
             if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                config.AddCollection(Db.GetCollection("colA", "scopeA")!, new CollectionConfiguration
-                {
-                    PushFilter = (doc, isPush) => doc.Id.Equals(colADocId)
-                });
-                
-                config.AddCollection(Db.GetCollection("colB", "scopeA")!, new CollectionConfiguration
-                {
-                    PushFilter = (doc, isPush) => doc.Id.Equals(colBDocId)
-                });
+                collectionConfigs =
+                [
+                    new()
+                    {
+                        Collection = Db.GetCollection("colA", "scopeA")!,
+                        PushFilter = (doc, isPush) => doc.Id.Equals(colADocId)
+                    },
+
+                    new()
+                    {
+                        Collection = Db.GetCollection("colB", "scopeA")!,
+                        PushFilter = (doc, isPush) => doc.Id.Equals(colBDocId)
+                    }
+                ];
+            } else {
+                collectionConfigs = CollectionConfiguration.FromCollections(
+                    Db.GetCollection("colA", "scopeA")!,
+                    Db.GetCollection("colB", "scopeA")!);
             }
+            
+            var config = CreateConfig(collectionConfigs, ReplicatorType.Push);
 
             using (var colAInDb = Db.GetCollection("colA", "scopeA"))
             using (var colBInDb = Db.GetCollection("colB", "scopeA")) {
@@ -1109,7 +1241,7 @@ namespace Test
             Thread.Sleep(500); //it takes a while to get the replicator to actually released...
         }
 
-        private void LoadCollectionsDocs(ReplicatorConfiguration config)
+        private void LoadCollectionsDocs()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
@@ -1170,14 +1302,11 @@ namespace Test
             colAInOtherDb.GetDocument("doc5")?.GetString("str5").ShouldBe("string5");
             colBInOtherDb.GetDocument("doc6")?.GetString("str6").ShouldBe("string6");
             colBInOtherDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
-            
-            config.AddCollection(colA);
-            config.AddCollection(colB);
         }
 
-        private ReplicatorConfiguration CreateConfig(ReplicatorType type, bool continuous = false)
+        private ReplicatorConfiguration CreateConfig(IEnumerable<CollectionConfiguration> configs, ReplicatorType type, bool continuous = false)
         {
-            var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb))
+            var config = new ReplicatorConfiguration(configs, new DatabaseEndpoint(OtherDb))
             {
                 ReplicatorType = type,
                 Continuous = continuous

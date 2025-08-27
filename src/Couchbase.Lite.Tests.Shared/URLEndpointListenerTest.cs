@@ -21,15 +21,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.NetworkInformation;
 using System.Net;
-using System.Reflection;
 using System.Security;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 
 using Couchbase.Lite;
@@ -37,7 +31,7 @@ using Couchbase.Lite.P2P;
 using Couchbase.Lite.Sync;
 
 using Shouldly;
-using LiteCore.Interop;
+
 using System.Runtime.InteropServices;
 
 using Xunit;
@@ -207,8 +201,8 @@ namespace Test
             }
 
             var targetEndpoint = _listener.LocalEndpoint();
-            var config = new ReplicatorConfiguration(targetEndpoint);
-            config.AddCollection(DefaultCollection);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint);
 
             using (var repl = new Replicator(config)) {
                 var waitAssert = new WaitAssert();
@@ -263,8 +257,8 @@ namespace Test
 
             // Replicator - No authenticator
             var targetEndpoint = _listener.LocalEndpoint();
-            var config = new ReplicatorConfiguration(targetEndpoint);
-            config.AddCollection(DefaultCollection);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint);
 
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
             var pw = "123";
@@ -329,7 +323,9 @@ namespace Test
                 null);
             id.ShouldNotBeNull();
 
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -341,6 +337,7 @@ namespace Test
             );
 
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -355,6 +352,7 @@ namespace Test
             _listener = CreateListener(true, true, badAuth);
 
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -390,7 +388,10 @@ namespace Test
                 null);
 
             id.ShouldNotBeNull();
+            
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -429,8 +430,10 @@ namespace Test
 
             // Create client identity
             var id = TLSIdentity.ImportIdentity(_store, clientData, "123", ClientCertLabel, null);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
 
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -474,7 +477,9 @@ namespace Test
 
             OtherDefaultCollection.Count.ShouldBe(0UL);
 
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -500,7 +505,9 @@ namespace Test
                 "because otherwise bogus certs were used");
 
             // listener = cert1; replicator.pin = cert2; acceptSelfSigned = true => fail
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -513,6 +520,7 @@ namespace Test
 
             // listener = cert1; replicator.pin = cert1; acceptSelfSigned = false => pass
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -537,7 +545,9 @@ namespace Test
 
             DisableDefaultServerCertPinning = true;
 
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -550,6 +560,7 @@ namespace Test
             );
 
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -575,7 +586,9 @@ namespace Test
             DisableDefaultServerCertPinning = true;
 
             // Replicator - TLS Error
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -588,6 +601,7 @@ namespace Test
 
             // Replicator - Success
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -655,7 +669,9 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             RunReplication(
+                collectionConfigs,
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
@@ -686,7 +702,8 @@ namespace Test
             }
 
             var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb:OtherDb);
+            var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
+            var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true);
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
@@ -695,8 +712,9 @@ namespace Test
                 urlepTestDb.GetDefaultCollection().Save(doc2);
             }
 
-            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity!.Certs[0], sourceDb: urlepTestDb);
+            var collectionConfigs2 = CollectionConfiguration.FromCollections(urlepTestDb.GetDefaultCollection());
+            var config2 = CreateConfig(collectionConfigs2, _listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+                serverCert: _listener.TlsIdentity!.Certs[0]);
             var repl2 = new Replicator(config2);
 
             var wait1 = new ManualResetEventSlim();
@@ -758,7 +776,8 @@ namespace Test
             };
 
             Listen(config);
-            RunReplication(_listener.LocalEndpoint(), ReplicatorType.PushAndPull,
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            RunReplication(collectionConfigs, _listener.LocalEndpoint(), ReplicatorType.PushAndPull,
                 false, null, null,
                 (int)CouchbaseLiteError.HTTPForbidden,
                 CouchbaseLiteErrorType.CouchbaseLite);
@@ -845,7 +864,8 @@ namespace Test
             _listener = Listen(config);
 
             var target = _listener.LocalEndpoint();
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true,
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true,
                 serverCert: null);
             using (var repl = new Replicator(config1)) {
                 var token = repl.AddChangeListener((sender, args) =>
@@ -901,12 +921,12 @@ namespace Test
                 var listener = new URLEndpointListener(config);
                 listener.Start();
                 var targetEndpoint = listener.LocalEndpoint();
-                var replConfig = new ReplicatorConfiguration(targetEndpoint)
+                var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
+                var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
                 {
                     ReplicatorType = ReplicatorType.PushAndPull,
                     Continuous = false
                 };
-                replConfig.AddCollection(colADb);
 
                 RunReplication(replConfig, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
 
@@ -962,12 +982,12 @@ namespace Test
                 listener.Start();
 
                 var targetEndpoint = listener.LocalEndpoint();
-                var replConfig = new ReplicatorConfiguration(targetEndpoint)
+                var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
+                var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
                 {
                     ReplicatorType = ReplicatorType.PushAndPull,
                     Continuous = continuous
                 };
-                replConfig.AddCollection(colADb);
 
                 RunReplication(replConfig, 0, 0);
 
@@ -1027,7 +1047,8 @@ namespace Test
             }
 
             var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
+            var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true);
             var repl1 = new Replicator(config1);
             repl1.AddChangeListener((sender, args) => {
                 waitIdleAssert1.RunConditionalAssert(() => {
@@ -1075,7 +1096,8 @@ namespace Test
             }
 
             var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
+            var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true);
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
@@ -1084,8 +1106,9 @@ namespace Test
                 urlepTestDb.GetDefaultCollection().Save(doc2);
             }
 
-            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity!.Certs[0], sourceDb: urlepTestDb);
+            var collectionConfigs2 = CollectionConfiguration.FromCollections(urlepTestDb.GetDefaultCollection());
+            var config2 = CreateConfig(collectionConfigs2, _listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+                serverCert: _listener.TlsIdentity!.Certs[0]);
             var repl2 = new Replicator(config2);
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
@@ -1160,8 +1183,9 @@ namespace Test
 
             var target = _listener.LocalEndpoint();
             var serverCert = _listener.TlsIdentity!.Certs[0];
-            var config1 = CreateConfig(target, replicatorType, true, 
-                serverCert: serverCert, sourceDb: Db);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config1 = CreateConfig(collectionConfigs, target, replicatorType, true, 
+                serverCert: serverCert);
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
@@ -1170,8 +1194,9 @@ namespace Test
                 urlepTestDb.GetDefaultCollection().Save(doc2);
             }
 
-            var config2 = CreateConfig(target, replicatorType, true,
-                serverCert: serverCert, sourceDb: urlepTestDb);
+            var collectionConfigs2 = CollectionConfiguration.FromCollections(urlepTestDb.GetDefaultCollection());
+            var config2 = CreateConfig(collectionConfigs2, target, replicatorType, true,
+                serverCert: serverCert);
             var repl2 = new Replicator(config2);
 
             using var busy1 = new ManualResetEventSlim();
@@ -1300,8 +1325,9 @@ namespace Test
         {
             var listener = CreateListener(listenerTls);
             var serverCert = listenerTls ? listener.TlsIdentity!.Certs[0] : null;
-            var config = CreateConfig(listener.LocalEndpoint(),
-                ReplicatorType.PushAndPull, true, sourceDb: OtherDb,
+            var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
+            var config = CreateConfig(collectionConfigs, listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull, true,
                 serverCert: replicatorTls ? serverCert : null);
             X509Certificate2? receivedServerCert = null;
 
@@ -1311,8 +1337,8 @@ namespace Test
             }
 
             if (listenerTls != replicatorTls) {
-                config = CreateConfig(listener.LocalEndpoint(),
-                    ReplicatorType.PushAndPull, true, sourceDb: OtherDb,
+                config = CreateConfig(collectionConfigs, listener.LocalEndpoint(),
+                    ReplicatorType.PushAndPull, true,
                     serverCert: receivedServerCert);
                 using (var repl = new Replicator(config)) {
                     RunReplicatorServerCert(repl, true, serverCert);
