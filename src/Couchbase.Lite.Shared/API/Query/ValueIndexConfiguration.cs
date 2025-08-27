@@ -16,6 +16,10 @@
 // limitations under the License.
 // 
 
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+
 using Couchbase.Lite.Internal.Query;
 using LiteCore.Interop;
 
@@ -26,7 +30,13 @@ namespace Couchbase.Lite.Query;
 /// </summary>
 public sealed record ValueIndexConfiguration : IndexConfiguration
 {
-    internal override C4IndexOptions Options => new C4IndexOptions();
+    internal override C4IndexOptions Options => new()
+    {
+        where = Where
+    };
+    
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+    public string? Where { get; }
     
     /// <summary>
     /// Starts the creation of an index based on a simple property
@@ -37,4 +47,14 @@ public sealed record ValueIndexConfiguration : IndexConfiguration
         : base(C4IndexType.ValueIndex, expressions)
     {
     }
+    
+    /// <summary>
+    /// Starts the creation of an index based on one or more simple property values,
+    /// and a predicate for enabling partial indexes.
+    /// </summary>
+    /// <param name="expressions">The expressions to use to create the index</param>
+    /// <param name="where">A where clause used to determine whether to include a particular doc</param>
+    public ValueIndexConfiguration(IEnumerable<string> expressions, string? where = null)
+        : base(C4IndexType.ValueIndex, expressions.ToArray()) =>
+        Where = where;
 }
