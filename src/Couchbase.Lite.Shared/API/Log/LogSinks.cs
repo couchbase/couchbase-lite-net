@@ -121,6 +121,9 @@ public static class LogSinks
         DomainObjects[LogDomain.Database] = (IntPtr)Native.c4log_getDomain("DB", true);
         DomainObjects[LogDomain.Query] = (IntPtr)Native.c4log_getDomain("Query", true);
         DomainObjects[LogDomain.Replicator] = (IntPtr)Native.c4log_getDomain("Sync", true);
+        #if COUCHBASE_ENTERPRISE
+        DomainObjects[LogDomain.Listener] = (IntPtr)Native.c4log_getDomain("Listener", true);
+        #endif
     }
 
     internal static unsafe void SetDomainLevels(LogLevel level)
