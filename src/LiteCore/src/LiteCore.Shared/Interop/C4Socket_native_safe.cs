@@ -27,18 +27,12 @@ using System.Linq;
 
 namespace LiteCore.Interop;
 
-internal sealed unsafe class C4SocketWrapper : NativeWrapper
+internal sealed unsafe class C4SocketWrapper(C4Socket* socket) : NativeWrapper((IntPtr)socket)
 {
     public delegate void NativeCallback(C4Socket* s);
-    public delegate T NativeCallback<T>(C4Socket* s);
+    public delegate T NativeCallback<out T>(C4Socket* s);
 
     public C4Socket* RawSocket => (C4Socket*)_nativeInstance;
-
-    public C4SocketWrapper(C4Socket* socket)
-        : base((IntPtr)socket)
-    {
-
-    }
 
     public void UseSafe(NativeCallback a)
     {
@@ -52,10 +46,7 @@ internal sealed unsafe class C4SocketWrapper : NativeWrapper
         return a(RawSocket);
     }
 
-    protected override void Dispose(bool disposing)
-    {
-        Native.c4socket_release(RawSocket);
-    }
+    protected override void Dispose(bool disposing) => Native.c4socket_release(RawSocket);
 }
 
 internal static unsafe partial class NativeSafe
@@ -65,53 +56,34 @@ internal static unsafe partial class NativeSafe
     public static C4SocketWrapper? c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address)
     {
         var rawSocket = Native.c4socket_fromNative(factory, nativeHandle, address);
-        if(rawSocket == null) {
-            return null;
-        }
+        return rawSocket == null ? null :
+            // Noted in LiteCore headers, this return value must be immediately retained
+            new C4SocketWrapper(Native.c4socket_retain(rawSocket));
 
-        // Noted in LiteCore headers, this return value must be immediately retained
-        return new C4SocketWrapper(Native.c4socket_retain(rawSocket));
     }
 
     // Socket Exclusive Methods
 
-    public static void c4socket_setNativeHandle(C4SocketWrapper socket, void* handle)
-    {
+    public static void c4socket_setNativeHandle(C4SocketWrapper socket, void* handle) => 
         socket.UseSafe(s => Native.c4Socket_setNativeHandle(s, handle));
-    }
 
-    public static void* c4socket_getNativeHandle(C4SocketWrapper socket)
-    {
-        return (void *)socket.UseSafe(s => (IntPtr)Native.c4Socket_getNativeHandle(s));
-    }
+    public static void* c4socket_getNativeHandle(C4SocketWrapper socket) => 
+        (void *)socket.UseSafe(s => (IntPtr)Native.c4Socket_getNativeHandle(s));
 
-    public static void c4socket_gotHTTPResponse(C4SocketWrapper socket, int httpStatus, IDictionary<string, object>? headers)
-    {
+    public static void c4socket_gotHTTPResponse(C4SocketWrapper socket, int httpStatus, IDictionary<string, object>? headers) => 
         socket.UseSafe(s => Native.c4socket_gotHTTPResponse(s, httpStatus, headers));
-    }
 
-    public static void c4socket_opened(C4SocketWrapper socket)
-    {
-        socket.UseSafe(Native.c4socket_opened);
-    }
+    public static void c4socket_opened(C4SocketWrapper socket) => socket.UseSafe(Native.c4socket_opened);
 
-    public static void c4socket_closed(C4SocketWrapper socket, C4Error errorIfAny)
-    {
+    public static void c4socket_closed(C4SocketWrapper socket, C4Error errorIfAny) => 
         socket.UseSafe(s => Native.c4socket_closed(s, errorIfAny));
-    }
 
-    public static void c4socket_closeRequested(C4SocketWrapper socket, int status, string? message)
-    {
+    public static void c4socket_closeRequested(C4SocketWrapper socket, int status, string? message) => 
         socket.UseSafe(s => Native.c4socket_closeRequested(s, status, message));
-    }
 
-    public static void c4socket_completedWrite(C4SocketWrapper socket, ulong byteCount)
-    {
+    public static void c4socket_completedWrite(C4SocketWrapper socket, ulong byteCount) => 
         socket.UseSafe(s => Native.c4socket_completedWrite(s, byteCount));
-    }
 
-    public static void c4socket_received(C4SocketWrapper socket, byte[]? data)
-    {
+    public static void c4socket_received(C4SocketWrapper socket, byte[]? data) => 
         socket.UseSafe(s => Native.c4socket_received(s, data));
-    }
 }

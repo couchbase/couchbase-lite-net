@@ -20,84 +20,70 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-using LiteCore.Util;
+namespace LiteCore.Interop;
 
-namespace LiteCore.Interop
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr args);
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate void C4ExtraInfoDestructor(void* ptr);
+
+internal static unsafe partial class Native
 {
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr args);
+    public static void c4db_release(C4Database* db) => c4base_release(db);
 
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4ExtraInfoDestructor(void* ptr);
+    public static void* c4db_retain(C4Database* db) => c4base_retain(db);
 
-    internal unsafe static partial class Native
+    public static void c4coll_release(C4Collection* coll) => c4base_release(coll);
+
+    public static void* c4coll_retain(C4Collection* coll) => c4base_retain(coll);
+
+    public static void c4query_release(C4Query* query) => c4base_release(query);
+
+    public static void c4cert_release(C4Cert* cert) => c4base_release(cert);
+
+    public static void c4keypair_release(C4KeyPair* keyPair) => c4base_release(keyPair);
+
+    public static void c4index_release(C4Index* index) => c4base_release(index);
+
+    public static void c4indexupdater_release(C4IndexUpdater* indexUpdater) => c4base_release(indexUpdater);
+
+    public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
+}
+
+[ExcludeFromCodeCoverage]
+internal partial struct C4Error : IEquatable<C4Error>
+{
+    public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (int) code)
     {
-        public static void c4db_release(C4Database* db) => c4base_release(db);
-
-        public static void* c4db_retain(C4Database* db) => c4base_retain(db);
-
-        public static void c4coll_release(C4Collection* coll) => c4base_release(coll);
-
-        public static void* c4coll_retain(C4Collection* coll) => c4base_retain(coll);
-
-        public static void c4query_release(C4Query* query) => c4base_release(query);
-
-        public static void c4cert_release(C4Cert* cert) => c4base_release(cert);
-
-        public static void c4keypair_release(C4KeyPair* keyPair) => c4base_release(keyPair);
-
-        public static void c4index_release(C4Index* index) => c4base_release(index);
-
-        public static void c4indexupdater_release(C4IndexUpdater* indexUpdater) => c4base_release(indexUpdater);
-
-        public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
     }
 
-    [ExcludeFromCodeCoverage]
-    internal partial struct C4Error
+    public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (int) code)
     {
-        #region Constructors
-
-        public C4Error(C4ErrorDomain domain, int code)
-        {
-            this.code = code;
-            this.domain = domain;
-            internal_info = 0;
-        }
-
-        public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (int) code)
-        {
-        }
-
-        public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (int) code)
-        {
-        }
-
-        public C4Error(C4NetworkErrorCode code) : this(C4ErrorDomain.NetworkDomain, (int) code)
-        {
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override bool Equals(object? obj)
-        {
-            if (obj is C4Error other) {
-                return other.code == code && other.domain == domain;
-            }
-
-            return false;
-        }
-
-        public override int GetHashCode()
-        {
-            return Hasher.Start
-                .Add(code)
-                .Add(domain)
-                .GetHashCode();
-        }
-
-        #endregion
     }
+
+    public C4Error(C4NetworkErrorCode code) : this(C4ErrorDomain.NetworkDomain, (int) code)
+    {
+    }
+    [SuppressMessage("ReSharper", "ConvertToPrimaryConstructor")]
+    public C4Error(C4ErrorDomain domain, int code)
+    {
+        this.domain = domain;
+        this.code = code;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is C4Error other) {
+            return Equals(other);
+        }
+
+        return false;
+    }
+
+    public override int GetHashCode() => HashCode.Combine(code, domain);
+
+    public bool Equals(C4Error other) => 
+        domain == other.domain && 
+        code == other.code;
 }

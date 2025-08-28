@@ -962,13 +962,7 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
     }
 
     /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        var hasher = Hasher.Start;
-        hasher.Add(Name);
-        hasher.Add(Scope);
-        return hasher.GetHashCode();
-    }
+    public override int GetHashCode() => HashCode.Combine(Name, Scope);
 
     /// <inheritdoc />
     public override bool Equals(object? obj)

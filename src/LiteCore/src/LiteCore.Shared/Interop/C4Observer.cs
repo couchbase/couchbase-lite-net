@@ -18,14 +18,13 @@
 
 using System.Runtime.InteropServices;
 
-namespace LiteCore.Interop
-{
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4CollectionObserverCallback(C4CollectionObserver* observer, void* context);
+namespace LiteCore.Interop;
 
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4DocumentObserverCallback(C4DocumentObserver* observer, C4Collection* collection, FLSlice docID, ulong sequence, void* context);
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate void C4CollectionObserverCallback(C4CollectionObserver* observer, void* context);
 
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4QueryObserverCallback(C4QueryObserver* observer, C4Query* query, void* context);
-}
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate void C4DocumentObserverCallback(C4DocumentObserver* observer, C4Collection* collection, FLSlice docID, ulong sequence, void* context);
+
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate void C4QueryObserverCallback(C4QueryObserver* observer, C4Query* query, void* context);

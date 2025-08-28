@@ -34,7 +34,10 @@ namespace Couchbase.Lite;
 /// <summary>
 /// A class representing an arbitrary piece of binary data
 /// </summary>
+#pragma warning disable 659
+
 public sealed unsafe class Blob : IJSON
+#pragma warning restore 659
 {
     internal const string ContentTypeKey = "content_type";
     internal const string DigestKey = "digest";
@@ -54,7 +57,9 @@ public sealed unsafe class Blob : IJSON
     /// Gets the metadata type of this object (hardcoded to <see cref="Constants.ObjectTypeBlob"/>)
     /// </summary>
     [JsonProperty("@type")]
+ #pragma warning disable CA1822
     public string Type => Constants.ObjectTypeBlob;
+ #pragma warning restore CA1822
 
     /// <summary>
     /// Gets the contents of the blob as an in-memory array
@@ -398,9 +403,9 @@ public sealed unsafe class Blob : IJSON
     /// </summary>
     /// <returns><c>true</c> if the specified object is equal to the current object; otherwise, <c>false</c>.</returns>
     /// <param name="obj">The object to compare with the current object. </param>
-#pragma warning disable 659
+ #pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     public override bool Equals(object? obj)
-#pragma warning restore 659
+ #pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         if (obj is not Blob other) {
             return false;

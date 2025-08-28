@@ -20,7 +20,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization;
 
-internal abstract unsafe class MCollection(MContext context, bool isMutable) : IFLEncodable, IFLSlotSetable
+internal abstract unsafe class MCollection(MContext context, bool isMutable) : IFLEncodable, IFLSlotSettable
 {
     private MValue? _slot;
 

@@ -21,15 +21,14 @@
 
 using Couchbase.Lite.Support;
 using System;
-using System.IO;
 using System.Linq;
 
 namespace LiteCore.Interop;
 
-internal unsafe sealed class C4QueryWrapper : NativeWrapper
+internal sealed unsafe class C4QueryWrapper(C4Query* query, ThreadSafety threadSafety) : NativeWrapper((IntPtr)query)
 {
     public delegate void NativeCallback(C4Query* q);
-    public delegate T NativeCallback<T>(C4Query* q);
+    public delegate T NativeCallback<out T>(C4Query* q);
 
     [Flags]
     public enum ThreadSafetyLevel
@@ -40,19 +39,13 @@ internal unsafe sealed class C4QueryWrapper : NativeWrapper
 
     public C4Query* RawQuery => (C4Query*)_nativeInstance;
 
-    public readonly ThreadSafety DatabaseThreadSafety;
-
-    public C4QueryWrapper(C4Query* query, ThreadSafety threadSafety)
-        : base((IntPtr)query)
-    {
-        DatabaseThreadSafety = threadSafety;
-    }
+    public readonly ThreadSafety DatabaseThreadSafety = threadSafety;
 
     public void UseSafe(NativeCallback a, ThreadSafetyLevel safetyLevel)
     {
         var withInstance = safetyLevel.HasFlag(ThreadSafetyLevel.Query);
         var additional = safetyLevel.HasFlag(ThreadSafetyLevel.Database) ?
-            Enumerable.Repeat(DatabaseThreadSafety, 1) : Enumerable.Empty<ThreadSafety>();
+            Enumerable.Repeat(DatabaseThreadSafety, 1) : [];
 
         using var scope = BeginLockedScope(withInstance, additional.ToArray());
         a(RawQuery);
@@ -62,29 +55,21 @@ internal unsafe sealed class C4QueryWrapper : NativeWrapper
     {
         var withInstance = safetyLevel.HasFlag(ThreadSafetyLevel.Query);
         var additional = safetyLevel.HasFlag(ThreadSafetyLevel.Database) ?
-            Enumerable.Repeat(DatabaseThreadSafety, 1) : Enumerable.Empty<ThreadSafety>();
+            Enumerable.Repeat(DatabaseThreadSafety, 1) : [];
 
         using var scope = BeginLockedScope(withInstance, additional.ToArray());
         return a(RawQuery);
     }
 
-    protected override void Dispose(bool disposing)
-    {
-        Native.c4query_release(RawQuery);
-    }
+    protected override void Dispose(bool disposing) => Native.c4query_release(RawQuery);
 }
 
-internal unsafe sealed class C4QueryEnumeratorWrapper : NativeWrapper
+internal sealed unsafe class C4QueryEnumeratorWrapper(C4QueryEnumerator* queryEnum, ThreadSafety threadSafety) : NativeWrapper((IntPtr)queryEnum, threadSafety)
 {
     public delegate void NativeCallback(C4QueryEnumerator* e);
-    public delegate T NativeCallback<T>(C4QueryEnumerator* e);
+    public delegate T NativeCallback<out T>(C4QueryEnumerator* e);
 
     public C4QueryEnumerator* RawEnumerator => (C4QueryEnumerator*)_nativeInstance;
-
-    public C4QueryEnumeratorWrapper(C4QueryEnumerator* queryEnum, ThreadSafety threadSafety)
-        : base((IntPtr)queryEnum, threadSafety)
-    {
-    }
 
     public T UseSafe<T>(NativeCallback<T> a)
     {
@@ -98,81 +83,55 @@ internal unsafe sealed class C4QueryEnumeratorWrapper : NativeWrapper
         a(RawEnumerator);
     }
 
-    protected override void Dispose(bool disposing)
-    {
-        Native.c4queryenum_release(RawEnumerator);
-    }
+    protected override void Dispose(bool disposing) => Native.c4queryenum_release(RawEnumerator);
 }
 
 internal static unsafe partial class NativeSafe
 {
     // Thread Safe Methods
 
-    public static void c4query_setParameters(C4QueryWrapper query, string? encodedParameters)
-    {
+    public static void c4query_setParameters(C4QueryWrapper query, string? encodedParameters) => 
         Native.c4query_setParameters(query.RawQuery, encodedParameters);
-    }
 
     // Database Exclusive Methods
 
     public static C4QueryWrapper? c4query_new2(C4DatabaseWrapper database, C4QueryLanguage language, string? expression, int* outErrorPos, C4Error* outError)
     {
         var rawQuery = (C4Query*)database.UseSafe(db => (IntPtr)Native.c4query_new2(db, language, expression, outErrorPos, outError));
-        if (rawQuery == null) {
-            return null;
-        }
+        return rawQuery == null ? null : new C4QueryWrapper(rawQuery, database.InstanceSafety);
 
-        return new C4QueryWrapper(rawQuery, database.InstanceSafety);
     }
 
-    public static string? c4query_explain(C4QueryWrapper query)
-    {
-        return query.UseSafe(Native.c4query_explain,
+    public static string? c4query_explain(C4QueryWrapper query) =>
+        query.UseSafe(Native.c4query_explain,
             C4QueryWrapper.ThreadSafetyLevel.Database);
-    }
 
     public static C4QueryEnumeratorWrapper? c4query_run(C4QueryWrapper query, FLSlice encodedParameters, C4Error* outError)
     {
         var rawEnum = (C4QueryEnumerator*)query.UseSafe(q =>
             (IntPtr)NativeRaw.c4query_run(q, encodedParameters, outError), C4QueryWrapper.ThreadSafetyLevel.Database);
-        if (rawEnum == null) {
-            return null;
-        }
-
-        return new C4QueryEnumeratorWrapper(rawEnum, query.DatabaseThreadSafety);
+        return rawEnum == null ? null : new C4QueryEnumeratorWrapper(rawEnum, query.DatabaseThreadSafety);
     }
 
     public static C4QueryEnumeratorWrapper? c4queryenum_refresh(C4QueryEnumeratorWrapper enumerator, C4Error* outError)
     {
         var rawEnum = (C4QueryEnumerator*)enumerator.UseSafe(e => (IntPtr)Native.c4queryenum_refresh(e, outError));
-        if (rawEnum == null) {
-            return null;
-        }
-
-        return new C4QueryEnumeratorWrapper(rawEnum, enumerator.InstanceSafety);
+        return rawEnum == null ? null : new C4QueryEnumeratorWrapper(rawEnum, enumerator.InstanceSafety);
     }
 
     // Query exclusive
 
-    public static uint c4query_columnCount(C4QueryWrapper query)
-    {
-        return query.UseSafe(Native.c4query_columnCount,
+    public static uint c4query_columnCount(C4QueryWrapper query) =>
+        query.UseSafe(Native.c4query_columnCount,
             C4QueryWrapper.ThreadSafetyLevel.Query);
-    }
 
-    public static FLSlice c4query_columnTitle(C4QueryWrapper query, uint column)
-    {
-        return query.UseSafe(q => Native.c4query_columnTitle(q, column),
+    public static FLSlice c4query_columnTitle(C4QueryWrapper query, uint column) =>
+        query.UseSafe(q => Native.c4query_columnTitle(q, column),
             C4QueryWrapper.ThreadSafetyLevel.Query);
-    }
 
-    public static bool c4queryenum_next(C4QueryEnumeratorWrapper enumerator, C4Error* outError)
-    {
-        return enumerator.UseSafe(e => Native.c4queryenum_next(e, outError));
-    }
+    public static bool c4queryenum_next(C4QueryEnumeratorWrapper enumerator, C4Error* outError) => 
+        enumerator.UseSafe(e => Native.c4queryenum_next(e, outError));
 
-    public static bool c4queryenum_seek(C4QueryEnumeratorWrapper enumerator, long rowIndex, C4Error* outError)
-    {
-        return enumerator.UseSafe(e => Native.c4queryenum_seek(e, rowIndex, outError));
-    }
+    public static bool c4queryenum_seek(C4QueryEnumeratorWrapper enumerator, long rowIndex, C4Error* outError) => 
+        enumerator.UseSafe(e => Native.c4queryenum_seek(e, rowIndex, outError));
 }

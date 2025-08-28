@@ -19,14 +19,13 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace LiteCore.Interop
-{
-    [ExcludeFromCodeCoverage]
-    internal unsafe static partial class Native
-    {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern C4LogDomain* c4log_getDomain(string name,
-            [MarshalAs(UnmanagedType.U1)] bool create);
+namespace LiteCore.Interop;
 
-    }
+[ExcludeFromCodeCoverage]
+internal static unsafe partial class Native
+{
+    [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    public static extern C4LogDomain* c4log_getDomain(string name,
+        [MarshalAs(UnmanagedType.U1)] bool create);
+
 }

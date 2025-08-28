@@ -21,7 +21,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using ci = System.Globalization.CultureInfo;
+using CI = System.Globalization.CultureInfo;
 
 namespace Couchbase.Lite;
 
@@ -105,7 +105,7 @@ public static class Assertions
 
         // Case 1: Both objects are numeric types directly
         if (IsNumericType(actual) && IsNumericType(expected)) {
-            Convert.ToDouble(actual, ci.InvariantCulture).ShouldBe(Convert.ToDouble(expected, ci.InvariantCulture), 
+            Convert.ToDouble(actual, CI.InvariantCulture).ShouldBe(Convert.ToDouble(expected, CI.InvariantCulture), 
                 Double.Epsilon, customMessage);
             return;
         }

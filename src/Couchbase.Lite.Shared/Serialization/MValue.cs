@@ -27,7 +27,7 @@ using static LiteCore.Constants;
 
 namespace Couchbase.Lite.Internal.Serialization;
 
-internal sealed unsafe class MValue : IFLEncodable, IFLSlotSetable
+internal sealed unsafe class MValue : IFLEncodable, IFLSlotSettable
 {
     public static readonly MValue Empty = new MValue(true);
 

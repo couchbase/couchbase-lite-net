@@ -67,12 +67,5 @@ public readonly struct ListenerToken : IEquatable<ListenerToken>
     
     public override bool Equals(object? obj) => obj is ListenerToken other && Equals(other);
 
-    public override int GetHashCode()
-    {
-        var hasher = Hasher.Start;
-        hasher.Add(EventHandler);
-        hasher.Add(Type);
-        hasher.Add(_changeObservableRemovable);
-        return hasher.GetHashCode();
-    }
+    public override int GetHashCode() => HashCode.Combine(EventHandler, Type, _changeObservableRemovable);
 }

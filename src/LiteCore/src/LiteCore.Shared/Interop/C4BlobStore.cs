@@ -16,25 +16,22 @@
 //  limitations under the License.
 //  
 
-using System.Diagnostics.CodeAnalysis;
+namespace LiteCore.Interop;
 
-namespace LiteCore.Interop
+internal static unsafe partial class Native
 {
-    internal static unsafe partial class Native
+    public static ulong c4stream_read(C4ReadStream *stream, byte[] buffer, C4Error *outError)
     {
-        public static ulong c4stream_read(C4ReadStream *stream, byte[] buffer, C4Error *outError)
-        {
-            return c4stream_read(stream, buffer, buffer.Length, outError);
-        }
+        return c4stream_read(stream, buffer, buffer.Length, outError);
+    }
         
-        public static bool c4stream_write(C4WriteStream* stream, byte[] bytes, C4Error* outError)
-        {
-            return c4stream_write(stream, bytes, (ulong)bytes.Length, outError);
-        }
-    }
-
-    internal partial struct C4BlobKey
+    public static bool c4stream_write(C4WriteStream* stream, byte[] bytes, C4Error* outError)
     {
-        public const int Size = 20;
+        return c4stream_write(stream, bytes, (ulong)bytes.Length, outError);
     }
+}
+
+internal partial struct C4BlobKey
+{
+    public const int Size = 20;
 }

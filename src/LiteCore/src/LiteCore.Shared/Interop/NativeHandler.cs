@@ -17,247 +17,217 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite;
 
-namespace LiteCore.Interop
+namespace LiteCore.Interop;
+
+/// <summary>
+/// A delegate for calling native functions that return
+/// a bool and have an out error parameter
+/// </summary>
+internal unsafe delegate bool C4TryLogicDelegate1(C4Error* err);
+
+/// <summary>
+/// A delegate for calling native functions that return
+/// a pointer and have an out error parameter
+/// </summary>
+internal unsafe delegate void* C4TryLogicDelegate2(C4Error* err);
+
+/// <summary>
+/// A delegate for calling native functions that return
+/// an int and have an out error parameter
+/// </summary>
+internal unsafe delegate int C4TryLogicDelegate3(C4Error* err);
+
+internal unsafe delegate byte[]? C4TryLogicDelegate4(C4Error* err);
+
+internal unsafe delegate string? C4TryLogicDelegate5(C4Error* err);
+
+internal unsafe delegate T? C4TryLogicDelegate6<out T>(C4Error* err);
+
+/// <summary>
+/// A rudimentary retry handler with options for allowing specific errors
+/// and custom exception handling
+/// </summary>
+internal sealed class NativeHandler
 {
+    private Action<CouchbaseException>? _exceptionHandler;
 
-    #region Delegates
+    private readonly List<C4Error> _allowedErrors = [];
+    
+    /// <summary>
+    /// Gets the exception thrown during the operation, if any
+    /// </summary>
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+    public CouchbaseException? Exception { get; private set; }
 
     /// <summary>
-    /// A delegate for calling native functions that return
-    /// a bool and have an out error parameter
+    /// Creates a new object for chaining in a fluent fashion
     /// </summary>
-    internal unsafe delegate bool C4TryLogicDelegate1(C4Error* err);
+    /// <returns>A constructed object</returns>
+    public static NativeHandler Create() => new();
 
     /// <summary>
-    /// A delegate for calling native functions that return
-    /// a pointer and have an out error parameter
+    /// Allows the operation to succeed even if an error with the
+    /// given code and domain occurs
     /// </summary>
-    internal unsafe delegate void* C4TryLogicDelegate2(C4Error* err);
+    /// <returns>The current object for further fluent operations</returns>
+    /// <param name="code">The code of the error to allow.</param>
+    /// <param name="domain">The domain of the error to allow.</param>
+    public NativeHandler AllowError(int code, C4ErrorDomain domain) => AllowError(new C4Error(domain, code));
 
     /// <summary>
-    /// A delegate for calling native functions that return
-    /// an int and have an out error parameter
+    /// Allows the operation to succeed even if the given error
+    /// occurs
     /// </summary>
-    internal unsafe delegate int C4TryLogicDelegate3(C4Error* err);
-
-    internal unsafe delegate byte[]? C4TryLogicDelegate4(C4Error* err);
-
-    internal unsafe delegate string? C4TryLogicDelegate5(C4Error* err);
-
-    internal unsafe delegate T? C4TryLogicDelegate6<T>(C4Error* err);
-
-    #endregion
-
-    /// <summary>
-    /// A rudimentary retry handler with options for allowing specific errors
-    /// and custom exception handling
-    /// </summary>
-    internal sealed class NativeHandler
+    /// <returns>The current object for further fluent operations</returns>
+    /// <param name="error">The error to allow.</param>
+    public NativeHandler AllowError(C4Error error)
     {
-        #region Variables
+        _allowedErrors.Add(error);
+        return this;
+    }
 
-        private Action<CouchbaseException>? _exceptionHandler;
+    /// <summary>
+    /// Allows the operation to succeed even if any of the
+    /// given errors occur
+    /// </summary>
+    /// <returns>The current object for further fluent operations</returns>
+    /// <param name="errors">The errors to allow.</param>
+    public NativeHandler AllowErrors(params C4Error[] errors) => AllowErrors((IEnumerable<C4Error>)errors);
 
-        private readonly List<C4Error> _allowedErrors = new List<C4Error>();
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the exception thrown during the operation, if any
-        /// </summary>
-        public CouchbaseException? Exception { get; private set; }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Creates a new object for chaining in a fluent fashion
-        /// </summary>
-        /// <returns>A constructed object</returns>
-        public static NativeHandler Create()
-        {
-            return new NativeHandler();
+    /// <summary>
+    /// Allows the operation to succeed even if any of the
+    /// given errors occur
+    /// </summary>
+    /// <returns>The current object for further fluent operations</returns>
+    /// <param name="errors">The errors to allow.</param>
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+    public NativeHandler AllowErrors(IEnumerable<C4Error> errors)
+    {
+        foreach(var error in errors) {
+            AllowError(error);
         }
 
-        /// <summary>
-        /// Allows the operation to succeed even if an error with the
-        /// given code and domain occurs
-        /// </summary>
-        /// <returns>The current object for further fluent operations</returns>
-        /// <param name="code">The code of the error to allow.</param>
-        /// <param name="domain">The domain of the error to allow.</param>
-        public NativeHandler AllowError(int code, C4ErrorDomain domain)
-        {
-            return AllowError(new C4Error(domain, code));
-        }
+        return this;
+    }
 
-        /// <summary>
-        /// Allows the operation to succeed even if the given error
-        /// occurs
-        /// </summary>
-        /// <returns>The current object for further fluent operations</returns>
-        /// <param name="error">The error to allow.</param>
-        public NativeHandler AllowError(C4Error error)
-        {
-            _allowedErrors.Add(error);
-            return this;
-        }
+    /// <summary>
+    /// Sets the handler for any exception generated during the operation
+    /// that is not allowed by any of the AllowError API calls.  This will
+    /// stop the retry handler from throwing.
+    /// </summary>
+    /// <returns>The current object for further fluent operations</returns>
+    /// <param name="exceptionHandler">The logic for handling exceptions</param>
+    public NativeHandler HandleExceptions(Action<CouchbaseException> exceptionHandler)
+    {
+        _exceptionHandler = exceptionHandler;
+        return this;
+    }
 
-        /// <summary>
-        /// Allows the operation to succeed even if any of the
-        /// given errors occur
-        /// </summary>
-        /// <returns>The current object for further fluent operations</returns>
-        /// <param name="errors">The errors to allow.</param>
-        public NativeHandler AllowErrors(params C4Error[] errors)
-        {
-            return AllowErrors((IEnumerable<C4Error>)errors);
-        }
-
-        /// <summary>
-        /// Allows the operation to succeed even if any of the
-        /// given errors occur
-        /// </summary>
-        /// <returns>The current object for further fluent operations</returns>
-        /// <param name="errors">The errors to allow.</param>
-        public NativeHandler AllowErrors(IEnumerable<C4Error> errors)
-        {
-            foreach(var error in errors ?? Enumerable.Empty<C4Error>()) {
-                AllowError(error);
-            }
-
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the handler for any exception generated during the operation
-        /// that is not allowed by any of the AllowError API calls.  This will
-        /// stop the retry handler from throwing.
-        /// </summary>
-        /// <returns>The current object for further fluent operations</returns>
-        /// <param name="exceptionHandler">The logic for handling exceptions</param>
-        public NativeHandler HandleExceptions(Action<CouchbaseException> exceptionHandler)
-        {
-            _exceptionHandler = exceptionHandler;
-            return this;
-        }
-
-        public unsafe bool Execute(C4TryLogicDelegate1 block)
-        {
-            C4Error err;
-            var retVal = block(&err);
-            if (retVal || err.code == 0) {
-                Exception = null;
-                return retVal;
-            }
-
-            Exception = CouchbaseException.Create(err);
-            ThrowOrHandle();
-            return false;
-        }
-
-        public unsafe void* Execute(C4TryLogicDelegate2 block)
-        { 
-            C4Error err;
-            var retVal = block(&err);
-            if(retVal != null || err.code == 0) {
-                Exception = null;
-                return retVal;
-            }
-
-            Exception = CouchbaseException.Create(err);
-            ThrowOrHandle();
-            return null;
-        }
-
-        public unsafe int Execute(C4TryLogicDelegate3 block)
-        {
-            C4Error err;
-            var retVal = block(&err);
-            if(retVal >= 0 || err.code == 0) {
-                Exception = null;
-                return retVal;
-            }
-
-            Exception = CouchbaseException.Create(err);
-            ThrowOrHandle();
+    public unsafe bool Execute(C4TryLogicDelegate1 block)
+    {
+        C4Error err;
+        var retVal = block(&err);
+        if (retVal || err.code == 0) {
+            Exception = null;
             return retVal;
         }
 
-        public unsafe byte[]? Execute(C4TryLogicDelegate4 block)
-        {
-            C4Error err;
-            var retVal = block(&err);
-            if(retVal != null || err.code == 0) {
-                Exception = null;
-                return retVal;
-            }
+        Exception = CouchbaseException.Create(err);
+        ThrowOrHandle();
+        return false;
+    }
 
-            Exception = CouchbaseException.Create(err);
-            ThrowOrHandle();
+    public unsafe void* Execute(C4TryLogicDelegate2 block)
+    { 
+        C4Error err;
+        var retVal = block(&err);
+        if(retVal != null || err.code == 0) {
+            Exception = null;
             return retVal;
         }
 
-        public unsafe string? Execute(C4TryLogicDelegate5 block)
-        {
-            C4Error err;
-            var retVal = block(&err);
-            if (retVal != null || err.code == 0) {
-                Exception = null;
-                return retVal;
-            }
+        Exception = CouchbaseException.Create(err);
+        ThrowOrHandle();
+        return null;
+    }
 
-            Exception = CouchbaseException.Create(err);
-            ThrowOrHandle();
+    public unsafe int Execute(C4TryLogicDelegate3 block)
+    {
+        C4Error err;
+        var retVal = block(&err);
+        if(retVal >= 0 || err.code == 0) {
+            Exception = null;
             return retVal;
         }
 
-        public unsafe T? Execute<T>(C4TryLogicDelegate6<T> block)
-        {
-            C4Error err;
-            var retVal = block(&err);
-            if (retVal != null || err.code == 0) {
-                Exception = null;
-                return retVal;
-            }
+        Exception = CouchbaseException.Create(err);
+        ThrowOrHandle();
+        return retVal;
+    }
 
-            Exception = CouchbaseException.Create(err);
-            ThrowOrHandle();
+    public unsafe byte[]? Execute(C4TryLogicDelegate4 block)
+    {
+        C4Error err;
+        var retVal = block(&err);
+        if(retVal != null || err.code == 0) {
+            Exception = null;
             return retVal;
         }
 
-        #endregion
+        Exception = CouchbaseException.Create(err);
+        ThrowOrHandle();
+        return retVal;
+    }
 
-        #region Private Methods
+    public unsafe string? Execute(C4TryLogicDelegate5 block)
+    {
+        C4Error err;
+        var retVal = block(&err);
+        if (retVal != null || err.code == 0) {
+            Exception = null;
+            return retVal;
+        }
 
-        private void ThrowOrHandle()
-        {
-            if (Exception == null) {
+        Exception = CouchbaseException.Create(err);
+        ThrowOrHandle();
+        return retVal;
+    }
+
+    public unsafe T? Execute<T>(C4TryLogicDelegate6<T> block)
+    {
+        C4Error err;
+        var retVal = block(&err);
+        if (retVal != null || err.code == 0) {
+            Exception = null;
+            return retVal;
+        }
+
+        Exception = CouchbaseException.Create(err);
+        ThrowOrHandle();
+        return retVal;
+    }
+
+    private void ThrowOrHandle()
+    {
+        if (Exception == null) {
+            return;
+        }
+
+        foreach(var error in _allowedErrors) {
+            if(error.Equals(Exception.LiteCoreError) || (error.domain == 0 &&
+                error.code.Equals(Exception.LiteCoreError.code))) {
                 return;
             }
-
-            foreach(var error in _allowedErrors) {
-                if(error.Equals(Exception.LiteCoreError) || (error.domain == 0 &&
-                    error.code.Equals(Exception.LiteCoreError.code))) {
-                    return;
-                }
-            }
-
-            if (_exceptionHandler == null) {
-                throw Exception;
-            }
-
-            _exceptionHandler(Exception);
         }
 
-        #endregion
+        if (_exceptionHandler == null) {
+            throw Exception;
+        }
+
+        _exceptionHandler(Exception);
     }
 }

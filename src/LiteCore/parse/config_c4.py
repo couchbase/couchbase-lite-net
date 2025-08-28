@@ -1,4 +1,4 @@
-skip_files = []
+skip_files = ["c4DocEnumerator.h", "c4DocEnumeratorTypes.h", "c4PeerSync.h", "c4PeerSyncTypes.h"]
 excluded = ["c4log", "c4vlog", "c4error_getMessageC", "c4str", "c4log_getDomain","c4repl_parseURL","c4SliceEqual","c4slice_free"]
 force_no_bridge = ["c4repl_getResponseHeaders","c4repl_new","c4socket_gotHTTPResponse", "c4doc_getRevisionHistory", "c4doc_getRevisionBody", "c4coll_getIndexesInfo"]
 default_param_name = {"C4SliceResult":"slice","C4WriteStream*":"stream","C4ReadStream*":"stream","C4Error*":"outError",
