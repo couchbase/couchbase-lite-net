@@ -57,23 +57,6 @@ namespace Couchbase.Lite
         /// <returns>A boolean representing whether full sync is enabled</returns>
         public bool FullSync { get; init; } = Constants.DefaultDatabaseFullSync;
 
-        /// <summary>
-        /// Hint for enabling or disabling memory-mapped I/O. 
-        /// Disabling it may affect database performance.
-        /// Typically, there is no need to modify this setting.
-        /// </summary>
-        /// <remarks>
-        /// [!NOTE]
-        /// Memory-mapped I/O is always disabled to prevent database
-        /// corruption on macOS. As a result, this configuration is not
-        /// supported on the macOS platform.
-        /// </remarks>
-#if NET6_0_OR_GREATER
-            [UnsupportedOSPlatform("osx")]
-            [UnsupportedOSPlatform("maccatalyst")]
-#endif
-        public bool MmapEnabled { get; init; } = Constants.DefaultDatabaseMmapEnabled;
-
         #if COUCHBASE_ENTERPRISE
         /// <summary>
         /// Gets or sets the encryption key to use on the database

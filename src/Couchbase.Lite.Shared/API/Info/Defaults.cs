@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024-present Couchbase, Inc All rights reserved.
+// Copyright (c) 2025-present Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,30 +45,6 @@ public static partial class Constants {
 	/// Full sync is off by default because the performance hit is seldom worth the benefit
 	/// </summary>
 	public static readonly bool DefaultDatabaseFullSync = false;
-
-	/// <summary>
-	/// Default value for <see cref="DatabaseConfiguration.MmapEnabled" /> (true)
-	/// Memory mapped database files are enabled by default
-	/// </summary>
-	public static readonly bool DefaultDatabaseMmapEnabled = true;
-
-	/// <summary>
-	/// Default value for <see cref="LogFileConfiguration.UsePlaintext" /> (false)
-	/// Plaintext is not used, and instead binary encoding is used in log files
-	/// </summary>
-	public static readonly bool DefaultLogFileUsePlaintext = false;
-
-	/// <summary>
-	/// Default value for <see cref="LogFileConfiguration.MaxSize" /> (524288)
-	/// 512 KiB for the size of a log file
-	/// </summary>
-	public static readonly long DefaultLogFileMaxSize = 524288;
-
-	/// <summary>
-	/// Default value for <see cref="LogFileConfiguration.MaxRotateCount" /> (1)
-	/// 1 rotated file present (2 total, including the currently active log file)
-	/// </summary>
-	public static readonly uint DefaultLogFileMaxRotateCount = 1;
 
 	/// <summary>
 	/// Default value for <see cref="FileLogSink.UsePlaintext" /> (false)

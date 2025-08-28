@@ -832,12 +832,6 @@ public sealed unsafe partial class Database : IDisposable
             config.flags |= C4DatabaseFlags.DiskSyncFull;
         }
 
-#pragma warning disable CA1416 // Validate platform compatibility
-        if (!Config.MmapEnabled) {
-            config.flags |= C4DatabaseFlags.MmapDisabled;
-        }
-#pragma warning restore CA1416 // Validate platform compatibility
-
 #if COUCHBASE_ENTERPRISE
         if (Config.EncryptionKey != null) {
             var key = Config.EncryptionKey;

@@ -24,7 +24,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)LoadTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LogTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MigrationTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)MmapTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)P2PTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PartialIndexTest.cs" />
