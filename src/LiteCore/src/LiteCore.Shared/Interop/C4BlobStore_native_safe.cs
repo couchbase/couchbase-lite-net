@@ -102,7 +102,8 @@ internal static unsafe partial class NativeSafe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[]? c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError)
     {
-        return Native.c4blob_getContents(store, key, outError);
+        using var retVal = Native.c4blob_getContents(store, key, outError);
+        return ((FLSlice)retVal).ToArrayFast();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

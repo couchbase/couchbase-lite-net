@@ -12,7 +12,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\CouchbaseLiteException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)api\NativeWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Constants.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document+Fleece_native_safe.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Certificate_native_safe.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)interop\C4Document+Fleece_native_safe.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base_native.cs" />
@@ -91,6 +92,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\NativeHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\SQLiteStatus.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\C4String.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\FLSliceMarshaller.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\FLSliceResultMarshaller.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Hasher.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\PerfTimer.cs" />
   </ItemGroup>

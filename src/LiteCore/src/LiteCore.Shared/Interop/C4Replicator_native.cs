@@ -1,7 +1,7 @@
 //
 // C4Replicator_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,36 +28,56 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4address_fromURL(string? url, C4Address* address, FLSlice* dbName);
+#else
         public static bool c4address_fromURL(string? url, C4Address* address, FLSlice* dbName)
         {
-            using(var url_ = new C4String(url)) {
+            using var url_ = new C4String(url); {
                 return NativeRaw.c4address_fromURL(url_.AsFLSlice(), address, dbName);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, FLSlice remoteDatabaseName, C4ReplicatorParameters @params, FLSlice logPrefix, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4Replicator* c4repl_newLocal(C4Database* db, C4Database* otherLocalDB, C4ReplicatorParameters @params, string? logPrefix, C4Error* outError);
+#else
         public static C4Replicator* c4repl_newLocal(C4Database* db, C4Database* otherLocalDB, C4ReplicatorParameters @params, string? logPrefix, C4Error* outError)
         {
-            using(var logPrefix_ = new C4String(logPrefix)) {
+            using var logPrefix_ = new C4String(logPrefix); {
                 return NativeRaw.c4repl_newLocal(db, otherLocalDB, @params, logPrefix_.AsFLSlice(), outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4Replicator* c4repl_newWithSocket(C4Database* db, C4Socket* openSocket, C4ReplicatorParameters @params, string? logPrefix, C4Error* outError);
+#else
         public static C4Replicator* c4repl_newWithSocket(C4Database* db, C4Socket* openSocket, C4ReplicatorParameters @params, string? logPrefix, C4Error* outError)
         {
-            using(var logPrefix_ = new C4String(logPrefix)) {
+            using var logPrefix_ = new C4String(logPrefix); {
                 return NativeRaw.c4repl_newWithSocket(db, openSocket, @params, logPrefix_.AsFLSlice(), outError);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_start(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool reset);
@@ -71,54 +91,71 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_setSuspended(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool suspended);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial void c4repl_setOptions(C4Replicator* repl, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? optionsDictFleece);
+#else
         public static void c4repl_setOptions(C4Replicator* repl, byte[]? optionsDictFleece)
         {
             fixed(byte *optionsDictFleece_ = optionsDictFleece) {
                 NativeRaw.c4repl_setOptions(repl, new FLSlice(optionsDictFleece_, optionsDictFleece == null ? 0 : (ulong)optionsDictFleece.Length));
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4ReplicatorStatus c4repl_getStatus(C4Replicator* repl);
 
-        public static byte[]? c4repl_getPendingDocIDs(C4Replicator* repl, C4CollectionSpec spec, C4Error* outErr)
-        {
-            using(var retVal = NativeRaw.c4repl_getPendingDocIDs(repl, spec, outErr)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4repl_getPendingDocIDs(C4Replicator* repl, C4CollectionSpec spec, C4Error* outErr);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4repl_isDocumentPending(C4Replicator* repl, string? docID, C4CollectionSpec spec, C4Error* outErr);
+#else
         public static bool c4repl_isDocumentPending(C4Replicator* repl, string? docID, C4CollectionSpec spec, C4Error* outErr)
         {
-            using(var docID_ = new C4String(docID)) {
+            using var docID_ = new C4String(docID); {
                 return NativeRaw.c4repl_isDocumentPending(repl, docID_.AsFLSlice(), spec, outErr);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4repl_setProgressLevel(C4Replicator* repl, C4ReplicatorProgressLevel level, C4Error* outErr);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4db_setCookie(C4Database* db, string? setCookieHeader, string? fromHost, string? fromPath, [MarshalAs(UnmanagedType.U1)] bool acceptParentDomain, C4Error* outError);
+#else
         public static bool c4db_setCookie(C4Database* db, string? setCookieHeader, string? fromHost, string? fromPath, bool acceptParentDomain, C4Error* outError)
         {
-            using(var setCookieHeader_ = new C4String(setCookieHeader))
-            using(var fromHost_ = new C4String(fromHost))
-            using(var fromPath_ = new C4String(fromPath)) {
+            using var setCookieHeader_ = new C4String(setCookieHeader);
+            using var fromHost_ = new C4String(fromHost);
+            using var fromPath_ = new C4String(fromPath); {
                 return NativeRaw.c4db_setCookie(db, setCookieHeader_.AsFLSlice(), fromHost_.AsFLSlice(), fromPath_.AsFLSlice(), acceptParentDomain, outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceResultMarshaller))]
+        public static partial string? c4db_getCookies(C4Database* db, C4Address request, C4Error* error);
+#else
         public static string? c4db_getCookies(C4Database* db, C4Address request, C4Error* error)
         {
-            using(var retVal = NativeRaw.c4db_getCookies(db, request, error)) {
-                return ((FLSlice)retVal).CreateString();
-            }
+            using var retVal = NativeRaw.c4db_getCookies(db, request, error);
+            return ((FLSlice)retVal).CreateString();
         }
+#endif
 
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -132,9 +169,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_setOptions(C4Replicator* repl, FLSlice optionsDictFleece);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4repl_getPendingDocIDs(C4Replicator* repl, C4CollectionSpec spec, C4Error* outErr);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

@@ -22,6 +22,7 @@
 #pragma warning disable CS0169  // Member never used
 
 using System;
+using System.Text;
 
 namespace LiteCore.Interop
 {
@@ -49,7 +50,7 @@ namespace LiteCore.Interop
         public static string? c4doc_getRevisionHistory(C4Document* doc)
         {
             using var result = c4doc_getRevisionHistory(doc, UInt32.MaxValue, [], 0U);
-            return result.CreateString();
+            return ((FLSlice)result).CreateString();
         }
     }
 }

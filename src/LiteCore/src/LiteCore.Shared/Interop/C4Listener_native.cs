@@ -28,40 +28,62 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4listener_shareDB(C4Listener* listener, string? name, C4Database* db, C4Error* outError);
+#else
         public static bool c4listener_shareDB(C4Listener* listener, string? name, C4Database* db, C4Error* outError)
         {
-            using(var name_ = new C4String(name)) {
+            using var name_ = new C4String(name); {
                 return NativeRaw.c4listener_shareDB(listener, name_.AsFLSlice(), db, outError);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4listener_unshareDB(C4Listener* listener, C4Database* db, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4listener_shareCollection(C4Listener* listener, string? name, C4Collection* collection, C4Error* outError);
+#else
         public static bool c4listener_shareCollection(C4Listener* listener, string? name, C4Collection* collection, C4Error* outError)
         {
-            using(var name_ = new C4String(name)) {
+            using var name_ = new C4String(name); {
                 return NativeRaw.c4listener_shareCollection(listener, name_.AsFLSlice(), collection, outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4listener_unshareCollection(C4Listener* listener, string? name, C4Collection* collection, C4Error* outError);
+#else
         public static bool c4listener_unshareCollection(C4Listener* listener, string? name, C4Collection* collection, C4Error* outError)
         {
-            using(var name_ = new C4String(name)) {
+            using var name_ = new C4String(name); {
                 return NativeRaw.c4listener_unshareCollection(listener, name_.AsFLSlice(), collection, outError);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLMutableArray* c4listener_getURLs(C4Listener* listener, C4Database* db, C4Error* err);
@@ -75,7 +97,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

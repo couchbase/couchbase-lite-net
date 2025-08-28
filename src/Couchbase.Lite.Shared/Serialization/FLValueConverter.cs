@@ -137,7 +137,7 @@ internal static unsafe class FLValueConverter
             case FLValueType.Boolean:
                 return Native.FLValue_AsBool(value);
             case FLValueType.Data:
-                return Native.FLValue_AsData(value);
+                return Native.FLValue_AsData(value).ToArrayFast();
             case FLValueType.Dict:
             {
 

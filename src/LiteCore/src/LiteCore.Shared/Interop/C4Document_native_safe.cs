@@ -25,6 +25,9 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+using LiteCore.Util;
 
 namespace LiteCore.Interop;
 
@@ -124,10 +127,10 @@ internal static unsafe partial class NativeSafe
     {
         return doc.UseSafe(Native.c4doc_getRevisionHistory, C4DocumentWrapper.ThreadSafetyLevel.Document);
     }
-
+    
     public static FLSlice c4doc_getRevisionBody(C4DocumentWrapper doc)
     {
-        return doc.UseSafe(NativeRaw.c4doc_getRevisionBody,
+        return doc.UseSafe(Native.c4doc_getRevisionBody,
             C4DocumentWrapper.ThreadSafetyLevel.Document);
     }
 

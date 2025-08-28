@@ -33,17 +33,21 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
 %(native)s
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
 %(native_raw)s
     }
@@ -51,6 +55,8 @@ namespace LiteCore.Interop
 """
 
 METHOD_DECORATION = "        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]\n"
+METHOD_DECORATION_NEW = "        [LibraryImport(Constants.DllName)]\n"
+METHOD_DECORATION_NEW_MARSHALLED = "        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof({0}))]\n"
 bridge_literals = {}
 raw_literals = {}
 bridge_params = []
@@ -72,11 +78,18 @@ def transform_raw_return(arg_type):
 
     return arg_type
 
-def transform_bridge(arg_type):
+def transform_bridge(arg_type, new_style = False):
     template = get_template(arg_type, "bridge")
     if template:
+        if new_style and (arg_type == "FLSlice" or arg_type == "C4Slice"):
+            return "[MarshalUsing(typeof(FLSliceMarshaller))] " + template
+        
         return template
 
+    if new_style:
+        if arg_type == "bool":
+            return "[MarshalAs(UnmanagedType.U1)] " + arg_type
+    
     return arg_type
 
 def get_template(name, template_type):
@@ -89,12 +102,12 @@ def get_template(name, template_type):
 
     return retVal
 
-def generate_bridge_sig(pieces, bridge_args):
+def generate_bridge_sig(pieces, bridge_args, new_style = False):
     retVal = ""
     if(len(pieces) > 2):
         for args in pieces[2:]:
             arg_info = args.split(":")
-            bridge = transform_bridge(arg_info[0])
+            bridge = transform_bridge(arg_info[0], new_style)
             if bridge != arg_info[0]:
                 bridge_args.append(args)
 
@@ -102,8 +115,7 @@ def generate_bridge_sig(pieces, bridge_args):
 
         retVal = retVal[:-2]
 
-    retVal += ")\n        {\n"
-    return retVal
+    return retVal + ")\n        {\n" if not new_style else retVal + ");"
 
 def generate_using_parameters_begin(bridge_args):
     retVal = ""
@@ -167,14 +179,40 @@ def insert_bridge(collection, pieces):
     if pieces[1] in bridge_literals:
         collection.append(bridge_literals[pieces[1]])
         return
+    
+    force_old = pieces[0] == ".FLSliceResult" or pieces[0] == ".C4SliceResult" or pieces[0] == ".byte*"
+    bridge_transform = transform_bridge(pieces[0][1:])
+    if not force_old:
+        line = "#if NET8_0_OR_GREATER\n"
+        if pieces[0] == ".FLString" or pieces[0] == ".C4String" or any("FLString:" in piece or "C4String:" in piece for piece in pieces):
+            line += METHOD_DECORATION_NEW_MARSHALLED.format("FLSliceMarshaller")
+        elif pieces[0] == ".FLStringResult" or pieces[0] == ".C4StringResult":
+            line += METHOD_DECORATION_NEW_MARSHALLED.format("FLSliceResultMarshaller")
+        else:
+            line += METHOD_DECORATION_NEW
 
-    line = "        public static {} {}(".format(transform_bridge(pieces[0][1:]), pieces[1])
+        if pieces[0] == ".bool":
+            line += "        [return: MarshalAs(UnmanagedType.U1)]\n"
+
+
+        bridge_args = []
+        line += "        public static partial {} {}(".format(bridge_transform, pieces[1])
+        line += generate_bridge_sig(pieces, bridge_args, True) + "\n#else\n"
+    else:
+        line = ""
+
+    line += "        public static {} {}(".format(bridge_transform, pieces[1])
     bridge_args = []
     line += generate_bridge_sig(pieces, bridge_args)
     line += generate_using_parameters_begin(bridge_args)
     line += generate_return_value(pieces)
     line += generate_using_parameters_end(bridge_args)
-    line += "        }\n\n"
+    line += "        }"
+    if force_old:
+        line += "\n\n"
+    else:
+        line += "\n#endif\n\n"
+
     collection.append(line)
 
 def insert_raw(collection, pieces):
@@ -196,6 +234,7 @@ def insert_raw(collection, pieces):
         line = line[:-2]
 
     line += ');\n\n'
+
     collection.append(line)
 
 def read_literals(filename, collection):

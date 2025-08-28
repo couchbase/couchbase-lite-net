@@ -106,7 +106,8 @@ internal static unsafe partial class NativeSafe
 
     public static byte[]? c4repl_getPendingDocIDs(C4ReplicatorWrapper repl, C4CollectionSpec spec, C4Error* outError)
     {
-        return Native.c4repl_getPendingDocIDs(repl.RawReplicator, spec, outError);
+        using var pendingIDs = Native.c4repl_getPendingDocIDs(repl.RawReplicator, spec, outError);
+        return ((FLSlice)pendingIDs).ToArrayFast();
     }
 
     public static bool c4repl_isDocumentPending(C4ReplicatorWrapper repl, string docID, C4CollectionSpec spec, C4Error* outError)

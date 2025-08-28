@@ -1,7 +1,7 @@
 //
 // FLExpert_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,24 +28,33 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial FLValue* FLValue_FromData([MarshalUsing(typeof(FLSliceMarshaller))] byte[]? data, FLTrust trust);
+#else
         public static FLValue* FLValue_FromData(byte[]? data, FLTrust trust)
         {
             fixed(byte *data_ = data) {
                 return NativeRaw.FLValue_FromData(new FLSlice(data_, data == null ? 0 : (ulong)data.Length), trust);
             }
         }
+#endif
 
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLValue_FromData(FLSlice data, FLTrust trust);

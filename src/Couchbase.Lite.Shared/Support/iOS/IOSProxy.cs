@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Support;
 
 [CouchbaseDependency]
 [SuppressMessage("ReSharper", "InconsistentNaming")]
-internal sealed class IOSProxy  : IProxy
+internal sealed partial class IOSProxy  : IProxy
 {
     private const string libSystemLibrary = "/usr/lib/libSystem.dylib";
 
@@ -156,37 +156,39 @@ internal sealed class IOSProxy  : IProxy
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate /* CFArrayRef __nonnull */ IntPtr CFNetworkCopyProxiesForURL(/* CFURLRef __nonnull */ IntPtr url, /* CFDictionaryRef __nonnull */ IntPtr proxySettings);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern unsafe bool CFNumberGetValue(IntPtr /* CFNumberRef */ number, int /* CFNumberType */ theType, void* valuePtr);
+    [LibraryImport(CoreFoundationLibrary)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static unsafe partial bool CFNumberGetValue(IntPtr /* CFNumberRef */ number, int /* CFNumberType */ theType, void* valuePtr);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern IntPtr /* const char* */ CFStringGetCStringPtr(IntPtr /* CFStringRef */ theString, uint /* CFStringEncoding */ encoding);
+    [LibraryImport(CoreFoundationLibrary)]
+    private static partial IntPtr /* const char* */ CFStringGetCStringPtr(IntPtr /* CFStringRef */ theString, uint /* CFStringEncoding */ encoding);
 
-    [DllImport(libSystemLibrary)]
-    private static extern IntPtr dlsym(IntPtr handle, string symbol);
+    [LibraryImport(libSystemLibrary)]
+    private static partial IntPtr dlsym(IntPtr handle, [MarshalAs(UnmanagedType.LPStr)]string symbol);
 
-    [DllImport(libSystemLibrary)]
-    private static extern IntPtr dlopen(string path, int mode);
+    [LibraryImport(libSystemLibrary)]
+    private static partial IntPtr dlopen([MarshalAs(UnmanagedType.LPUTF8Str)]string path, int mode);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern /* void* */ IntPtr CFDictionaryGetValue(/* CFDictionaryRef */ IntPtr theDict, /* const void* */ IntPtr key);
+    [LibraryImport(CoreFoundationLibrary)]
+    private static partial /* void* */ IntPtr CFDictionaryGetValue(/* CFDictionaryRef */ IntPtr theDict, /* const void* */ IntPtr key);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern /* void* */ IntPtr CFArrayGetValueAtIndex(/* CFArrayRef */ IntPtr theArray, /* CFIndex */ long idx);
+    [LibraryImport(CoreFoundationLibrary)]
+    private static partial /* void* */ IntPtr CFArrayGetValueAtIndex(/* CFArrayRef */ IntPtr theArray, /* CFIndex */ long idx);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern /* CFIndex */ long CFArrayGetCount(/* CFArrayRef */ IntPtr theArray);
+    [LibraryImport(CoreFoundationLibrary)]
+    private static partial /* CFIndex */ long CFArrayGetCount(/* CFArrayRef */ IntPtr theArray);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern void CFRelease(IntPtr obj);
+    [LibraryImport(CoreFoundationLibrary)]
+    private static partial void CFRelease(IntPtr obj);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern /* CFURLRef */ IntPtr CFURLCreateWithString(/* CFAllocatorRef */ IntPtr allocator,
+    [LibraryImport(CoreFoundationLibrary)]
+    private static partial /* CFURLRef */ IntPtr CFURLCreateWithString(/* CFAllocatorRef */ IntPtr allocator,
         /* CFStringRef */ IntPtr URLString,
         /* CFStringRef */ IntPtr baseURL);
 
-    [DllImport(CoreFoundationLibrary)]
-    private static extern /* CFStringRef */ IntPtr CFStringCreateWithCString(/* CFAllocatorRef */ IntPtr alloc, string cStr, uint encoding);
+    [LibraryImport(CoreFoundationLibrary)]
+    private static partial /* CFStringRef */ IntPtr CFStringCreateWithCString(/* CFAllocatorRef */ IntPtr alloc, 
+        [MarshalAs(UnmanagedType.LPStr)]string cStr, uint encoding);
 }
 
 #endif

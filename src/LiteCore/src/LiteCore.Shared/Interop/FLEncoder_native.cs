@@ -1,7 +1,7 @@
 //
 // FLEncoder_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLEncoder* FLEncoder_New();
@@ -74,44 +78,74 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLEncoder_WriteDouble(FLEncoder* encoder, double d);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool FLEncoder_WriteString(FLEncoder* encoder, string? str);
+#else
         public static bool FLEncoder_WriteString(FLEncoder* encoder, string? str)
         {
-            using(var str_ = new C4String(str)) {
+            using var str_ = new C4String(str); {
                 return NativeRaw.FLEncoder_WriteString(encoder, (FLSlice)str_.AsFLSlice());
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool FLEncoder_WriteData(FLEncoder* encoder, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? slice);
+#else
         public static bool FLEncoder_WriteData(FLEncoder* encoder, byte[]? slice)
         {
             fixed(byte *slice_ = slice) {
                 return NativeRaw.FLEncoder_WriteData(encoder, new FLSlice(slice_, slice == null ? 0 : (ulong)slice.Length));
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLEncoder_WriteValue(FLEncoder* encoder, FLValue* value);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool FLEncoder_BeginArray(FLEncoder* encoder, ulong reserveCount);
+#else
         public static bool FLEncoder_BeginArray(FLEncoder* encoder, ulong reserveCount)
         {
             return NativeRaw.FLEncoder_BeginArray(encoder, (UIntPtr)reserveCount);
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLEncoder_EndArray(FLEncoder* encoder);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool FLEncoder_BeginDict(FLEncoder* encoder, ulong reserveCount);
+#else
         public static bool FLEncoder_BeginDict(FLEncoder* encoder, ulong reserveCount)
         {
             return NativeRaw.FLEncoder_BeginDict(encoder, (UIntPtr)reserveCount);
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool FLEncoder_WriteKey(FLEncoder* encoder, string? str);
+#else
         public static bool FLEncoder_WriteKey(FLEncoder* encoder, string? str)
         {
-            using(var str_ = new C4String(str)) {
+            using var str_ = new C4String(str); {
                 return NativeRaw.FLEncoder_WriteKey(encoder, (FLSlice)str_.AsFLSlice());
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -119,15 +153,14 @@ namespace LiteCore.Interop
 
         public static byte[]? FLEncoder_Finish(FLEncoder* encoder, FLError* outError)
         {
-            using(var retVal = NativeRaw.FLEncoder_Finish(encoder, outError)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
+            using var retVal = NativeRaw.FLEncoder_Finish(encoder, outError);
+            return ((FLSlice)retVal).ToArrayFast();
         }
 
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

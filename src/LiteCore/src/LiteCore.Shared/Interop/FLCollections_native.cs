@@ -1,7 +1,7 @@
 //
 // FLCollections_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint FLArray_Count(FLArray* array);
@@ -57,12 +61,17 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint FLDict_Count(FLDict* dict);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial FLValue* FLDict_Get(FLDict* dict, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? keyString);
+#else
         public static FLValue* FLDict_Get(FLDict* dict, byte[]? keyString)
         {
             fixed(byte *keyString_ = keyString) {
                 return NativeRaw.FLDict_Get(dict, new FLSlice(keyString_, keyString == null ? 0 : (ulong)keyString.Length));
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLDictIterator_Begin(FLDict* dict, FLDictIterator* i);
@@ -70,10 +79,15 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDictIterator_GetKey(FLDictIterator* i);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial string? FLDictIterator_GetKeyString(FLDictIterator* i);
+#else
         public static string? FLDictIterator_GetKeyString(FLDictIterator* i)
         {
             return NativeRaw.FLDictIterator_GetKeyString(i).CreateString();
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDictIterator_GetValue(FLDictIterator* i);
@@ -85,7 +99,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDict_Get(FLDict* dict, FLSlice keyString);

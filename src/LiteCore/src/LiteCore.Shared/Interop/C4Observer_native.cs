@@ -1,7 +1,7 @@
 //
 // C4Observer_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4CollectionObserver* c4dbobs_createOnCollection(C4Collection* collection, C4CollectionObserverCallback callback, void* context, C4Error* error);
@@ -44,12 +48,17 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4dbobs_releaseChanges(C4CollectionChange[] changes, uint numChanges);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4DocumentObserver* c4docobs_createWithCollection(C4Collection* collection, string? docID, C4DocumentObserverCallback callback, void* context, C4Error* error);
+#else
         public static C4DocumentObserver* c4docobs_createWithCollection(C4Collection* collection, string? docID, C4DocumentObserverCallback callback, void* context, C4Error* error)
         {
-            using(var docID_ = new C4String(docID)) {
+            using var docID_ = new C4String(docID); {
                 return NativeRaw.c4docobs_createWithCollection(collection, docID_.AsFLSlice(), callback, context, error);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4QueryObserver* c4queryobs_create(C4Query* query, C4QueryObserverCallback callback, void* context);
@@ -63,7 +72,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4DocumentObserver* c4docobs_createWithCollection(C4Collection* collection, FLSlice docID, C4DocumentObserverCallback callback, void* context, C4Error* error);

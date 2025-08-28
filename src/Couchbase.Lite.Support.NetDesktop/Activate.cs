@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Support;
 /// <summary>
 /// The .NET Desktop support class
 /// </summary>
-public static class NetDesktop
+public static partial class NetDesktop
 {
     private static int Activated;
 
@@ -181,6 +181,12 @@ public static class NetDesktop
 
     }
 
-    [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
+#if NET8_0_OR_GREATER
+    [LibraryImport("kernel32", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    private static partial 
+#else
+    [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern
+#endif
+        IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
 }
