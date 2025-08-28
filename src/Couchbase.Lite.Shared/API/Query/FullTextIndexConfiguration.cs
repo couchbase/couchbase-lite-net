@@ -45,13 +45,39 @@ public sealed record FullTextIndexConfiguration : IndexConfiguration
     /// Gets the locale to use when performing full text searching
     /// </summary>
     public string Language { get; } = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    
+    /// <summary>
+    /// A predicate expression defining conditions for indexing documents. 
+    /// Only documents satisfying the predicate are included, enabling partial indexes.
+    /// </summary>
+    public string? Where { get; set; }
 
-    internal override C4IndexOptions Options => new C4IndexOptions
+    internal override C4IndexOptions Options => new()
     {
         ignoreDiacritics = IgnoreAccents,
-        language = Language
+        language = Language,
+        where = Where
     };
 
+    /// <summary>
+    /// Starts the creation of an index based on a full text search
+    /// </summary>
+    /// <param name="expressions">The expressions to use to create the index</param>
+    /// <param name="where">The condition to use for partial indexing</param>
+    /// <param name="ignoreAccents">The boolean value to ignore accents when performing the full text search</param>
+    /// <param name="locale">The locale to use when performing full text searching</param>
+    /// <returns>The beginning of an FTS based index</returns>
+    public FullTextIndexConfiguration(string[] expressions, string? where = null, 
+        bool ignoreAccents = false, string? locale = null)
+        : base(C4IndexType.FullTextIndex, expressions)
+    {
+        IgnoreAccents = ignoreAccents;
+        Where = where;
+        if (!String.IsNullOrEmpty(locale)) {
+            Language = locale;
+        }
+    }
+    
     /// <summary>
     /// Starts the creation of an index based on a full text search
     /// </summary>
@@ -59,14 +85,9 @@ public sealed record FullTextIndexConfiguration : IndexConfiguration
     /// <param name="ignoreAccents">The boolean value to ignore accents when performing the full text search</param>
     /// <param name="locale">The locale to use when performing full text searching</param>
     /// <returns>The beginning of an FTS based index</returns>
-    public FullTextIndexConfiguration(string[] expressions, bool ignoreAccents = false,
-        string? locale = null)
-        : base(C4IndexType.FullTextIndex, expressions)
+    public FullTextIndexConfiguration(string[] expressions, bool ignoreAccents = false, string? locale = null)
+        : this(expressions, null, ignoreAccents, locale)
     {
-        IgnoreAccents = ignoreAccents;
-        if (!String.IsNullOrEmpty(locale)) {
-            Language = locale;
-        }
     }
 
     /// <summary>
