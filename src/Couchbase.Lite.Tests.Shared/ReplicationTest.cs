@@ -110,8 +110,9 @@ namespace Test
             OpenOtherDb();
         }
 
-        protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
-            Authenticator? authenticator = null, X509Certificate2? serverCert = null, Database? sourceDb = null, 
+        protected ReplicatorConfiguration CreateConfig(List<CollectionConfiguration> collectionConfigs,
+            IEndpoint target, ReplicatorType type, bool continuous,
+            Authenticator? authenticator = null, X509Certificate2? serverCert = null, 
             bool acceptOnlySelfSigned = false)
         {
             var pinnedCert = default(X509Certificate2);
@@ -123,7 +124,7 @@ namespace Test
                 }
             }
             
-            var c = new ReplicatorConfiguration(target)
+            var c = new ReplicatorConfiguration(collectionConfigs, target)
             {
                 ReplicatorType = type,
                 Continuous = continuous,
@@ -134,7 +135,6 @@ namespace Test
                 AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSigned
                 #endif
             };
-            c.AddCollection(sourceDb?.GetDefaultCollection() ?? DefaultCollection);
 
             return c;
         }
@@ -152,20 +152,20 @@ namespace Test
         }
 #pragma warning restore CS8774 // Member must have a non-null value when exiting.
 
-        protected void RunReplication(IEndpoint target, ReplicatorType type, bool continuous,
+        protected void RunReplication(List<CollectionConfiguration> collectionConfigs, IEndpoint target, ReplicatorType type, bool continuous,
             Authenticator? authenticator, X509Certificate2? serverCert, int expectedErrCode,
             CouchbaseLiteErrorType expectedErrorDomain)
         {
-            var config = CreateConfig(target, type, continuous, authenticator, serverCert);
+            var config = CreateConfig(collectionConfigs, target, type, continuous, authenticator, serverCert);
             RunReplication(config, expectedErrCode, expectedErrorDomain);
         }
 
         #if COUCHBASE_ENTERPRISE
-        protected void RunReplication(IEndpoint target, ReplicatorType type, bool continuous,
+        protected void RunReplication(List<CollectionConfiguration> collectionConfigs, IEndpoint target, ReplicatorType type, bool continuous,
             Authenticator? authenticator, bool acceptOnlySelfSignedServerCertificate,
             X509Certificate2? serverCert, int expectedErrCode, CouchbaseLiteErrorType expectedErrorDomain)
         {
-            var config = CreateConfig(target, type, continuous, authenticator,
+            var config = CreateConfig(collectionConfigs, target, type, continuous, authenticator,
                 serverCert, acceptOnlySelfSigned: acceptOnlySelfSignedServerCertificate);
             RunReplication(config, expectedErrCode, expectedErrorDomain);
         }
@@ -260,8 +260,8 @@ namespace Test
         [Fact]
         public void TestReplicatorHeartbeatGetSet()
         {
-            Action? badAction = null;
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             var nextConfig = new ReplicatorConfiguration(config)
             {
                 Heartbeat = null
@@ -271,7 +271,7 @@ namespace Test
                 repl.Config.Heartbeat.ShouldBe(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
-            badAction = (() => { _ = new ReplicatorConfiguration(config) { Heartbeat = TimeSpan.Zero }; });
+            var badAction = (() => { _ = new ReplicatorConfiguration(config) { Heartbeat = TimeSpan.Zero }; });
             Should.Throw<ArgumentException>(badAction, "Assigning Heartbeat to an invalid value (<= 0).");
 
             badAction = (() => { _ = new ReplicatorConfiguration(config) { Heartbeat = TimeSpan.FromMilliseconds(800) }; });
@@ -281,8 +281,8 @@ namespace Test
         [Fact]
         public void TestReplicatorMaxRetryWaitTimeGetSet()
         {
-            Action? badAction = null;
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             var nextConfig = new ReplicatorConfiguration(config)
             {
                 MaxAttemptsWaitTime = TimeSpan.FromSeconds(60)
@@ -301,7 +301,7 @@ namespace Test
                 repl.Config.MaxAttemptsWaitTime.ShouldBe(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
-            badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttemptsWaitTime = TimeSpan.Zero });
+            var badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttemptsWaitTime = TimeSpan.Zero });
             Should.Throw<ArgumentException>(badAction, "Assigning Max Retry Wait Time to an invalid value (<= 0).");
 
             badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800) });
@@ -358,7 +358,8 @@ namespace Test
         [Fact]
         public void TestEmptyPush()
         {
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             RunReplication(config, 0, 0);
         }
 
@@ -371,12 +372,17 @@ namespace Test
         [Fact]
         public void TestPushPullKeepsFilter()
         {
-            var config = CreateConfig(true, true, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PushFilter = _replicator__filterCallback,
-                PullFilter = _replicator__filterCallback
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PullFilter = _replicator__filterCallback,
+                    PushFilter = _replicator__filterCallback
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, true, true, false);
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "donotpass");
@@ -407,11 +413,15 @@ namespace Test
                 DefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PushFilter = _replicator__filterCallback
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PushFilter = _replicator__filterCallback
+                }
+            };
+            var config = CreateConfig(collectionConfigs, true, false, false);
 
             RunReplication(config, 0, 0);
             _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when there are docs to be pushed to the other db.");
@@ -445,7 +455,6 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
             Func<Document, DocumentFlags, bool> pullFilter = (doc, isPush) => {
                 try {
@@ -476,12 +485,17 @@ namespace Test
                 return true;
             };
 
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PushFilter = pushFilter,
-                PullFilter = pullFilter
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PushFilter = pushFilter,
+                    PullFilter = pullFilter
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, true, true, false);
             RunReplication(config, 0, 0);
             exceptions.Count.ShouldBe(0);
         }
@@ -504,7 +518,6 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
             Func<Document, DocumentFlags, bool> pullFilter = (doc, isPush) => {
                 try {
@@ -532,12 +545,18 @@ namespace Test
 
                 return true;
             };
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PushFilter = pushFilter,
-                PullFilter = pullFilter
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PushFilter = pushFilter,
+                    PullFilter = pullFilter
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, true, true, false);
             RunReplication(config, 0, 0);
             exceptions.ShouldBeEmpty("because there should be no errors");
         }
@@ -555,7 +574,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             RunReplication(config, 0, 0);
             _isFilteredCallback.ShouldBeFalse();
 
@@ -579,7 +599,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, true, checkPointInterval: TimeSpan.FromSeconds(1));
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, true, checkPointInterval: TimeSpan.FromSeconds(1));
             RunReplication(config, 0, 0);
 
             OtherDefaultCollection.Count.ShouldBe(2UL);
@@ -601,12 +622,16 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PullFilter = _replicator__filterCallback
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PullFilter = _replicator__filterCallback
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
             _isFilteredCallback.ShouldBeTrue();
             DefaultCollection.GetDocument("doc1").ShouldBeNull("because doc1 is filtered out in the callback");
@@ -625,13 +650,17 @@ namespace Test
                 doc2.SetString("name", "pass");
                 OtherDefaultCollection.Save(doc2);
             }
-
-            var config = CreateConfig(false, true, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PullFilter = _replicator__filterCallback
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PullFilter = _replicator__filterCallback
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
             _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
             DefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1 passes the filter");
@@ -664,13 +693,17 @@ namespace Test
                 doc2.SetString("name", "pass");
                 OtherDefaultCollection.Save(doc2);
             }
-
-            var config = CreateConfig(false, true, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PullFilter = _replicator__filterCallback
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PullFilter = _replicator__filterCallback
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
             _isFilteredCallback.ShouldBeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
             DefaultCollection.GetDocument("doc1").ShouldNotBeNull("because doc1 passes the filter");
@@ -711,7 +744,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
             _isFilteredCallback.ShouldBeFalse();
 
@@ -737,7 +771,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, true, checkPointInterval: TimeSpan.FromSeconds(1));
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, false, true, true, checkPointInterval: TimeSpan.FromSeconds(1));
             RunReplication(config, 0, 0);
 
             DefaultCollection.Count.ShouldBe(2UL, "because the replicator should have pulled doc2 from the other DB");
@@ -774,12 +809,16 @@ namespace Test
             doc4.SetString("pattern", "striped");
             OtherDefaultCollection.Save(doc4);
 
-            var config = CreateConfig(true, true, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration> 
             {
-                DocumentIDs =  new[] { "doc1", "doc3" }
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    DocumentIDs = ["doc1", "doc3"]
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, true, true, false);
             RunReplication(config, 0, 0);
             DefaultCollection.Count.ShouldBe(3UL, "because only one document should have been pulled");
             DefaultCollection.GetDocument("doc3").ShouldNotBeNull();
@@ -791,7 +830,8 @@ namespace Test
         [Fact]
         public async Task TestReplicatorStopWhenClosed()
         {
-            var config = CreateConfig(true, true, true);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, true, true);
             using (var repl = new Replicator(config)) {
                 repl.Start();
                 while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
@@ -810,7 +850,8 @@ namespace Test
         [Fact] //This test is now flaky..
         public void TestStopContinuousReplicator()
         {
-            var config = CreateConfig(true, false, true);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, true);
             using (var r = new Replicator(config)) {
                 var stopWhen = new[]
                 {
@@ -868,7 +909,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, true, true);//push n pull
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, true, true);//push n pull
 
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
@@ -933,7 +975,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc1bMutable);
             }
 
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             using (var repl = new Replicator(config)) {
                 using var wa = new WaitAssert();
                 repl.AddDocumentReplicationListener((sender, args) => {
@@ -972,7 +1015,8 @@ namespace Test
                 OtherDefaultCollection.Delete(doc2);
             }
 
-            var config = CreateConfig(true, true, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, true, false);
             using var pullWait = new WaitAssert();
             using var pushWait = new WaitAssert();
             RunReplication(config, 0, 0, onReplicatorReady: (r) =>
@@ -1000,7 +1044,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, true, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, true, false);
             using var pullWait = new WaitAssert();
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
@@ -1028,13 +1073,17 @@ namespace Test
                 doc2.SetString("pattern", "striped");
                 DefaultCollection.Save(doc2);
             }
-
-            var config = CreateConfig(true, false, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                DocumentIDs = new[] { "doc1" }
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    DocumentIDs = ["doc1"]
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, true, false, false);
             RunReplication(config, 0, 0);
 
             OtherDefaultCollection.Count.ShouldBe(1UL);
@@ -1061,9 +1110,10 @@ namespace Test
                 DefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             RunReplication(config, 0, 0);
-            config = CreateConfig(false, true, false);
+            config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             OtherDefaultCollection.Count.ShouldBe(2UL);
@@ -1093,7 +1143,8 @@ namespace Test
                 }
             }
 
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1119,7 +1170,8 @@ namespace Test
             }
 
             DefaultCollection.SetDocumentExpiration(docId, DateTimeOffset.Now);
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             var callbackCount = 0;
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
@@ -1156,8 +1208,7 @@ namespace Test
             DefaultCollection.Count.ShouldBe(1UL);
 
             OtherDefaultCollection.Delete(OtherDefaultCollection.GetDocument("doc1")!);
-
-            var config = CreateConfig(false, true, false);
+            
             var resolver = new TestConflictResolver((conflict) => {
                 using (var doc1 = DefaultCollection.GetDocument("doc1")) {
                     doc1.ShouldNotBeNull("because otherwise the database was missing 'doc1'");
@@ -1166,30 +1217,20 @@ namespace Test
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
             resolveCnt.ShouldBe(1);
             DefaultCollection.Count.ShouldBe(0UL);
-        }
-
-        [Fact]
-        public void TestConflictResolverPropertyInReplicationConfig()
-        {
-            var config = CreateConfig(false, true, false);
-
-            var resolver = new TestConflictResolver((conflict) => {
-                return conflict.RemoteDocument;
-            });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
-            {
-                ConflictResolver = resolver
-            });
         }
 
         [Fact]
@@ -1213,8 +1254,9 @@ namespace Test
                 doc1.SetString("location", "Japan");
                 OtherDefaultCollection.Save(doc1);
             }
-
-            var config = CreateConfig(true, true, false);
+            
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, true, false);
             var resolver = new TestConflictResolver((conflict) => {
                 var localDoc = conflict.LocalDocument;
                 var remoteDoc = conflict.RemoteDocument;
@@ -1239,11 +1281,16 @@ namespace Test
                 return doc1;
             });
 
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
-            {
-                ConflictResolver = resolver
-            });
+            collectionConfigs =
+            [
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            ];
 
+            config = CreateConfig(collectionConfigs, true, true, false);
             RunReplication(config, 0, 0);
 
             using (var doc1a = DefaultCollection.GetDocument("doc1"))
@@ -1291,18 +1338,21 @@ namespace Test
             bool conflictResolved = false;
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
             var resolver = new TestConflictResolver((conflict) => {
                 conflictResolved = true;
                 return null;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1340,18 +1390,22 @@ namespace Test
                 OtherDefaultCollection.Save(doc1);
             }
 
-            var config = CreateConfig(false, true, false);
             var resolver= new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
             });
 
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             localDoc.ShouldBeNull();
@@ -1385,18 +1439,22 @@ namespace Test
 
             OtherDefaultCollection.Delete(OtherDefaultCollection.GetDocument("doc1")!);
 
-            var config = CreateConfig(false, true, false);
             var resolver = new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
             });
 
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
             remoteDoc.ShouldBeNull();
             localDoc.ShouldNotBeNull();
@@ -1408,18 +1466,22 @@ namespace Test
         {
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
             var resolver = new TestConflictResolver((conflict) => {
                 var doc = new MutableDocument("wrong_id");
                 doc.SetString("wrong_id_key", "wrong_id_value");
                 return doc;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             using (var db = DefaultCollection.GetDocument("doc1")) {
@@ -1433,8 +1495,6 @@ namespace Test
         {
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
-
-            var config = CreateConfig(false, true, false);
 
             var resolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
@@ -1450,11 +1510,16 @@ namespace Test
                 return conflict.LocalDocument;
             });
 
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
-
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
+            
+            var config = CreateConfig(collectionConfigs, false, true, false);
             using (var repl = new Replicator(config)){
                 repl.Start();
 
@@ -1477,7 +1542,6 @@ namespace Test
         {
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
-            var config = CreateConfig(false, true, false);
             var resolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     using (var d = DefaultCollection.GetDocument("doc1"))
@@ -1496,12 +1560,17 @@ namespace Test
                 resolveCnt++;
                 return null;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             // This will be 0 if the test resolver threw an exception
@@ -1517,7 +1586,6 @@ namespace Test
         {
             CreateReplicationConflict("doc1");
             CreateReplicationConflict("doc2");
-            var config = CreateConfig(false, true, false);
             ManualResetEvent manualResetEvent = new ManualResetEvent(false);
             Queue<string> q = new Queue<string>();
             using var wa = new WaitAssert();
@@ -1541,12 +1609,17 @@ namespace Test
 
                 return conflict.RemoteDocument;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             wa.WaitForResult(TimeSpan.FromMilliseconds(5000));
@@ -1569,7 +1642,6 @@ namespace Test
             var secondReplicatorFinish = new ManualResetEventSlim();
             int resolveCnt = 0;
 
-            var config = CreateConfig(false, true, false);
             var resolver = new TestConflictResolver((conflict) => {
                 firstReplicatorStart.Set();
                 secondReplicatorFinish.Wait();
@@ -1577,26 +1649,35 @@ namespace Test
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             Replicator replicator = new Replicator(config);
 
-            var config1 = CreateConfig(false, true, false);
             resolver = new TestConflictResolver((conflict) => {
                 resolveCnt++;
                 Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
                 return conflict.RemoteDocument;
             });
-
-            config1.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs1 = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config1 = CreateConfig(collectionConfigs1, false, true, false);
             Replicator replicator1 = new Replicator(config1);
 
             _waitAssert = new WaitAssert();
@@ -1656,8 +1737,6 @@ namespace Test
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
             var resolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     DefaultCollection.Purge(conflict.DocumentID);
@@ -1665,12 +1744,17 @@ namespace Test
                 resolveCnt++;
                 return conflict.RemoteDocument;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1722,8 +1806,6 @@ namespace Test
             //return new doc with a blob object
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
             var resolver = new TestConflictResolver((conflict) => {
                 var winByteArray = new byte[] { 8, 8, 8 };
 
@@ -1731,12 +1813,17 @@ namespace Test
                 doc.SetBlob("blob", new Blob("text/plaintext", winByteArray));
                 return doc;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
@@ -1784,10 +1871,7 @@ namespace Test
                     flags = doc1aMutable.C4Doc!.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocExists).ShouldBeTrue();
                 }
-
-
-                var config = CreateConfig(false, true, false);
-
+                
                 var resolver = new TestConflictResolver((conflict) =>
                 {
                     var evilByteArray = new byte[] { 6, 6, 6 };
@@ -1800,12 +1884,17 @@ namespace Test
 
                     return doc;
                 });
-
-                config.AddCollection(DefaultCollection, new CollectionConfiguration
+                
+                var collectionConfigs = new List<CollectionConfiguration>
                 {
-                    ConflictResolver = resolver
-                });
+                    new()
+                    {
+                        Collection = DefaultCollection,
+                        ConflictResolver = resolver
+                    }
+                };
 
+                var config = CreateConfig(collectionConfigs, false, true, false);
                 RunReplication(config, 0, 0);
 
                 using (var doc = DefaultCollection.GetDocument("doc1")) {
@@ -1844,7 +1933,6 @@ namespace Test
             //force conflicts and check flags
             CreateReplicationConflict("doc1", true);
 
-            var config = CreateConfig(false, true, false);
             C4DocumentFlags flags = (C4DocumentFlags)0;
             var resolver = new TestConflictResolver((conflict) => {
                 unsafe {
@@ -1854,12 +1942,17 @@ namespace Test
                     return conflict.LocalDocument;
                 }
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
@@ -1901,7 +1994,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, false, true, false);
             using (var replicator = new Replicator(config)) {
                 using var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
@@ -1953,7 +2047,8 @@ namespace Test
                 OtherDefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, false, true, false);
             using (var replicator = new Replicator(config)) {
                 using var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
@@ -2001,7 +2096,8 @@ namespace Test
         [Fact]
         public void TestGetPendingDocIdsWithCloseDb()
         {
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 Action badAct = () => replicator.GetPendingDocumentIDs(DefaultCollection);
@@ -2019,7 +2115,8 @@ namespace Test
         [Fact]
         public void TestIsDocumentPendingWithCloseDb()
         {
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 Action badAct = () => replicator.IsDocumentPending("doc1", DefaultCollection);
@@ -2037,7 +2134,8 @@ namespace Test
         [Fact]
         public void TestDisposeRunningReplicator()
         {
-            var config = CreateConfig(true, false, true);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, true);
             var replicator = new Replicator(config);
             var stoppedWait = new ManualResetEventSlim();
             replicator.AddChangeListener((sender, args) =>
@@ -2667,7 +2765,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         {
             IImmutableSet<string> pendingDocIds;
             var idsSet = LoadDocs();
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             var DocIdForTest = "doc-001";
             if (selection == PENDING_DOC_ID_SEL.UPDATE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest))
@@ -2694,11 +2793,17 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                         return true;
                     return false;
                 };
+                
+                collectionConfigs =
+                [
+                    new()
+                    {
+                        Collection = DefaultCollection,
+                        PushFilter = pushFilter
+                    }
+                ];
 
-                config.AddCollection(DefaultCollection, new CollectionConfiguration
-                {
-                    PushFilter = pushFilter
-                });
+                config = CreateConfig(collectionConfigs, true, false, false);
             }
 
             using (var replicator = new Replicator(config)) {
@@ -2746,7 +2851,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             bool docIdIsPending;
             var DocIdForTest = "doc-001";
             var idsSet = LoadDocs();
-            var config = CreateConfig(true, false, false);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, false, false);
             if (selection == PENDING_DOC_ID_SEL.UPDATE) {
                 using (var d = DefaultCollection.GetDocument(DocIdForTest))
                 using (var md = d?.ToMutable()) {
@@ -2771,11 +2877,16 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                         return true;
                     return false;
                 };
-
-                config.AddCollection(DefaultCollection, new CollectionConfiguration
-                {
-                    PushFilter = pushFilter
-                });
+                
+                collectionConfigs =
+                [
+                    new()
+                    {
+                        Collection = DefaultCollection,
+                        PushFilter = pushFilter
+                    }
+                ];
+                config = CreateConfig(collectionConfigs, true, false, false);
             }
 
             using (var replicator = new Replicator(config)) {
@@ -2827,7 +2938,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         {
             using var waitIdleAssert = new WaitAssert();
             using var waitStoppedAssert = new WaitAssert();
-            var config = CreateConfig(true, true, true, OtherDb);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, true, true, OtherDb);
             using (var repl = new Replicator(config)) {
 
                 var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(DefaultCollection));
@@ -2885,7 +2997,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             using var waitIdleAssert1 = new WaitAssert();
             using var waitStoppedAssert1 = new WaitAssert();
 
-            var config = CreateConfig(true, true, true, OtherDb);
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = CreateConfig(collectionConfigs, true, true, true, OtherDb);
             using (var repl = new Replicator(config))
             using (var repl1 = new Replicator(config)) {
                 var token = repl.AddChangeListener((sender, args) =>
@@ -2943,13 +3056,17 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
         {
             CreateReplicationConflict("doc1");
-
-            var config = CreateConfig(true, true, false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, true, true, false);
             using (var repl = new Replicator(config)) {
                 using var wa = new WaitAssert();
                 var token = repl.AddDocumentReplicationListener((sender, args) => {
@@ -2995,11 +3112,16 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     return doc;
                 });
 
-                config.AddCollection(DefaultCollection, new CollectionConfiguration
-                {
-                    ConflictResolver = resolver2
-                });
-
+                collectionConfigs =
+                [
+                    new()
+                    {
+                        Collection = DefaultCollection,
+                        ConflictResolver = resolver2
+                    }
+                ];
+                
+                config = CreateConfig(collectionConfigs, true, true, false);
                 RunReplication(config, 0, 0);
             }
         }
@@ -3008,20 +3130,23 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         {
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
             var resolver = new TestConflictResolver((conflict) => {
                 if (returnRemoteDoc) {
                     return conflict.RemoteDocument;
                 } else
                     return conflict.LocalDocument;
             });
-
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                ConflictResolver = resolver
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    ConflictResolver = resolver
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, false, true, false);
             RunReplication(config, 0, 0);
 
             using (var doc = DefaultCollection.GetDocument("doc1")) {
@@ -3106,12 +3231,16 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 DefaultCollection.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, continuous);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfigs = new List<CollectionConfiguration>
             {
-                PushFilter = _replicator__filterCallback
-            });
+                new()
+                {
+                    Collection = DefaultCollection,
+                    PushFilter = _replicator__filterCallback
+                }
+            };
 
+            var config = CreateConfig(collectionConfigs, true, false, continuous);
             RunReplication(config, 0, 0);
             _isFilteredCallback.ShouldBeTrue();
             OtherDefaultCollection.GetDocument("doc1").ShouldBeNull("because doc1 is filtered out in the callback");
@@ -3119,7 +3248,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             _isFilteredCallback = false;
         }
 
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database? target = null, TimeSpan? checkPointInterval = null)
+        private ReplicatorConfiguration CreateConfig(List<CollectionConfiguration> collectionConfigs,
+            bool push, bool pull, bool continuous, Database? target = null, TimeSpan? checkPointInterval = null)
         {
             var replicatorType = ReplicatorType.PushAndPull;
             if (!push)
@@ -3133,13 +3263,13 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 replicatorType = ReplicatorType.Push;
             }
             
-            var retVal = new ReplicatorConfiguration(new DatabaseEndpoint(target ?? OtherDb))
+            var retVal = new ReplicatorConfiguration(collectionConfigs, new DatabaseEndpoint(target ?? OtherDb))
             {
                 CheckpointInterval = checkPointInterval ?? TimeSpan.FromSeconds(0),
                 ReplicatorType = replicatorType,
                 Continuous = continuous
             };
-            retVal.AddCollection(DefaultCollection);
+            
             return retVal;
         }
 #endif

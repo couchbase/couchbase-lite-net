@@ -269,15 +269,14 @@ public sealed partial class ReplicatorConfiguration
     public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
 
 
-    internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
-
+    internal Dictionary<Collection, CollectionConfiguration> CollectionConfigs { get; } = new();
     internal TimeSpan CheckpointInterval
     {
         get => Options.CheckpointInterval;
         init => Options.CheckpointInterval = value;
     }
 
-    internal ReplicatorOptionsDictionary Options { get; set; } = new();
+    internal ReplicatorOptionsDictionary Options { get; } = new();
 
     internal Database? OtherDB { get; set; }
 
@@ -301,6 +300,7 @@ public sealed partial class ReplicatorConfiguration
     /// Constructs a new builder object with the required properties
     /// </summary>
     /// <remarks>
+    /// [DEPRECATED]
     /// After the ReplicatorConfiguration created, use <see cref="AddCollection(Collection, CollectionConfiguration)"/> 
     /// or <see cref="AddCollections(IList{Collection}, CollectionConfiguration)"/> to
     /// configure the collections in the replication with the target. If there is no collection
@@ -309,8 +309,29 @@ public sealed partial class ReplicatorConfiguration
     /// <param name="target">The endpoint to replicate to, either local or remote</param>
     /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
     /// is provided as <paramref name="target"/></exception>
+    [Obsolete("Use ReplicatorConfiguration(IReadOnlyCollection<CollectionConfiguration>, IEndpoint) instead")]
     public ReplicatorConfiguration(IEndpoint target)
     {
+        Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
+
+        var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
+        castTarget.Visit(this);
+    }
+
+    public ReplicatorConfiguration(IEnumerable<CollectionConfiguration> collections,
+        IEndpoint target)
+    {
+        CollectionConfigs = collections.ToDictionary(x => x.Collection, v => v);
+        if (!CollectionConfigs.Any()) {
+            throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "No collections were specified for replication. At least one collection must be specified.");
+        }
+
+        foreach (var kv in CollectionConfigs.Where(kv => !ReferenceEquals(kv.Value.Collection.Database, DatabaseInternal))) {
+            throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
+                $"The given collection database {kv.Value.Collection.Database} doesn't match the database {DatabaseInternal} "
+                + $"participating in the replication. All collections in the replication configuration must operate on the same database.");
+        }
+        
         Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
 
         var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
@@ -334,7 +355,9 @@ public sealed partial class ReplicatorConfiguration
         var properties = typeof(ReplicatorConfiguration).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         foreach (var prop in properties) {
             // Check if property can be set (has init or set accessor)
-            if (!prop.CanWrite) {
+            // CollectionConfigs is still mutable for now, so we need to make
+            // a shallow copy later
+            if (!prop.CanWrite || prop.Name == nameof(CollectionConfigs)) {
                 continue;
             }
                 
@@ -346,6 +369,8 @@ public sealed partial class ReplicatorConfiguration
                 WriteLog.To.Sync.W(Tag, $"Failed to copy property {prop.Name}: {ex.Message}");
             }
         }
+
+        CollectionConfigs = new Dictionary<Collection, CollectionConfiguration>(configuration.CollectionConfigs);
     }
 
     /// <summary>
@@ -353,6 +378,7 @@ public sealed partial class ReplicatorConfiguration
     /// </summary>
     /// <param name="collections"> that the given config will apply to</param>
     /// <param name="config"> will apply to the given collections</param>
+    [Obsolete("Provide the collection configurations up front in the constructor instead")]
     public void AddCollections(IList<Collection> collections, CollectionConfiguration? config = null)
     {
         foreach(var col in collections) {
@@ -373,6 +399,7 @@ public sealed partial class ReplicatorConfiguration
     /// <exception cref="CouchbaseLiteException">Thrown if database of the given collection doesn't match 
     /// with the database <see cref="Database"/> of the replicator configuration.</exception>
     /// <exception cref="ArgumentNullException">Thrown if collection is null.</exception>
+    [Obsolete("Provide the collection configurations up front in the constructor instead")]
     public void AddCollection(Collection collection, CollectionConfiguration? config = null)
     {
         CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
@@ -382,13 +409,14 @@ public sealed partial class ReplicatorConfiguration
                 $"The given collection database {collection.Database} doesn't match the database {DatabaseInternal} participating in the replication. All collections in the replication configuration must operate on the same database.");
 
         CollectionConfigs.Remove(collection);
-        CollectionConfigs.Add(collection, config ?? new CollectionConfiguration());
+        CollectionConfigs.Add(collection, config ?? new CollectionConfiguration { Collection = collection});
     }
 
     /// <summary>
     /// Remove the give collection and it's configuration from the replication.
     /// </summary>
     /// <param name="collection"> to be removed</param>
+    [Obsolete("Provide the collection configurations up front in the constructor instead")]
     public void RemoveCollection(Collection collection)
     {
         CollectionConfigs.Remove(collection);

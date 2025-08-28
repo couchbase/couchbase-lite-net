@@ -808,6 +808,22 @@ Transfer-Encoding: chunked";
         }
 #endif
 
+        [Fact]
+        public void TestReplicatorConfigurationCopy()
+        {
+            var configs = CollectionConfiguration.FromCollections(DefaultCollection, Db.CreateCollection("second"));
+            var replicationConfig1 = new ReplicatorConfiguration(configs, new URLEndpoint(new Uri("ws://fake")));
+            configs.Add(new CollectionConfiguration { Collection = Db.CreateCollection("third") });
+            replicationConfig1.Collections.Count.ShouldBe(2, "because it has a copy of the config list");
+
+            var replicationConfig2 = new ReplicatorConfiguration(replicationConfig1);
+ #pragma warning disable CS0618 // Type or member is obsolete
+            replicationConfig1.AddCollection(Db.GetCollection("third")!);
+ #pragma warning restore CS0618 // Type or member is obsolete
+            replicationConfig1.Collections.Count.ShouldBe(3, "because it had a collection added");
+            replicationConfig2.Collections.Count.ShouldBe(2, "because it is a copy of the original config");
+        }
+
         private unsafe void TestRoundTrip<T>(T item)
         {
             using (var encoded = item.FLEncode()) {
