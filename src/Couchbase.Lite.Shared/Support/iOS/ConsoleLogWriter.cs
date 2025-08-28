@@ -1,7 +1,7 @@
-﻿// 
-// iOSConsoleLogger.cs
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// ConsoleLogWriter.cs
+// 
+// Copyright (c) 2024 Couchbase, Inc All rights reserved.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,21 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __IOS__
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 
+#if __IOS__
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Support;
 
 [CouchbaseDependency]
-[SuppressMessage("ReSharper", "InconsistentNaming")]
-internal sealed class iOSConsoleLogger : IConsoleLogger
+internal sealed class ConsoleLogWriter : IConsoleLogWriter
 {
-    private readonly CoreFoundation.OSLog _logger = new("CouchbaseLite", "dotnet");
+    private CoreFoundation.OSLog _logger = new CoreFoundation.OSLog("CouchbaseLite", "dotnet");
 
     private static readonly IReadOnlyDictionary<LogLevel, CoreFoundation.OSLogLevel> LevelMap
         = new Dictionary<LogLevel, CoreFoundation.OSLogLevel>
@@ -41,26 +39,10 @@ internal sealed class iOSConsoleLogger : IConsoleLogger
             [LogLevel.Error] = CoreFoundation.OSLogLevel.Error,
         };
 
-    public LogDomain Domains { get; set; } = LogDomain.All;
-
-    public LogLevel Level { get; set; } = LogLevel.Warning;
-
-    private static string MakeMessage(string message, LogLevel level, LogDomain domain)
+    public void Write(LogLevel level, string message)
     {
-        var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
-        return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
-    }
-
-    public void Log(LogLevel level, LogDomain domain, string message)
-    {
-        if (level < Level || !Domains.HasFlag(domain)) {
-            return;
-        }
-
-        var finalStr = MakeMessage(message, level, domain);
         var appleLevel = LevelMap[level];
-        _logger.Log(appleLevel, finalStr);
+        _logger.Log(appleLevel, message);
     }
 }
-
 #endif

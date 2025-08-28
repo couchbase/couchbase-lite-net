@@ -19,25 +19,25 @@
 #nullable disable
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Text;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using Shouldly;
 using Test.Util;
-using Xunit;
+
 using Xunit.Abstractions;
 
 namespace Test
 {
     public abstract class PerfTest
     {
-        private ITestOutputHelper _output;
+        private readonly ITestOutputHelper _output;
         public static string ResourceDir;
         private DatabaseConfiguration _dbConfiguration;
         private string _dbName;
+        private readonly ConsoleLogSink _previousConsoleSink;
+        private readonly FileLogSink _previousFileSink;
 
         public Database Db { get; private set; }
 
@@ -51,7 +51,9 @@ namespace Test
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
-            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
+            LogSinks.Custom = new XunitLogSink(LogLevel.Info, output);
+            _previousConsoleSink = LogSinks.Console;
+            _previousFileSink = LogSinks.File;
         }
 
         protected void SetOptions(DatabaseConfiguration dbConfiguration)
@@ -91,19 +93,19 @@ namespace Test
 
         protected virtual void SetUp()
         {
-            Database.Log.Console.Level = LogLevel.None;
-            Database.Log.File.Level = LogLevel.None;
+            LogSinks.Console = null;
+            LogSinks.File = null;
         }
 
         protected abstract void Test();
 
         protected virtual void TearDown()
         {
-            Database.Log.Console.Level = LogLevel.Warning;
-            Database.Log.File.Level = LogLevel.Info;
+            LogSinks.Console = _previousConsoleSink;
+            LogSinks.File = _previousFileSink;
             Db?.Dispose();
             Db = null;
-            Database.Log.Custom = null;
+            LogSinks.Custom = null;
         }
 
         protected void Run()

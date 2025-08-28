@@ -185,7 +185,7 @@ public sealed partial class ReplicatorConfiguration
     /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
     /// Default value is <see cref="Constants.DefaultReplicatorType" />
     /// </summary>
-    public ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
+    public ReplicatorType ReplicatorType { get; init; } = Constants.DefaultReplicatorType;
 
     /// <summary>
     /// Gets or sets the value to enable/disable the auto-purge feature. 
@@ -316,6 +316,16 @@ public sealed partial class ReplicatorConfiguration
 
         var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
         castTarget.Visit(this);
+
+        AcceptParentDomainCookies = Constants.DefaultReplicatorAcceptParentCookies;
+#if COUCHBASE_ENTERPRISE
+        AcceptOnlySelfSignedServerCertificate = Constants.DefaultReplicatorSelfSignedCertificateOnly;
+#endif
+        Continuous = Constants.DefaultReplicatorContinuous;
+        EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
+        Heartbeat = Constants.DefaultReplicatorHeartbeat;
+        SetMaxAttempts(0);
+        MaxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
     }
 
     public ReplicatorConfiguration(IEnumerable<CollectionConfiguration> collections,
