@@ -24,12 +24,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
@@ -48,9 +45,17 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Fleece;
 using Dispatch;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
 using Xunit;
 using Xunit.Abstractions;
 using Couchbase.Lite.Support;
+
+#if __ANDROID__ || __IOS__ || WINUI
+using Couchbase.Lite.DI;
+#endif
 
 namespace Test
 {
