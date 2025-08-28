@@ -182,7 +182,7 @@ public static partial class NetDesktop
     }
 
 #if NET8_0_OR_GREATER
-    [LibraryImport("kernel32", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [LibraryImport("kernel32", SetLastError = true, StringMarshalling = StringMarshalling.Utf16, EntryPoint = "LoadLibraryExW")]
     private static partial 
 #else
     [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
