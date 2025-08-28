@@ -66,6 +66,7 @@
     </PackageReference>
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' " Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' " Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
