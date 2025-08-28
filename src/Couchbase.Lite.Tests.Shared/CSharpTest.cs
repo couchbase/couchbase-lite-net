@@ -21,10 +21,13 @@
 // this out to make the tests run faster.
 #define EXTRA_LONG_WRAPPER_TEST
 
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
@@ -42,6 +45,10 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Fleece;
 using Dispatch;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
 using Xunit;
 using Xunit.Abstractions;
 using Couchbase.Lite.Support;
