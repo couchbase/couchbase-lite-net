@@ -64,25 +64,21 @@ internal sealed unsafe class C4IndexUpdaterWrapper : NativeWrapper
         Database = 1 << 1
     }
 
-#if DEBUG
-    public ThreadSafety DatabaseThreadSafety => _databaseThreadSafety;
-#endif
-
-    private ThreadSafety _databaseThreadSafety;
+    public ThreadSafety DatabaseThreadSafety { get; }
 
     public C4IndexUpdater* RawUpdater => (C4IndexUpdater*)_nativeInstance;
 
     public C4IndexUpdaterWrapper(C4IndexUpdater* index, ThreadSafety databaseThreadSafety)
         : base((IntPtr)index)
     {
-        _databaseThreadSafety = databaseThreadSafety;
+        DatabaseThreadSafety = databaseThreadSafety;
     }
 
     public T UseSafe<T>(NativeWrapper<T> a, ThreadSafetyLevel safetyLevel)
     {
         var withInstance = safetyLevel.HasFlag(ThreadSafetyLevel.Updater);
         var additional = safetyLevel.HasFlag(ThreadSafetyLevel.Database) ?
-            Enumerable.Repeat(_databaseThreadSafety, 1) : Enumerable.Empty<ThreadSafety>();
+            Enumerable.Repeat(DatabaseThreadSafety, 1) : Enumerable.Empty<ThreadSafety>();
 
         using var scope = BeginLockedScope(withInstance, additional.ToArray());
 
