@@ -17,7 +17,7 @@
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
     <TargetFrameworks>$(ConsoleDotNetVersion);$(MauiDotNetVersion)-android;$(MauiDotNetVersion)-ios;$(MauiDotNetVersion)-maccatalyst</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);$(DotNetFrameworkVersion);$(MauiDotNetVersion)-$(WinUIMinimumVersion)</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);$(DotNetFrameworkVersion);$(MauiDotNetVersion)-windows$(WinUIMinimumVersion)</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">$(iOSMinimumVersion)</SupportedOSPlatformVersion>
