@@ -17,11 +17,16 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 
+using AndroidX.Startup;
 using Android.Content;
+using Android.Runtime;
+using Java.Lang;
+using Object = Java.Lang.Object;
 
 namespace Couchbase.Lite.Support;
 
@@ -30,15 +35,9 @@ namespace Couchbase.Lite.Support;
 /// </summary>
 public static class Droid
 {
-        #region Variables
+    private static int Activated;
 
-    private static int _Activated;
-
-        #endregion
-
-    internal static Context Context { get; private set; }
-
-        #region Public Methods
+    internal static Context? Context { get; private set; }
 
     /// <summary>
     /// Activates the support classes for Android
@@ -49,11 +48,11 @@ public static class Droid
     /// Couchbase.Lite.Support.Android do not match</exception>
     public static void Activate(Context context)
     {
-        if (Interlocked.Exchange(ref _Activated, 1) == 1) {
+        if (Interlocked.Exchange(ref Activated, 1) == 1) {
             return;
         }
 
-        Context = context ?? throw new ArgumentNullException(nameof(context));
+        Context = context;
     }
 
     internal static void CheckVersion()
@@ -72,9 +71,18 @@ public static class Droid
         var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         if (!version1.Equals(version2)) {
             throw new InvalidProgramException(
-                $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.Android ({version1.InformationalVersion})");
+                $"Mismatch between Couchbase.Lite ({version2?.InformationalVersion}) and Couchbase.Lite.Support.Android ({version1.InformationalVersion})");
         }
     }
+}
 
-        #endregion
+public sealed class CouchbaseLiteInitializer : Object, IInitializer
+{
+    public Object Create(Context context)
+    {
+        Droid.Activate(context);
+        return new Object(IntPtr.Zero, JniHandleOwnership.DoNotTransfer);
+    }
+
+    public IList<Class> Dependencies() => [];
 }

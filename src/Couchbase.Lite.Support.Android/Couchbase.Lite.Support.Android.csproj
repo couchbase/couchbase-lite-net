@@ -50,6 +50,9 @@
     <Compile Include="Activate.cs" />
     <Compile Include="Properties/AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+      <AndroidManifest Include="AndroidManifest.xml" />
+  </ItemGroup>
   <ItemGroup Condition=" '$(JUST_CSHARP)' == '' ">
     <None Include="..\..\vendor\prebuilt_core\android\armeabi-v7a\lib\libLiteCore.so">
       <Pack>true</Pack>
@@ -77,5 +80,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Xamarin.AndroidX.Startup.StartupRuntime" Version="1.2.0.5" />
   </ItemGroup>
 </Project>
