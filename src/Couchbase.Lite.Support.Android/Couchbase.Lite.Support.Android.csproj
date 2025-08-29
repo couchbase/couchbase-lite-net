@@ -50,9 +50,6 @@
     <Compile Include="Activate.cs" />
     <Compile Include="Properties/AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-      <AndroidManifest Include="AndroidManifest.xml" />
-  </ItemGroup>
   <ItemGroup Condition=" '$(JUST_CSHARP)' == '' ">
     <None Include="..\..\vendor\prebuilt_core\android\armeabi-v7a\lib\libLiteCore.so">
       <Pack>true</Pack>

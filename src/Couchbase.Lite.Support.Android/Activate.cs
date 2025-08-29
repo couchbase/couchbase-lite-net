@@ -17,16 +17,11 @@
 // 
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 
-using AndroidX.Startup;
 using Android.Content;
-using Android.Runtime;
-using Java.Lang;
-using Object = Java.Lang.Object;
 
 namespace Couchbase.Lite.Support;
 
@@ -74,15 +69,4 @@ public static class Droid
                 $"Mismatch between Couchbase.Lite ({version2?.InformationalVersion}) and Couchbase.Lite.Support.Android ({version1.InformationalVersion})");
         }
     }
-}
-
-public sealed class CouchbaseLiteInitializer : Object, IInitializer
-{
-    public Object Create(Context context)
-    {
-        Droid.Activate(context);
-        return new Object(IntPtr.Zero, JniHandleOwnership.DoNotTransfer);
-    }
-
-    public IList<Class> Dependencies() => [];
 }
