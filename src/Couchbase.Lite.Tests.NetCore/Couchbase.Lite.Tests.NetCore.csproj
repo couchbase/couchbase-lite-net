@@ -1,8 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\AssemblyInfo.props" />
+
   <PropertyGroup>
-    <TargetFrameworks>net462;net8.0</TargetFrameworks>
+    <TargetFrameworks>$(DotNetFrameworkVersion);$(ConsoleDotNetVersion)</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
       <DefineConstants>DEBUG;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
@@ -12,7 +15,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net462'">
+  <PropertyGroup Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion'">
     <DefineConstants>$(DefineConstants);SANITY_ONLY</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -48,7 +51,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' ">
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
   <ItemGroup>

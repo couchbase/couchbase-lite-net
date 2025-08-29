@@ -22,12 +22,14 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Couchbase.Lite;
-
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
 using Shouldly;
 using Couchbase.Lite.P2P;
+using LiteCore.Interop;
+using Test.Util;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 
 using Xunit;
@@ -35,9 +37,17 @@ using Xunit.Abstractions;
 
 namespace Test
 {
-    public sealed class P2PTest(ITestOutputHelper output) : ReplicatorTestBase(output)
+    public sealed class P2PTest : ReplicatorTestBase
     {
-        protected override void Dispose(bool disposing)
+        public unsafe P2PTest(ITestOutputHelper output) : base(output)
+        {
+            LogSinks.Custom = new XunitLogSink(LogLevel.Debug, output);
+            LogSinks.SetDomainLevels(LogLevel.Warning);
+            Native.c4log_setLevel((C4LogDomain*)LogSinks.DomainObjects[LogDomain.Listener],
+                C4LogLevel.Debug);
+        }
+
+        protected override unsafe void Dispose(bool disposing)
         {
             base.Dispose(disposing);
 
@@ -335,7 +345,7 @@ namespace Test
             
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
             var server = new MockServerConnection(listener, ProtocolType.ByteStream);
-            var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
+            var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(colADb), 
                 new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
             {
                 ReplicatorType = ReplicatorType.PushAndPull,
@@ -383,7 +393,7 @@ namespace Test
             };
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
             var server = new MockServerConnection(listener, ProtocolType.ByteStream);
-            var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
+            var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(colADb), 
                 new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
             {
                 ReplicatorType = ReplicatorType.PushAndPull,

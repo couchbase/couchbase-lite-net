@@ -1,26 +1,29 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <PropertyGroup>
-      <Product>Couchbase Lite .NET</Product>
-      <Version Condition="'$(Version)' == ''">0.0.0</Version>
-      <Description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</Description>
-      <Copyright>Copyright 2014-$([System.DateTime]::Now.ToString(yyyy))</Copyright>
-      <Authors>Couchbase, Inc.</Authors>
-      <owners>Couchbase</owners>
-      <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-      <PackageProjectUrl>https://github.com/couchbase/couchbase-lite-net</PackageProjectUrl>
-      <PackageIcon>logo.png</PackageIcon>
-      <PackageReadmeFile>README.md</PackageReadmeFile>
-      <PackageTags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin maui ios android windows linux mac osx nosql</PackageTags>
-      <PublishRepositoryUrl>true</PublishRepositoryUrl>
-      <PackageOutputPath>$(MsBuildThisFileDirectory)packages</PackageOutputPath>
-      <ContinuousIntegrationBuild>True</ContinuousIntegrationBuild>
-      <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-      <LangVersion>latest</LangVersion>
-      <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    </PropertyGroup>
-    <ItemGroup>
-      <None Include="$(MsBuildThisFileDirectory)..\..\packaging\nuget\logo.png" Pack="true" PackagePath=""/>
-      <None Include="$(MsBuildThisFileDirectory)..\..\packaging\nuget\README.md" Pack="true" PackagePath=""/>
-      <None Include="$(MsBuildThisFileDirectory)..\..\packaging\nuget\LICENSE.txt" Pack="true" PackagePath=""/>
-    </ItemGroup>
-  </Project>
+  <Import Project="TargetFrameworks.props" />
+  
+  <PropertyGroup>
+    <Product>Couchbase Lite .NET</Product>
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
+    <Description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</Description>
+    <Copyright>Copyright 2014-$([System.DateTime]::Now.ToString(yyyy))</Copyright>
+    <Authors>Couchbase, Inc.</Authors>
+    <owners>Couchbase</owners>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/couchbase/couchbase-lite-net</PackageProjectUrl>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin maui ios android windows linux mac osx nosql</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageOutputPath>$(MsBuildThisFileDirectory)packages</PackageOutputPath>
+    <ContinuousIntegrationBuild>True</ContinuousIntegrationBuild>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(MsBuildThisFileDirectory)..\..\packaging\nuget\logo.png" Pack="true" PackagePath=""/>
+    <None Include="$(MsBuildThisFileDirectory)..\..\packaging\nuget\README.md" Pack="true" PackagePath=""/>
+    <None Include="$(MsBuildThisFileDirectory)..\..\packaging\nuget\LICENSE.txt" Pack="true" PackagePath=""/>
+  </ItemGroup>
+</Project>

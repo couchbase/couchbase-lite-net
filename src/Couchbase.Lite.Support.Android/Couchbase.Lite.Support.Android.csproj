@@ -1,9 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\AssemblyInfo.props" />
+
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <TargetFramework>net9.0-android</TargetFramework>
-    <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+    <TargetFramework>$(MauiDotNetVersion)-android</TargetFramework>
+    <SupportedOSPlatformVersion>$(MinimumAndroidAPI)</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
     <AssemblyName>Couchbase.Lite.Support.Android</AssemblyName>
@@ -76,5 +78,4 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  <Import Project="..\AssemblyInfo.props" />
 </Project>

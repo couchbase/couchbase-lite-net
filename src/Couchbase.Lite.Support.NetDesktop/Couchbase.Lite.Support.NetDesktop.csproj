@@ -1,4 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\AssemblyInfo.props" />
+  
   <PropertyGroup>
     <IsMac>false</IsMac>
     <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
@@ -8,8 +10,8 @@
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
-    <TargetFrameworks Condition=" '$(OS)' != 'Windows_NT' ">net8.0</TargetFrameworks>
-    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net462;net8.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' != 'Windows_NT' ">$(ConsoleDotNetVersion)</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(DotNetFrameworkVersion);$(ConsoleDotNetVersion)</TargetFrameworks>
 	<SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -37,12 +39,12 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' ">
       <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="desktop.props" Pack="true" PackagePath="build/net462/$(PackageId).props" />
-    <None Include="desktop.props" Pack="true" PackagePath="buildTransitive/net462/$(PackageId).props" />
+    <None Include="desktop.props" Pack="true" PackagePath="build/$(DotNetFrameworkVersion)/$(PackageId).props" />
+    <None Include="desktop.props" Pack="true" PackagePath="buildTransitive/$(DotNetFrameworkVersion)/$(PackageId).props" />
   </ItemGroup>
   <ItemGroup Condition=" ('$(OS)' == 'Windows_NT' OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == '' ">
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64\bin\LiteCore.dll">
@@ -100,5 +102,4 @@
       <PackagePath>runtimes/linux-x64/native/libstdc++.so.6</PackagePath>
     </None>
   </ItemGroup>
-  <Import Project="..\AssemblyInfo.props" />
 </Project>
