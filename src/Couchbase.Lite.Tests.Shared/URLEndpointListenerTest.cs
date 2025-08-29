@@ -42,12 +42,9 @@ namespace Test
 {
     internal static class URLEndpointListenerExtensions
     {
-        #region Public Methods
+        public static URLEndpoint LocalEndpoint(this URLEndpointListener listener) => new(LocalUrl(listener));
 
-        public static URLEndpoint LocalEndpoint(this URLEndpointListener listener)
-            => new URLEndpoint(LocalUrl(listener));
-
-        public static Uri LocalUrl(this URLEndpointListener listener)
+        private static Uri LocalUrl(this URLEndpointListener listener)
         {
             Debug.Assert(listener.Port > 0);
             var builder = new UriBuilder(
@@ -59,41 +56,19 @@ namespace Test
 
             return builder.Uri;
         }
-
-        #endregion
     }
 
-    public sealed class URLEndpointListenerTest : ReplicatorTestBase
+    public sealed class URLEndpointListenerTest(ITestOutputHelper output) : ReplicatorTestBase(output)
     {
-        #region Constants
-
         private const ushort WsPort = 5984;
         private const ushort WssPort = 5985;
         private const string ServerCertLabel = "CBL-Server-Cert";
         private const string ClientCertLabel = "CBL-Client-Cert";
 
-        #endregion
-
-        #region Variables
-
         private URLEndpointListener? _listener;
-        private X509Store _store;
-
-        #endregion
-
-        #region Constructors
-
-        public URLEndpointListenerTest(ITestOutputHelper output) : base(output)
-        {
-            _store = new X509Store(StoreName.My);
-        }
-
-
-        #endregion
+        private readonly X509Store _store = new(StoreName.My);
 
         #if !NET_ANDROID
-        #region Public Methods
-        
 
         [Fact]
         public void TestPort()
@@ -113,8 +88,7 @@ namespace Test
         {
             //init and start a listener
             var config = CreateListenerConfig(false);
-            _listener = Listen(config, 0, 0);
-
+            _listener = Listen(config);
             _listener.Port.ShouldNotBe((ushort)0, "Because the port is dynamically assigned.");
 
             //stop the listener
@@ -145,7 +119,7 @@ namespace Test
             _listener.TlsIdentity.ShouldBeNull();
 
             // Anonymous Identity
-            _listener = CreateListener(true);
+            _listener = CreateListener();
             _listener.TlsIdentity.ShouldNotBeNull();
             _listener.Stop();
             _listener.TlsIdentity.ShouldBeNull();
@@ -206,17 +180,16 @@ namespace Test
 
             using (var repl = new Replicator(config)) {
                 var waitAssert = new WaitAssert();
-                var token = repl.AddChangeListener((sender, args) =>
+                var token = repl.AddChangeListener((_, args) =>
                 {
                     WriteLine($"Yeehaw {_listener.Status.ConnectionCount} / {_listener.Status.ActiveConnectionCount}");
 
+                    // ReSharper disable AccessToModifiedClosure
                     maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
                     maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
+                    // ReSharper restore AccessToModifiedClosure
 
-                    waitAssert.RunConditionalAssert(() =>
-                    {
-                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                    });
+                    waitAssert.RunConditionalAssert(() => args.Status.Activity == ReplicatorActivityLevel.Stopped);
                 });
 
                 repl.Start();
@@ -224,7 +197,7 @@ namespace Test
                     Thread.Sleep(100);
                 }
 
-                // For some reason running on mac throws off the timing enough so that the active connection count
+                // For some reason running on Mac throws off the timing enough so that the active connection count
                 // of 1 is never seen.  So record the value right after it becomes busy.
                 maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
                 maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
@@ -248,10 +221,8 @@ namespace Test
         [Fact]
         public void TestPasswordAuthenticator()
         {
-            var auth = new ListenerPasswordAuthenticator((sender, username, password) =>
-            {
-                return username == "daniel" && new NetworkCredential(string.Empty, password).Password == "123";
-            });
+            var auth = new ListenerPasswordAuthenticator((_, username, password) => 
+                username == "daniel" && new NetworkCredential(String.Empty, password).Password == "123");
 
             _listener = CreateListener(false, true, auth);
 
@@ -261,15 +232,15 @@ namespace Test
             var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint);
 
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
-            var pw = "123";
-            var wrongPw = "456";
-            SecureString? pwSecureString = null;
-            SecureString? wrongPwSecureString = null;
+            const string pw = "123";
+            const string wrongPw = "456";
+            SecureString? pwSecureString;
+            SecureString? wrongPwSecureString;
             unsafe {
-                fixed (char* pw_ = pw)
-                fixed (char* wrongPw_ = wrongPw) {
-                    pwSecureString = new SecureString(pw_, pw.Length);
-                    wrongPwSecureString = new SecureString(wrongPw_, wrongPw.Length);
+                fixed (char* nativePw = pw)
+                fixed (char* nativeWrongPw = wrongPw) {
+                    pwSecureString = new SecureString(nativePw, pw.Length);
+                    wrongPwSecureString = new SecureString(nativeWrongPw, wrongPw.Length);
                 }
             }
 
@@ -297,19 +268,17 @@ namespace Test
         [Fact]
         public void TestClientCertAuthWithCallback()
         {
-            var auth = new ListenerCertificateAuthenticator((sender, cert) =>
+            var auth = new ListenerCertificateAuthenticator((_, cert) =>
             {
                 if (cert.Count != 1) {
                     return false;
                 }
 
-                return cert[0].SubjectName.Name?.Replace("CN=", "") == "daniel";
+                return cert[0].SubjectName.Name.Replace("CN=", "") == "daniel";
             });
 
-            var badAuth = new ListenerCertificateAuthenticator((sender, cert) =>
-            {
-                return cert.Count == 100; // Obviously fail
-            });
+            // Obviously Fail
+            var badAuth = new ListenerCertificateAuthenticator((_, cert) => cert.Count == 100);
 
             _listener = CreateListener(true, true, auth);
 
@@ -329,7 +298,7 @@ namespace Test
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
-                new ClientCertificateAuthenticator(id!),
+                new ClientCertificateAuthenticator(id),
                 false,
                 _listener.TlsIdentity!.Certs[0],
                 0,
@@ -356,7 +325,7 @@ namespace Test
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
-                new ClientCertificateAuthenticator(id!), // send wrong client cert
+                new ClientCertificateAuthenticator(id), // send wrong client cert
                 false,
                 _listener.TlsIdentity!.Certs[0],
                 (int)CouchbaseLiteError.TLSHandshakeFailed,
@@ -395,10 +364,10 @@ namespace Test
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
-                new ClientCertificateAuthenticator(id!),
+                new ClientCertificateAuthenticator(id),
                 true,
                 _listener.TlsIdentity!.Certs[0],
-                (int) CouchbaseLiteError.TLSHandshakeFailed, //not TLSClientCertRejected as mac has..
+                (int) CouchbaseLiteError.TLSHandshakeFailed, //not TLSClientCertRejected as mac has.
                 CouchbaseLiteErrorType.CouchbaseLite
             );
 
@@ -484,7 +453,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null, //authenticator
-                false, //accept only self signed server cert
+                false, //accept only self-signed server cert
                 _listener.TlsIdentity!.Certs[0], //server cert
                 0,
                 0
@@ -512,7 +481,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null, //authenticator
-                true, //accept only self signed server cert
+                true, //accept only self-signed server cert
                 DefaultServerCert, //server cert
                 (int) CouchbaseLiteError.TLSCertUntrusted,
                 CouchbaseLiteErrorType.CouchbaseLite
@@ -525,7 +494,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                false, //accept only self signed server cert
+                false, //accept only self-signed server cert
                 _listener.TlsIdentity.Certs[0], //server cert
                 0,
                 0
@@ -552,7 +521,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                false,//accept only self signed server cert
+                false,//accept only self-signed server cert
                 null,
                 //TODO: Need to handle Linux throwing different error TLSCertUntrusted (5008)
                 (int)CouchbaseLiteError.TLSCertUnknownRoot, //maui android 5006
@@ -565,7 +534,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                true, //accept only self signed server cert
+                true, //accept only self-signed server cert
                 null,
                 0,
                 0
@@ -593,7 +562,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                false, //accept only self signed server cert
+                false, //accept only self-signed server cert
                 null,
                 (int) CouchbaseLiteError.TLSCertUnknownRoot, //maui android 5006
                 CouchbaseLiteErrorType.CouchbaseLite
@@ -606,7 +575,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                false, //accept only self signed server cert
+                false, //accept only self-signed server cert
                 _listener.TlsIdentity.Certs[0],
                 0,
                 0
@@ -620,7 +589,7 @@ namespace Test
         public void TestEmptyNetworkInterface()
         {
             var config = CreateListenerConfig(false, networkInterface: "0.0.0.0");
-            _listener = Listen(config, 0, 0);
+            _listener = Listen(config);
             _listener.Stop();
         }
 
@@ -628,10 +597,10 @@ namespace Test
         public void TestUnavailableNetworkInterface()
         {
             var config = CreateListenerConfig(false, networkInterface: "1.1.1.256");
-            Listen(config, (int) CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
+            Listen(config, (int) CouchbaseLiteError.UnknownHost);
             
             config = CreateListenerConfig(false, networkInterface: "blah");
-            Listen(config, (int) CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
+            Listen(config, (int) CouchbaseLiteError.UnknownHost);
         }
 
 #if false
@@ -676,7 +645,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                false, //accept only self signed server cert
+                false, //accept only self-signed server cert
                 _listener.TlsIdentity!.Certs[0],
                 0,
                 0
@@ -687,7 +656,7 @@ namespace Test
         }
 
 #if !SANITY_ONLY
-        // A three way replication with one database acting as both a listener
+        // A three-way replication with one database acting as both a listener
         // and a replicator
         [Fact]
         public void TestReplicatorAndListenerOnSameDatabase()
@@ -721,19 +690,24 @@ namespace Test
             var wait2 = new ManualResetEventSlim();
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
             {
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
-                    args.Status.Progress.Total) {
-                    if (OtherDefaultCollection.Count == 3 && DefaultCollection.Count == 3 && urlepTestDb.GetDefaultCollection().Count == 3) {
-                        ((Replicator?) sender)!.Stop();
+                switch (args.Status.Activity) {
+                    // ReSharper disable AccessToDisposedClosure
+                    case ReplicatorActivityLevel.Idle when args.Status.Progress.Completed ==
+                        args.Status.Progress.Total:
+                    {
+                        if (OtherDefaultCollection.Count == 3 && DefaultCollection.Count == 3 && urlepTestDb.GetDefaultCollection().Count == 3) {
+                            ((Replicator?) sender)!.Stop();
+                        }
+                        break;
                     }
-
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    if (sender == repl1) {
+                    case ReplicatorActivityLevel.Stopped when sender == repl1:
                         wait1.Set();
-                    } else {
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
                         wait2.Set();
-                    }
+                        break;
                 }
+                // ReSharper restore AccessToDisposedClosure
             };
 
             var token1 = repl1.AddChangeListener(changeListener);
@@ -769,7 +743,7 @@ namespace Test
                 DefaultCollection.Save(doc1);
             }
 
-            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection })
+            var config = new URLEndpointListenerConfiguration([OtherDefaultCollection])
             {
                 DisableTLS = true,
                 ReadOnly = true
@@ -867,36 +841,39 @@ namespace Test
             var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true,
                 serverCert: null);
-            using (var repl = new Replicator(config1)) {
-                var token = repl.AddChangeListener((sender, args) =>
-                {
-                    if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+            using var repl = new Replicator(config1);
+            repl.AddChangeListener((_, args) =>
+            {
+                switch (args.Status.Activity) {
+                    case ReplicatorActivityLevel.Idle:
                         waitIdleAssert.Set();
                         // Stop listener aka server
                         _listener.Stop();
-                    } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
                         waitStoppedAssert.Set();
-                    }
-                });
+                        break;
+                    case ReplicatorActivityLevel.Offline:
+                    case ReplicatorActivityLevel.Connecting:
+                    case ReplicatorActivityLevel.Busy:
+                    default:
+                        break;
+                }
+            });
 
-                repl.Start();
+            repl.Start();
 
-                // Wait until idle then stop the listener
-                waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).ShouldBeTrue();
+            // Wait until idle then stop the listener
+            waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).ShouldBeTrue();
 
-                // Wait for the replicator to be stopped
-                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).ShouldBeTrue();
+            // Wait for the replicator to be stopped
+            waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).ShouldBeTrue();
 
-                // Check error
-                var error = repl.Status.Error as CouchbaseWebsocketException;
-                error.ShouldNotBeNull();
-                ((int)error.Error).ShouldBe((int)CouchbaseLiteError.WebSocketGoingAway);
-            }
+            // Check error
+            var error = repl.Status.Error as CouchbaseWebsocketException;
+            error.ShouldNotBeNull();
+            ((int)error.Error).ShouldBe((int)CouchbaseLiteError.WebSocketGoingAway);
         }
-        
-#endregion
-
-        #region 8.15 Collections replication in URLEndpointListener
 
         [Fact]
         public void TestCollectionsSingleShotPushPullReplication() => CollectionsPushPullReplication(continuous: false);
@@ -907,116 +884,108 @@ namespace Test
         [Fact]
         public void TestMismatchedCollectionReplication()
         {
-            using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
-            using (var colADb = Db.CreateCollection("colB", "scopeA")) {
-                var collsOtherDb = new List<Collection>();
-                collsOtherDb.Add(colAOtherDb);
+            using var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA");
+            using var colADb = Db.CreateCollection("colB", "scopeA");
+            var collsOtherDb = new List<Collection>
+            {
+                colAOtherDb
+            };
 
-                var config = new URLEndpointListenerConfiguration(collsOtherDb)
-                {
-                    Port = 0,
-                    DisableTLS = true
-                };
+            var config = new URLEndpointListenerConfiguration(collsOtherDb)
+            {
+                Port = 0,
+                DisableTLS = true
+            };
 
-                var listener = new URLEndpointListener(config);
-                listener.Start();
-                var targetEndpoint = listener.LocalEndpoint();
-                var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
-                var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
-                {
-                    ReplicatorType = ReplicatorType.PushAndPull,
-                    Continuous = false
-                };
+            var listener = new URLEndpointListener(config);
+            listener.Start();
+            var targetEndpoint = listener.LocalEndpoint();
+            var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
+            var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = false
+            };
 
-                RunReplication(replConfig, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
+            RunReplication(replConfig, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
 
-                listener.Stop();
-            }
+            listener.Stop();
         }
 
         [Fact]
         public void TestCreateListenerConfigWithEmptyCollection()
         {
-            var collsOtherDb = new List<Collection>();
-            Action badAct = () => new URLEndpointListenerConfiguration(collsOtherDb)
-            {
-                Port = 0,
-                DisableTLS = true
-            };
-            Should.Throw<CouchbaseLiteException>(badAct).Message.ShouldBe("The given collections must not be null or empty.");
-        }
-
-        #endregion
-#endif
-        #region Private Methods
-
-        private void CollectionsPushPullReplication(bool continuous)
-        {
-            using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
-            using (var colADb = Db.CreateCollection("colA", "scopeA")) {
-                using (var doc = new MutableDocument("doc"))
-                using (var doc1 = new MutableDocument("doc1")) {
-                    doc.SetString("str", "string");
-                    doc1.SetString("str1", "string1");
-                    colADb.Save(doc);
-                    colADb.Save(doc1);
-                }
-
-                using (var doc = new MutableDocument("doc2"))
-                using (var doc1 = new MutableDocument("doc3")) {
-                    doc.SetString("str2", "string2");
-                    doc1.SetString("str3", "string3");
-                    colAOtherDb.Save(doc);
-                    colAOtherDb.Save(doc1);
-                }
-
-                var collsOtherDb = new List<Collection>() { colAOtherDb };
-
-                var config = new URLEndpointListenerConfiguration(collsOtherDb)
+            void BadAct() =>
+                _ = new URLEndpointListenerConfiguration(new List<Collection>())
                 {
                     Port = 0,
                     DisableTLS = true
                 };
 
-                var listener = new URLEndpointListener(config);
-                listener.Start();
+            Should.Throw<CouchbaseLiteException>((Action)BadAct).Message.ShouldBe("The given collections must not be null or empty.");
+        }
+#endif
 
-                var targetEndpoint = listener.LocalEndpoint();
-                var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
-                var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
-                {
-                    ReplicatorType = ReplicatorType.PushAndPull,
-                    Continuous = continuous
-                };
-
-                RunReplication(replConfig, 0, 0);
-
-                // Check docs are replicated between collections colADb & colAOtherDb
-                colAOtherDb.GetDocument("doc")?.GetString("str").ShouldBe("string");
-                colAOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
-                colADb.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
-                colADb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
-                
-                listener.Stop();
+        private void CollectionsPushPullReplication(bool continuous)
+        {
+            using var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA");
+            using var colADb = Db.CreateCollection("colA", "scopeA");
+            using (var doc = new MutableDocument("doc"))
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc.SetString("str", "string");
+                doc1.SetString("str1", "string1");
+                colADb.Save(doc);
+                colADb.Save(doc1);
             }
+
+            using (var doc = new MutableDocument("doc2"))
+            using (var doc1 = new MutableDocument("doc3")) {
+                doc.SetString("str2", "string2");
+                doc1.SetString("str3", "string3");
+                colAOtherDb.Save(doc);
+                colAOtherDb.Save(doc1);
+            }
+
+            var collsOtherDb = new List<Collection>() { colAOtherDb };
+
+            var config = new URLEndpointListenerConfiguration(collsOtherDb)
+            {
+                Port = 0,
+                DisableTLS = true
+            };
+
+            var listener = new URLEndpointListener(config);
+            listener.Start();
+
+            var targetEndpoint = listener.LocalEndpoint();
+            var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
+            var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = continuous
+            };
+
+            RunReplication(replConfig, 0, 0);
+
+            // Check docs are replicated between collections colADb & colAOtherDb
+            colAOtherDb.GetDocument("doc")?.GetString("str").ShouldBe("string");
+            colAOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
+            colADb.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
+            colADb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
+                
+            listener.Stop();
         }
 
 
-        private int GetEADDRINUSECode()
+        private static int GetEADDRINUSECode()
         {
 #if NET6_0_OR_GREATER && !__MOBILE__
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return 100;
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                return 48;
-            }
-            else
-            {
-                return 98; // Linux
-            }
+
+            return RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 48 : 98; // Linux
 #elif __IOS__
             return 48;
 #elif __ANDROID__
@@ -1050,14 +1019,9 @@ namespace Test
             var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
             var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true);
             var repl1 = new Replicator(config1);
-            repl1.AddChangeListener((sender, args) => {
-                waitIdleAssert1.RunConditionalAssert(() => {
-                    return args.Status.Activity == ReplicatorActivityLevel.Idle;
-                });
-
-                waitStoppedAssert1.RunConditionalAssert(() => {
-                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                });
+            repl1.AddChangeListener((_, args) => {
+                waitIdleAssert1.RunConditionalAssert(() => args.Status.Activity == ReplicatorActivityLevel.Idle);
+                waitStoppedAssert1.RunConditionalAssert(() => args.Status.Activity == ReplicatorActivityLevel.Stopped);
             });
 
             repl1.Start();
@@ -1113,20 +1077,31 @@ namespace Test
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
             {
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
-                    args.Status.Progress.Total) {
-                    if (sender == repl1) {
-                        waitIdleAssert1.Set();
-                    } else {
-                        waitIdleAssert2.Set();
+                // ReSharper disable AccessToDisposedClosure
+                switch (args.Status.Activity) {
+                    case ReplicatorActivityLevel.Idle when args.Status.Progress.Completed ==
+                        args.Status.Progress.Total:
+                    {
+                        if (sender == repl1) {
+                            waitIdleAssert1.Set();
+                        } else {
+                            waitIdleAssert2.Set();
+                        }
+                        break;
                     }
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    if (sender == repl1) {
+                    case ReplicatorActivityLevel.Stopped when sender == repl1:
                         waitStoppedAssert1.Set();
-                    } else {
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
                         waitStoppedAssert2.Set();
-                    }
+                        break;
+                    case ReplicatorActivityLevel.Offline:
+                    case ReplicatorActivityLevel.Connecting:
+                    case ReplicatorActivityLevel.Busy:
+                    default:
+                        break;
                 }
+                // ReSharper restore AccessToDisposedClosure
             };
 
             repl1.AddChangeListener(changeListener);
@@ -1209,40 +1184,46 @@ namespace Test
             var stoppedHandles = new[] { stopped1, stopped2 };
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
             {
+                // ReSharper disable AccessToDisposedClosure
                 var senderIsRepl1 = sender == repl1;
                 var name = (senderIsRepl1) ? "repl1" : "repl2";
                 WriteLine($"{name} -> {args.Status.Activity}");
                 maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
-                if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
-                    if (senderIsRepl1) {
+                switch (args.Status.Activity) {
+                    case ReplicatorActivityLevel.Busy when senderIsRepl1:
                         WriteLine("Setting wait1 (busy)...");
                         busy1.Set();
-                    } else {
+                        break;
+                    case ReplicatorActivityLevel.Busy:
                         WriteLine("Setting wait2 (busy)...");
                         busy2.Set();
-                    }
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
-                    args.Status.Progress.Total) {
-                    bool foundAllLocalDocs = false;
-                    if(senderIsRepl1) {
-                        foundAllLocalDocs = DefaultCollection.Count == expectedLocalCount;
-                    } else {
-                        foundAllLocalDocs = urlepTestDb.GetDefaultCollection().Count == expectedLocalCount;
-                    }
+                        break;
+                    case ReplicatorActivityLevel.Idle when args.Status.Progress.Completed ==
+                        args.Status.Progress.Total:
+                    {
+                        bool foundAllLocalDocs;
+                        if(senderIsRepl1) {
+                            foundAllLocalDocs = DefaultCollection.Count == expectedLocalCount;
+                        } else {
+                            foundAllLocalDocs = urlepTestDb.GetDefaultCollection().Count == expectedLocalCount;
+                        }
 
-                    if (OtherDefaultCollection.Count == expectedListenerCount && foundAllLocalDocs) {
-                        WriteLine($"Stopping {sender}...");
-                        ((Replicator?) sender)!.Stop();
+                        if (OtherDefaultCollection.Count == expectedListenerCount && foundAllLocalDocs) {
+                            WriteLine($"Stopping {sender}...");
+                            ((Replicator?) sender)!.Stop();
+                        }
+                        break;
                     }
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    if (sender == repl1) {
+                    case ReplicatorActivityLevel.Stopped when sender == repl1:
                         WriteLine("Setting wait1 (stopped)...");
                         stopped1.Set();
-                    } else {
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
                         WriteLine("Setting wait2 (stopped)...");
                         stopped2.Set();
-                    }
+                        break;
                 }
+                // ReSharper restore AccessToDisposedClosure
             };
 
             var token1 = repl1.AddChangeListener(changeListener);
@@ -1259,7 +1240,7 @@ namespace Test
 
             // Depending on the whim of the divine entity, there are a number of ways in which the connections
             // can happen.  Commonly they run concurrently which results in a max connection count of 2.
-            // However they can also run sequentially which means only a count of 1.
+            // However, they can also run sequentially which means only a count of 1.
             maxConnectionCount.ShouldBeGreaterThan(0UL);
 
             // all data are transferred to/from
@@ -1285,39 +1266,48 @@ namespace Test
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2? serverCert)
         {
-            using(var waitIdle = new ManualResetEventSlim())
-            using (var waitStopped = new ManualResetEventSlim()) {
-                repl.AddChangeListener((sender, args) =>
-                {
-                    var level = args.Status.Activity;
-                    var correctError = hasIdle ? args.Status.Error == null : args.Status.Error != null;
-                    if (level == ReplicatorActivityLevel.Idle) {
+            using var waitIdle = new ManualResetEventSlim();
+            using var waitStopped = new ManualResetEventSlim();
+            repl.AddChangeListener((_, args) =>
+            {
+                // ReSharper disable AccessToDisposedClosure
+                var level = args.Status.Activity;
+                var correctError = hasIdle ? args.Status.Error == null : args.Status.Error != null;
+                switch (level) {
+                    case ReplicatorActivityLevel.Idle:
                         waitIdle.Set();
-                    } else if (level == ReplicatorActivityLevel.Stopped && correctError) {
+                        break;
+                    case ReplicatorActivityLevel.Stopped when correctError:
                         waitStopped.Set();
-                    }
-                });
-
-                repl.ServerCertificate.ShouldBeNull();
-                repl.Start();
-
-                if (hasIdle) {
-                    waitIdle.Wait(_timeout).ShouldBeTrue();
-                    if (serverCert == null) {
-                        repl.ServerCertificate.ShouldBeNull();
-                    } else {
-                        serverCert.Thumbprint.ShouldBe(repl.ServerCertificate?.Thumbprint);
-                    }
-
-                    repl.Stop();
+                        break;
+                    case ReplicatorActivityLevel.Offline:
+                    case ReplicatorActivityLevel.Connecting:
+                    case ReplicatorActivityLevel.Busy:
+                    default:
+                        break;
                 }
+                // ReSharper restore AccessToDisposedClosure
+            });
 
-                waitStopped.Wait(_timeout).ShouldBeTrue();
+            repl.ServerCertificate.ShouldBeNull();
+            repl.Start();
+
+            if (hasIdle) {
+                waitIdle.Wait(_timeout).ShouldBeTrue();
                 if (serverCert == null) {
                     repl.ServerCertificate.ShouldBeNull();
                 } else {
                     serverCert.Thumbprint.ShouldBe(repl.ServerCertificate?.Thumbprint);
                 }
+
+                repl.Stop();
+            }
+
+            waitStopped.Wait(_timeout).ShouldBeTrue();
+            if (serverCert == null) {
+                repl.ServerCertificate.ShouldBeNull();
+            } else {
+                serverCert.Thumbprint.ShouldBe(repl.ServerCertificate?.Thumbprint);
             }
         }
 
@@ -1329,7 +1319,7 @@ namespace Test
             var config = CreateConfig(collectionConfigs, listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull, true,
                 serverCert: replicatorTls ? serverCert : null);
-            X509Certificate2? receivedServerCert = null;
+            X509Certificate2? receivedServerCert;
 
             using (var repl = new Replicator(config)) {
                 RunReplicatorServerCert(repl, listenerTls == replicatorTls, serverCert);
@@ -1340,9 +1330,8 @@ namespace Test
                 config = CreateConfig(collectionConfigs, listener.LocalEndpoint(),
                     ReplicatorType.PushAndPull, true,
                     serverCert: receivedServerCert);
-                using (var repl = new Replicator(config)) {
-                    RunReplicatorServerCert(repl, true, serverCert);
-                }
+                using var repl = new Replicator(config);
+                RunReplicatorServerCert(repl, true, serverCert);
             }
 
             _listener.Stop();
@@ -1430,7 +1419,7 @@ namespace Test
 
         private URLEndpointListener CreateNewListener(bool enableTls = false)
         {
-            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection }) {
+            var config = new URLEndpointListenerConfiguration([OtherDefaultCollection]) {
                 Port = 0,
                 DisableTLS = !enableTls
             };
@@ -1439,8 +1428,6 @@ namespace Test
             listener.Start();
             return listener;
         }
-
-#endregion
 
         protected override void Dispose(bool disposing)
         {

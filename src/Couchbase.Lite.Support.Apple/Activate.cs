@@ -27,8 +27,6 @@ namespace Couchbase.Lite.Support;
 /// </summary>
 public static class iOS
 {
-        #region Public Methods
-
     /// <summary>
     /// A sanity check to ensure that the versions of Couchbase.Lite and Couchbase.Lite.Support.iOS match.
     /// These libraries are not independent and must have the exact same version
@@ -49,9 +47,7 @@ public static class iOS
         var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         if (!version1.Equals(version2)) {
             throw new InvalidProgramException(
-                $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.iOS ({version1.InformationalVersion})");
+                $"Mismatch between Couchbase.Lite ({version2?.InformationalVersion}) and Couchbase.Lite.Support.iOS ({version1.InformationalVersion})");
         }
     }
-
-        #endregion
 }

@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLDoc* FLDoc_FromResultData(FLSliceResult data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
@@ -47,7 +51,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
 
     }

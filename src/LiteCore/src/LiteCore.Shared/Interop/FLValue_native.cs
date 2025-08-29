@@ -1,7 +1,7 @@
 //
 // FLValue_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValueType FLValue_GetType(FLValue* value);
@@ -66,15 +70,18 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern double FLValue_AsDouble(FLValue* value);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial string? FLValue_AsString(FLValue* value);
+#else
         public static string? FLValue_AsString(FLValue* value)
         {
             return NativeRaw.FLValue_AsString(value).CreateString();
         }
+#endif
 
-        public static byte[]? FLValue_AsData(FLValue* value)
-        {
-            return (NativeRaw.FLValue_AsData(value)).ToArrayFast();
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice FLValue_AsData(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLArray* FLValue_AsArray(FLValue* value);
@@ -82,12 +89,16 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLDict* FLValue_AsDict(FLValue* value);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceResultMarshaller))]
+        public static partial string? FLValue_ToString(FLValue* value);
+#else
         public static string? FLValue_ToString(FLValue* value)
         {
-            using(var retVal = NativeRaw.FLValue_ToString(value)) {
-                return ((FLSlice)retVal).CreateString();
-            }
+            using var retVal = NativeRaw.FLValue_ToString(value);
+            return ((FLSlice)retVal).CreateString();
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLValue_Release(FLValue* value);
@@ -95,13 +106,10 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice FLValue_AsString(FLValue* value);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSlice FLValue_AsData(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult FLValue_ToString(FLValue* value);

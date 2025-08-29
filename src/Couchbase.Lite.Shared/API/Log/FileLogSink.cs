@@ -16,6 +16,8 @@
 //  limitations under the License.
 // 
 
+using System;
+
 using Couchbase.Lite.Sync;
 using LiteCore;
 using LiteCore.Interop;
@@ -139,15 +141,11 @@ public sealed class FileLogSink(LogLevel level, string directory) : BaseLogSink(
     }
 
     /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        var hasher = new Hasher();
-        hasher.Add(Directory)
-            .Add(MaxKeptFiles)
-            .Add(MaxSize)
-            .Add(UsePlaintext)
-            .Add(Level);
-
-        return hasher.GetHashCode();
-    }
+    public override int GetHashCode() =>
+        HashCode.Combine(
+            Directory,
+            MaxKeptFiles,
+            MaxSize,
+            UsePlaintext,
+            Level);
 }

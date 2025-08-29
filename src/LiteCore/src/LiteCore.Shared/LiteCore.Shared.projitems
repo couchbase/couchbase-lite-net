@@ -12,7 +12,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\CouchbaseLiteException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)api\NativeWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Constants.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document+Fleece_native_safe.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Certificate_native_safe.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)interop\C4Document+Fleece_native_safe.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base_native.cs" />
@@ -29,8 +30,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DatabaseTypes_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database_native_safe.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumerator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumeratorTypes_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document+Fleece_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocumentTypes_defs.cs" />
@@ -50,8 +49,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_native_safe.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4PeerSync.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4PeerSyncTypes_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4PredictiveQuery_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4PredictiveQuery_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Private.cs" />
@@ -91,7 +88,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\NativeHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\SQLiteStatus.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\C4String.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\Hasher.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\FLSliceMarshaller.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\FLSliceResultMarshaller.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\PerfTimer.cs" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 //
 // C4Socket_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_registerFactory(C4SocketFactory factory);
@@ -53,24 +57,39 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_closed(C4Socket* socket, C4Error errorIfAny);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial void c4socket_closeRequested(C4Socket* socket, int status, string? message);
+#else
         public static void c4socket_closeRequested(C4Socket* socket, int status, string? message)
         {
-            using(var message_ = new C4String(message)) {
+            using var message_ = new C4String(message); {
                 NativeRaw.c4socket_closeRequested(socket, status, message_.AsFLSlice());
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial void c4socket_completedWrite(C4Socket* socket, ulong byteCount);
+#else
         public static void c4socket_completedWrite(C4Socket* socket, ulong byteCount)
         {
             NativeRaw.c4socket_completedWrite(socket, (UIntPtr)byteCount);
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial void c4socket_received(C4Socket* socket, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? data);
+#else
         public static void c4socket_received(C4Socket* socket, byte[]? data)
         {
             fixed(byte *data_ = data) {
                 NativeRaw.c4socket_received(socket, new FLSlice(data_, data == null ? 0 : (ulong)data.Length));
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Socket* c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address);
@@ -78,7 +97,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message);

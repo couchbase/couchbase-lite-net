@@ -1,8 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\AssemblyInfo.props" />
+
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
     <Platforms>x64;arm64</Platforms>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>$(MauiDotNetVersion)-windows$(WinUIMinimumVersion)</TargetFramework>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -50,7 +52,6 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.WinUI.xml</DocumentationFile>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'PackagingDebug'">
     <DebugSymbols>true</DebugSymbols>
@@ -62,7 +63,6 @@
     <DebugType>portable</DebugType>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup Condition="$(Configuration.Contains('Packaging'))">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64\bin\LiteCore.dll">
@@ -113,5 +113,4 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  <Import Project="..\AssemblyInfo.props" />
 </Project>

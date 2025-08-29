@@ -1,7 +1,7 @@
 //
 // C4Collection_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,22 +28,32 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Collection* c4db_getDefaultCollection(C4Database* db, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4db_hasScope(C4Database* db, string? name);
+#else
         public static bool c4db_hasScope(C4Database* db, string? name)
         {
-            using(var name_ = new C4String(name)) {
+            using var name_ = new C4String(name); {
                 return NativeRaw.c4db_hasScope(db, name_.AsFLSlice());
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Collection* c4db_getCollection(C4Database* db, C4CollectionSpec spec, C4Error* outError);
@@ -55,12 +65,17 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_deleteCollection(C4Database* db, C4CollectionSpec spec, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial FLMutableArray* c4db_collectionNames(C4Database* db, string? inScope, C4Error* outError);
+#else
         public static FLMutableArray* c4db_collectionNames(C4Database* db, string? inScope, C4Error* outError)
         {
-            using(var inScope_ = new C4String(inScope)) {
+            using var inScope_ = new C4String(inScope); {
                 return NativeRaw.c4db_collectionNames(db, inScope_.AsFLSlice(), outError);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLMutableArray* c4db_scopeNames(C4Database* db, C4Error* outError);
@@ -72,46 +87,73 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4coll_getDocumentCount(C4Collection* x);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4Document* c4coll_getDoc(C4Collection* collection, string? docID, [MarshalAs(UnmanagedType.U1)] bool mustExist, C4DocContentLevel content, C4Error* outError);
+#else
         public static C4Document* c4coll_getDoc(C4Collection* collection, string? docID, bool mustExist, C4DocContentLevel content, C4Error* outError)
         {
-            using(var docID_ = new C4String(docID)) {
+            using var docID_ = new C4String(docID); {
                 return NativeRaw.c4coll_getDoc(collection, docID_.AsFLSlice(), mustExist, content, outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4Document* c4coll_createDoc(C4Collection* collection, string? docID, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? body, C4RevisionFlags revisionFlags, C4Error* error);
+#else
         public static C4Document* c4coll_createDoc(C4Collection* collection, string? docID, byte[]? body, C4RevisionFlags revisionFlags, C4Error* error)
         {
-            using(var docID_ = new C4String(docID))
+            using var docID_ = new C4String(docID);
             fixed(byte *body_ = body) {
                 return NativeRaw.c4coll_createDoc(collection, docID_.AsFLSlice(), new FLSlice(body_, body == null ? 0 : (ulong)body.Length), revisionFlags, error);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4coll_purgeDoc(C4Collection* collection, string? docID, C4Error* outError);
+#else
         public static bool c4coll_purgeDoc(C4Collection* collection, string? docID, C4Error* outError)
         {
-            using(var docID_ = new C4String(docID)) {
+            using var docID_ = new C4String(docID); {
                 return NativeRaw.c4coll_purgeDoc(collection, docID_.AsFLSlice(), outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4coll_setDocExpiration(C4Collection* collection, string? docID, long timestamp, C4Error* outError);
+#else
         public static bool c4coll_setDocExpiration(C4Collection* collection, string? docID, long timestamp, C4Error* outError)
         {
-            using(var docID_ = new C4String(docID)) {
+            using var docID_ = new C4String(docID); {
                 return NativeRaw.c4coll_setDocExpiration(collection, docID_.AsFLSlice(), timestamp, outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial long c4coll_getDocExpiration(C4Collection* collection, string? docID, C4Error* outError);
+#else
         public static long c4coll_getDocExpiration(C4Collection* collection, string? docID, C4Error* outError)
         {
-            using(var docID_ = new C4String(docID)) {
+            using var docID_ = new C4String(docID); {
                 return NativeRaw.c4coll_getDocExpiration(collection, docID_.AsFLSlice(), outError);
             }
         }
+#endif
 
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

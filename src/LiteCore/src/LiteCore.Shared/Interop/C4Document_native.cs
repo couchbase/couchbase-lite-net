@@ -1,7 +1,7 @@
 //
 // C4Document_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,21 +28,23 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_save(C4Document* doc, uint maxRevTreeDepth, C4Error* outError);
 
-        public static byte[]? c4doc_getRevisionBody(C4Document* doc)
-        {
-            return (NativeRaw.c4doc_getRevisionBody(doc)).ToArrayFast();
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice c4doc_getRevisionBody(C4Document* doc);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4doc_getRevisionHistory(C4Document* doc, uint maxRevs, FLSlice[] backToRevs, uint backToRevsCount);
@@ -51,37 +53,50 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectNextLeafRevision(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool includeDeleted, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial ulong c4rev_getTimestamp(string? revID);
+#else
         public static ulong c4rev_getTimestamp(string? revID)
         {
-            using(var revID_ = new C4String(revID)) {
+            using var revID_ = new C4String(revID); {
                 return NativeRaw.c4rev_getTimestamp(revID_.AsFLSlice());
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4doc_resolveConflict(C4Document* doc, string? winningRevID, string? losingRevID, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? mergedBody, C4RevisionFlags mergedFlags, C4Error* error);
+#else
         public static bool c4doc_resolveConflict(C4Document* doc, string? winningRevID, string? losingRevID, byte[]? mergedBody, C4RevisionFlags mergedFlags, C4Error* error)
         {
-            using(var winningRevID_ = new C4String(winningRevID))
-            using(var losingRevID_ = new C4String(losingRevID))
+            using var winningRevID_ = new C4String(winningRevID);
+            using var losingRevID_ = new C4String(losingRevID);
             fixed(byte *mergedBody_ = mergedBody) {
                 return NativeRaw.c4doc_resolveConflict(doc, winningRevID_.AsFLSlice(), losingRevID_.AsFLSlice(), new FLSlice(mergedBody_, mergedBody == null ? 0 : (ulong)mergedBody.Length), mergedFlags, error);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial C4Document* c4doc_update(C4Document* doc, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? revisionBody, C4RevisionFlags revisionFlags, C4Error* error);
+#else
         public static C4Document* c4doc_update(C4Document* doc, byte[]? revisionBody, C4RevisionFlags revisionFlags, C4Error* error)
         {
             fixed(byte *revisionBody_ = revisionBody) {
                 return NativeRaw.c4doc_update(doc, new FLSlice(revisionBody_, revisionBody == null ? 0 : (ulong)revisionBody.Length), revisionFlags, error);
             }
         }
+#endif
 
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSlice c4doc_getRevisionBody(C4Document* doc);
-
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4rev_getTimestamp(FLSlice revID);
 

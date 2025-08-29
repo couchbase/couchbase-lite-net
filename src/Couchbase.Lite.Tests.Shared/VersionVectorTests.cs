@@ -18,24 +18,17 @@
 
 using Couchbase.Lite;
 using Shouldly;
-using LiteCore.Interop;
-using System.Xml.Linq;
+
 using Xunit;
 using Xunit.Abstractions;
 using Couchbase.Lite.Unsupported;
 using Couchbase.Lite.Sync;
 using System.Threading;
-using static System.Net.Mime.MediaTypeNames;
-using System.Security.Cryptography;
 
 namespace Test;
 
-public sealed class VersionVectorTest : TestCase
+public sealed class VersionVectorTest(ITestOutputHelper output) : TestCase(output)
 {
-    public VersionVectorTest(ITestOutputHelper output) : base(output)
-    {
-    }
-
     /// <summary>
     /// Description
     ///     Test that the document's timestamp returns value as expected.
@@ -85,7 +78,7 @@ public sealed class VersionVectorTest : TestCase
         savedDoc.RevisionIDs().ShouldNotBeNull("because the saved document should contain at least one revision ID");
     }
 
-    public enum DefaultConflictLWWMode
+    public enum ConflictLastWriteWinsMode
     {
         SaveDB2First,
         SaveDB1First
@@ -111,9 +104,9 @@ public sealed class VersionVectorTest : TestCase
     ///     7. Get the document "doc2" from "db1" and check that the content is {"key": "value2"}.
     /// </summary>
     [Theory]
-    [InlineData(DefaultConflictLWWMode.SaveDB2First)]
-    [InlineData(DefaultConflictLWWMode.SaveDB1First)]
-    public void TestDefaultConflictResolver(DefaultConflictLWWMode lwwMode)
+    [InlineData(ConflictLastWriteWinsMode.SaveDB2First)]
+    [InlineData(ConflictLastWriteWinsMode.SaveDB1First)]
+    public void TestDefaultConflictResolver(ConflictLastWriteWinsMode lastWriteWinsMode)
     {
         Database.Delete("db1", null);
         Database.Delete("db2", null);
@@ -127,7 +120,7 @@ public sealed class VersionVectorTest : TestCase
         db1Doc["key"].Value = "value1";
 
         string expectedValue;
-        if (lwwMode == DefaultConflictLWWMode.SaveDB2First) {
+        if (lastWriteWinsMode == ConflictLastWriteWinsMode.SaveDB2First) {
             db2.GetDefaultCollection().Save(db2Doc);
             db1.GetDefaultCollection().Save(db1Doc);
             expectedValue = "value1";
@@ -137,11 +130,12 @@ public sealed class VersionVectorTest : TestCase
             expectedValue = "value2";
         }
         
-        var replConfig = new ReplicatorConfiguration(new DatabaseEndpoint(db2))
+        var replConfig = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(db1.GetDefaultCollection()),
+            new DatabaseEndpoint(db2))
         {
             ReplicatorType = ReplicatorType.Pull
         };
-        replConfig.AddCollection(db1.GetDefaultCollection());
+        
         using var repl = new Replicator(replConfig);
         repl.Start();
         while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
@@ -155,7 +149,7 @@ public sealed class VersionVectorTest : TestCase
 
     /// <summary>
     /// Description
-    ///     Test that the default conflict resolver that the delete always wins works as expected.
+    ///     Test that the default conflict resolver that the delete operation always wins works as expected.
     ///     There could be already a default conflict resolver test that can be modified to test this
     ///     test case.
     ///
@@ -166,7 +160,7 @@ public sealed class VersionVectorTest : TestCase
     ///         - Document id "doc1" on "db2" with content as {"key": "value2"}
     ///     3. Update the document on each database as the following order:
     ///         - Delete document id "doc1" on "db1"
-    ///         - Update document id "doc1" on "db2" as as {"key": "value3"}
+    ///         - Update document id "doc1" on "db2" as {"key": "value3"}
     ///     4.Start a single shot pull replicator to pull documents from "db2" to "db1".
     ///     5. Get the document "doc1" from "db1" and check that the returned document is null.
     /// </summary>
@@ -191,11 +185,12 @@ public sealed class VersionVectorTest : TestCase
         db2Doc["key"].Value = "value3";
         db2.GetDefaultCollection().Save(db2Doc);
 
-        var replConfig = new ReplicatorConfiguration(new DatabaseEndpoint(db2))
+        var replConfig = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(db1.GetDefaultCollection()),
+            new DatabaseEndpoint(db2))
         {
             ReplicatorType = ReplicatorType.Pull
         };
-        replConfig.AddCollection(db1.GetDefaultCollection());
+        
         using var repl = new Replicator(replConfig);
         repl.Start();
         while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {

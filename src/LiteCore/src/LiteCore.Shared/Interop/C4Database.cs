@@ -17,82 +17,92 @@
 //
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
+
 using LiteCore.Util;
 
-namespace LiteCore.Interop
+namespace LiteCore.Interop;
+
+[ExcludeFromCodeCoverage]
+internal unsafe partial struct C4EncryptionKey
 {
-
-    [ExcludeFromCodeCoverage]
-    internal partial struct C4EncryptionKey
+    // ReSharper disable MemberCanBePrivate.Global
+    public static readonly int Size = 32;
+    // ReSharper restore MemberCanBePrivate.Global
+        
+    public override int GetHashCode()
     {
-        public static readonly int Size = 32;
-    }
-
-    [ExcludeFromCodeCoverage]
-    internal unsafe partial struct C4UUID
-    {
-        public static readonly int Size = 16;
-
-        public override int GetHashCode()
-        {
-            var hasher = Hasher.Start;
-            fixed (byte* b = bytes) {
-                for (int i = 0; i < Size; i++) {
-                    hasher.Add(b[i]);
-                }
-            }
-
-            return hasher.GetHashCode();
+        var hasher = new HashCode();
+        for(var i = 0; i < Size; i++) {
+            hasher.Add(bytes[i]);
         }
 
-        public override bool Equals(object? obj)
-        {
-            if(!(obj is C4UUID)) {
+        return hasher.GetHashCode();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if(obj is not C4UUID other) {
+            return false;
+        }
+
+        for(var i = 0; i < Size; i++) {
+            if(bytes[i] != other.bytes[i]) {
                 return false;
             }
-
-            var other = (C4UUID)obj;
-            fixed(byte* b = bytes) {
-                for(var i = 0; i < Size; i++) {
-                    if(b[i] != other.bytes[i]) {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
         }
+
+        return true;
+    }
+}
+
+[ExcludeFromCodeCoverage]
+internal unsafe partial struct C4UUID
+{
+    public static readonly int Size = 16;
+
+    public override int GetHashCode()
+    {
+        var hasher = new HashCode();
+        for(var i = 0; i < Size; i++) {
+            hasher.Add(bytes[i]);
+        }
+
+        return hasher.GetHashCode();
     }
 
-    internal sealed class CollectionSpec : IDisposable
+    public override bool Equals(object? obj)
     {
-        private C4String _name;
-        private C4String _scope;
-
-        public FLSlice Name => _name.AsFLSlice();
-
-        public FLSlice Scope => _scope.AsFLSlice();
-
-        public CollectionSpec(string scope, string name)
-        {
-            _name = new C4String(name);
-            _scope = new C4String(scope);
+        if(obj is not C4UUID other) {
+            return false;
         }
 
-        public static implicit operator C4CollectionSpec(CollectionSpec c)
-        {
-            return new C4CollectionSpec()
-            {
-                name = c.Name,
-                scope = c.Scope
-            };
+        for(var i = 0; i < Size; i++) {
+            if(bytes[i] != other.bytes[i]) {
+                return false;
+            }
         }
 
-        public void Dispose()
+        return true;
+    }
+}
+
+internal sealed class CollectionSpec(string scope, string name) : IDisposable
+{
+    private C4String _name = new(name);
+    private C4String _scope = new(scope);
+
+    public static implicit operator C4CollectionSpec(CollectionSpec c)
+    {
+        return new C4CollectionSpec
         {
-            _name.Dispose();
-            _scope.Dispose();
-        }
+            name = c._name.AsFLSlice(),
+            scope = c._scope.AsFLSlice()
+        };
+    }
+
+    public void Dispose()
+    {
+        _name.Dispose();
+        _scope.Dispose();
     }
 }

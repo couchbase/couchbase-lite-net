@@ -325,16 +325,7 @@ public unsafe class Document : IDictionaryObject, IJSON, IDisposable
     }
 
     /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        var h = Hasher.Start;
-        h.Add(Id);
-        if (RevisionID != null) {
-            h.Add(RevisionID);
-        }
-
-        return h;
-    }
+    public override int GetHashCode() => HashCode.Combine(Id, RevisionID);
 
     /// <inheritdoc />
     public override bool Equals(object? obj)

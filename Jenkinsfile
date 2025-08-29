@@ -31,7 +31,7 @@ pipeline {
                                 & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init
 
                                 Push-Location jenkins
-                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 --branch pre-4.0 proj
+                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
                                 Pop-Location
                                 '''
                             }

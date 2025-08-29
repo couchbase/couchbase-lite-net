@@ -1,7 +1,7 @@
-﻿//
-// Misc_native.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// C4BlobStore_native_safe.cs
+//
+// Copyright (c) 2024 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,16 +16,18 @@
 // limitations under the License.
 //
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
+// Shadowing the C function naming style
+#pragma warning disable IDE1006
 
 namespace LiteCore.Interop;
 
-[ExcludeFromCodeCoverage]
-internal static unsafe partial class Native
+internal static unsafe partial class NativeSafe
 {
-    [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    public static extern C4LogDomain* c4log_getDomain(string name,
-        [MarshalAs(UnmanagedType.U1)] bool create);
+    // Thread Safe Methods
+    public static byte[]? c4cert_copyData(C4Cert* x, bool pemEncoded)
+    {
+        using var retVal = Native.c4cert_copyData(x, pemEncoded);
+        return ((FLSlice)retVal).ToArrayFast();
+    }
 
 }

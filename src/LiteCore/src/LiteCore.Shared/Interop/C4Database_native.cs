@@ -1,7 +1,7 @@
 //
 // C4Database_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,58 +28,89 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4_enableExtension(string? name, string? extensionPath, C4Error* outError);
+#else
         public static bool c4_enableExtension(string? name, string? extensionPath, C4Error* outError)
         {
-            using(var name_ = new C4String(name))
-            using(var extensionPath_ = new C4String(extensionPath)) {
+            using var name_ = new C4String(name);
+            using var extensionPath_ = new C4String(extensionPath); {
                 return NativeRaw.c4_enableExtension(name_.AsFLSlice(), extensionPath_.AsFLSlice(), outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4Database* c4db_openNamed(string? name, C4DatabaseConfig2* config, C4Error* outError);
+#else
         public static C4Database* c4db_openNamed(string? name, C4DatabaseConfig2* config, C4Error* outError)
         {
-            using(var name_ = new C4String(name)) {
+            using var name_ = new C4String(name); {
                 return NativeRaw.c4db_openNamed(name_.AsFLSlice(), config, outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4db_copyNamed(string? sourcePath, string? destinationName, C4DatabaseConfig2* config, C4Error* error);
+#else
         public static bool c4db_copyNamed(string? sourcePath, string? destinationName, C4DatabaseConfig2* config, C4Error* error)
         {
-            using(var sourcePath_ = new C4String(sourcePath))
-            using(var destinationName_ = new C4String(destinationName)) {
+            using var sourcePath_ = new C4String(sourcePath);
+            using var destinationName_ = new C4String(destinationName); {
                 return NativeRaw.c4db_copyNamed(sourcePath_.AsFLSlice(), destinationName_.AsFLSlice(), config, error);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_close(C4Database* database, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4db_deleteNamed(string? dbName, string? inDirectory, C4Error* outError);
+#else
         public static bool c4db_deleteNamed(string? dbName, string? inDirectory, C4Error* outError)
         {
-            using(var dbName_ = new C4String(dbName))
-            using(var inDirectory_ = new C4String(inDirectory)) {
+            using var dbName_ = new C4String(dbName);
+            using var inDirectory_ = new C4String(inDirectory); {
                 return NativeRaw.c4db_deleteNamed(dbName_.AsFLSlice(), inDirectory_.AsFLSlice(), outError);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_rekey(C4Database* database, C4EncryptionKey* newKey, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceResultMarshaller))]
+        public static partial string? c4db_getPath(C4Database* db);
+#else
         public static string? c4db_getPath(C4Database* db)
         {
-            using(var retVal = NativeRaw.c4db_getPath(db)) {
-                return ((FLSlice)retVal).CreateString();
-            }
+            using var retVal = NativeRaw.c4db_getPath(db);
+            return ((FLSlice)retVal).CreateString();
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -100,7 +131,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

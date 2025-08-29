@@ -1,3 +1,2 @@
-{0}using(var retVal = NativeRaw.{1}{2}) {{
-{0}    return ((FLSlice)retVal).CreateString();
-{0}}}
+{0}using var retVal = NativeRaw.{1}{2};
+{0}return ((FLSlice)retVal).CreateString();

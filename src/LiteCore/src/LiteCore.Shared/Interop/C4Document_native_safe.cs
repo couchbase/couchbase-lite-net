@@ -20,20 +20,23 @@
 #pragma warning disable IDE1006
 
 using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
+
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+using LiteCore.Util;
 
 namespace LiteCore.Interop;
 
 // NOTE: This was an existing class before NativeWrapper existed and
 // is sort of coupled to the implementation at the moment so that's
-// why it looks different than the others
+// why it looks different from the others
 internal sealed unsafe class C4DocumentWrapper : NativeWrapper
 {
-    public delegate T NativeCallback<T>(C4Document* doc);
+    public delegate T NativeCallback<out T>(C4Document* doc);
 
     [Flags]
     public enum ThreadSafetyLevel
@@ -43,26 +46,10 @@ internal sealed unsafe class C4DocumentWrapper : NativeWrapper
         Full = Document | Database
     }
 
-    #region Constants
-
-    private const string Tag = nameof(C4DocumentWrapper);
-
-    #endregion
-
-    #region Variables
-
     public readonly C4Document* RawDoc;
     public readonly ThreadSafety DatabaseThreadSafety;
 
-    #endregion
-
-    #region Properties
-
     public bool HasValue => RawDoc != null;
-
-    #endregion
-
-    #region Constructors
 
     public C4DocumentWrapper(C4Document* doc, ThreadSafety databaseThreadSafety)
         : base((IntPtr)doc)
@@ -75,13 +62,11 @@ internal sealed unsafe class C4DocumentWrapper : NativeWrapper
         DatabaseThreadSafety = databaseThreadSafety;
     }
 
-    #endregion
-
     public T UseSafe<T>(NativeCallback<T> a, ThreadSafetyLevel safetyLevel)
     {
         var withInstance = safetyLevel.HasFlag(ThreadSafetyLevel.Document);
         var additional = safetyLevel.HasFlag(ThreadSafetyLevel.Database) ?
-            Enumerable.Repeat(DatabaseThreadSafety, 1) : Enumerable.Empty<ThreadSafety>();
+            Enumerable.Repeat(DatabaseThreadSafety, 1) : [];
 
         using var scope = BeginLockedScope(withInstance, additional.ToArray());
         return a(RawDoc);
@@ -124,10 +109,10 @@ internal static unsafe partial class NativeSafe
     {
         return doc.UseSafe(Native.c4doc_getRevisionHistory, C4DocumentWrapper.ThreadSafetyLevel.Document);
     }
-
+    
     public static FLSlice c4doc_getRevisionBody(C4DocumentWrapper doc)
     {
-        return doc.UseSafe(NativeRaw.c4doc_getRevisionBody,
+        return doc.UseSafe(Native.c4doc_getRevisionBody,
             C4DocumentWrapper.ThreadSafetyLevel.Document);
     }
 

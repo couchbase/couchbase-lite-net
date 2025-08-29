@@ -1,0 +1,11 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+      <MauiDotNetVersion>net9.0</MauiDotNetVersion>
+      <ConsoleDotNetVersion>net8.0</ConsoleDotNetVersion>
+      <DotNetFrameworkVersion>net462</DotNetFrameworkVersion>
+      <MinimumAndroidAPI>24.0</MinimumAndroidAPI>
+      <iOSMinimumVersion>15.0</iOSMinimumVersion>
+      <MacCatalystMinimumVersion>15.0</MacCatalystMinimumVersion>
+      <WinUIMinimumVersion>10.0.19041.0</WinUIMinimumVersion>
+    </PropertyGroup>
+</Project>

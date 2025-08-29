@@ -17,7 +17,7 @@ partials = ["C4RawDocument", "C4Address", "C4QueryEnumerator", "C4SocketFactory"
             "C4EnumeratorOptions","C4QueryOptions","C4UUID","FLSlice","FLSliceResult","C4FullTextMatch","C4DocPutRequest", "C4DocumentInfo",
             "C4Document", "C4SocketFactory"]
 delegate_types = ["C4DocDeltaApplier"]
-skip_files = ["Fleece+CoreFoundation.h"]
+skip_files = ["Fleece+CoreFoundation.h", "c4DocEnumeratorTypes.h", "c4PeerSyncTypes.h"]
 
 
 def make_property(name, type):

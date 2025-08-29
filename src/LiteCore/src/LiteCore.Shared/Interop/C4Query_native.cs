@@ -1,7 +1,7 @@
 //
 // C4Query_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,26 +28,39 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, string? expression, int* outErrorPos, C4Error* error);
+#else
         public static C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, string? expression, int* outErrorPos, C4Error* error)
         {
-            using(var expression_ = new C4String(expression)) {
+            using var expression_ = new C4String(expression); {
                 return NativeRaw.c4query_new2(database, language, expression_.AsFLSlice(), outErrorPos, error);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceResultMarshaller))]
+        public static partial string? c4query_explain(C4Query* query);
+#else
         public static string? c4query_explain(C4Query* query)
         {
-            using(var retVal = NativeRaw.c4query_explain(query)) {
-                return ((FLSlice)retVal).CreateString();
-            }
+            using var retVal = NativeRaw.c4query_explain(query);
+            return ((FLSlice)retVal).CreateString();
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4query_columnCount(C4Query* query);
@@ -55,19 +68,29 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice c4query_columnTitle(C4Query* query, uint column);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial void c4query_setParameters(C4Query* query, string? encodedParameters);
+#else
         public static void c4query_setParameters(C4Query* query, string? encodedParameters)
         {
-            using(var encodedParameters_ = new C4String(encodedParameters)) {
+            using var encodedParameters_ = new C4String(encodedParameters); {
                 NativeRaw.c4query_setParameters(query, encodedParameters_.AsFLSlice());
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4QueryEnumerator* c4query_run(C4Query* query, string? encodedParameters, C4Error* outError);
+#else
         public static C4QueryEnumerator* c4query_run(C4Query* query, string? encodedParameters, C4Error* outError)
         {
-            using(var encodedParameters_ = new C4String(encodedParameters)) {
+            using var encodedParameters_ = new C4String(encodedParameters); {
                 return NativeRaw.c4query_run(query, encodedParameters_.AsFLSlice(), outError);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -83,7 +106,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, FLSlice expression, int* outErrorPos, C4Error* error);

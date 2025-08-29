@@ -28,7 +28,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Doc;
 
-internal sealed class InMemoryDictionary : IMutableDictionary, IFLEncodable, IFLSlotSetable
+internal sealed class InMemoryDictionary : IMutableDictionary, IFLEncodable, IFLSlotSettable
 {
     private const string Tag = nameof(InMemoryDictionary);
 

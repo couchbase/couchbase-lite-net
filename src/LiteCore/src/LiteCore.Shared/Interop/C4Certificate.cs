@@ -21,191 +21,190 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace LiteCore.Interop
+namespace LiteCore.Interop;
+
+/// <summary>
+/// Completion routine called when an async \ref c4cert_sendSigningRequest finishes.
+/// </summary>
+/// <param name="context">The same `context` value passed to \ref c4cert_sendSigningRequest.</param>
+/// <param name="signedCert">The signed certificate, if the operation was successful, else NULL.</param>
+/// <param name="error">The error, if the operation failed.</param>
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate void C4CertSigningCallback(void* context, C4Cert* signedCert, C4Error error);
+
+/// <summary>
+/// Provides the _public_ key's raw data, as an ASN.1 DER sequence of [modulus, exponent].
+/// </summary>
+/// <param name="externalKey">The client-provided key token given to c4keypair_fromExternal.</param>
+/// <param name="output">Where to copy the key data.</param>
+/// <param name="outputMaxLen">Maximum length of output that can be written.</param>
+/// <param name="outputLen">Store the length of the output here before returning.</param>
+/// <returns>True on success, false on failure.</returns>
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate bool ExternalKeyPublicKeyDataCallback(void* externalKey, void* output, UIntPtr outputMaxLen, UIntPtr* outputLen);
+
+/// <summary>
+/// Decrypts data using the private key.
+/// </summary>
+/// <param name="externalKey">The client-provided key token given to c4keypair_fromExternal.</param>
+/// <param name="input">The encrypted data (size is always equal to the key size.)</param>
+/// <param name="output">Where to write the decrypted data.</param>
+/// <param name="outputMaxLen">Maximum length of output that can be written.</param>
+/// <param name="outputLen">Store the length of the output here before returning.</param>
+/// <returns>True on success, false on failure.</returns>
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate bool ExternalKeyDecryptCallback(void* externalKey, FLSlice input, void* output, UIntPtr outputMaxLen, UIntPtr* outputLen);
+
+/// <summary>
+/// Uses the private key to generate a signature of input data.
+/// </summary>
+/// <param name="externalKey">The client-provided key value given to c4keypair_fromExternal.</param>
+/// <param name="digestAlgorithm">Indicates what type of digest to create the signature from.</param>
+/// <param name="inputData">The data to be signed.</param>
+/// <param name="outSignature">Write the signature here; length must be equal to the key size.</param>
+/// <returns>True on success, false on failure.</returns>
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate bool ExternalKeySignCallback(void* externalKey, C4SignatureDigestAlgorithm digestAlgorithm, FLSlice inputData, void* outSignature);
+
+/// <summary>
+/// Called when the C4KeyPair is released and the externalKey is no longer needed, so that
+/// your code can free any associated resources. (This callback is optionally and may be NULL.)
+/// </summary>
+/// <param name="externalKey">The client-provided key value given when the C4KeyPair was created.</param>
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal unsafe delegate void ExternalKeyFreeCallback(void* externalKey);
+
+[ExcludeFromCodeCoverage]
+internal sealed class CertIssuerParameters
 {
-    /// <summary>
-    /// Completion routine called when an async \ref c4cert_sendSigningRequest finishes.
-    /// </summary>
-    /// <param name="context">The same `context` value passed to \ref c4cert_sendSigningRequest.</param>
-    /// <param name="signedCert">The signed certificate, if the operation was successful, else NULL.</param>
-    /// <param name="error">The error, if the operation failed.</param>
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4CertSigningCallback(void* context, C4Cert* signedCert, C4Error error);
-
-    /// <summary>
-    /// Provides the _public_ key's raw data, as an ASN.1 DER sequence of [modulus, exponent].
-    /// </summary>
-    /// <param name="externalKey">The client-provided key token given to c4keypair_fromExternal.</param>
-    /// <param name="output">Where to copy the key data.</param>
-    /// <param name="outputMaxLen">Maximum length of output that can be written.</param>
-    /// <param name="outputLen">Store the length of the output here before returning.</param>
-    /// <returns>True on success, false on failure.</returns>
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate bool ExternalKeyPublicKeyDataCallback(void* externalKey, void* output, UIntPtr outputMaxLen, UIntPtr* outputLen);
-
-    /// <summary>
-    /// Decrypts data using the private key.
-    /// </summary>
-    /// <param name="externalKey">The client-provided key token given to c4keypair_fromExternal.</param>
-    /// <param name="input">The encrypted data (size is always equal to the key size.)</param>
-    /// <param name="output">Where to write the decrypted data.</param>
-    /// <param name="outputMaxLen">Maximum length of output that can be written.</param>
-    /// <param name="outputLen">Store the length of the output here before returning.</param>
-    /// <returns>True on success, false on failure.</returns>
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate bool ExternalKeyDecryptCallback(void* externalKey, FLSlice input, void* output, UIntPtr outputMaxLen, UIntPtr* outputLen);
-
-    /// <summary>
-    /// Uses the private key to generate a signature of input data.
-    /// </summary>
-    /// <param name="externalKey">The client-provided key value given to c4keypair_fromExternal.</param>
-    /// <param name="digestAlgorithm">Indicates what type of digest to create the signature from.</param>
-    /// <param name="inputData">The data to be signed.</param>
-    /// <param name="outSignature">Write the signature here; length must be equal to the key size.</param>
-    /// <returns>True on success, false on failure.</returns>
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate bool ExternalKeySignCallback(void* externalKey, C4SignatureDigestAlgorithm digestAlgorithm, FLSlice inputData, void* outSignature);
-
-    /// <summary>
-    /// Called when the C4KeyPair is released and the externalKey is no longer needed, so that
-    /// your code can free any associated resources. (This callback is optionaly and may be NULL.)
-    /// </summary>
-    /// <param name="externalKey">The client-provided key value given when the C4KeyPair was created.</param>
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void ExternalKeyFreeCallback(void* externalKey);
-
-    [ExcludeFromCodeCoverage]
-    internal sealed class CertIssuerParameters
-    {
 
         #region Constants
 
-        private const uint OneYearInSec = 31536000;
+    private const uint OneYearInSec = 31536000;
 
         #endregion
 
         #region Variables
 
-        private C4CertIssuerParameters _c4CertIssuerParams;
-        private C4String _serialNumber;
+    private C4CertIssuerParameters _c4CertIssuerParams;
+    private C4String _serialNumber;
 
         #endregion
 
         #region Properties
 
-        public C4CertIssuerParameters C4CertIssuerParams => _c4CertIssuerParams;
+    public C4CertIssuerParameters C4CertIssuerParams => _c4CertIssuerParams;
 
-        /// <summary>
-        /// seconds from signing till expiration (default 1yr)
-        /// </summary>
-        public uint ValidityInSeconds
-        {
-            get => _c4CertIssuerParams.validityInSeconds;
-            set => _c4CertIssuerParams.validityInSeconds = value;
-        }
+    /// <summary>
+    /// seconds from signing till expiration (default 1yr)
+    /// </summary>
+    public uint ValidityInSeconds
+    {
+        get => _c4CertIssuerParams.validityInSeconds;
+        set => _c4CertIssuerParams.validityInSeconds = value;
+    }
 
-        /// <summary>
-        /// serial number string (default "1")
-        /// </summary>
-        public string SerialNumber
-        {
-            get => _c4CertIssuerParams.serialNumber.CreateString() ?? "1";
-            set {
-                _serialNumber.Dispose();
-                _serialNumber = new C4String(value);
-                _c4CertIssuerParams.serialNumber = _serialNumber.AsFLSlice();
-            }
+    /// <summary>
+    /// serial number string (default "1")
+    /// </summary>
+    public string SerialNumber
+    {
+        get => _c4CertIssuerParams.serialNumber.CreateString() ?? "1";
+        set {
+            _serialNumber.Dispose();
+            _serialNumber = new C4String(value);
+            _c4CertIssuerParams.serialNumber = _serialNumber.AsFLSlice();
         }
+    }
 
-        /// <summary>
-        /// maximum CA path length (default -1, meaning none)
-        /// </summary>
-        public int MaxPathLen
-        {
-            get => _c4CertIssuerParams.maxPathLen;
-            set => _c4CertIssuerParams.maxPathLen = value;
-        }
+    /// <summary>
+    /// maximum CA path length (default -1, meaning none)
+    /// </summary>
+    public int MaxPathLen
+    {
+        get => _c4CertIssuerParams.maxPathLen;
+        set => _c4CertIssuerParams.maxPathLen = value;
+    }
 
-        /// <summary>
-        /// will this be a CA certificate? (default false)
-        /// </summary>
-        public bool IsCA
-        {
-            get => _c4CertIssuerParams.isCA;
-            set => _c4CertIssuerParams.isCA = value;
-        }
+    /// <summary>
+    /// will this be a CA certificate? (default false)
+    /// </summary>
+    public bool IsCA
+    {
+        get => _c4CertIssuerParams.isCA;
+        set => _c4CertIssuerParams.isCA = value;
+    }
 
-        /// <summary>
-        /// add authority identifier to cert? (default true)
-        /// </summary>
-        public bool AddAuthorityIdentifier
-        {
-            get => _c4CertIssuerParams.addAuthorityIdentifier;
-            set => _c4CertIssuerParams.addAuthorityIdentifier = value;
-        }
+    /// <summary>
+    /// add authority identifier to cert? (default true)
+    /// </summary>
+    public bool AddAuthorityIdentifier
+    {
+        get => _c4CertIssuerParams.addAuthorityIdentifier;
+        set => _c4CertIssuerParams.addAuthorityIdentifier = value;
+    }
 
-        /// <summary>
-        /// add subject identifier to cert? (default true)
-        /// </summary>
-        public bool AddSubjectIdentifier
-        {
-            get => _c4CertIssuerParams.addSubjectIdentifier;
-            set => _c4CertIssuerParams.addSubjectIdentifier = value;
-        }
+    /// <summary>
+    /// add subject identifier to cert? (default true)
+    /// </summary>
+    public bool AddSubjectIdentifier
+    {
+        get => _c4CertIssuerParams.addSubjectIdentifier;
+        set => _c4CertIssuerParams.addSubjectIdentifier = value;
+    }
 
-        /// <summary>
-        /// add basic constraints extension? (default true)
-        /// </summary>
-        public bool AddBasicConstraints
-        {
-            get => _c4CertIssuerParams.addBasicConstraints;
-            set => _c4CertIssuerParams.addBasicConstraints = value;
-        }
+    /// <summary>
+    /// add basic constraints extension? (default true)
+    /// </summary>
+    public bool AddBasicConstraints
+    {
+        get => _c4CertIssuerParams.addBasicConstraints;
+        set => _c4CertIssuerParams.addBasicConstraints = value;
+    }
 
         #endregion
 
         #region Constructors
 
-        public CertIssuerParameters()
-        {
-            // Default Cert Issuer Parameters
-            _c4CertIssuerParams.validityInSeconds = OneYearInSec;
-            using (var serialNumber_ = new C4String("1")) {
-                _c4CertIssuerParams.serialNumber = serialNumber_.AsFLSlice();
-            }
-
-            _c4CertIssuerParams.maxPathLen = -1;
-            _c4CertIssuerParams.isCA = false;
-            _c4CertIssuerParams.addAuthorityIdentifier = true;
-            _c4CertIssuerParams.addSubjectIdentifier = true;
-            _c4CertIssuerParams.addBasicConstraints = true;
+    public CertIssuerParameters()
+    {
+        // Default Cert Issuer Parameters
+        _c4CertIssuerParams.validityInSeconds = OneYearInSec;
+        using (var serialNumber = new C4String("1")) {
+            _c4CertIssuerParams.serialNumber = serialNumber.AsFLSlice();
         }
 
-        ~CertIssuerParameters()
-        {
-            Dispose(true);
-        }
+        _c4CertIssuerParams.maxPathLen = -1;
+        _c4CertIssuerParams.isCA = false;
+        _c4CertIssuerParams.addAuthorityIdentifier = true;
+        _c4CertIssuerParams.addSubjectIdentifier = true;
+        _c4CertIssuerParams.addBasicConstraints = true;
+    }
+
+    ~CertIssuerParameters()
+    {
+        Dispose(true);
+    }
 
         #endregion
 
         #region Private Methods
 
-        private unsafe void Dispose(bool finalizing)
-        {
-            // This is safe even during the finalizer because it is a struct
-            _serialNumber.Dispose();
-        }
+    private void Dispose(bool _)
+    {
+        // This is safe even during the finalizer because it is a struct
+        _serialNumber.Dispose();
+    }
 
         #endregion
 
         #region IDisposable
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
         #endregion
-    }
 }

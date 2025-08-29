@@ -1,7 +1,7 @@
 //
 // FLMutable_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLSlot_SetNull(FLSlot* x);
@@ -53,12 +57,17 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLSlot_SetDouble(FLSlot* x, double d);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial void FLSlot_SetString(FLSlot* x, string? str);
+#else
         public static void FLSlot_SetString(FLSlot* x, string? str)
         {
-            using(var str_ = new C4String(str)) {
+            using var str_ = new C4String(str); {
                 NativeRaw.FLSlot_SetString(x, (FLSlice)str_.AsFLSlice());
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLSlot_SetValue(FLSlot* x, FLValue* value);
@@ -66,7 +75,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLSlot_SetString(FLSlot* x, FLSlice str);

@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         public static string? c4log_getDomainName(C4LogDomain* x)
         {
@@ -47,12 +51,17 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_enableFatalExceptionBacktrace();
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial void c4slog(C4LogDomain* domain, C4LogLevel level, string? msg);
+#else
         public static void c4slog(C4LogDomain* domain, C4LogLevel level, string? msg)
         {
-            using(var msg_ = new C4String(msg)) {
+            using var msg_ = new C4String(msg); {
                 NativeRaw.c4slog(domain, level, (FLSlice)msg_.AsFLSlice());
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -70,7 +79,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte* c4log_getDomainName(C4LogDomain* x);

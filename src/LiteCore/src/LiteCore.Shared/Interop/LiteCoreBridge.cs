@@ -17,44 +17,25 @@
 //
 using LiteCore.Interop;
 
-namespace LiteCore
+namespace LiteCore;
+
+internal unsafe delegate void C4DocumentActionDelegate(C4Document* doc);
+
+internal unsafe delegate void C4RawDocumentActionDelegate(C4RawDocument* doc);
+
+internal unsafe delegate bool C4RevisionSelector(C4Document* doc);
+
+internal static unsafe class LiteCoreBridge
 {
-    internal unsafe delegate void C4DocumentActionDelegate(C4Document* doc);
+    public static bool Check(C4TryLogicDelegate1 block) => NativeHandler.Create().Execute(block);
 
-    internal unsafe delegate void C4RawDocumentActionDelegate(C4RawDocument* doc);
+    public static void* Check(C4TryLogicDelegate2 block) => NativeHandler.Create().Execute(block);
 
-    internal unsafe delegate bool C4RevisionSelector(C4Document* doc);
+    public static void Check(C4TryLogicDelegate3 block) => NativeHandler.Create().Execute(block);
 
-    internal static unsafe class LiteCoreBridge
-    {
-        public static bool Check(C4TryLogicDelegate1 block)
-        {
-            return NativeHandler.Create().Execute(block);
-        }
+    public static byte[]? Check(C4TryLogicDelegate4 block) => NativeHandler.Create().Execute(block);
 
-        public static void* Check(C4TryLogicDelegate2 block)
-        {
-            return NativeHandler.Create().Execute(block);
-        }
+    public static string? Check(C4TryLogicDelegate5 block) => NativeHandler.Create().Execute(block);
 
-        public static void Check(C4TryLogicDelegate3 block)
-        {
-            NativeHandler.Create().Execute(block);
-        }
-
-        public static byte[]? Check(C4TryLogicDelegate4 block)
-        {
-            return NativeHandler.Create().Execute(block);
-        }
-
-        public static string? Check(C4TryLogicDelegate5 block)
-        {
-            return NativeHandler.Create().Execute(block);
-        }
-
-        public static T? CheckTyped<T>(C4TryLogicDelegate6<T> block) where T : class
-        {
-            return NativeHandler.Create().Execute(block);
-        }
-    }
+    public static T? CheckTyped<T>(C4TryLogicDelegate6<T> block) where T : class => NativeHandler.Create().Execute(block);
 }

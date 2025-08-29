@@ -18,15 +18,10 @@
 
 using System.Runtime.InteropServices;
 
-namespace LiteCore.Interop
+namespace LiteCore.Interop;
+
+internal static class NativePrivate
 {
-    internal static class NativePrivate
-    {
-        #region Public Methods
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4log_warnOnErrors(bool warn);
-
-        #endregion
-    }
+    [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void c4log_warnOnErrors(bool warn);
 }

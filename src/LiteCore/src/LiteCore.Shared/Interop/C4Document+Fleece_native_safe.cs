@@ -21,70 +21,41 @@
 
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
+
 using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Diagnostics.CodeAnalysis;
 
 namespace LiteCore.Interop;
 
-// This class is meant to used all in one scope.  It will hold
+// This class is meant to be used all in one scope.  It will hold
 // the thread safety lock until disposed!  It also doesn't dispose
 // the native object because it is meant to be used on the db shared
 // FLEncoder, which is not meant to be freed.
-internal unsafe sealed class FLEncoderWrapper : IDisposable
+internal sealed unsafe class FLEncoderWrapper(FLEncoder* native, ThreadSafety threadSafety) : IDisposable
 {
-    private readonly IDisposable _scopeExit;
-    private readonly ThreadSafety _threadSafety;
-    private readonly FLEncoder* _encoder;
+    private readonly IDisposable _scopeExit = threadSafety.BeginLockedScope();
     private GCHandle _contextHandle;
 
-    public FLEncoderWrapper(FLEncoder* native, ThreadSafety threadSafety)
-    {
-        _threadSafety = threadSafety;
-        _scopeExit = _threadSafety.BeginLockedScope();
-        _encoder = native;
-    }
+    public void BeginDict(ulong capacity) => Native.FLEncoder_BeginDict(native, capacity);
 
-    public void BeginDict(ulong capacity)
-    {
-        Native.FLEncoder_BeginDict(_encoder, capacity);
-    }
-
-    public void EndDict()
-    {
-        Native.FLEncoder_EndDict(_encoder);
-    }
+    public void EndDict() => Native.FLEncoder_EndDict(native);
 
     public void SetExtraInfo(object extraInfo)
     {
         _contextHandle = GCHandle.Alloc(extraInfo);
-        Native.FLEncoder_SetExtraInfo(_encoder, (void*)GCHandle.ToIntPtr(_contextHandle));
+        Native.FLEncoder_SetExtraInfo(native, (void*)GCHandle.ToIntPtr(_contextHandle));
     }
 
-    public void Encode<T>(T obj)
-    {
-        obj.FLEncode(_encoder);
-    }
+    public void Encode<T>(T obj) => obj.FLEncode(native);
 
     public FLSliceResult Finish()
     {
         FLError error;
-        var body = NativeRaw.FLEncoder_Finish(_encoder, &error);
-        if (body.buf == null) {
-            throw new CouchbaseFleeceException(error);
-        }
-
-        return body;
+        var body = NativeRaw.FLEncoder_Finish(native, &error);
+        return body.buf == null ? throw new CouchbaseFleeceException(error) : body;
     }
 
-    public void Reset()
-    {
-        Native.FLEncoder_Reset(_encoder);
-    }
+    public void Reset() => Native.FLEncoder_Reset(native);
 
     public void Dispose()
     {
@@ -100,33 +71,24 @@ internal static unsafe partial class NativeSafe
 {
     // Database Exclusive Methods
 
-    public static FLDict* c4doc_getProperties(C4DocumentWrapper doc)
-    {
-        return (FLDict *)doc.UseSafe(d => (IntPtr)Native.c4doc_getProperties(d), 
+    public static FLDict* c4doc_getProperties(C4DocumentWrapper doc) =>
+        (FLDict *)doc.UseSafe(d => (IntPtr)Native.c4doc_getProperties(d), 
             C4DocumentWrapper.ThreadSafetyLevel.Database);
-    }
 
-    public static bool c4doc_dictContainsBlobs(C4DatabaseWrapper database, FLDict* dict)
-    {
-        return database.UseSafe(db => Native.c4doc_dictContainsBlobs(dict));
-    }
+    public static bool c4doc_dictContainsBlobs(C4DatabaseWrapper database, FLDict* dict) => 
+        database.UseSafe(_ => Native.c4doc_dictContainsBlobs(dict));
 
-    public static string? c4doc_bodyAsJSON(C4DocumentWrapper doc, bool canonical, C4Error* outError)
-    {
-        return doc.UseSafe(d => Native.c4doc_bodyAsJSON(d, canonical, outError),
+    public static string? c4doc_bodyAsJSON(C4DocumentWrapper doc, bool canonical, C4Error* outError) =>
+        doc.UseSafe(d => Native.c4doc_bodyAsJSON(d, canonical, outError),
             C4DocumentWrapper.ThreadSafetyLevel.Database);
-    }
 
 
     public static FLEncoderWrapper c4db_getSharedFleeceEncoder(C4DatabaseWrapper database)
     {
         var encoder = (FLEncoder*)database.UseSafe(db => (IntPtr)Native.c4db_getSharedFleeceEncoder(db));
-
         return new FLEncoderWrapper(encoder, database.InstanceSafety);
     }
 
-    public static FLSharedKeys* c4db_getFLSharedKeys(C4DatabaseWrapper database)
-    {
-        return (FLSharedKeys*)database.UseSafe(db => (IntPtr)Native.c4db_getFLSharedKeys(db));
-    }
+    public static FLSharedKeys* c4db_getFLSharedKeys(C4DatabaseWrapper database) => 
+        (FLSharedKeys*)database.UseSafe(db => (IntPtr)Native.c4db_getFLSharedKeys(db));
 }

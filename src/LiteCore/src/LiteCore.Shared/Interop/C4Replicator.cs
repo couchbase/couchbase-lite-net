@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-using LiteCore.Interop;
 using LiteCore.Util;
 
 namespace LiteCore.Interop
@@ -63,8 +62,6 @@ namespace LiteCore.Interop
     [ExcludeFromCodeCoverage]
     internal sealed class ReplicatorParameters : IDisposable
     {
-        #region Variables
-
         private C4ReplicatorParameters _c4Params;
         private C4SocketFactory _factoryKeepAlive;
         private bool _hasFactory;
@@ -73,10 +70,6 @@ namespace LiteCore.Interop
         private ReplicationCollection[]? _replicationCollections;
         private C4ReplicationCollection[]? _rawReplicationCollectionHandles;
         private GCHandle _replicationCollectionsHandle;
-
-        #endregion
-
-        #region Properties
 
         public C4ReplicatorParameters C4Params => _c4Params;
 
@@ -139,25 +132,15 @@ namespace LiteCore.Interop
             set => _replicationCollections = value;
         }
 
-        #endregion
-
-        #region Constructors
-
         public ReplicatorParameters(IDictionary<string, object?> options)
         {
-            if (options != null) {
-                _c4Params.optionsDictFleece = (FLSlice) options.FLEncode();
-            }
+            _c4Params.optionsDictFleece = (FLSlice) options.FLEncode();
         }
 
         ~ReplicatorParameters()
         {
             Dispose(true);
         }
-
-        #endregion
-
-        #region Public Methods
 
         public interface IReplicatorParametersToken : IDisposable { }
 
@@ -181,10 +164,6 @@ namespace LiteCore.Interop
         {
             return new ReplicatorParametersToken(this);
         }
-
-        #endregion
-
-        #region Private Methods
 
         private unsafe void Lock()
         {
@@ -215,9 +194,7 @@ namespace LiteCore.Interop
         {
             if(finalizing && ReplicationCollections != null) {
                 foreach (var col in ReplicationCollections) {
-                    if (col != null) {
-                        col.Dispose();
-                    }
+                    col.Dispose();
                 }
 
                 ReplicationCollections = null;
@@ -229,32 +206,20 @@ namespace LiteCore.Interop
             }
         }
 
-        #endregion
-
-        #region IDisposable
-
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
-        #endregion
     }
 
     [ExcludeFromCodeCoverage]
     internal sealed class ReplicationCollection : IDisposable
     {
-        #region Variables
-
         private C4ReplicationCollection _c4ReplicationCol;
         private C4ReplicatorValidationFunction? _pushFilter;
         private C4ReplicatorValidationFunction? _validation;
         private CollectionSpec? _spec;
-
-        #endregion
-
-        #region Properties
 
         public C4ReplicationCollection C4ReplicationCol => _c4ReplicationCol;
 
@@ -312,15 +277,9 @@ namespace LiteCore.Interop
             }
         }
 
-        #endregion
-
-        #region Constructors
-
         public ReplicationCollection(IDictionary<string, object?> options)
         {
-            if (options != null) {
-                _c4ReplicationCol.optionsDictFleece = (FLSlice)options.FLEncode();
-            }
+            _c4ReplicationCol.optionsDictFleece = (FLSlice)options.FLEncode();
         }
 
         ~ReplicationCollection()
@@ -328,11 +287,7 @@ namespace LiteCore.Interop
             Dispose(true);
         }
 
-        #endregion
-
-        #region Private Methods
-
-        private unsafe void Dispose(bool finalizing)
+        private void Dispose(bool finalizing)
         {
             if(finalizing) {
                 _spec?.Dispose();
@@ -342,30 +297,20 @@ namespace LiteCore.Interop
             Native.FLSliceResult_Release((FLSliceResult)_c4ReplicationCol.optionsDictFleece);
         }
 
-        #endregion
-
-        #region IDisposable
-
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
-        #endregion
     }
 
     internal static unsafe partial class Native
     {
-        #region Public Methods
-
         public static C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, string? remoteDatabaseName, C4ReplicatorParameters @params, string? logPrefix, C4Error* err)
         {
-            using var remoteDatabaseName_ = new C4String(remoteDatabaseName);
-            using var logPrefix_ = new C4String(logPrefix);
-            return c4repl_new(db, remoteAddress, remoteDatabaseName_.AsFLSlice(), @params, logPrefix_.AsFLSlice(), err);
+            using var c4RemoteDatabaseName = new C4String(remoteDatabaseName);
+            using var c4LogPrefix = new C4String(logPrefix);
+            return c4repl_new(db, remoteAddress, c4RemoteDatabaseName.AsFLSlice(), @params, c4LogPrefix.AsFLSlice(), err);
         }
-
-        #endregion
     }
 }

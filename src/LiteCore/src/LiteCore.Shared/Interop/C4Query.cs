@@ -21,58 +21,40 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace LiteCore.Interop
+namespace LiteCore.Interop;
+
+[ExcludeFromCodeCoverage]
+internal partial struct C4IndexOptions : IDisposable
 {
-
-    [ExcludeFromCodeCoverage]
-    internal partial struct C4IndexOptions : IDisposable
+    public void Dispose()
     {
-        public void Dispose()
-        {
-            var old = Interlocked.Exchange(ref _language, IntPtr.Zero);
-            if(old != IntPtr.Zero) {
-                Marshal.FreeHGlobal(old);
-            }
-
-            old = Interlocked.Exchange(ref _stopWords, IntPtr.Zero);
-            if(old != IntPtr.Zero) {
-                Marshal.FreeHGlobal(old);
-            }
-
-            old = Interlocked.Exchange(ref _unnestPath, IntPtr.Zero);
-            if (old != IntPtr.Zero) {
-                Marshal.FreeHGlobal(old);
-            }
-
-            old = Interlocked.Exchange(ref _where, IntPtr.Zero);
-            if (old != IntPtr.Zero) {
-                Marshal.FreeHGlobal(old);
-            }
+        var old = Interlocked.Exchange(ref _language, IntPtr.Zero);
+        if(old != IntPtr.Zero) {
+            Marshal.FreeHGlobal(old);
         }
-    }
 
-    [ExcludeFromCodeCoverage]
-    internal partial struct C4QueryOptions
-    {
-        public static readonly C4QueryOptions Default = new C4QueryOptions
-        {
-            rankFullText_DEPRECATED = true
-        };
-    }
+        old = Interlocked.Exchange(ref _stopWords, IntPtr.Zero);
+        if(old != IntPtr.Zero) {
+            Marshal.FreeHGlobal(old);
+        }
 
-    [ExcludeFromCodeCoverage]
-    internal partial struct C4FullTextMatch
-    {
-        public C4FullTextMatch(ulong dataSource, uint property, uint term,
-            uint start, uint length)
-        {
-            this.dataSource = dataSource;
-            this.property = property;
-            this.term = term;
-            this.start = start;
-            this.length = length;
+        old = Interlocked.Exchange(ref _unnestPath, IntPtr.Zero);
+        if (old != IntPtr.Zero) {
+            Marshal.FreeHGlobal(old);
+        }
+
+        old = Interlocked.Exchange(ref _where, IntPtr.Zero);
+        if (old != IntPtr.Zero) {
+            Marshal.FreeHGlobal(old);
         }
     }
 }
 
-
+[ExcludeFromCodeCoverage]
+internal partial struct C4QueryOptions
+{
+    public static readonly C4QueryOptions Default = new C4QueryOptions
+    {
+        rankFullText_DEPRECATED = true
+    };
+}

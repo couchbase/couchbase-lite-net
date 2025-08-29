@@ -40,7 +40,7 @@ public static class LogSinks
     private static LogLevel PreviousOverallLogLevel = LogLevel.Warning;
     private static LogLevel PreviousPlatformSideLogLevel = LogLevel.Warning;
 
-    private static readonly Dictionary<LogDomain, IntPtr> DomainObjects = new();
+    internal static readonly Dictionary<LogDomain, IntPtr> DomainObjects = new();
 
     static LogSinks()
     {

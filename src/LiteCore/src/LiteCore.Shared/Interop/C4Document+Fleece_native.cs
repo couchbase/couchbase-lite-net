@@ -1,7 +1,7 @@
 //
 // C4Document+Fleece_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,16 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLDict* c4doc_getProperties(C4Document* x);
@@ -42,12 +46,16 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_dictContainsBlobs(FLDict* dict);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceResultMarshaller))]
+        public static partial string? c4doc_bodyAsJSON(C4Document* doc, [MarshalAs(UnmanagedType.U1)] bool canonical, C4Error* outError);
+#else
         public static string? c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError)
         {
-            using(var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError)) {
-                return ((FLSlice)retVal).CreateString();
-            }
+            using var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError);
+            return ((FLSlice)retVal).CreateString();
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLEncoder* c4db_getSharedFleeceEncoder(C4Database* db);
@@ -58,7 +66,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4doc_bodyAsJSON(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool canonical, C4Error* outError);

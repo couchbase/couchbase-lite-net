@@ -1,7 +1,7 @@
 //
 // C4BlobStore_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,26 +28,40 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4blob_keyFromString(string? str, C4BlobKey* x);
+#else
         public static bool c4blob_keyFromString(string? str, C4BlobKey* x)
         {
-            using(var str_ = new C4String(str)) {
+            using var str_ = new C4String(str); {
                 return NativeRaw.c4blob_keyFromString(str_.AsFLSlice(), x);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceResultMarshaller))]
+        public static partial string? c4blob_keyToString(C4BlobKey key);
+#else
         public static string? c4blob_keyToString(C4BlobKey key)
         {
-            using(var retVal = NativeRaw.c4blob_keyToString(key)) {
-                return ((FLSlice)retVal).CreateString();
-            }
+            using var retVal = NativeRaw.c4blob_keyToString(key);
+            return ((FLSlice)retVal).CreateString();
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4BlobStore* c4db_getBlobStore(C4Database* db, C4Error* outError);
@@ -55,19 +69,21 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern long c4blob_getSize(C4BlobStore* store, C4BlobKey key);
 
-        public static byte[]? c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError)
-        {
-            using(var retVal = NativeRaw.c4blob_getContents(store, key, outError)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4blob_create(C4BlobStore* store, [MarshalUsing(typeof(FLSliceMarshaller))] byte[]? contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error);
+#else
         public static bool c4blob_create(C4BlobStore* store, byte[]? contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error)
         {
             fixed(byte *contents_ = contents) {
                 return NativeRaw.c4blob_create(store, new FLSlice(contents_, contents == null ? 0 : (ulong)contents.Length), expectedKey, outKey, error);
             }
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4ReadStream* c4blob_openReadStream(C4BlobStore* store, C4BlobKey key, C4Error* outError);
@@ -104,7 +120,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -112,9 +128,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4blob_keyToString(C4BlobKey key);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

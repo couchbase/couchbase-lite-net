@@ -1,7 +1,7 @@
 //
 // C4Index_native.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,68 +28,107 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices.Marshalling;
+#endif
+
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
 
-    internal unsafe static partial class Native
+    internal static unsafe partial class Native
     {
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4coll_createIndex(C4Collection* collection, string? name, string? indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
+#else
         public static bool c4coll_createIndex(C4Collection* collection, string? name, string? indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
         {
-            using(var name_ = new C4String(name))
-            using(var indexSpec_ = new C4String(indexSpec)) {
+            using var name_ = new C4String(name);
+            using var indexSpec_ = new C4String(indexSpec); {
                 return NativeRaw.c4coll_createIndex(collection, name_.AsFLSlice(), indexSpec_.AsFLSlice(), queryLanguage, indexType, indexOptions, outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial C4Index* c4coll_getIndex(C4Collection* collection, string? name, C4Error* outError);
+#else
         public static C4Index* c4coll_getIndex(C4Collection* collection, string? name, C4Error* outError)
         {
-            using(var name_ = new C4String(name)) {
+            using var name_ = new C4String(name); {
                 return NativeRaw.c4coll_getIndex(collection, name_.AsFLSlice(), outError);
             }
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4coll_deleteIndex(C4Collection* collection, string? name, C4Error* outError);
+#else
         public static bool c4coll_deleteIndex(C4Collection* collection, string? name, C4Error* outError)
         {
-            using(var name_ = new C4String(name)) {
+            using var name_ = new C4String(name); {
                 return NativeRaw.c4coll_deleteIndex(collection, name_.AsFLSlice(), outError);
             }
         }
+#endif
 
-        public static byte[]? c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError)
-        {
-            using(var retVal = NativeRaw.c4coll_getIndexesInfo(collection, outError)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4index_isTrained(C4Index* x, C4Error* outError);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial C4IndexUpdater* c4index_beginUpdate(C4Index* index, ulong limit, C4Error* outError);
+#else
         public static C4IndexUpdater* c4index_beginUpdate(C4Index* index, ulong limit, C4Error* outError)
         {
             return NativeRaw.c4index_beginUpdate(index, (UIntPtr)limit, outError);
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern UIntPtr c4indexupdater_count(C4IndexUpdater* updater);
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        public static partial FLValue* c4indexupdater_valueAt(C4IndexUpdater* updater, ulong i);
+#else
         public static FLValue* c4indexupdater_valueAt(C4IndexUpdater* updater, ulong i)
         {
             return NativeRaw.c4indexupdater_valueAt(updater, (UIntPtr)i);
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4indexupdater_setVectorAt(C4IndexUpdater* updater, ulong i, float* vector, ulong dimension, C4Error* outError);
+#else
         public static bool c4indexupdater_setVectorAt(C4IndexUpdater* updater, ulong i, float* vector, ulong dimension, C4Error* outError)
         {
             return NativeRaw.c4indexupdater_setVectorAt(updater, (UIntPtr)i, vector, (UIntPtr)dimension, outError);
         }
+#endif
 
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static partial bool c4indexupdater_skipVectorAt(C4IndexUpdater* updater, ulong i);
+#else
         public static bool c4indexupdater_skipVectorAt(C4IndexUpdater* updater, ulong i)
         {
             return NativeRaw.c4indexupdater_skipVectorAt(updater, (UIntPtr)i);
         }
+#endif
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -98,7 +137,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal unsafe static partial class NativeRaw
+    internal static unsafe partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -110,9 +149,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4coll_deleteIndex(C4Collection* collection, FLSlice name, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4IndexUpdater* c4index_beginUpdate(C4Index* index, UIntPtr limit, C4Error* outError);
