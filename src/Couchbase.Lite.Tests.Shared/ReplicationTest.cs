@@ -255,7 +255,7 @@ namespace Test
         {
             var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             var config = CreateConfig(collectionConfigs, true, false, false);
-            var nextConfig = new ReplicatorConfiguration(config)
+            var nextConfig = config with
             {
                 Heartbeat = null
             };
@@ -264,10 +264,10 @@ namespace Test
                 repl.Config.Heartbeat.ShouldBe(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
-            var badAction = (() => { _ = new ReplicatorConfiguration(config) { Heartbeat = TimeSpan.Zero }; });
+            var badAction = (() => { _ = config with { Heartbeat = TimeSpan.Zero }; });
             Should.Throw<ArgumentException>(badAction, "Assigning Heartbeat to an invalid value (<= 0).");
 
-            badAction = (() => { _ = new ReplicatorConfiguration(config) { Heartbeat = TimeSpan.FromMilliseconds(800) }; });
+            badAction = (() => { _ = config with { Heartbeat = TimeSpan.FromMilliseconds(800) }; });
             Should.Throw<ArgumentException>(badAction, "Assigning Heartbeat to an invalid value.");
         }
 
@@ -276,7 +276,7 @@ namespace Test
         {
             var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
             var config = CreateConfig(collectionConfigs, true, false, false);
-            var nextConfig = new ReplicatorConfiguration(config)
+            var nextConfig = config with
             {
                 MaxAttemptsWaitTime = TimeSpan.FromSeconds(60)
             };
@@ -285,7 +285,7 @@ namespace Test
                 repl.Config.MaxAttemptsWaitTime.ShouldBe(TimeSpan.FromSeconds(60));
             }
             
-            nextConfig = new ReplicatorConfiguration(config)
+            nextConfig = config with
             {
                 MaxAttemptsWaitTime = null
             };
@@ -294,10 +294,10 @@ namespace Test
                 repl.Config.MaxAttemptsWaitTime.ShouldBe(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
-            var badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttemptsWaitTime = TimeSpan.Zero });
+            var badAction = (() => _ = config with { MaxAttemptsWaitTime = TimeSpan.Zero });
             Should.Throw<ArgumentException>(badAction, "Assigning Max Retry Wait Time to an invalid value (<= 0).");
 
-            badAction = (() => _ = new ReplicatorConfiguration(config) { MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800) });
+            badAction = (() => _ = config with { MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800) });
             Should.Throw<ArgumentException>(badAction, "Assigning Max Retry Wait Time to an invalid value");
         }
 
@@ -319,7 +319,7 @@ namespace Test
                 repl.Config.MaxAttempts.ShouldBe(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
 
-            var nextConfig = new ReplicatorConfiguration(config) { MaxAttempts = 0 };
+            var nextConfig = config with { MaxAttempts = 0 };
             using (var repl = new Replicator(nextConfig)) {
                 repl.Config.MaxAttempts.ShouldBe(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
             }
@@ -332,7 +332,7 @@ namespace Test
             }
 
             void BadAction() =>
-                _ = new ReplicatorConfiguration(config)
+                _ = config with
                 {
                     MaxAttempts = -1
                 };

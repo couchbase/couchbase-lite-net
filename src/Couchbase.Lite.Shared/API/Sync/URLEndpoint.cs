@@ -60,8 +60,8 @@ public sealed class URLEndpoint : IEndpointInternal
     /// <inheritdoc />
     public override string ToString() => Url.ToString();
 
-    void IEndpointInternal.Visit(ReplicatorConfiguration config)
+    void IEndpointInternal.Visit(ReplicatorConfiguration.MutableState state)
     {
-        config.RemoteUrl = Url;
+        state.RemoteUrl = Url;
     }
 }

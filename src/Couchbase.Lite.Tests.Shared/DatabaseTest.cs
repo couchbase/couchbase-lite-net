@@ -1272,7 +1272,12 @@ namespace Test
             // Basically '-' is the minus sign in N1QL expression. So needs to escape the expression string.
             // But I just couldn't get it to work...
             // var index3 = new FullTextIndexConfiguration(new string[]{ "es"+@"\-"+"detail" }, true, "es");
-            var index3 = new FullTextIndexConfiguration(["es_detail"], true, "es");
+            var index3 = new FullTextIndexConfiguration("es_detail")
+            {
+                IgnoreAccents = true,
+                Language = "es"
+            };
+            
             DefaultCollection.CreateIndex("index3", index3);
 
             DefaultCollection.GetIndexes().ShouldBeEquivalentToFluent(new[] { "index1", "index2", "index3" });

@@ -45,6 +45,7 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Fleece;
 using Dispatch;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -62,17 +63,13 @@ namespace Test
     // NOTE: This tests classes specific to CSharp binding to LiteCore, it does not
     // need to be ported as is.  They exist to get coverage without making the other
     // tests too off track.
-    public sealed class CSharpTest : TestCase
+    public sealed class CSharpTest(ITestOutputHelper output) : TestCase(output)
     {
 #if EXTRA_LONG_WRAPPER_TEST
         private static readonly TimeSpan WrapperThreadBlockTime = TimeSpan.FromSeconds(2);
 #else
         private static readonly TimeSpan WrapperThreadBlockTime = TimeSpan.FromMilliseconds(500);
 #endif
-
-        public CSharpTest(ITestOutputHelper output) : base(output)
-        {
-        }
 
 #if COUCHBASE_ENTERPRISE
         [Fact]
@@ -201,55 +198,56 @@ namespace Test
 
             try {
                 var context = new DocContext(Db, null);
-                using (var mRoot = new MRoot(context)) {
-                    mRoot.Context.ShouldBeSameAs(context);
-                    Db.C4db.ShouldNotBeNull();
-                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
-                        FLTrust.Trusted,
-                        NativeSafe.c4db_getFLSharedKeys(Db.C4db), FLSlice.Null);
-                    var flValue = Native.FLDoc_GetRoot(fleeceDoc);
-                    var mDict = new MDict(new MValue(flValue), mRoot);
-                    var deserializedDict = new DictionaryObject(mDict, false);
+                using var mRoot = new MRoot(context);
+                mRoot.Context.ShouldBeSameAs(context);
+                Db.C4db.ShouldNotBeNull();
+                var fleeceDoc = Native.FLDoc_FromResultData(flData,
+                    FLTrust.Trusted,
+                    NativeSafe.c4db_getFLSharedKeys(Db.C4db), FLSlice.Null);
+                var flValue = Native.FLDoc_GetRoot(fleeceDoc);
+                var mDict = new MDict(new MValue(flValue), mRoot);
+                var deserializedDict = new DictionaryObject(mDict, false);
 
-                    deserializedDict["bogus"].Blob.ShouldBeNull();
-                    deserializedDict["date"].Date.ShouldBe(now);
-                    deserializedDict.GetDate("bogus").ShouldBe(DateTimeOffset.MinValue);
-                    deserializedDict.GetArray("array").ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
-                    deserializedDict.GetArray("bogus").ShouldBeNull();
-                    deserializedDict.GetDictionary("dict").ShouldBeEquivalentToFluent(nestedDict);
-                    deserializedDict.GetDictionary("bogus").ShouldBeNull();
+                deserializedDict["bogus"].Blob.ShouldBeNull();
+                deserializedDict["date"].Date.ShouldBe(now);
+                deserializedDict.GetDate("bogus").ShouldBe(DateTimeOffset.MinValue);
+                deserializedDict.GetArray("array").ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                deserializedDict.GetArray("bogus").ShouldBeNull();
+                deserializedDict.GetDictionary("dict").ShouldBeEquivalentToFluent(nestedDict);
+                deserializedDict.GetDictionary("bogus").ShouldBeNull();
 
-                    var dict = deserializedDict.ToDictionary();
-                    (dict["array"] as IEnumerable<object?>).ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
-                    (dict["dict"] as IDictionary<string, object>).ShouldBeEquivalentToFluent(nestedDict);
-                    var isContain = mDict.Contains("");
-                    isContain.ShouldBeFalse();
-                    Native.FLDoc_Release(fleeceDoc);
-                }
+                var dict = deserializedDict.ToDictionary();
+                (dict["array"] as IEnumerable<object?>).ShouldBeEquivalentToFluent(new[] { 1L, 2L, 3L });
+                (dict["dict"] as IDictionary<string, object>).ShouldBeEquivalentToFluent(nestedDict);
+                var isContain = mDict.Contains("");
+                isContain.ShouldBeFalse();
+                Native.FLDoc_Release(fleeceDoc);
             } finally {
                 Native.FLSliceResult_Release(flData);
             }
         }
 
         [Fact]
+        [SuppressMessage("ReSharper", "StringLiteralTypo")]
         public void TestHttpMessageParser()
         {
-            var httpResponse =
-                @"HTTP/1.1 200 OK
-X-XSS-Protection: 1; mode=block
-X-Frame-Options: SAMEORIGIN
-Cache-Control: private, max-age=0
-Content-Type: text/html; charset=UTF-8
-Date: Fri, 13 Oct 2017 05:54:52 GMT
-Expires: -1
-P3P: CP=""This is not a P3P policy! See g.co/p3phelp for more info.""
-Set-Cookie: 1P_JAR=2017-10-13-05; expires=Fri, 20-Oct-2017 05:54:52 GMT; path=/; domain=.google.co.jp,NID=114=Vzr79B7ISI0vlP54dhHQ1lyoyqxePhvy_k3w2ofp1oce73oG3m9ltBiUgdQNj4tSMkp-oWtzmhUi3rf314Fcrjy6J2DxtyEdA_suJlgfdN9973V2HO32OG9D3svImEJf; expires=Sat, 14-Apr-2018 05:54:52 GMT; path=/; domain=.google.co.jp; HttpOnly
-Server: gws
-Accept-Ranges: none
-Vary: Accept-Encoding
-Transfer-Encoding: chunked";
+            const string HTTPResponse = """
+                                        HTTP/1.1 200 OK
+                                        X-XSS-Protection: 1; mode=block
+                                        X-Frame-Options: SAMEORIGIN
+                                        Cache-Control: private, max-age=0
+                                        Content-Type: text/html; charset=UTF-8
+                                        Date: Fri, 13 Oct 2017 05:54:52 GMT
+                                        Expires: -1
+                                        P3P: CP="This is not a P3P policy! See g.co/p3phelp for more info."
+                                        Set-Cookie: 1P_JAR=2017-10-13-05; expires=Fri, 20-Oct-2017 05:54:52 GMT; path=/; domain=.google.co.jp,NID=114=Vzr79B7ISI0vlP54dhHQ1lyoyqxePhvy_k3w2ofp1oce73oG3m9ltBiUgdQNj4tSMkp-oWtzmhUi3rf314Fcrjy6J2DxtyEdA_suJlgfdN9973V2HO32OG9D3svImEJf; expires=Sat, 14-Apr-2018 05:54:52 GMT; path=/; domain=.google.co.jp; HttpOnly
+                                        Server: gws
+                                        Accept-Ranges: none
+                                        Vary: Accept-Encoding
+                                        Transfer-Encoding: chunked
+                                        """;
 
-            var parser = new HttpMessageParser(Encoding.ASCII.GetBytes(httpResponse));
+            var parser = new HttpMessageParser(Encoding.ASCII.GetBytes(HTTPResponse));
             parser.Append("foo: bar");
             parser.StatusCode.ShouldBe(HttpStatusCode.OK);
             parser.Reason.ShouldBe("OK");
@@ -286,11 +284,10 @@ Transfer-Encoding: chunked";
 
             ReadFileByLines("C/tests/data/iTunesMusicLibrary.json", line =>
             {
-                using (var reader = new JsonTextReader(new StringReader(line))) {
-                    var gotten = s.Deserialize<Dictionary<string, object?>>(reader);
-                    gotten.ShouldNotBeNull("because otherwise the JSON on disk was corrupt");
-                    masterList.Add(gotten!);
-                }
+                using var reader = new JsonTextReader(new StringReader(line));
+                var gotten = s.Deserialize<Dictionary<string, object?>>(reader);
+                gotten.ShouldNotBeNull("because otherwise the JSON on disk was corrupt");
+                masterList.Add(gotten!);
 
                 return true;
             });
@@ -298,12 +295,11 @@ Transfer-Encoding: chunked";
             var retrieved = default(List<Dictionary<string, object?>>);
             Db.InBatch(() =>
             {
-                using (var flData = masterList.FLEncode()) {
-                    retrieved =
-                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Db,
-                                true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
-                            List<Dictionary<string, object?>>;
-                }
+                using var flData = masterList.FLEncode();
+                retrieved =
+                    FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Db,
+                            true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
+                        List<Dictionary<string, object?>>;
             });
 
             var i = 0;
@@ -363,10 +359,10 @@ Transfer-Encoding: chunked";
             logic.Credential = new NetworkCredential("user", "password");
             logic.Credential.UserName.ShouldBe("user");
             logic.Credential.Password.ShouldBe("password");
-            logic.Credential.UserName = "newuser";
-            logic.Credential.Password = "newpassword";
-            logic.Credential.UserName.ShouldBe("newuser");
-            logic.Credential.Password.ShouldBe("newpassword");
+            logic.Credential.UserName = "newUser";
+            logic.Credential.Password = "newPassword";
+            logic.Credential.UserName.ShouldBe("newUser");
+            logic.Credential.Password.ShouldBe("newPassword");
             _ = logic.ProxyRequest();
             logic.HasProxy = false;
         }
@@ -530,7 +526,7 @@ Transfer-Encoding: chunked";
 #endif
 
         [Fact]
-        public void TestAutoconvertJson()
+        public void TestAutoConvertJson()
         {
             var jVal = new JValue("test");
             var jArray = new JArray(jVal);
@@ -540,8 +536,8 @@ Transfer-Encoding: chunked";
             (DataOps.ToCouchbaseObject(jArray) as MutableArrayObject)?[0].String.ShouldBe("test");
             (DataOps.ToCouchbaseObject(jObj) as MutableDictionaryObject)?["test"].String.ShouldBe("test");
 
-            var jsonString = "{\"level1\":{\"foo\":\"bar\"},\"level2\":{\"list\":[1, 3.14, \"s\"]}, \"$type\":\"JSON .NET Object\"}";
-            var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(jsonString);
+            const string JSONString = """{"level1":{"foo":"bar"},"level2":{"list":[1, 3.14, "s"]}, "$type":"JSON .NET Object"}""";
+            var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(JSONString);
             var converted = DataOps.ToCouchbaseObject(json) as MutableDictionaryObject;
             converted.ShouldNotBeNull();
 
@@ -649,9 +645,9 @@ Transfer-Encoding: chunked";
             void TestC4QueryWrapperInternal(C4QueryWrapper.ThreadSafetyLevel safetyLevel, bool blocking)
             {
                 // This is a bit awkward to test, but my assertion is as follows.  If
-                // I block inside of a callback to UseSafe then that keeps the relevant
+                // I block inside a callback to UseSafe then that keeps the relevant
                 // thread safety locked, so then if I lock on it subsequently the logic
-                // inside the follow up should not run until the former is done blocking.
+                // inside the follow-up should not run until the former is done blocking.
                 // DatabaseThreadSafety is not meant to be used externally like this, but
                 // it's public so that I can pass it to other objects that need it in the
                 // NativeSafe API.  I just take advantage of the fact that it is public.
@@ -819,26 +815,18 @@ Transfer-Encoding: chunked";
             var configs = CollectionConfiguration.FromCollections(DefaultCollection, Db.CreateCollection("second"));
             var replicationConfig1 = new ReplicatorConfiguration(configs, new URLEndpoint(new Uri("ws://fake")));
             configs.Add(new CollectionConfiguration { Collection = Db.CreateCollection("third") });
-            replicationConfig1.Collections.Count.ShouldBe(2, "because it has a copy of the config list");
-
-            var replicationConfig2 = new ReplicatorConfiguration(replicationConfig1);
- #pragma warning disable CS0618 // Type or member is obsolete
-            replicationConfig1.AddCollection(Db.GetCollection("third")!);
- #pragma warning restore CS0618 // Type or member is obsolete
-            replicationConfig1.Collections.Count.ShouldBe(3, "because it had a collection added");
-            replicationConfig2.Collections.Count.ShouldBe(2, "because it is a copy of the original config");
+            replicationConfig1.CollectionConfigurations.Count.ShouldBe(2, "because it has a copy of the config list");
         }
 
         private unsafe void TestRoundTrip<T>(T item)
         {
-            using (var encoded = item.FLEncode()) {
-                var flValue = NativeRaw.FLValue_FromData((FLSlice) encoded, FLTrust.Trusted);
-                ((IntPtr) flValue).ShouldNotBe(IntPtr.Zero);
-                if (item is IEnumerable enumerable && item is not string) {
-                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)!).ShouldBeEquivalentToFluent(enumerable);
-                } else {
-                    Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).ShouldBe(item);
-                }
+            using var encoded = item.FLEncode();
+            var flValue = NativeRaw.FLValue_FromData((FLSlice) encoded, FLTrust.Trusted);
+            ((IntPtr) flValue).ShouldNotBe(IntPtr.Zero);
+            if (item is IEnumerable enumerable && item is not string) {
+                ((IEnumerable) FLSliceExtensions.ToObject(flValue)!).ShouldBeEquivalentToFluent(enumerable);
+            } else {
+                Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).ShouldBe(item);
             }
         }
     }

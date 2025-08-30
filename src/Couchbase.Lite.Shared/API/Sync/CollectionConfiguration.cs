@@ -80,12 +80,6 @@ public sealed record CollectionConfiguration
         get => Options.DocIDs;
         init => Options.DocIDs = value?.Any() == true ? value : null;
     }
-        
-    /// <summary>
-    /// A value indicating the direction of the replication.  The default is
-    /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
-    /// </summary>
-    internal ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
 
     internal ReplicatorOptionsDictionary Options { get; } = new();
     
