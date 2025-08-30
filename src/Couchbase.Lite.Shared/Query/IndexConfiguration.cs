@@ -18,6 +18,7 @@
 
 using LiteCore.Interop;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Internal.Query;
 
@@ -30,12 +31,13 @@ public abstract record IndexConfiguration
     /// <summary>
     /// Gets the expressions to use to create the index
     /// </summary>
-    public string[]? Expressions { get; }
+    public required string[]? Expressions { get; init; }
 
     internal C4IndexType IndexType { get; }
 
     internal abstract C4IndexOptions Options { get; }
 
+    [SetsRequiredMembers]
     internal IndexConfiguration(C4IndexType indexType, string[]? expressions)
     {
         if(indexType == C4IndexType.ArrayIndex && expressions is [""])
@@ -59,9 +61,5 @@ public abstract record IndexConfiguration
 
     }
 
-    internal string ToSqlpp()
-    {
-        return Expressions == null ? "" : String.Join(",", Expressions);
-
-    }
+    internal string ToSqlpp() => Expressions == null ? "" : String.Join(",", Expressions);
 }

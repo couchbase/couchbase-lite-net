@@ -49,7 +49,10 @@ public class PartialIndexTest(ITestOutputHelper output) : TestCase(output)
     public void TestCreatePartialValueIndex()
     {
         // Step 1
-        var indexConfig = new ValueIndexConfiguration(["num"], "type = 'number'");
+        var indexConfig = new ValueIndexConfiguration("num")
+        {
+            Where = "type = 'number'"
+        };
         DefaultCollection.CreateIndex("numIndex", indexConfig);
 
         // Step 2
@@ -99,7 +102,10 @@ public class PartialIndexTest(ITestOutputHelper output) : TestCase(output)
         DefaultCollection.Save(doc2);
 
         // Step 2
-        var indexConfig = new FullTextIndexConfiguration(["content"], "length(content) > 30");
+        var indexConfig = new FullTextIndexConfiguration("content")
+        {
+            Where = "length(content) > 30"
+        };
         DefaultCollection.CreateIndex("contentIndex", indexConfig);
 
         // Step 3

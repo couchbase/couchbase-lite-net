@@ -32,11 +32,13 @@ using Couchbase.Lite.Sync;
 
 using Shouldly;
 
-using System.Runtime.InteropServices;
-
 using Xunit;
 using Xunit.Abstractions;
 using System.Diagnostics.CodeAnalysis;
+
+#if NET6_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 
 namespace Test
 {
@@ -232,27 +234,27 @@ namespace Test
             var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint);
 
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
-            const string pw = "123";
-            const string wrongPw = "456";
+            const string Pw = "123";
+            const string WrongPw = "456";
             SecureString? pwSecureString;
             SecureString? wrongPwSecureString;
             unsafe {
-                fixed (char* nativePw = pw)
-                fixed (char* nativeWrongPw = wrongPw) {
-                    pwSecureString = new SecureString(nativePw, pw.Length);
-                    wrongPwSecureString = new SecureString(nativeWrongPw, wrongPw.Length);
+                fixed (char* nativePw = Pw)
+                fixed (char* nativeWrongPw = WrongPw) {
+                    pwSecureString = new SecureString(nativePw, Pw.Length);
+                    wrongPwSecureString = new SecureString(nativeWrongPw, WrongPw.Length);
                 }
             }
 
             // Replicator - Wrong Credentials
-            var nextConfig = new ReplicatorConfiguration(config)
+            var nextConfig = config with
             {
                 Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString)
             };
             RunReplication(nextConfig, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
             // Replicator - Success
-            nextConfig = new ReplicatorConfiguration(config)
+            nextConfig = config with
             {
                 Authenticator = new BasicAuthenticator("daniel", pwSecureString)
             };

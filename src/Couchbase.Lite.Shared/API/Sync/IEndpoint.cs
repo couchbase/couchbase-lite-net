@@ -19,11 +19,13 @@
 namespace Couchbase.Lite.Sync;
 
 /// <summary>
-/// Represents an endpoint in a replication
+/// Represents an endpoint in a replication.  This is not meant
+/// to be overridden by users.  Use one of the provided implementations
+/// such as <see cref="URLEndpoint"/>
 /// </summary>
 public interface IEndpoint;
 
 internal interface IEndpointInternal : IEndpoint
 {
-    void Visit(ReplicatorConfiguration config);
+    void Visit(ReplicatorConfiguration.MutableState state);
 }
