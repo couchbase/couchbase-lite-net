@@ -115,7 +115,7 @@ public sealed unsafe class Replicator
     /// Gets the configuration that was used to create this Replicator
     /// </summary>
     /// <exception cref="CouchbaseLiteException">Thrown if the replicator configuration doesn't contain any collection.</exception>
-    public ReplicatorConfiguration Config => _config.CollectionConfigurations.Count > 0 ? _config 
+    public ReplicatorConfiguration Config => _config.Collections.Count > 0 ? _config 
         : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on the replicator configuration without any collection.");
 
     /// <summary>
@@ -146,7 +146,7 @@ public sealed unsafe class Replicator
     public Replicator(ReplicatorConfiguration config)
     {
         CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config);
-        if (config.CollectionConfigurations.Count <= 0)
+        if (config.Collections.Count <= 0)
             throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator Configuration must contain at least one collection.");
 
         _config = config;
@@ -542,7 +542,7 @@ public sealed unsafe class Replicator
 
     private bool PullValidateCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
     {
-        var config = Config.CollectionConfigurations.FirstOrDefault(x => 
+        var config = Config.Collections.FirstOrDefault(x => 
             x.Collection.Name == collName && x.Collection.Scope.Name == scope);
         if(config == null) {
             WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
@@ -560,7 +560,7 @@ public sealed unsafe class Replicator
 
     private bool PushFilterCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
     {
-        var config = Config.CollectionConfigurations.FirstOrDefault(x => 
+        var config = Config.Collections.FirstOrDefault(x => 
             x.Collection.Name == collName && x.Collection.Scope.Name == scope);
         if(config == null) {
             WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
@@ -636,7 +636,7 @@ public sealed unsafe class Replicator
             var t = Task.Run(() =>
             {
                 try {
-                    var collectionConfig = Config.CollectionConfigurations.First(x => 
+                    var collectionConfig = Config.Collections.First(x => 
                         x.Collection.Name == replication.CollectionName && x.Collection.Scope.Name == replication.ScopeName);
                     if (cancelToken.IsCancellationRequested) {
                         // Try to catch cancellation before it reaches the user
@@ -923,13 +923,13 @@ public sealed unsafe class Replicator
             // Clear the reset flag, it is a one-time thing
             options.Reset = false;
 
-            var collCnt = (long)Config.CollectionConfigurations.Count;
+            var collCnt = (long)Config.Collections.Count;
             var replicatorIdTag = (ulong)socketFactory.context;
             DispatchQueue.DispatchSync(() =>
             {
                 var replicationCollections = new ReplicationCollection[collCnt];
                 for (var i = 0; i < collCnt; i++) {
-                    var collectionConfig = Config.CollectionConfigurations.ElementAt(i);
+                    var collectionConfig = Config.Collections.ElementAt(i);
                     var col = collectionConfig.Collection;
                     var colConfigOptions = collectionConfig.Options;
 

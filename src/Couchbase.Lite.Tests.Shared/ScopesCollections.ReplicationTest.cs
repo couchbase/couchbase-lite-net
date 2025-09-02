@@ -53,9 +53,9 @@ namespace Test
             var colB = Db.CreateCollection("colB", "scopeA");
             var collectionConfigs = CollectionConfiguration.FromCollections(colA, colB);
             var config = new ReplicatorConfiguration(collectionConfigs, new DatabaseEndpoint(OtherDb));
-            var colAConfig = config.CollectionConfigurations.FirstOrDefault(x => x.Collection.Equals(colA));
+            var colAConfig = config.Collections.FirstOrDefault(x => x.Collection.Equals(colA));
             colAConfig.ShouldNotBeNull("Because collection colA just added");
-            var colBConfig = config.CollectionConfigurations.FirstOrDefault(x => x.Collection.Equals(colB));
+            var colBConfig = config.Collections.FirstOrDefault(x => x.Collection.Equals(colB));
             colBConfig.ShouldNotBeNull("Because collection colB just added");
             colAConfig.ShouldNotBeSameAs(colBConfig, "Because the returned configs should be different instances.");
             colAConfig.ConflictResolver.ShouldBe(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
@@ -80,9 +80,9 @@ namespace Test
             });
             
             var config = new ReplicatorConfiguration(collectionConfigs, new DatabaseEndpoint(OtherDb));
-            var colAConfig = config.CollectionConfigurations.FirstOrDefault(x => x.Collection.Equals(colA));
+            var colAConfig = config.Collections.FirstOrDefault(x => x.Collection.Equals(colA));
             colAConfig.ShouldNotBeNull("Because collection colA just added");
-            var colBConfig = config.CollectionConfigurations.FirstOrDefault(x => x.Collection.Equals(colB));
+            var colBConfig = config.Collections.FirstOrDefault(x => x.Collection.Equals(colB));
             colBConfig.ShouldNotBeNull("Because collection colB just added");
             colAConfig.ShouldNotBeNull("because it was just set");
             colBConfig.ShouldNotBeNull("because it was just set");

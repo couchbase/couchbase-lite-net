@@ -843,12 +843,12 @@ namespace Test
             };
             
             configs.Add(new(Db.CreateCollection("third")));
-            replicationConfig1.CollectionConfigurations.Count.ShouldBe(2, "because it has a copy of the config list");
+            replicationConfig1.Collections.Count.ShouldBe(2, "because it has a copy of the config list");
 
             var replicationConfig2 = new ReplicatorConfiguration(replicationConfig1);
             var rcType = typeof(ReplicatorConfiguration);
             TestCopyConstruction(rcType, replicationConfigStandard, replicationConfig1, replicationConfig2,
-                nameof(ReplicatorConfiguration.CollectionConfigurations), nameof(ReplicatorConfiguration.Target));
+                nameof(ReplicatorConfiguration.Collections), nameof(ReplicatorConfiguration.Target));
         }
 
         [Fact]
