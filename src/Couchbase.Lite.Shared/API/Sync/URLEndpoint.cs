@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Sync;
 /// <summary>
 /// Represents a remote endpoint for a <see cref="Replicator"/>
 /// </summary>
-public sealed class URLEndpoint : IEndpointInternal
+public sealed class URLEndpoint : IEndpoint
 {
     private const string Tag = nameof(URLEndpoint);
 
@@ -59,9 +59,4 @@ public sealed class URLEndpoint : IEndpointInternal
 
     /// <inheritdoc />
     public override string ToString() => Url.ToString();
-
-    void IEndpointInternal.Visit(ReplicatorConfiguration.MutableState state)
-    {
-        state.RemoteUrl = Url;
-    }
 }

@@ -24,6 +24,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -48,6 +49,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 using Xunit;
@@ -813,9 +815,72 @@ namespace Test
         public void TestReplicatorConfigurationCopy()
         {
             var configs = CollectionConfiguration.FromCollections(DefaultCollection, Db.CreateCollection("second"));
-            var replicationConfig1 = new ReplicatorConfiguration(configs, new URLEndpoint(new Uri("ws://fake")));
-            configs.Add(new CollectionConfiguration { Collection = Db.CreateCollection("third") });
+            var replicationConfigStandard = new ReplicatorConfiguration(configs, new URLEndpoint(new("ws://fake")));
+            
+#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
+            using var cert =  FileSystem.OpenAppPackageFileAsync("SelfSigned.cer").Result;
+#else
+            using var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer");
+#endif
+            using var ms = new MemoryStream();
+            cert!.CopyTo(ms);
+            
+            // Set all properties to non-default to ensure the correctness of the copy constructor later
+            var replicationConfig1 = new ReplicatorConfiguration(configs, new URLEndpoint(new("ws://fake")))
+            {
+                AcceptOnlySelfSignedServerCertificate = true,
+                AcceptParentDomainCookies = true,
+                Authenticator = new BasicAuthenticator("user", "password"),
+                Continuous = true,
+                ProxyAuthenticator = new("proxyUser", "proxyPassword"),
+                Headers = new Dictionary<string, string?> { ["foo"] = "bar" }.ToImmutableDictionary(),
+                Heartbeat = TimeSpan.FromDays(1),
+                PinnedServerCertificate = new(ms.ToArray()),
+                ReplicatorType = ReplicatorType.Pull,
+                EnableAutoPurge = false,
+                MaxAttempts = 2,
+                MaxAttemptsWaitTime = TimeSpan.FromDays(1)
+            };
+            
+            configs.Add(new(Db.CreateCollection("third")));
             replicationConfig1.CollectionConfigurations.Count.ShouldBe(2, "because it has a copy of the config list");
+
+            var replicationConfig2 = new ReplicatorConfiguration(replicationConfig1);
+            var rcType = typeof(ReplicatorConfiguration);
+            TestCopyConstruction(rcType, replicationConfigStandard, replicationConfig1, replicationConfig2,
+                nameof(ReplicatorConfiguration.CollectionConfigurations), nameof(ReplicatorConfiguration.Target));
+        }
+
+        [Fact]
+        public void TestCollectionConfigurationCopy()
+        {
+            var defaultConfig = new CollectionConfiguration(DefaultCollection);
+            var config1 = new CollectionConfiguration(DefaultCollection)
+            {
+                ConflictResolver = new TestConflictResolver(_ => throw new NotImplementedException()),
+                PullFilter = ((_, _) => throw new NotImplementedException()),
+                PushFilter = ((_, _) => throw new NotImplementedException()),
+                Channels = ImmutableArray.Create("foo"),
+                DocumentIDs = ImmutableArray.Create("foo")
+            };
+            var config2 = new CollectionConfiguration(config1);
+            TestCopyConstruction(typeof(CollectionConfiguration), defaultConfig, config1, config2,
+                nameof(CollectionConfiguration.Collection));
+        }
+
+        private static void TestCopyConstruction(Type objectType, object defaultInstance, object instance1, object instance2,
+            params string[] excludeProperties)
+        {
+            foreach (var prop in objectType.GetProperties()) {
+                if (!prop.CanWrite || excludeProperties.Contains(prop.Name)) {
+                    continue;
+                }
+                
+                prop.GetValue(instance1).ShouldNotBe(prop.GetValue(defaultInstance), 
+                    $"The property '{prop.Name}' should be set to non-default for this test");
+                prop.GetValue(instance2).ShouldBe(prop.GetValue(instance1),
+                    $"The property '{prop.Name}' should be copied to the new config");
+            }
         }
 
         private unsafe void TestRoundTrip<T>(T item)

@@ -97,7 +97,15 @@ internal sealed class AuthOptionsDictionary : OptionsDictionary
         Type = AuthType.HttpBasic;
         Username = String.Empty;
         Password = String.Empty;
-        PasswordSecureString = new SecureString();
+        PasswordSecureString = new();
+    }
+
+    internal AuthOptionsDictionary(AuthOptionsDictionary other)
+    {
+        Password = other.Password;
+        PasswordSecureString = other.PasswordSecureString;
+        Type = other.Type;
+        Username = other.Username;
     }
 
     internal AuthOptionsDictionary(Dictionary<string, object?> raw) : base(raw)

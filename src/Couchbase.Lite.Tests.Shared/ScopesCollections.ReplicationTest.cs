@@ -72,9 +72,8 @@ namespace Test
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
             var resolver = new FakeConflictResolver();
-            var collectionConfigs = new List<Collection> { colA, colB }.Select(x => new CollectionConfiguration
+            var collectionConfigs = new List<Collection> { colA, colB }.Select(x => new CollectionConfiguration(x)
             {
-                Collection = x,
                 ConflictResolver = resolver,
                 PullFilter = _replicator__filterCallbackTrue,
                 PushFilter = _replicator__filterCallbackTrue
@@ -531,14 +530,12 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(colAInDb)
                 {
-                    Collection = colAInDb,
                     ConflictResolver = new TestConflictResolver(conflict => conflict.LocalDocument)
                 },
-                new()
+                new(colBInDb)
                 {
-                    Collection = colBInDb,
                     ConflictResolver = new TestConflictResolver(conflict => conflict.RemoteDocument)
                 }
             };
@@ -588,9 +585,8 @@ namespace Test
             {
                 Db.GetCollection("colA", "scopeA")!,
                 Db.GetCollection("colB", "scopeA")!
-            }.Select(x => new CollectionConfiguration
+            }.Select(x => new CollectionConfiguration(x)
             {
-                Collection = x,
                 PushFilter = _replicator__filterAllowsOddDocIdsCallback
             });
             
@@ -618,9 +614,8 @@ namespace Test
             {
                 Db.GetCollection("colA", "scopeA")!,
                 Db.GetCollection("colB", "scopeA")!
-            }.Select(x => new CollectionConfiguration
+            }.Select(x => new CollectionConfiguration(x)
             {
-                Collection = x,
                 PullFilter = _replicator__filterAllowsOddDocIdsCallback
             });
             
@@ -641,7 +636,7 @@ namespace Test
             colBInDb.GetDocument("doc7")?.GetString("str7").ShouldBe("string7");
         }
 
-        private readonly IList<string> _allowOddIds = new List<string> { "doc1", "doc3", "doc5", "doc7" };
+        private readonly IImmutableList<string> _allowOddIds = ImmutableArray.Create("doc1", "doc3", "doc5", "doc7");
 
         [Fact]
         public void TestCollectionDocumentIDsPushFilter()
@@ -651,9 +646,8 @@ namespace Test
             {
                 Db.GetCollection("colA", "scopeA")!,
                 Db.GetCollection("colB", "scopeA")!
-            }.Select(x => new CollectionConfiguration
+            }.Select(x => new CollectionConfiguration(x)
             {
-                Collection = x,
                 DocumentIDs = _allowOddIds
             });
             
@@ -681,9 +675,8 @@ namespace Test
             {
                 Db.GetCollection("colA", "scopeA")!,
                 Db.GetCollection("colB", "scopeA")!
-            }.Select(x => new CollectionConfiguration
+            }.Select(x => new CollectionConfiguration(x)
             {
-                Collection = x,
                 DocumentIDs = _allowOddIds
             });
             
@@ -759,15 +752,13 @@ namespace Test
             if (selection == PendingDocIDSel.Filter) {
                 collectionConfigs =
                 [
-                    new()
+                    new(Db.GetCollection("colA", "scopeA")!)
                     {
-                        Collection = Db.GetCollection("colA", "scopeA")!,
                         PushFilter = (doc, _) => doc.Id.Equals(colADocId)
                     },
 
-                    new()
+                    new(Db.GetCollection("colB", "scopeA")!)
                     {
-                        Collection = Db.GetCollection("colB", "scopeA")!,
                         PushFilter = (doc, _) => doc.Id.Equals(colBDocId)
                     }
                 ];
@@ -880,15 +871,13 @@ namespace Test
             if (selection == PendingDocIDSel.Filter) {
                 collectionConfigs =
                 [
-                    new()
+                    new(Db.GetCollection("colA", "scopeA")!)
                     {
-                        Collection = Db.GetCollection("colA", "scopeA")!,
                         PushFilter = (doc, _) => doc.Id.Equals(ColADocId)
                     },
 
-                    new()
+                    new(Db.GetCollection("colB", "scopeA")!)
                     {
-                        Collection = Db.GetCollection("colB", "scopeA")!,
                         PushFilter = (doc, _) => doc.Id.Equals(ColBDocId)
                     }
                 ];

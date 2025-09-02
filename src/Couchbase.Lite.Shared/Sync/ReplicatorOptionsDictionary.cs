@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -100,9 +101,9 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
     /// <summary>
     /// Gets or sets the channels to replicate (pull only)
     /// </summary>
-    public IList<string>? Channels
+    public IImmutableList<string>? Channels
     {
-        get => this.GetCast<IList<string>>(ChannelsKey);
+        get => this.GetCast<IImmutableList<string>>(ChannelsKey);
         set => this[ChannelsKey] = value;
     }
 
@@ -133,9 +134,9 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
     /// <summary>
     /// Gets or sets the docIDs to replicate
     /// </summary>
-    public IList<string>? DocIDs
+    public IImmutableList<string>? DocIDs
     {
-        get => this.GetCast<IList<string>>(DocIDsKey);
+        get => this.GetCast<IImmutableList<string>>(DocIDsKey);
         set => this[DocIDsKey] = value;
     }
 
@@ -161,9 +162,9 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
     /// Gets a mutable collection of headers to be passed along with the initial
     /// HTTP request that starts replication
     /// </summary>
-    public IDictionary<string, string?> Headers
+    public IImmutableDictionary<string, string?> Headers
     {
-        get => this.GetCast<IDictionary<string, string?>>(HeadersKey, new Dictionary<string, string?>())!;
+        get => this.GetCast<IImmutableDictionary<string, string?>>(HeadersKey, ImmutableDictionary<string, string?>.Empty)!;
         set => this[HeadersKey] = value;
     }
 
@@ -275,13 +276,13 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
         }
     }
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
     internal bool AcceptOnlySelfSignedServerCertificate
     {
         get => this.GetCast<bool>(OnlySelfSignedServerCert);
         set => this[OnlySelfSignedServerCert] = value;
     }
-        #endif
+#endif
 
     internal string? CookieString => this.GetCast<string>(CookiesKey);
 
@@ -292,7 +293,6 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
     /// </summary>
     public ReplicatorOptionsDictionary()
     {
-        Headers = new Dictionary<string, string?>();
         EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
             #if COUCHBASE_ENTERPRISE
         AcceptOnlySelfSignedServerCertificate = Constants.DefaultReplicatorSelfSignedCertificateOnly;
@@ -304,27 +304,57 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
         Dispose(true);
     }
 
+    internal ReplicatorOptionsDictionary(ReplicatorOptionsDictionary other)
+    {
+        AcceptParentDomainCookies = other.AcceptParentDomainCookies;
+        if(other.Auth != null) {
+            Auth = new(other.Auth);
+        }
+        
+        CheckpointInterval = other.CheckpointInterval;
+        Channels = other.Channels;
+        ClientCert = other.ClientCert;
+        Cookies = other.Cookies;
+        DocIDs = other.DocIDs;
+        EnableAutoPurge = other.EnableAutoPurge;
+        Filter = other.Filter;
+        Headers = other.Headers;
+        Heartbeat = other.Heartbeat;
+        MaxAttempts = other.MaxAttempts;
+        MaxAttemptsWaitTime = other.MaxAttemptsWaitTime;
+        NetworkInterface = other.NetworkInterface;
+        PinnedServerCertificate = other.PinnedServerCertificate;
+        if(other.ProxyAuth != null) {
+            ProxyAuth = new(other.ProxyAuth);
+        }
+        
+        RemoteDBUniqueID = other.RemoteDBUniqueID;
+        
+#if COUCHBASE_ENTERPRISE
+        AcceptOnlySelfSignedServerCertificate = other.AcceptOnlySelfSignedServerCertificate;
+#endif
+    }
+
     internal ReplicatorOptionsDictionary(Dictionary<string, object?> raw) : base(raw)
     {
         if (ContainsKey(AuthOption)) {
-            Auth = new AuthOptionsDictionary((this[AuthOption] as Dictionary<string, object?>)!);
+            Auth = new((this[AuthOption] as Dictionary<string, object?>)!);
         }
 
         if (ContainsKey(ProxyAuthOption)) {
-            ProxyAuth = new AuthOptionsDictionary((this[ProxyAuthOption] as Dictionary<string, object?>)!);
+            ProxyAuth = new((this[ProxyAuthOption] as Dictionary<string, object?>)!);
         }
 
         if (ContainsKey(ChannelsKey)) {
-            Channels = (this[ChannelsKey] as IList<object>)?.Cast<string>().ToList();
+            Channels = (this[ChannelsKey] as IImmutableList<string>)!;
         }
 
         if (ContainsKey(DocIDsKey)) {
-            DocIDs = (this[DocIDsKey] as IList<object>)?.Cast<string>().ToList();
+            DocIDs = (this[DocIDsKey] as IImmutableList<string>)!;
         }
 
         if (ContainsKey(HeadersKey)) {
-            Headers = (this[HeadersKey] as IDictionary<string, object?>)?.ToDictionary(x => x.Key,
-                x => x.Value as string) ?? new Dictionary<string, string?>();
+            Headers = (this[HeadersKey] as IImmutableDictionary<string, string>)!;
         }
 
         if (ContainsKey(PinnedCertKey)) {
@@ -350,7 +380,7 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
                 continue;
             }
 
-            Cookies.Add(new Cookie(pieces[0].Trim(), pieces[1].Trim()));
+            Cookies.Add(new(pieces[0].Trim(), pieces[1].Trim()));
         }
     }
 
@@ -370,8 +400,8 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
         Auth?.Build();
 
         // If Headers contain Cookie
-        if(Headers.ContainsKey("Cookie"))
-            AddCookies(Headers["Cookie"]);
+        if(Headers.TryGetValue("Cookie", out var value))
+            AddCookies(value);
 
         if (Cookies.Count > 0) {
             this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
@@ -393,7 +423,7 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
             this[ClientCertKey] = GCHandle.ToIntPtr(_clientCertHandle).ToInt64();
         }
 
-        Headers["User-Agent"] = HTTPLogic.UserAgent;
+        Headers = Headers.SetItem("User-Agent", HTTPLogic.UserAgent);
     }
 
     internal override bool Validate(string key, object? value)

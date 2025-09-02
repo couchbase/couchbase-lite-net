@@ -24,8 +24,3 @@ namespace Couchbase.Lite.Sync;
 /// such as <see cref="URLEndpoint"/>
 /// </summary>
 public interface IEndpoint;
-
-internal interface IEndpointInternal : IEndpoint
-{
-    void Visit(ReplicatorConfiguration.MutableState state);
-}

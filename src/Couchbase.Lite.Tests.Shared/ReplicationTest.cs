@@ -260,6 +260,8 @@ namespace Test
                 Heartbeat = null
             };
             
+            config.Heartbeat.ShouldNotBeNull("because the new config should be independent");
+            
             using (var repl = new Replicator(nextConfig)) {
                 repl.Config.Heartbeat.ShouldBe(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
@@ -367,9 +369,8 @@ namespace Test
         {
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PullFilter = _replicator__filterCallback,
                     PushFilter = _replicator__filterCallback
                 }
@@ -408,9 +409,8 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PushFilter = _replicator__filterCallback
                 }
             };
@@ -481,9 +481,8 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PushFilter = PushFilter,
                     PullFilter = PullFilter
                 }
@@ -545,9 +544,8 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PushFilter = PushFilter,
                     PullFilter = PullFilter
                 }
@@ -621,9 +619,8 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PullFilter = _replicator__filterCallback
                 }
             };
@@ -650,9 +647,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PullFilter = _replicator__filterCallback
                 }
             };
@@ -693,9 +689,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PullFilter = _replicator__filterCallback
                 }
             };
@@ -808,10 +803,9 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration> 
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
-                    DocumentIDs = ["doc1", "doc3"]
+                    DocumentIDs = ImmutableArray.Create("doc1", "doc3")
                 }
             };
             
@@ -1073,10 +1067,9 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
-                    DocumentIDs = ["doc1"]
+                    DocumentIDs = ImmutableArray.Create("doc1")
                 }
             };
 
@@ -1216,9 +1209,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1276,9 +1268,8 @@ namespace Test
             });
 
             List<CollectionConfiguration> collectionConfigs = [
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             ];
@@ -1338,9 +1329,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1391,9 +1381,8 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1440,9 +1429,8 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1467,9 +1455,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1503,9 +1490,8 @@ namespace Test
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1552,9 +1538,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1601,9 +1586,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1639,9 +1623,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1656,9 +1639,8 @@ namespace Test
             
             var collectionConfigs1 = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1732,9 +1714,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1799,9 +1780,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -1870,9 +1850,8 @@ namespace Test
                 
                 var collectionConfigs = new List<CollectionConfiguration>
                 {
-                    new()
+                    new(DefaultCollection)
                     {
-                        Collection = DefaultCollection,
                         ConflictResolver = resolver
                     }
                 };
@@ -1927,9 +1906,8 @@ namespace Test
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -2769,9 +2747,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
                     collectionConfigs =
                     [
-                        new()
+                        new(DefaultCollection)
                         {
-                            Collection = DefaultCollection,
                             PushFilter = PushFilter
                         }
                     ];
@@ -2862,9 +2839,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
                     collectionConfigs =
                     [
-                        new()
+                        new(DefaultCollection)
                         {
-                            Collection = DefaultCollection,
                             PushFilter = PushFilter
                         }
                     ];
@@ -3024,9 +3000,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -3079,9 +3054,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
             collectionConfigs =
             [
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver2
                 }
             ];
@@ -3103,9 +3077,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     ConflictResolver = resolver
                 }
             };
@@ -3198,9 +3171,8 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
             var collectionConfigs = new List<CollectionConfiguration>
             {
-                new()
+                new(DefaultCollection)
                 {
-                    Collection = DefaultCollection,
                     PushFilter = _replicator__filterCallback
                 }
             };
