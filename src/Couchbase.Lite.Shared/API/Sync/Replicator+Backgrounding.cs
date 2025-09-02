@@ -47,7 +47,7 @@ public partial class Replicator
     {
         get {
 #pragma warning disable CS0618 // Type or member is obsolete
-            var attrs = NSFileManager.DefaultManager.GetAttributes(Config.CollectionConfigurations[0].Collection.Database.Path!);
+            var attrs = NSFileManager.DefaultManager.GetAttributes(Config.Collections[0].Collection.Database.Path!);
             return attrs?.ProtectionKey ?? NSFileProtection.None;
 #pragma warning restore CS0618 // Type or member is obsolete
         }
