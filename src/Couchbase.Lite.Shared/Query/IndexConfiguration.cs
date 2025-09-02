@@ -31,14 +31,14 @@ public abstract record IndexConfiguration
     /// <summary>
     /// Gets the expressions to use to create the index
     /// </summary>
-    public required string[]? Expressions { get; init; }
+    public required string[] Expressions { get; init; }
 
     internal C4IndexType IndexType { get; }
 
     internal abstract C4IndexOptions Options { get; }
 
     [SetsRequiredMembers]
-    internal IndexConfiguration(C4IndexType indexType, string[]? expressions)
+    internal IndexConfiguration(C4IndexType indexType, string[] expressions)
     {
         if(indexType == C4IndexType.ArrayIndex && expressions is [""])
             // Quick sanity check.  If I allow this to proceed, no error will happen but
@@ -61,5 +61,5 @@ public abstract record IndexConfiguration
 
     }
 
-    internal string ToSqlpp() => Expressions == null ? "" : String.Join(",", Expressions);
+    internal string ToSqlpp() => String.Join(",", Expressions);
 }

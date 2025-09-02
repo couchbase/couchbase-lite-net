@@ -53,7 +53,7 @@ public sealed record ArrayIndexConfiguration : IndexConfiguration
     /// </param>
     [SetsRequiredMembers]
     public ArrayIndexConfiguration(string path, IEnumerable<string>? expressions = null) 
-        : base(C4IndexType.ArrayIndex, expressions?.ToArray())
+        : base(C4IndexType.ArrayIndex, expressions?.ToArray() ?? [])
     {
         Path = path;
     }
@@ -75,7 +75,7 @@ public sealed record ArrayIndexConfiguration : IndexConfiguration
     /// </param>
     [SetsRequiredMembers]
     public ArrayIndexConfiguration(string path, params string[] expressions)
-        : base(C4IndexType.ArrayIndex, expressions.Any() ? expressions : null)
+        : base(C4IndexType.ArrayIndex, expressions)
     {
         Path = path;
     }
