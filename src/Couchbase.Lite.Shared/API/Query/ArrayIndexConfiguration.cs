@@ -31,55 +31,57 @@ namespace Couchbase.Lite.Query;
 public sealed record ArrayIndexConfiguration : IndexConfiguration
 {
     /// <summary>
-    /// Constructor
-    /// </summary>
-    /// <param name="path">Path to the array, which can be nested to be indexed. 
-    /// Use "[]" to represent a property that is an array of each
-    /// nested array level.For a single array or the last level 
-    /// array, the "[]" is optional.  For instance, use 
-    /// "contacts[].phones" to specify an array of phones within each 
-    /// contact.
-    /// </param>
-    /// <param name="expressions">An optional collection of strings, where each string 
-    /// represents an expression defining the values within the array
-    /// to be indexed.If the array specified by the path contains
-    /// scalar values.
-    /// </param>
-    public ArrayIndexConfiguration(string path, IEnumerable<string>? expressions = null) 
-        : base(C4IndexType.ArrayIndex, expressions?.ToArray())
-    {
-        Path = path;
-    }
-
-    /// <summary>
-    /// Constructor
-    /// </summary>
-    /// <param name="path">Path to the array, which can be nested to be indexed. 
-    /// Use "[]" to represent a property that is an array of each
-    /// nested array level.For a single array or the last level 
-    /// array, the "[]" is optional.  For instance, use 
-    /// "contacts[].phones" to specify an array of phones within each 
-    /// contact.
-    /// </param>
-    /// <param name="expressions">An optional collection of strings, where each string 
-    /// represents an expression defining the values within the array
-    /// to be indexed.If the array specified by the path contains
-    /// scalar values.
-    /// </param>
-    public ArrayIndexConfiguration(string path, params string[] expressions)
-        : base(C4IndexType.ArrayIndex, expressions.Any() ? expressions : null)
-    {
-        Path = path;
-    }
-
-    internal override C4IndexOptions Options => new C4IndexOptions()
-    {
-        unnestPath = Path
-    };
-
-    /// <summary>
     /// Path to the array, which can be nested.
     /// </summary>
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-    public string Path { get; }
+    public required string Path { get; init; }
+    
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="path">Path to the array, which can be nested to be indexed. 
+    /// Use "[]" to represent a property that is an array of each
+    /// nested array level.For a single array or the last level 
+    /// array, the "[]" is optional.  For instance, use 
+    /// "contacts[].phones" to specify an array of phones within each 
+    /// contact.
+    /// </param>
+    /// <param name="expressions">An optional collection of strings, where each string 
+    /// represents an expression defining the values within the array
+    /// to be indexed.If the array specified by the path contains
+    /// scalar values.
+    /// </param>
+    [SetsRequiredMembers]
+    public ArrayIndexConfiguration(string path, IEnumerable<string>? expressions = null) 
+        : base(C4IndexType.ArrayIndex, expressions?.ToArray() ?? [])
+    {
+        Path = path;
+    }
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="path">Path to the array, which can be nested to be indexed. 
+    /// Use "[]" to represent a property that is an array of each
+    /// nested array level.For a single array or the last level 
+    /// array, the "[]" is optional.  For instance, use 
+    /// "contacts[].phones" to specify an array of phones within each 
+    /// contact.
+    /// </param>
+    /// <param name="expressions">An optional collection of strings, where each string 
+    /// represents an expression defining the values within the array
+    /// to be indexed.If the array specified by the path contains
+    /// scalar values.
+    /// </param>
+    [SetsRequiredMembers]
+    public ArrayIndexConfiguration(string path, params string[] expressions)
+        : base(C4IndexType.ArrayIndex, expressions)
+    {
+        Path = path;
+    }
+
+    internal override C4IndexOptions Options => new()
+    {
+        unnestPath = Path
+    };
 }

@@ -397,7 +397,7 @@ public sealed unsafe class Replicator
                 CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString()!, true);
             }
 
-            if (!IsPushing(collection)) {
+            if (!Config.ReplicatorType.HasFlag(ReplicatorType.Push)) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
@@ -442,7 +442,7 @@ public sealed unsafe class Replicator
                 CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString()!, true);
             }
 
-            if (!IsPushing(collection)) {
+            if (!Config.ReplicatorType.HasFlag(ReplicatorType.Push)) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
@@ -542,41 +542,43 @@ public sealed unsafe class Replicator
 
     private bool PullValidateCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
     {
-        var coll = Config.Collections.FirstOrDefault(x => x.Name == collName && x.Scope.Name == scope);
-        if(coll == null) {
+        var config = Config.Collections.FirstOrDefault(x => 
+            x.Collection.Name == collName && x.Collection.Scope.Name == scope);
+        if(config == null) {
             WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
             return true;
         }
 
-        var config = Config.GetCollectionConfig(coll);
-        if(config?.PullFilter == null) {
-            WriteLog.To.Sync.E(Tag, "Unable to find filter inside PullValidateCallback, aborting and returning true...");
-            return true;
+        if (config.PullFilter != null) {
+            return config.PullFilter(new(config.Collection, docID, revID, value), flags);
         }
+        
+        WriteLog.To.Sync.E(Tag, "Unable to find filter inside PullValidateCallback, aborting and returning true...");
+        return true;
 
-        return config.PullFilter(new Document(coll, docID, revID, value), flags);
     }
 
     private bool PushFilterCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
     {
-        var coll = Config.Collections.FirstOrDefault(x => x.Name == collName && x.Scope.Name == scope);
-        if (coll == null) {
-            WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PushFilterCallback, aborting and returning true...");
+        var config = Config.Collections.FirstOrDefault(x => 
+            x.Collection.Name == collName && x.Collection.Scope.Name == scope);
+        if(config == null) {
+            WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
             return true;
         }
 
-        var config = Config.GetCollectionConfig(coll);
-        if (config?.PushFilter == null) {
-            WriteLog.To.Sync.E(Tag, "Unable to find filter inside PushFilterCallback, aborting and returning true...");
-            return true;
+        if (config.PushFilter != null) {
+            return config.PushFilter(new(config.Collection, docID, revID, value), flags);
         }
+        
+        WriteLog.To.Sync.E(Tag, "Unable to find filter inside PushFilterCallback, aborting and returning true...");
+        return true;
 
-        return config.PushFilter(new Document(coll, docID, revID, value), flags);
     }
 
-        #if __IOS__
+#if __IOS__
     [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
-        #endif
+#endif
     private static void OnDocEnded(C4Replicator* repl, bool pushing, IntPtr numDocs, C4DocumentEnded** docs, void* context)
     {
         if (docs == null || numDocs == IntPtr.Zero) {
@@ -634,14 +636,15 @@ public sealed unsafe class Replicator
             var t = Task.Run(() =>
             {
                 try {
-                    var coll = Config.Collections.First(x => x.Name == replication.CollectionName && x.Scope.Name == replication.ScopeName);
-                    var collectionConfig = Config.GetCollectionConfig(coll);
+                    var collectionConfig = Config.Collections.First(x => 
+                        x.Collection.Name == replication.CollectionName && x.Collection.Scope.Name == replication.ScopeName);
                     if (cancelToken.IsCancellationRequested) {
                         // Try to catch cancellation before it reaches the user
                         return;
                     }
 
-                    coll.Database.ResolveConflict(replication.Id, collectionConfig!.ConflictResolver, coll);
+                    collectionConfig.Collection.Database.ResolveConflict(replication.Id, collectionConfig.ConflictResolver, 
+                        collectionConfig.Collection);
                     replication = replication.ClearError();
                 } catch (CouchbaseException e) {
                     replication.Error = e;
@@ -798,13 +801,6 @@ public sealed unsafe class Replicator
         });
     }
 
-    private bool IsPushing(Collection collection)
-    {
-        var collConfig = Config.GetCollectionConfig(collection)
-            ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Collection config not found inside IsPushing");
-        return collConfig.ReplicatorType.HasFlag(ReplicatorType.Push);
-    }
-
     private static C4ReplicatorMode Mkmode(bool active, bool continuous)
     {
         return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
@@ -932,20 +928,12 @@ public sealed unsafe class Replicator
             DispatchQueue.DispatchSync(() =>
             {
                 var replicationCollections = new ReplicationCollection[collCnt];
-                for (int i = 0; i < collCnt; i++) {
-                    var collectionConfig = Config.CollectionConfigs.ElementAt(i);
-                    var col = collectionConfig.Key;
-                    var config = collectionConfig.Value;
-                    var colConfigOptions = config.Options;
-
-                    //TODO: in the future we can set different replicator type per collection
-                    //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
-                    //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
-                    //for now collection config's ReplicatorType should be the same as ReplicatorType in replicator config
-                    Config.CollectionConfigs[col] = config with { ReplicatorType = Config.ReplicatorType };
+                for (var i = 0; i < collCnt; i++) {
+                    var collectionConfig = Config.Collections.ElementAt(i);
+                    var col = collectionConfig.Collection;
+                    var colConfigOptions = collectionConfig.Options;
 
                     colConfigOptions.Build();
-
                     var spec = new CollectionSpec(col.Scope.Name, col.Name);
 
                     var replicationCollection = new ReplicationCollection(colConfigOptions)
@@ -956,9 +944,9 @@ public sealed unsafe class Replicator
                         Spec = spec
                     };
 
-                    if (config.PushFilter != null)
+                    if (collectionConfig.PushFilter != null)
                         replicationCollection.PushFilter = PushFilterCallback;
-                    if (config.PullFilter != null)
+                    if (collectionConfig.PullFilter != null)
                         replicationCollection.PullFilter = PullValidateCallback;
 
                     replicationCollections[i] = replicationCollection;

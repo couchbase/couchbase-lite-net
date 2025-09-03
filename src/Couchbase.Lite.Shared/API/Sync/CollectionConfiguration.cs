@@ -18,6 +18,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Couchbase.Lite.Sync;
@@ -65,7 +67,7 @@ public sealed record CollectionConfiguration
     /// <remarks>
     /// Note: Channels property is only applicable in the replications with Sync Gateway. 
     /// </remarks>
-    public IList<string>? Channels
+    public IImmutableList<string>? Channels
     {
         get => Options.Channels;
         init => Options.Channels = value?.Any() == true ? value : null;
@@ -75,17 +77,11 @@ public sealed record CollectionConfiguration
     /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
     /// and/or pulled.  Zero length lists are not allowed, and will be replaced with null
     /// </summary>
-    public IList<string>? DocumentIDs
+    public IImmutableList<string>? DocumentIDs
     {
         get => Options.DocIDs;
         init => Options.DocIDs = value?.Any() == true ? value : null;
     }
-        
-    /// <summary>
-    /// A value indicating the direction of the replication.  The default is
-    /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
-    /// </summary>
-    internal ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
 
     internal ReplicatorOptionsDictionary Options { get; } = new();
     
@@ -96,5 +92,26 @@ public sealed record CollectionConfiguration
     /// <param name="collections">The collections to create configurations for</param>
     /// <returns>The list of configuration options.</returns>
     public static List<CollectionConfiguration> FromCollections(params Collection[] collections) =>
-        collections.Select(c => new CollectionConfiguration { Collection = c }).ToList();
+        collections.Select(c => new CollectionConfiguration(c)).ToList();
+    
+    /// <summary>
+    /// Convenience constructor
+    /// </summary>
+    /// <param name="collection">The collection to apply the configuration to</param>
+    [SetsRequiredMembers]
+    public CollectionConfiguration(Collection collection)
+    {
+        Collection = collection;
+    }
+
+    [SetsRequiredMembers]
+    internal CollectionConfiguration(CollectionConfiguration other)
+    {
+        Collection = other.Collection;
+        Options = new(other.Options);
+        
+        ConflictResolver = other.ConflictResolver;
+        PushFilter = other.PushFilter;
+        PullFilter = other.PullFilter;
+    }
 }

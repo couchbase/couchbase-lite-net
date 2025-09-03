@@ -30,7 +30,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A record containing configuration for creating or opening database data
     /// </summary>
-    public sealed record DatabaseConfiguration
+    public sealed partial record DatabaseConfiguration
     {
         private const string Tag = nameof(DatabaseConfiguration);
 
@@ -56,13 +56,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>A boolean representing whether full sync is enabled</returns>
         public bool FullSync { get; init; } = Constants.DefaultDatabaseFullSync;
-
-        #if COUCHBASE_ENTERPRISE
-        /// <summary>
-        /// Gets or sets the encryption key to use on the database
-        /// </summary>
-        public EncryptionKey? EncryptionKey { get; init; }
-        #endif
     }
 }
 
