@@ -784,7 +784,7 @@ public sealed unsafe partial class Database : IDisposable
     private void CheckOpen()
     {
         if (IsClosed) {
-            throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+            throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed);
         }
     }
 
@@ -944,7 +944,7 @@ public sealed unsafe partial class Database : IDisposable
     private void CheckOpenAndNotClosing()
     {
         if (IsClosed || _isClosing) {
-            throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+            throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed);
         }
     }
 
