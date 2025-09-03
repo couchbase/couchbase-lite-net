@@ -983,29 +983,37 @@ namespace Test
 
             dbDispose();
 
-            Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection(),
-                "Because GetCollection after db is disposed.");
+            Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection(),
+                "Because GetCollection after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
 
-            Should.Throw<InvalidOperationException>(() => Db.GetDefaultScope(),
-                "Because GetDefaultScope after db is disposed.");
+            Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultScope(),
+                "Because GetDefaultScope after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
 
-            Should.Throw<InvalidOperationException>(() => Db.GetCollection("colA", "scopeA"),
-                "Because GetCollection after db is disposed.");
+            Should.Throw<CouchbaseLiteException>(() => Db.GetCollection("colA", "scopeA"),
+                "Because GetCollection after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
 
-            Should.Throw<InvalidOperationException>(() => Db.GetCollections("scopeA"),
-                "Because GetCollections after db is disposed.");
+            Should.Throw<CouchbaseLiteException>(() => Db.GetCollections("scopeA"),
+                "Because GetCollections after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
 
-            Should.Throw<InvalidOperationException>(() => Db.GetScope("scopeA"),
-                "Because GetScope after db is disposed.");;
+            Should.Throw<CouchbaseLiteException>(() => Db.GetScope("scopeA"),
+                "Because GetScope after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
 
-            Should.Throw<InvalidOperationException>(() => Db.GetScopes(),
-                "Because GetScopes after db is disposed.");
+            Should.Throw<CouchbaseLiteException>(() => Db.GetScopes(),
+                "Because GetScopes after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
 
-            Should.Throw<InvalidOperationException>(() => Db.CreateCollection("colA", "scopeA"),
-                "Because CreateCollection after db is disposed.");
+            Should.Throw<CouchbaseLiteException>(() => Db.CreateCollection("colA", "scopeA"),
+                "Because CreateCollection after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
 
-            Should.Throw<InvalidOperationException>(() => Db.DeleteCollection("colA", "scopeA"),
-                "Because DeleteCollection after db is disposed.");
+            Should.Throw<CouchbaseLiteException>(() => Db.DeleteCollection("colA", "scopeA"),
+                "Because DeleteCollection after db is disposed.")
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
         }
 
         private void TestUseCollectionAPIs(Action dbDispose)

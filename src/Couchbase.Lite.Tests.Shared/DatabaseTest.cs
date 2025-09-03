@@ -211,7 +211,8 @@ namespace Test
 
                 Db.Close();
 
-                Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().GetDocument("doc1"));
+                Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().GetDocument("doc1"))
+                    .Error.ShouldBe(CouchbaseLiteError.NotOpen);
             }
         }
 
@@ -501,9 +502,8 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            var ex = Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().Save(doc), 
-                "because this operation is invalid");
-            ex.Message.ShouldBe("Attempt to perform an operation on a closed database.");
+            Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().Save(doc), 
+                "because this operation is invalid").Error.ShouldBe(CouchbaseLiteError.NotOpen);
         }
 
         [Fact]
@@ -604,7 +604,8 @@ namespace Test
                 DeleteDB(Db);
             }
 
-            Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().Delete(doc));
+            Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().Delete(doc))
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
         }
 
         [Fact]
@@ -721,7 +722,8 @@ namespace Test
                 DeleteDB(Db);
             }
                 
-            Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().Purge(doc));
+            Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().Purge(doc))
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
         }
 
         [Fact]
@@ -783,7 +785,7 @@ namespace Test
         public void TestCloseThenDeleteDatabase()
         {
             Db.Dispose();
-            Should.Throw<InvalidOperationException>(() => DeleteDB(Db));
+            Should.Throw<CouchbaseLiteException>(() => DeleteDB(Db)).Error.ShouldBe(CouchbaseLiteError.NotOpen);
         }
 
         [Theory]
@@ -814,7 +816,8 @@ namespace Test
         public void TestDeleteTwice()
         {
             Db.Delete();
-            Should.Throw<InvalidOperationException>(() => Db.Delete());
+            Should.Throw<CouchbaseLiteException>(() => Db.Delete())
+                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
         }
 
         [Fact]
@@ -843,7 +846,7 @@ namespace Test
             DeleteDB(Db);
             var blob = savedDoc.GetBlob("data");
             blob.ShouldNotBeNull("because the blob should still exist and be accessible");
-            blob!.Length.ShouldBe(5, "because the blob's metadata should still be accessible");
+            blob.Length.ShouldBe(5, "because the blob's metadata should still be accessible");
             blob.Content.ShouldBeNull("because the content cannot be read from a closed database");
         }
 
@@ -1373,7 +1376,8 @@ namespace Test
 
                 Db.Delete();
 
-                Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().GetDocument("doc1"));
+                Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().GetDocument("doc1"))
+                    .Error.ShouldBe(CouchbaseLiteError.NotOpen);
             }
         }
 

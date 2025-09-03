@@ -2063,14 +2063,14 @@ namespace Test
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 void BadAct() => replicator.GetPendingDocumentIDs(DefaultCollection);
-                Should.Throw<InvalidOperationException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<CouchbaseLiteException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
 
             ReopenDB();
             using (var replicator = new Replicator(config)) {
                 OtherDb.Close();
                 void BadAct() => replicator.GetPendingDocumentIDs(DefaultCollection);
-                Should.Throw<InvalidOperationException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<CouchbaseLiteException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
         }
 
@@ -2082,14 +2082,14 @@ namespace Test
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 void BadAct() => replicator.IsDocumentPending("doc1", DefaultCollection);
-                Should.Throw<InvalidOperationException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<CouchbaseLiteException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
 
             ReopenDB();
             using (var replicator = new Replicator(config)) {
                 OtherDb.Close();
                 void BadAct() => replicator.IsDocumentPending("doc1", DefaultCollection);
-                Should.Throw<InvalidOperationException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
+                Should.Throw<CouchbaseLiteException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             }
         }
 
@@ -2120,12 +2120,11 @@ namespace Test
             Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
-            var config = new ReplicatorConfiguration(target)
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = new ReplicatorConfiguration(collectionConfigs, target)
             {
                 Continuous = true
             };
-            
-            config.AddCollection(DefaultCollection);
 
             using var r = new Replicator(config);
 
@@ -2137,43 +2136,51 @@ namespace Test
             var foregroundCount = 0;
             var backgroundCount = 0;
 
-                        var token = r.AddChangeListener((sender, args) =>
+            var token = r.AddChangeListener((_, args) =>
             {
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                    foregroundCount++;
-                    foregroundEvent.Set();
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                    backgroundCount++;
-                    backgroundEvent.Set();
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    stoppedEvent.Set();
+                switch (args.Status.Activity) {
+                    case ReplicatorActivityLevel.Idle:
+                        foregroundCount++;
+                        foregroundEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Offline:
+                        backgroundCount++;
+                        backgroundEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
+                        stoppedEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Connecting:
+                    case ReplicatorActivityLevel.Busy:
+                    default:
+                        break;
                 }
             });
                         
             r.Start();
-            foregroundEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never went idle");
+            foregroundEvent.WaitOne(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never went idle");
             for (var i = 0; i < NUM_ROUNDS; i++) {
                 r.AppBackgrounding(null, EventArgs.Empty);
-                backgroundEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
-                    .BeTrue("because otherwise the replicator never suspended ({count})", i);
-                r.ConflictResolutionSuspended.Should()
-                    .BeTrue("because otherwise conflict resolution was not suspended ({count})", i);
+                backgroundEvent.WaitOne(TimeSpan.FromSeconds(5))
+                    .ShouldBeTrue($"because otherwise the replicator never suspended ({i})");
+                r.ConflictResolutionSuspended
+                    .ShouldBeTrue($"because otherwise conflict resolution was not suspended ({i})");
                 
                 r.AppForegrounding(null, EventArgs.Empty);
-                foregroundEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
-                    .BeTrue("because otherwise the replicator never unsuspended ({count})", i);
-                r.ConflictResolutionSuspended.Should()
-                    .BeFalse("because otherwise conflict resolution was not unsuspended ({count})", i);
+                foregroundEvent.WaitOne(TimeSpan.FromSeconds(5))
+                    .ShouldBeTrue($"because otherwise the replicator never unsuspended ({i})");
+                r.ConflictResolutionSuspended
+                    .ShouldBeFalse($"because otherwise conflict resolution was not unsuspended ({i})");
             }
             
             r.Stop();
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator didn't stop");
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator didn't stop");
             foregroundCount.ShouldBe(NUM_ROUNDS + 1,
                 "because otherwise an incorrect number of foreground events happened");
-            backgroundCount.Should()
-                .Be(NUM_ROUNDS, "because otherwise an incorrect number of background events occurred");
+            backgroundCount
+                .ShouldBe(NUM_ROUNDS, "because otherwise an incorrect number of background events occurred");
 
             token.Remove();
         }
@@ -2184,42 +2191,49 @@ namespace Test
             Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
-            var config = new ReplicatorConfiguration(target)
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = new ReplicatorConfiguration(collectionConfigs, target)
             {
                 Continuous = true,
                 AllowReplicatingInBackground = true
             };
-            
-            config.AddCollection(DefaultCollection);
 
             using var r = new Replicator(config);
             
             using var idleEvent = new AutoResetEvent(false);
             using var stoppedEvent = new ManualResetEventSlim(false);
 
-                        var token = r.AddChangeListener((sender, args) =>
-            {
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                    idleEvent.Set();
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    stoppedEvent.Set();
-                }
-            });
+                        var token = r.AddChangeListener((_, args) =>
+                        {
+                            switch (args.Status.Activity) {
+                                case ReplicatorActivityLevel.Idle:
+                                    idleEvent.Set();
+                                    break;
+                                case ReplicatorActivityLevel.Stopped:
+                                    stoppedEvent.Set();
+                                    break;
+                                case ReplicatorActivityLevel.Offline:
+                                case ReplicatorActivityLevel.Connecting:
+                                case ReplicatorActivityLevel.Busy:
+                                default:
+                                    break;
+                            }
+                        });
                         
             r.Start();
-            idleEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never went idle");
+            idleEvent.WaitOne(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never went idle");
 
             // Switch to background and immediately come back
             r.Suspended = true;
             r.Suspended = false;
 
-            idleEvent.WaitOne(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator didn't go back to idle");
+            idleEvent.WaitOne(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator didn't go back to idle");
             
             r.Stop();
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never stopped");
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never stopped");
             
             token.Remove();
         }
@@ -2230,12 +2244,11 @@ namespace Test
             Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
-            var config = new ReplicatorConfiguration(target)
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = new ReplicatorConfiguration(collectionConfigs, target)
             {
                 Continuous = true
             };
-            
-            config.AddCollection(DefaultCollection);
 
             using var r = new Replicator(config);
             
@@ -2244,28 +2257,36 @@ namespace Test
             var foregrounding = false;
             var foregroundingAssert = new WaitAssert();
             
-                        var token = r.AddChangeListener((sender, args) =>
+            var token = r.AddChangeListener((_, args) =>
             {
                 // ReSharper disable AccessToModifiedClosure
                 foregroundingAssert.RunAssert(() => foregrounding.ShouldBeFalse());
-                // ReSharper restore AccessToModifiedClosure
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                    idleEvent.Set();
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    stoppedEvent.Set();
+                switch (args.Status.Activity) {
+                    // ReSharper restore AccessToModifiedClosure
+                    case ReplicatorActivityLevel.Idle:
+                        idleEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
+                        stoppedEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Offline:
+                    case ReplicatorActivityLevel.Connecting:
+                    case ReplicatorActivityLevel.Busy:
+                    default:
+                        break;
                 }
             });
                         
             r.Start();
-            idleEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never went idle");
+            idleEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never went idle");
 
             r.Stop();
             
             // This shouldn't prevent the replicator stopping
             r.AppBackgrounding(null, EventArgs.Empty);
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never stopped");
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never stopped");
             
             // This shouldn't wake up the replicator
             foregrounding = true;
@@ -2285,13 +2306,12 @@ namespace Test
             Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
-            var config = new ReplicatorConfiguration(target)
+            var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+            var config = new ReplicatorConfiguration(collectionConfigs, target)
             {
                 Continuous = true,
                 ReplicatorType = ReplicatorType.Push
             };
-
-            config.AddCollection(DefaultCollection);
 
             using var r = new Replicator(config);
 
@@ -2299,47 +2319,59 @@ namespace Test
             using var busyEvent = new ManualResetEventSlim(false);
             using var offlineEvent = new ManualResetEventSlim(false);
             using var stoppedEvent = new ManualResetEventSlim(false);
-                        var token = r.AddChangeListener((sender, args) =>
+            var token = r.AddChangeListener((sender, args) =>
             {
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                    if (args.Status.Progress.Total == 0) {
+                switch (args.Status.Activity) {
+                    case ReplicatorActivityLevel.Idle when args.Status.Progress.Total == 0:
                         idleEvent.Set();
-                    } else if (args.Status.Progress.Completed == args.Status.Progress.Total) {
-                        ((Replicator)sender)!.Stop();
+                        break;
+                    case ReplicatorActivityLevel.Idle:
+                    {
+                        if (args.Status.Progress.Completed == args.Status.Progress.Total) {
+                            ((Replicator)sender!).Stop();
+                        }
+
+                        break;
                     }
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
-                    busyEvent.Set();
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                    offlineEvent.Set();
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    stoppedEvent.Set();
+                    case ReplicatorActivityLevel.Busy:
+                        busyEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Offline:
+                        offlineEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
+                        stoppedEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Connecting:
+                    default:
+                        break;
                 }
             });
             
-            OtherDefaultCollection.Count.ShouldBe(0, "because nothing was replicated yet");
+            OtherDefaultCollection.Count.ShouldBe(0UL, "because nothing was replicated yet");
             r.Start();
-            idleEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never went idle");
+            idleEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never went idle");
 
             using var doc1 = new MutableDocument("doc1");
             var blob = new Blob("image/jpeg", GetTestAsset("C/tests/data/for#354.jpg"));
             doc1.SetBlob("blob", blob);
             DefaultCollection.Save(doc1);
-            busyEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator is stuck in idle");
+            busyEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator is stuck in idle");
 
             r.Suspended = true;
-            offlineEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the suspension didn't work");
+            offlineEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the suspension didn't work");
 
             Thread.Sleep(200);
             r.Suspended = false;
 
-            stoppedEvent.Wait(TimeSpan.FromSeconds(10)).Should()
-                .BeTrue("because otherwise the replicator never finished");
+            stoppedEvent.Wait(TimeSpan.FromSeconds(10))
+                .ShouldBeTrue("because otherwise the replicator never finished");
             token.Remove();
 
-            OtherDefaultCollection.Count.ShouldBe(1, "because one document should have replicated");
+            OtherDefaultCollection.Count.ShouldBe(1UL, "because one document should have replicated");
             using var doc = OtherDefaultCollection.GetDocument("doc1");
             var blob2 = doc?.GetBlob("blob");
             blob2?.Digest.ShouldBe(blob.Digest, "because the blobs should match");
@@ -2363,55 +2395,64 @@ namespace Test
             uint resolvingCount = 0;
 
             var target = new DatabaseEndpoint(OtherDb);
-            var config = new ReplicatorConfiguration(target)
-            {
-                Continuous = true,
-                ReplicatorType = ReplicatorType.Pull
-            };
-            
             using var resolvingEvent = new ManualResetEventSlim(false);
-            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            var collectionConfig = new CollectionConfiguration(DefaultCollection)
             {
-                                ConflictResolver = new BlockConflictResolver(conflict =>
+                ConflictResolver = new TestConflictResolver(conflict =>
                 {
                     Interlocked.Increment(ref resolvingCount);
                     resolvingEvent.Set();
                     return conflict.RemoteDocument;
                 })
-                            });
+            };
+            
+            var config = new ReplicatorConfiguration([collectionConfig], target)
+            {
+                Continuous = true,
+                ReplicatorType = ReplicatorType.Pull
+            };
 
             using var r = new Replicator(config);
             using var offlineEvent = new ManualResetEventSlim(false);
             using var stoppedEvent = new ManualResetEventSlim(false);
             
-                        var token = r.AddChangeListener((sender, args) =>
+            var token = r.AddChangeListener((_, args) =>
             {
-                if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                    offlineEvent.Set();
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    stoppedEvent.Set();
+                switch (args.Status.Activity) {
+                    case ReplicatorActivityLevel.Offline:
+                        offlineEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Stopped:
+                        stoppedEvent.Set();
+                        break;
+                    case ReplicatorActivityLevel.Connecting:
+                    case ReplicatorActivityLevel.Idle:
+                    case ReplicatorActivityLevel.Busy:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             });
                         
             r.Start();
 
-            resolvingEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise conflict resolution never started");
+            resolvingEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise conflict resolution never started");
             r.Suspended = true;
 
-            int retryCounter = 0;
+            var retryCounter = 0;
             while (r.PendingConflictCount > 0) {
                 retryCounter++.ShouldBeLessThan(20, "because otherwise the pending conflicts never got suspended");
                 Thread.Sleep(500);
             }
 
-            resolvingCount.ShouldBeLessThan(NUM_DOCS, "because the conflicts should have been suspended");
-            offlineEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never suspended");
+            resolvingCount.ShouldBeLessThan((uint)NUM_DOCS, "because the conflicts should have been suspended");
+            offlineEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never suspended");
             r.Stop();
 
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5)).Should()
-                .BeTrue("because otherwise the replicator never stopped");
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+                .ShouldBeTrue("because otherwise the replicator never stopped");
             token.Remove();
         }
         
