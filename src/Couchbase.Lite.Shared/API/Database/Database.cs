@@ -603,19 +603,26 @@ public sealed unsafe partial class Database : IDisposable
     {
         using var threadSafetyScope = ThreadSafety.BeginLockedScope();
         CheckOpenAndNotClosing();
-        if(ActiveStoppables.TryAdd(stoppable, 0)) {
-            _closeCondition.Reset();
+        if (!ActiveStoppables.TryAdd(stoppable, 0)) {
+            WriteLog.To.Database.E(Tag, "Failed to add active stoppable {0} (already exists)", stoppable);
+            return;
         }
+        
+        WriteLog.To.Database.I(Tag, "Added active stoppable {0} (new count {1})", stoppable, ActiveStoppables.Count);
+        _closeCondition.Reset();
     }
 
     internal void RemoveActiveStoppable(IStoppable stoppable)
     {
         using var threadSafetyScope = ThreadSafety.BeginLockedScope();
         if (IsClosed || !ActiveStoppables.TryRemove(stoppable, out var dummy)) {
+            WriteLog.To.Database.W(Tag, "Failed to remove active stoppable {0} (not found or closed)", stoppable);
             return;
         }
 
-        if (ActiveStoppables.Count == 0) {
+        WriteLog.To.Database.I(Tag, "Removed active stoppable {0}", stoppable);
+        if (ActiveStoppables.IsEmpty) {
+            WriteLog.To.Database.I(Tag, "No more active stoppables");
             _closeCondition.Set();
         }
     }
