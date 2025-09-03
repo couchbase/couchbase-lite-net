@@ -39,7 +39,6 @@ namespace Test
         /// 1. TestSQLiteFullSyncConfig
         /// Description
         ///     Test that the FullSync default is as expected and that it's setter and getter work.
-
         /// Steps
         ///     1. Create a DatabaseConfiguration object.
         ///     2. Get and check the value of the FullSync property: it should be false.
@@ -65,7 +64,6 @@ namespace Test
         /// <summary>
         /// Description
         ///     Test that a Database respects the FullSync property
-
         /// Steps
         ///     1. Create a DatabaseConfiguration object and set Full Sync false
         ///     2. Create a database with the config

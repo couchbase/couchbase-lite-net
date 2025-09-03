@@ -41,9 +41,10 @@ pipeline {
                                 powershell 'jenkins\\compile_ce.ps1'
                             }
                         }
-                        stage("Compile EE") {
+                        stage("Compile MAUI tests") {
+                            // MAUI tests compile EE for all platforms
                             steps {
-                                powershell 'jenkins\\compile_ee.ps1'
+                                powershell 'jenkins\\compile_maui_tests.ps1'
                             }
                         }
                         stage(".NET Windows") {
