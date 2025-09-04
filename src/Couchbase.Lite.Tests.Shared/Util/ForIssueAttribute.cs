@@ -16,22 +16,12 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Couchbase.Lite 
+namespace Couchbase.Lite;
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class ForIssueAttribute(string issue) : Attribute
 {
-    [AttributeUsage(AttributeTargets.Method)]
-    public sealed class ForIssueAttribute : Attribute
-    {
-        public string Issue { get; }
-
-        public ForIssueAttribute(string issue)
-        {
-            Issue = issue;
-        }
-    }
+    public string Issue { get; } = issue;
 }

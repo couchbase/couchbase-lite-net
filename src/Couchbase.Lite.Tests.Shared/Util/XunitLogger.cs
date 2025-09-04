@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#nullable disable
 
 using System;
 
@@ -23,17 +22,16 @@ using Couchbase.Lite.Logging;
 
 using Xunit.Abstractions;
 
-namespace Test.Util
+namespace Test.Util;
+
+internal sealed class XunitLogSink(LogLevel level, ITestOutputHelper output) : BaseLogSink(level)
 {
-    internal sealed class XunitLogSink(LogLevel level, ITestOutputHelper output) : BaseLogSink(level)
+    protected override void WriteLog(LogLevel level, LogDomain domain, string message)
     {
-        protected override void WriteLog(LogLevel level, LogDomain domain, string message)
-        {
-            try {
-                output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
-            } catch (Exception) {
-                // _output is busted, the test is probably already finished.  Nothing we can do
-            }
+        try {
+            output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
+        } catch (Exception) {
+            // _output is busted, the test is probably already finished.  Nothing we can do
         }
     }
 }

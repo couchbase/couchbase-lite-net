@@ -16,25 +16,16 @@
 //  limitations under the License.
 //
 
-#nullable disable
-
 using System;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class ImplementsTestSpecAttribute(string testSpec, string version) : Attribute
 {
-    [AttributeUsage(AttributeTargets.Class)]
-    public sealed class ImplementsTestSpecAttribute : Attribute
-    {
-        public string TestSpec { get; }
+    public string TestSpec { get; } = testSpec;
 
-        public string Version { get; }
+    public string Version { get; } = version;
 
-        public Version GetVersion() => new Version(Version);
-
-        public ImplementsTestSpecAttribute(string testSpec, string version)
-        {
-            TestSpec = testSpec;
-            Version = version;
-        }
-    }
+    public Version GetVersion() => new(Version);
 }

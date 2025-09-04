@@ -24,79 +24,72 @@ using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Test
+namespace Test;
+
+[ImplementsTestSpec("T0003-SQLite-Options", "2.0.0")]
+public class SQLiteOptionsTest(ITestOutputHelper output) : TestCase(output)
 {
-
-    [ImplementsTestSpec("T0003-SQLite-Options", "2.0.0")]
-    public class SQLiteOptionsTest : TestCase
+    /// <summary>
+    /// 1. TestSQLiteFullSyncConfig
+    /// Description
+    ///     Test that the FullSync default is as expected and that it's setter and getter work.
+    /// Steps
+    ///     1. Create a DatabaseConfiguration object.
+    ///     2. Get and check the value of the FullSync property: it should be false.
+    ///     3. Set the FullSync property true
+    ///     4. Get the config FullSync property and verify that it is true
+    ///     5. Set the FullSync property false
+    ///     6. Get the config FullSync property and verify that it is false
+    /// </summary>
+    [Fact]
+    public void TestSQLiteFullSyncConfig()
     {
-        public SQLiteOptionsTest(ITestOutputHelper output) : base(output)
+        var config = new DatabaseConfiguration();
+        config.FullSync.ShouldBeFalse("because the default should be false");
+
+        config = new DatabaseConfiguration
         {
-
-        }
-
-        /// <summary>
-        /// 1. TestSQLiteFullSyncConfig
-        /// Description
-        ///     Test that the FullSync default is as expected and that it's setter and getter work.
-        /// Steps
-        ///     1. Create a DatabaseConfiguration object.
-        ///     2. Get and check the value of the FullSync property: it should be false.
-        ///     3. Set the FullSync property true
-        ///     4. Get the config FullSync property and verify that it is true
-        ///     5. Set the FullSync property false
-        ///     6. Get the config FullSync property and verify that it is false
-        /// </summary>
-        [Fact]
-        public unsafe void TestSQLiteFullSyncConfig()
-        {
-            var config = new DatabaseConfiguration();
-            config.FullSync.ShouldBeFalse("because the default should be false");
-
-            config = new DatabaseConfiguration
-            {
-                FullSync = true,
-            };
+            FullSync = true,
+        };
                 
-            config.FullSync.ShouldBeTrue("because C# properties should work...");
-        }
-
-        /// <summary>
-        /// Description
-        ///     Test that a Database respects the FullSync property
-        /// Steps
-        ///     1. Create a DatabaseConfiguration object and set Full Sync false
-        ///     2. Create a database with the config
-        ///     3. Get the configuration object from the Database and verify that FullSync is false
-        ///     4. Use c4db_config2(perhaps necessary only for this test) to confirm that its config does not contain the kC4DB_DiskSyncFull flag
-        ///     5. Set the config's FullSync property true
-        ///     6. Create a database with the config
-        ///     7. Get the configuration object from the Database and verify that FullSync is true
-        ///     8. Use c4db_config2 to confirm that its config contains the kC4DB_DiskSyncFull flag
-        /// </summary>
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public unsafe void TestDBWithFullSync(bool useFullSync)
-        {
-            var config = new DatabaseConfiguration()
-            {
-                FullSync = useFullSync
-            };
-
-            Database.Delete("test", null);
-            using var db = new Database("test", config);
-            var c4db = db.C4db;
-            c4db.ShouldNotBeNull("because the database is in use");
-            var nativeConfig = TestNative.c4db_getConfig2(c4db!.RawDatabase);
-            var hasFlag = (nativeConfig->flags & C4DatabaseFlags.DiskSyncFull) == C4DatabaseFlags.DiskSyncFull;
-            hasFlag.ShouldBe(useFullSync, "because the flag in LiteCore should match FullSync");
-        }
+        config.FullSync.ShouldBeTrue("because C# properties should work...");
     }
 
-    internal unsafe static partial class TestNative
+    /// <summary>
+    /// Description
+    ///     Test that a Database respects the FullSync property
+    /// Steps
+    ///     1. Create a DatabaseConfiguration object and set Full Sync false
+    ///     2. Create a database with the config
+    ///     3. Get the configuration object from the Database and verify that FullSync is false
+    ///     4. Use c4db_config2(perhaps necessary only for this test) to confirm that its config does not contain the kC4DB_DiskSyncFull flag
+    ///     5. Set the config's FullSync property true
+    ///     6. Create a database with the config
+    ///     7. Get the configuration object from the Database and verify that FullSync is true
+    ///     8. Use c4db_config2 to confirm that its config contains the kC4DB_DiskSyncFull flag
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public unsafe void TestDBWithFullSync(bool useFullSync)
     {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
+        var config = new DatabaseConfiguration()
+        {
+            FullSync = useFullSync
+        };
+
+        Database.Delete("test", null);
+        using var db = new Database("test", config);
+        var c4db = db.C4db;
+        c4db.ShouldNotBeNull("because the database is in use");
+        var nativeConfig = TestNative.c4db_getConfig2(c4db.RawDatabase);
+        var hasFlag = (nativeConfig->flags & C4DatabaseFlags.DiskSyncFull) == C4DatabaseFlags.DiskSyncFull;
+        hasFlag.ShouldBe(useFullSync, "because the flag in LiteCore should match FullSync");
     }
+}
+
+internal static unsafe partial class TestNative
+{
+    [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
 }

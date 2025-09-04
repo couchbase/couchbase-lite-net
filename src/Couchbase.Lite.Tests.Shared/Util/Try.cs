@@ -15,126 +15,85 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-#nullable disable
-
 using System;
-using System.Reflection;
 using System.Threading;
 
 using Xunit.Sdk;
 
-namespace Test.Util
+namespace Test.Util;
+
+public abstract class Try
 {
-    public abstract class Try
+    protected int _count = 1;
+    protected TimeSpan _delay = TimeSpan.FromMilliseconds(100);
+    protected Action<string>? _progressHandler;
+
+    public Try Times(int count)
     {
-        #region Variables
+        _count = count;
+        return this;
+    }
 
-        protected int _count = 1;
-        protected TimeSpan _delay = TimeSpan.FromMilliseconds(100);
-        protected Action<string> _progressHandler;
+    public Try WriteProgress(Action<string> progressHandler)
+    {
+        _progressHandler = progressHandler;
+        return this;
+    }
 
-        #endregion
+    public abstract bool Go();
 
-        #region Constructors
+    public static Try Assertion(Action assertion) => new AssertionTry(assertion);
 
-        protected Try()
+    public static Try Condition(Func<bool> condition) => new BooleanTry(condition);
+
+    public Try Delay(TimeSpan delay)
+    {
+        _delay = delay;
+        return this;
+    }
+
+    private sealed class BooleanTry(Func<bool> condition) : Try
+    {
+        public override bool Go()
         {
-
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public Try Times(int count)
-        {
-            _count = count;
-            return this;
-        }
-
-        public Try WriteProgress(Action<string> progressHandler)
-        {
-            _progressHandler = progressHandler;
-            return this;
-        }
-
-        public abstract bool Go();
-
-        public static Try Assertion(Action assertion)
-        {
-            return new AssertionTry(assertion);
-        }
-
-        public static Try Condition(Func<bool> condition)
-        {
-            return new BooleanTry(condition);
-        }
-
-        public Try Delay(TimeSpan delay)
-        {
-            _delay = delay;
-            return this;
-        }
-
-        #endregion
-
-        private sealed class BooleanTry : Try
-        {
-            private readonly Func<bool> _condition;
-
-            public BooleanTry(Func<bool> condition)
-            {
-                _condition = condition;;
-            }
-
-            public override bool Go()
-            {
-                var count = 0;
-                while (count++ < _count) {
-                    if (_condition()) {
-                        return true;
-                    }
-
-                    _progressHandler?.Invoke($"Condition false on attempt {count} of {_count}, waiting for {_delay}...");
-                    Thread.Sleep(_delay);
+            var count = 0;
+            while (count++ < _count) {
+                if (condition()) {
+                    return true;
                 }
 
-                _progressHandler?.Invoke("Out of retry attempts!");
-                return false;
+                _progressHandler?.Invoke($"Condition false on attempt {count} of {_count}, waiting for {_delay}...");
+                Thread.Sleep(_delay);
             }
+
+            _progressHandler?.Invoke("Out of retry attempts!");
+            return false;
         }
+    }
 
-        private sealed class AssertionTry : Try
+    private sealed class AssertionTry(Action assertion) : Try
+    {
+        public override bool Go()
         {
-            private readonly Action _assertion;
-
-            public AssertionTry(Action assertion)
-            {
-                _assertion = assertion;
-            }
-
-            public override bool Go()
-            {
-                var count = 0;
-                while (count++ <= _count) {
-                    try {
-                        _assertion();
-                        return true;
-                    } catch (XunitException) {
-                        _progressHandler?.Invoke($"Assertion failed on attempt {count} of {_count}");
-                        if (count == _count) {
-                            _progressHandler?.Invoke("Out of retry attempts!");
-                            throw;
-                        }
-
+            var count = 0;
+            while (count++ <= _count) {
+                try {
+                    assertion();
+                    return true;
+                } catch (XunitException) {
+                    _progressHandler?.Invoke($"Assertion failed on attempt {count} of {_count}");
+                    if (count == _count) {
+                        _progressHandler?.Invoke("Out of retry attempts!");
+                        throw;
                     }
 
-                    _progressHandler?.Invoke($"Will try assertion again in {_delay}...");
-                    Thread.Sleep(_delay);
                 }
 
-                return false;
+                _progressHandler?.Invoke($"Will try assertion again in {_delay}...");
+                Thread.Sleep(_delay);
             }
+
+            return false;
         }
     }
 }

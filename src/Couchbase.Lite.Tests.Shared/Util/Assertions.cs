@@ -60,23 +60,22 @@ public static class Assertions
 
     private static IDictionary<string, object?> ToDictionary(this object input)
     {
-        if (input is IDictionary<string, object?> d) {
-            return d;
-        }
-
-        if (input is IDictionaryObject dobj) {
-            return dobj.ToDictionary();
-        }
-
-        if (input is IDictionary idict) {
-            var result = new Dictionary<string, object?>();
-            foreach (DictionaryEntry entry in idict) {
-                result[entry.Key.ToString() ?? ""] = entry.Value;
+        switch (input) {
+            case IDictionary<string, object?> d:
+                return d;
+            case IDictionaryObject dObj:
+                return dObj.ToDictionary();
+            case IDictionary iDict:
+            {
+                var result = new Dictionary<string, object?>();
+                foreach (DictionaryEntry entry in iDict) {
+                    result[entry.Key.ToString().ShouldNotBeNull()] = entry.Value;
+                }
+                return result;
             }
-            return result;
+            default:
+                throw new ArgumentException("Object is not a dictionary");
         }
-
-        throw new ArgumentException("Object is not a dictionary");
     }
 
     public static void ShouldNotBeEquivalentTo(this object? actual, object? expected, string? customMessage = null)
@@ -91,7 +90,7 @@ public static class Assertions
         areEquivalent.ShouldBeFalse(customMessage);
     }
 
-    // Add back in the behavior of FluentAssertions to disregards int vs long, etc when
+    // Add back in the behavior of FluentAssertions to disregards int vs long, etc. when
     // making an equivalency check
     public static void ShouldBeEquivalentToFluent(this object? actual, object? expected, string? customMessage = null)
     {
@@ -125,7 +124,7 @@ public static class Assertions
         }
 
         // Case 4: Both blobs
-        if(actual is Blob aBlob && expected is Blob eBlob) {
+        if(actual is Blob && expected is Blob) {
             actual.Equals(expected).ShouldBeTrue(customMessage);
             return;
         }

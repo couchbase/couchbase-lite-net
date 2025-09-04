@@ -16,122 +16,104 @@
 //  limitations under the License.
 //
 
-using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
 using Shouldly;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Couchbase.Lite;
+using System.Collections.Immutable;
 using LiteCore.Interop;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Net.NetworkInformation;
-
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Test
+namespace Test;
+
+public sealed unsafe class WebSocketTest : TestCase
 {
-    public unsafe interface IWebSocketWrapper : IDisposable
+    private readonly Type _webSocketWrapperType = typeof(WebSocketWrapper);
+
+    public WebSocketTest(ITestOutputHelper output) : base(output)
     {
-        Stream NetworkStream { get; set; }
-        unsafe void CloseSocket();
-        void CompletedReceive(ulong byteCount);
-        void Start();
-        void Write(byte[] data);
+        var dict = new ReplicatorOptionsDictionary
+        {
+            Auth = new()
+            {
+                Username = "admin",
+                Password = "adminTest",
+                Type = AuthType.HttpBasic,
+            },
+            Headers = new Dictionary<string, string?>
+            {
+                ["User-Agent"] = "CouchbaseLite/2.1.0 (.NET; Microsoft Windows 10.0.17134 ) Build/0 LiteCore/ (1261) Commit/b01fad7"
+            }.ToImmutableDictionary()
+        };
+        dict.Add("WS-Protocols", "BLIP_3+CBMobile_2");
+        var uri = new Uri("ws://localhost:4984");
+
+        var s = new C4Socket();
+        _ = new WebSocketWrapper(uri, (&s), dict);
     }
 
-    public sealed unsafe class WebSocketTest : TestCase
+    [Fact]
+    public void TestBase64Digest()
     {
-        Type WebSocketWrapperType = typeof(WebSocketWrapper);
-        Type ReachabilityType = typeof(Reachability);
-        Type HttpLogicType = typeof(HTTPLogic);
-        WebSocketWrapper webSocketWrapper;
-        HTTPLogic hTTPLogic = new HTTPLogic(new Uri("ws://localhost:4984"));
+        const string input = "test coverage";
 
-        public WebSocketTest(ITestOutputHelper output) : base(output)
-        {
-            var dict = new ReplicatorOptionsDictionary();
-            var authDict = new AuthOptionsDictionary();
-            authDict.Username = "admin";
-            authDict.Password = "admintest";
-            authDict.Type = AuthType.HttpBasic;
-            dict.Auth = authDict;
-            dict.Headers.Add("User-Agent", "CouchbaseLite/2.1.0 (.NET; Microsoft Windows 10.0.17134 ) Build/0 LiteCore/ (1261) Commit/b01fad7");
-            dict.Add("WS-Protocols", "BLIP_3+CBMobile_2");
-            var uri = new Uri("ws://localhost:4984");
+        var method = _webSocketWrapperType.GetMethod("Base64Digest", BindingFlags.NonPublic | BindingFlags.Static);
+        var res = method!.Invoke(null, [input]);
 
-            var s = new LiteCore.Interop.C4Socket();
-            webSocketWrapper = new WebSocketWrapper(uri, (&s), dict);
-        }
+        res.ShouldBe("/EOfaNlb2IwudhJuOmFE3Ps9D38=");
+    }
 
-        [Fact]
-        public void TestBase64Digest()
-        {
-            string input = "test coverage";
+    [Fact]
+    public void TestCheckHeader()
+    {
+        var parser = new HttpMessageParser("HTTP/1.1 401 Unauthorized");
+        parser.Append("Content - Type: application / json");
+        parser.Append("Server: Couchbase Sync Gateway/2.0.0");
+        parser.Append("Www-Authenticate: Basic realm=\"Couchbase Sync Gateway\"");
+        parser.Append("Date: Mon, 06 Aug 2018 17:44:51 GMT");
+        parser.Append("Content-Length: 50");
+        var key = "Connection";
+        var expectedValue = "Upgrade";
+        var caseSens = false;
 
-            var method = WebSocketWrapperType.GetMethod("Base64Digest", BindingFlags.NonPublic | BindingFlags.Static);
-            var res = method!.Invoke(null, new object[1] { input });
+        var method = _webSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
+        var res = method!.Invoke(null, [parser, key, expectedValue, caseSens]);
 
-            res.ShouldBe("/EOfaNlb2IwudhJuOmFE3Ps9D38=");
-        }
+        res.ShouldBe(false);
 
-        [Fact]
-        public void TestCheckHeader()
-        {
-            HttpMessageParser parser = new HttpMessageParser("HTTP/1.1 401 Unauthorized");
-            parser.Append("Content - Type: application / json");
-            parser.Append("Server: Couchbase Sync Gateway/2.0.0");
-            parser.Append("Www-Authenticate: Basic realm=\"Couchbase Sync Gateway\"");
-            parser.Append("Date: Mon, 06 Aug 2018 17:44:51 GMT");
-            parser.Append("Content-Length: 50");
-            string key = "Connection";
-            string expectedValue = "Upgrade";
-            bool caseSens = false; // true
+        parser = new("HTTP/1.1 101 Switching Protocols");
+        parser.Append("Upgrade: websocket");
+        parser.Append("Connection: Upgrade");
+        parser.Append("Sec-WebSocket-Accept: R3ztu/aZLI+izEEtS3Ao1kzub4s=");
+        parser.Append("Sec-WebSocket-Protocol: BLIP_3+CBMobile_2");
 
-            var method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            var res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
+        key = "Connection";
+        expectedValue = "Upgrade";
+        caseSens = false;
 
-            res.ShouldBe(false);
+        method = _webSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
+        res = method!.Invoke(null, [parser, key, expectedValue, caseSens]);
 
-            parser = new HttpMessageParser("HTTP/1.1 101 Switching Protocols");
-            parser.Append("Upgrade: websocket");
-            parser.Append("Connection: Upgrade");
-            parser.Append("Sec-WebSocket-Accept: R3ztu/aZLI+izEEtS3Ao1kzub4s=");
-            parser.Append("Sec-WebSocket-Protocol: BLIP_3+CBMobile_2");
+        res.ShouldBe(true);
 
-            key = "Connection";
-            expectedValue = "Upgrade";
-            caseSens = false;
+        key = "Upgrade";
+        expectedValue = "websocket";
+        caseSens = false;
 
-            method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
+        method = _webSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
+        res = method!.Invoke(null, [parser, key, expectedValue, caseSens]);
 
-            res.ShouldBe(true);
+        res.ShouldBe(true);
 
-            key = "Upgrade";
-            expectedValue = "websocket";
-            caseSens = false;
+        key = "Sec-WebSocket-Accept";
+        expectedValue = "R3ztu/aZLI+izEEtS3Ao1kzub4s=";
+        caseSens = true;
 
-            method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
+        method = _webSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
+        res = method!.Invoke(null, [parser, key, expectedValue, caseSens]);
 
-            res.ShouldBe(true);
-
-            key = "Sec-WebSocket-Accept";
-            expectedValue = "R3ztu/aZLI+izEEtS3Ao1kzub4s=";
-            caseSens = true;
-
-            method = WebSocketWrapperType.GetMethod("CheckHeader", BindingFlags.NonPublic | BindingFlags.Static);
-            res = method!.Invoke(null, new object[4] { parser, key, expectedValue, caseSens });
-
-            res.ShouldBe(true);
-        }
+        res.ShouldBe(true);
     }
 }

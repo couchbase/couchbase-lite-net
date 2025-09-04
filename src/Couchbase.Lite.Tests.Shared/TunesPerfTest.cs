@@ -16,18 +16,14 @@
 //  limitations under the License.
 //
 
-#nullable disable
 #if PERFORMANCE
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.Text;
+using System.Linq;
 using Couchbase.Lite;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-using FluentAssertions;
+using Shouldly;
 
 using Newtonsoft.Json;
 using Test.Util;
@@ -36,35 +32,20 @@ using Xunit.Abstractions;
 
 namespace Test
 {
-    public sealed class TunesPerfTest : PerfTest
+    public sealed class TunesPerfTest(ITestOutputHelper output) : PerfTest(output)
     {
         private int _documentCount;
-        private IList<IDictionary<string, object>> _tracks;
-        private IList<string> _artists;
-        private Benchmark _importBench;
-        private Benchmark _updatePlayCountBench;
-        private Benchmark _updateArtistsBench;
-        private Benchmark _indexArtistsBench;
-        private Benchmark _queryArtistsBench;
-        private Benchmark _queryIndexedArtistsBench;
-        private Benchmark _queryAlbumsBench;
-        private Benchmark _queryIndexedAlbumsBench;
-        private Benchmark _indexFTSBench;
-        private Benchmark _queryFTSBench;
-
-        public TunesPerfTest(ITestOutputHelper output) : base(output)
-        {
-            _importBench = new Benchmark(output);
-            _updatePlayCountBench = new Benchmark(output);
-            _updateArtistsBench = new Benchmark(output);
-            _indexArtistsBench = new Benchmark(output);
-            _queryArtistsBench = new Benchmark(output);
-            _queryIndexedArtistsBench = new Benchmark(output);
-            _queryAlbumsBench = new Benchmark(output);
-            _queryIndexedAlbumsBench = new Benchmark(output);
-            _indexFTSBench = new Benchmark(output);
-            _queryFTSBench = new Benchmark(output);
-        }
+        private List<IDictionary<string, object?>> _tracks = [];
+        private IList<string> _artists = new List<string>();
+        private readonly Benchmark _importBench = new(output);
+        private readonly Benchmark _updateArtistsBench = new(output);
+        private readonly Benchmark _indexArtistsBench = new(output);
+        private readonly Benchmark _queryArtistsBench = new(output);
+        private readonly Benchmark _queryIndexedArtistsBench = new(output);
+        private readonly Benchmark _queryAlbumsBench = new(output);
+        private readonly Benchmark _queryIndexedAlbumsBench = new(output);
+        private readonly Benchmark _indexFTSBench = new(output);
+        private readonly Benchmark _queryFTSBench = new(output);
 
         [Fact]
         public void TestPerformance()
@@ -80,7 +61,7 @@ namespace Test
 
         protected override void SetUp()
         {
-            _tracks = new List<IDictionary<string, object>>();
+            _tracks = new();
             var settings = new JsonSerializerSettings
             {
                 DateParseHandling = DateParseHandling.DateTimeOffset
@@ -88,7 +69,7 @@ namespace Test
 
             TestCase.ReadFileByLines("C/tests/data/iTunesMusicLibrary.json", line =>
             {
-                _tracks.Add(JsonConvert.DeserializeObject<IDictionary<string, object>>(line, settings));
+                _tracks.Add(JsonConvert.DeserializeObject<IDictionary<string, object>>(line, settings)!);
                 return true;
             });
 
@@ -114,9 +95,9 @@ namespace Test
                 CreateArtistsIndex();
 
                 var numArtists2 = QueryAllArtists(_queryIndexedArtistsBench);
-                numArtists2.Should().Be(numArtists);
+                numArtists2.ShouldBe(numArtists);
                 var numAlbums2 = QueryAlbums(_queryIndexedAlbumsBench);
-                numAlbums2.Should().Be(numAlbums);
+                numAlbums2.ShouldBe(numAlbums);
                 numFTS = FullTextSearch();
             }
 
@@ -155,7 +136,7 @@ namespace Test
         {
             _importBench.Start();
             _documentCount = 0;
-            Db.InBatch(() =>
+            Db.ShouldNotBeNull().InBatch(() =>
             {
                 foreach (var track in _tracks) {
                     var trackType = track.GetCast<string>("Track Type");
@@ -169,9 +150,8 @@ namespace Test
                     }
 
                     ++_documentCount;
-                    using (var doc = new MutableDocument(documentID, track)) {
-                        Db.Save(doc);
-                    }
+                    using var doc = new MutableDocument(documentID, track);
+                    DefaultCollection.Save(doc);
                 }
             });
 
@@ -183,23 +163,23 @@ namespace Test
         {
             _updateArtistsBench.Start();
             var count = 0;
-            Db.InBatch(() =>
+            Db.ShouldNotBeNull().InBatch(() =>
             {
-                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID),
+                using var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID),
                         SelectResult.Expression(Expression.Property("Artist")))
-                    .From(DataSource.Database(Db))) {
-                    var results = q.Execute();
-                    foreach (var result in results) {
-                        var artist = result.GetString(1);
-                        if (artist?.StartsWith("The ") == true) {
-                            using (var doc = Db.GetDocument(result.GetString(0)))
-                            using (var mutableDoc = doc.ToMutable()){
-                                mutableDoc.SetString("Artist", artist.Substring(4));
-                                Db.Save(mutableDoc);
-                                count++;
-                            }
-                        }
+                    .From(DataSource.Collection(DefaultCollection));
+                var results = q.Execute();
+                foreach (var result in results) {
+                    var artist = result.GetString(1);
+                    if (artist?.StartsWith("The ") != true) {
+                        continue;
                     }
+                    
+                    using var doc = DefaultCollection.GetDocument(result.GetString(0).ShouldNotBeNull());
+                    using var mutableDoc = doc.ShouldNotBeNull().ToMutable();
+                    mutableDoc.SetString("Artist", artist.Substring(4));
+                    DefaultCollection.Save(mutableDoc);
+                    count++;
                 }
             });
 
@@ -211,18 +191,17 @@ namespace Test
         {
             var collation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true).Locale("en");
 
-            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("Artist")))
-                .From(DataSource.Database(Db))
-                .Where(Expression.Property("Artist").NotNullOrMissing()
-                    .And(Expression.Property("Compilation").IsNullOrMissing()))
+            using var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("Artist")))
+                .From(DataSource.Collection(DefaultCollection))
+                .Where(Expression.Property("Artist").IsValued()
+                    .And(Expression.Property("Compilation").IsNotValued()))
                 .GroupBy(Expression.Property("Artist").Collate(collation))
-                   .OrderBy(Ordering.Expression(Expression.Property("Artist").Collate(collation)))) {
-                bench.Start();
-                _artists = CollectQueryResults(q);
-                bench.Stop();
-                _artists.Count.Should().Be(1111);
-                return _artists.Count;
-            }
+                .OrderBy(Ordering.Expression(Expression.Property("Artist").Collate(collation)));
+            bench.Start();
+            _artists = CollectQueryResults(q);
+            bench.Stop();
+            _artists.Count.ShouldBe(1111);
+            return _artists.Count;
         }
 
         private int QueryAlbums(Benchmark bench)
@@ -231,9 +210,9 @@ namespace Test
             var collation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("Album")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                    .Where(Expression.Property("Artist").Collate(collation).EqualTo(Expression.Parameter("ARTIST"))
-                    .And(Expression.Property("Compilation").IsNullOrMissing()))
+                    .And(Expression.Property("Compilation").IsNotValued()))
                 .GroupBy(Expression.Property("Album").Collate(collation))
                    .OrderBy(Ordering.Expression(Expression.Property("Album").Collate(collation)))) {
                 bench.Start();
@@ -248,7 +227,7 @@ namespace Test
             }
 
             bench.Stop();
-            albumCount.Should().Be(1886);
+            albumCount.ShouldBe(1886);
             return albumCount;
         }
 
@@ -260,7 +239,7 @@ namespace Test
             var artist = Expression.Property("Artist").Collate(collation);
             var comp = Expression.Property("Compilation");
             var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(artist), ValueIndexItem.Expression(comp));
-            Db.CreateIndex("byArtist", index);
+            DefaultCollection.CreateIndex("byArtist", index);
             _indexArtistsBench.Stop();
         }
 
@@ -269,43 +248,36 @@ namespace Test
             _indexFTSBench.Start();
             var index = IndexBuilder.FullTextIndex(FullTextIndexItem.Property("Name")).SetLanguage("en");
 
-            Db.CreateIndex("nameFTS", index);
+            DefaultCollection.CreateIndex("nameFTS", index);
             _indexFTSBench.Stop();
 
             var collate1 = Collation.Unicode().IgnoreAccents(true).IgnoreCase(true).Locale("en");
             var collate2 = Collation.Unicode().IgnoreAccents(true).IgnoreCase(true).Locale("en");
 
-            var ARTIST = Expression.Property("Artist");
-            var ALBUM = Expression.Property("Album");
-            var NAME = Expression.Property("Name");
+            var artist = Expression.Property("Artist");
+            var album = Expression.Property("Album");
+            var name = Expression.Property("Name");
             var results = new List<string>();
-            using (var q = QueryBuilder.Select(SelectResult.Expression(ARTIST), SelectResult.Expression(ALBUM),
-                    SelectResult.Expression(NAME))
-                .From(DataSource.Database(Db))
-                   .Where(FullTextExpression.Index("nameFTS").Match("'Rock'"))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(artist), SelectResult.Expression(album),
+                    SelectResult.Expression(name))
+                .From(DataSource.Collection(DefaultCollection))
+                   .Where(FullTextFunction.Match(Expression.FullTextIndex("nameFTS"),"'Rock'"))
                    .OrderBy(Ordering.Expression(Expression.Property("Artist").Collate(collate1)),
                             Ordering.Expression(Expression.Property("Album").Collate(collate2)))) {
                 _queryFTSBench.Start();
                 var rows = q.Execute();
-                foreach (var row in rows) {
-                    results.Add(row.GetString(2));
-                }
+                results.AddRange(rows.Select(row => row.GetString(2).ShouldNotBeNull()));
             }
 
             _queryFTSBench.Stop();
-            results.Count.Should().Be(30);
+            results.Count.ShouldBe(30);
             return results.Count;
         }
 
-        private IList<string> CollectQueryResults(IQuery query)
+        private static IList<string> CollectQueryResults(IQuery query)
         {
-            var results = new List<string>();
             var rows = query.Execute();
-            foreach (var row in rows) {
-                results.Add(row.GetString(0));
-            }
-
-            return results;
+            return rows.Select(row => row.GetString(0).ShouldNotBeNull()).ToList();
         }
     }
 }

@@ -16,304 +16,220 @@
 //  limitations under the License.
 // 
 
-#nullable disable
-
 #if COUCHBASE_ENTERPRISE
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Internal.P2P;
 using Couchbase.Lite.P2P;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+public abstract class MockConnection(MessageEndpointListener? host, ProtocolType protocolType)
+    : IMessageEndpointConnection
 {
-    public abstract class MockConnection : IMessageEndpointConnection
+    protected readonly MessageEndpointListener? _host = host;
+    protected readonly ProtocolType _protocolType = protocolType;
+
+    protected IReplicatorConnection? _connection;
+    private StreamWriter? _logOut;
+    protected bool _noCloseRequest;
+
+    public IMockConnectionErrorLogic ErrorLogic { get; set; } = new NoErrorLogic();
+
+    private bool IsClient => _host == null;
+        
+    public void Accept(byte[] message)
     {
-        #region Variables
-
-        protected readonly MessageEndpointListener _host;
-        protected readonly ProtocolType _protocolType;
-
-        protected IReplicatorConnection _connection;
-        private IMockConnectionErrorLogic _errorLogic;
-        private StreamWriter _logOut;
-        protected bool _noCloseRequest;
-
-        #endregion
-
-        #region Properties
-
-        public IMockConnectionErrorLogic ErrorLogic
-        {
-            get => _errorLogic ?? (_errorLogic = new NoErrorLogic());
-            set => _errorLogic = value;
+        if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Receive)) {
+            var e = ErrorLogic.CreateException();
+            ConnectionBroken(e);
+            _connection?.Close(e);
+        } else {
+            _connection?.Receive(Message.FromBytes(message));
         }
-
-        private bool IsClient => _host == null;
-
-        #endregion
-
-        #region Constructors
-
-        protected MockConnection(MessageEndpointListener host, ProtocolType protocolType)
-        {
-            _host = host;
-            _protocolType = protocolType;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public void Accept(byte[] message)
-        {
-            if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Receive)) {
-                var e = ErrorLogic.CreateException();
-                ConnectionBroken(e);
-                _connection?.Close(e);
-            } else {
-                _connection?.Receive(Message.FromBytes(message));
-            }
-        }
-
-        public void LogConversation(string logPath)
-        {
-            var dirName = Path.GetDirectoryName(logPath);
-            if (!Directory.Exists(dirName)) {
-                Directory.CreateDirectory(dirName);
-            }
-
-            var outHandle = File.Open(logPath, FileMode.Append, FileAccess.Write, FileShare.Read);
-            _logOut = new StreamWriter(outHandle, Encoding.UTF8)
-            {
-                AutoFlush = true
-            };
-
-            var start = $"{Environment.NewLine}Starting new session{Environment.NewLine}";
-            _logOut.WriteLine(start);
-        }
-
-        #endregion
-
-        #region Protected Methods
-
-        protected abstract void ConnectionBroken(MessagingException exception);
-
-        protected abstract void PerformWrite(byte[] message);
-
-        #endregion
-
-        #region Private Methods
-
-        private void Log(string message)
-        {
-            _logOut?.WriteLine(message);
-        }
-
-        #endregion
-
-        #region IMessageEndpointConnection
-
-        public virtual Task Close(Exception error)
-        {
-            return Task.CompletedTask;
-        }
-
-        public virtual Task Open(IReplicatorConnection connection)
-        {
-            _connection = connection;
-            if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Connect)) {
-                var e = ErrorLogic.CreateException();
-                ConnectionBroken(e);
-                return Task.FromException(e);
-            }
-
-            return Task.CompletedTask;
-        }
-
-        public Task Send(Message message)
-        {
-            if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Send)) {
-                var e = ErrorLogic.CreateException();
-                ConnectionBroken(e);
-                return Task.FromException(e);
-            }
-
-            var data = message.ToByteArray();
-            PerformWrite(data);
-            return Task.CompletedTask;
-        }
-
-        #endregion
-
-        #region Nested
-
-        private sealed class NoErrorLogic : IMockConnectionErrorLogic
-        {
-            #region IMockConnectionErrorLogic
-
-            public MessagingException CreateException()
-            {
-                return null;
-            }
-
-            public bool ShouldClose(MockConnectionLifecycleLocation location)
-            {
-                return false;
-            }
-
-            #endregion
-        }
-
-        #endregion
     }
 
-    public sealed class MockClientConnection : MockConnection
+    public void LogConversation(string logPath)
     {
-        #region Variables
-
-        private MockServerConnection _server;
-        private ManualResetEventSlim _serverWait = new ManualResetEventSlim();
-        private const string Tag = nameof(MockClientConnection);
-
-        #endregion
-
-        #region Constructors
-
-        public MockClientConnection(MessageEndpoint endpoint)
-            : base(null, endpoint.ProtocolType)
-        {
-            _server = endpoint.Target as MockServerConnection;
+        var dirName = Path.GetDirectoryName(logPath);
+        Debug.Assert(dirName != null, "dirName != null");
+        if (!Directory.Exists(dirName)) {
+            Directory.CreateDirectory(dirName);
         }
 
-        #endregion
-
-        #region Overrides
-
-        protected override void ConnectionBroken(MessagingException exception)
+        var outHandle = File.Open(logPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+        _logOut = new StreamWriter(outHandle, Encoding.UTF8)
         {
-            var server = _server;
-            _server = null;
-            server?.ClientDisconnected(exception);
+            AutoFlush = true
+        };
+
+        var start = $"{Environment.NewLine}Starting new session{Environment.NewLine}";
+        _logOut.WriteLine(start);
+    }
+
+    protected abstract void ConnectionBroken(MessagingException? exception);
+
+    protected abstract void PerformWrite(byte[] message);
+
+    public virtual Task Close(Exception? error)
+    {
+        return Task.CompletedTask;
+    }
+
+    public virtual Task Open(IReplicatorConnection connection)
+    {
+        _connection = connection;
+        if (!IsClient || !ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Connect)) {
+            return Task.CompletedTask;
         }
-
-        public override async Task Open(IReplicatorConnection connection)
-        {
-            await base.Open(connection).ConfigureAwait(false);
-            _server?.ClientOpened(this);
-            while(!_serverWait.Wait(TimeSpan.FromSeconds(1))) {
-                WriteLog.To.Sync.W(Tag, "Connection appears stuck waiting for server");
-            }
-        }
-
-        public override Task Close(Exception error)
-        {
-            if (_connection == null) {
-                return Task.CompletedTask;
-            }
-
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Close)) {
-                var e = ErrorLogic.CreateException();
-                ConnectionBroken(e);
-                return Task.FromException(e);
-            }
             
-            _connection = null;
+        var e = ErrorLogic.CreateException();
+        Debug.Assert(e != null, "e != null");
+        ConnectionBroken(e);
+        return Task.FromException(e);
 
-            if (_protocolType == ProtocolType.MessageStream && !_noCloseRequest) {
-                ConnectionBroken(null);
-            }
-
-            return Task.CompletedTask;
-        }
-
-        public void ServerConnected()
-        {
-            _serverWait.Set();
-        }
-
-        public void ServerDisconnected()
-        {
-            var server = _server;
-            _server = null;
-            _noCloseRequest = true;
-            _connection?.Close(null);
-        }
-
-        protected override void PerformWrite(byte[] message)
-        {
-            _server?.Accept(message);
-        }
-
-        #endregion
     }
 
-    public sealed class MockServerConnection : MockConnection
+    public Task Send(Message message)
     {
-        #region Variables
-
-        private MockClientConnection _client;
-
-        #endregion
-
-        #region Constructors
-
-        public MockServerConnection(MessageEndpointListener host, ProtocolType protocolType)
-            : base(host, protocolType)
-        {
+        if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Send)) {
+            var e = ErrorLogic.CreateException();
+            Debug.Assert(e != null, "e != null");
+            ConnectionBroken(e);
+            return Task.FromException(e);
         }
 
-        #endregion
+        var data = message.ToByteArray();
+        PerformWrite(data);
+        return Task.CompletedTask;
+    }
 
-        #region Public Methods
+    private sealed class NoErrorLogic : IMockConnectionErrorLogic
+    {
+        public MessagingException? CreateException() => null;
 
-        public void ClientOpened(MockClientConnection client)
-        {
-            _client = client;
-            _host.Accept(this);
+        public bool ShouldClose(MockConnectionLifecycleLocation location) => false;
+    }
+}
+
+public sealed class MockClientConnection(MessageEndpoint endpoint) : MockConnection(null, endpoint.ProtocolType)
+{
+    private MockServerConnection? _server = endpoint.Target as MockServerConnection;
+    private readonly ManualResetEventSlim _serverWait = new();
+    private const string Tag = nameof(MockClientConnection);
+
+    protected override void ConnectionBroken(MessagingException? exception)
+    {
+        var server = _server;
+        _server = null;
+        server?.ClientDisconnected(exception);
+    }
+
+    public override async Task Open(IReplicatorConnection connection)
+    {
+        await base.Open(connection).ConfigureAwait(false);
+        _server?.ClientOpened(this);
+        while(!_serverWait.Wait(TimeSpan.FromSeconds(1))) {
+            WriteLog.To.Sync.W(Tag, "Connection appears stuck waiting for server");
         }
+    }
 
-        #endregion
-
-        #region Overrides
-
-        protected override void ConnectionBroken(MessagingException exception)
-        {
-            // No-op
-        }
-
-        public override Task Close(Exception e)
-        {
-            _host.Close(this);
-            if (_protocolType == ProtocolType.MessageStream && e == null) {
-                _client.ServerDisconnected();
-            }
-
+    public override Task Close(Exception? error)
+    {
+        if (_connection == null) {
             return Task.CompletedTask;
         }
 
-        public override async Task Open(IReplicatorConnection connection)
-        {
-            await base.Open(connection).ConfigureAwait(false);
+        if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Close)) {
+            var e = ErrorLogic.CreateException();
+            ConnectionBroken(e);
+            Debug.Assert(e != null, "e != null");
+            return Task.FromException(e);
+        }
+            
+        _connection = null;
 
-            // HACK: Sorry, I hope this is only needed for this mock
-            (connection as Internal.P2P.CouchbaseSocket).OpenCompletion = _client.ServerConnected;
+        if (_protocolType == ProtocolType.MessageStream && !_noCloseRequest) {
+            ConnectionBroken(null);
         }
 
-        protected override void PerformWrite(byte[] message)
-        {
-            _client?.Accept(message);
+        return Task.CompletedTask;
+    }
+
+    public void ServerConnected()
+    {
+        _serverWait.Set();
+    }
+
+    public void ServerDisconnected()
+    {
+        _server = null;
+        _noCloseRequest = true;
+        _connection?.Close(null);
+    }
+
+    protected override void PerformWrite(byte[] message)
+    {
+        _server?.Accept(message);
+    }
+}
+
+public sealed class MockServerConnection(MessageEndpointListener host, ProtocolType protocolType)
+    : MockConnection(host, protocolType)
+{
+    private MockClientConnection? _client;
+
+    public void ClientOpened(MockClientConnection client)
+    {
+        _client = client;
+        _host?.Accept(this);
+    }
+
+    protected override void ConnectionBroken(MessagingException? exception)
+    {
+        // No-op
+    }
+
+    public override Task Close(Exception? e)
+    {
+        _host?.Close(this);
+        if (_protocolType == ProtocolType.MessageStream && e == null) {
+            _client?.ServerDisconnected();
         }
 
-        #endregion
+        return Task.CompletedTask;
+    }
 
-        public void ClientDisconnected(MessagingException exception)
-        {
-            _noCloseRequest = true;
-            _connection?.Close(exception);
+    public override async Task Open(IReplicatorConnection connection)
+    {
+        await base.Open(connection).ConfigureAwait(false);
+
+        // HACK: Sorry, I hope this is only needed for this mock
+        if (connection is not CouchbaseSocket cbSocket) {
+            throw new InvalidOperationException("Expected CouchbaseSocket");
         }
+
+        if (_client == null) {
+            throw new InvalidOperationException("_client == null");
+        }
+
+        cbSocket.OpenCompletion = _client.ServerConnected;
+    }
+
+    protected override void PerformWrite(byte[] message)
+    {
+        _client?.Accept(message);
+    }
+
+    public void ClientDisconnected(MessagingException? exception)
+    {
+        _noCloseRequest = true;
+        _connection?.Close(exception);
     }
 }
 #endif

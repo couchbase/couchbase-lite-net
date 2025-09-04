@@ -28,7 +28,6 @@ using System.Collections.Immutable;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
@@ -44,17 +43,21 @@ using Newtonsoft.Json.Linq;
 using Extensions = Couchbase.Lite.Util.Extensions;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Fleece;
-using Dispatch;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
-
+using System.Security.Cryptography.X509Certificates;
 using Xunit;
 using Xunit.Abstractions;
+
+#if !SANITY_ONLY
+using System.Threading.Tasks;
+using System.Threading;
+using Dispatch;
 using Couchbase.Lite.Support;
+using System.Diagnostics;
+#endif
 
 #if __ANDROID__ || __IOS__ || WINUI
 using Couchbase.Lite.DI;
@@ -67,10 +70,12 @@ namespace Test
     // tests too off track.
     public sealed class CSharpTest(ITestOutputHelper output) : TestCase(output)
     {
+#if !SANITY_ONLY
 #if EXTRA_LONG_WRAPPER_TEST
         private static readonly TimeSpan WrapperThreadBlockTime = TimeSpan.FromSeconds(2);
 #else
         private static readonly TimeSpan WrapperThreadBlockTime = TimeSpan.FromMilliseconds(500);
+#endif
 #endif
 
 #if COUCHBASE_ENTERPRISE
@@ -835,7 +840,11 @@ namespace Test
                 ProxyAuthenticator = new("proxyUser", "proxyPassword"),
                 Headers = new Dictionary<string, string?> { ["foo"] = "bar" }.ToImmutableDictionary(),
                 Heartbeat = TimeSpan.FromDays(1),
+#if NET9_0_OR_GREATER
+                PinnedServerCertificate = X509CertificateLoader.LoadCertificate(ms.ToArray()),
+#else
                 PinnedServerCertificate = new(ms.ToArray()),
+#endif
                 ReplicatorType = ReplicatorType.Pull,
                 EnableAutoPurge = false,
                 MaxAttempts = 2,
@@ -860,8 +869,10 @@ namespace Test
                 ConflictResolver = new TestConflictResolver(_ => throw new NotImplementedException()),
                 PullFilter = ((_, _) => throw new NotImplementedException()),
                 PushFilter = ((_, _) => throw new NotImplementedException()),
+                // ReSharper disable UseCollectionExpression
                 Channels = ImmutableArray.Create("foo"),
                 DocumentIDs = ImmutableArray.Create("foo")
+                // ReSharper restore UseCollectionExpression
             };
             var config2 = new CollectionConfiguration(config1);
             TestCopyConstruction(typeof(CollectionConfiguration), defaultConfig, config1, config2,
