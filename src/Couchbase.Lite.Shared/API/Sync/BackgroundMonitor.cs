@@ -16,7 +16,7 @@
 //  limitations under the License.
 // 
 
-#if __IOS__ && !MACCATALYST
+#if CBL_PLATFORM_IOS
 
 using CoreFoundation;
 using Foundation;

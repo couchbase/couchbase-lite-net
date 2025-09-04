@@ -67,7 +67,7 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-#if NET6_0_OR_GREATER && !CBL_NO_VERSION_CHECK && !__ANDROID__ && !__IOS__ && !WINUI
+#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
@@ -476,12 +476,11 @@ namespace Test
 
         internal static byte[] GetFileByteArray(string filename, Type type)
         {
-#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
-            using (var stream = FileSystem.Current.OpenAppPackageFileAsync(filename).Result)
-            using (var memoryStream = new MemoryStream()) {
-                stream.CopyTo(memoryStream);
-                return memoryStream.ToArray();
-            }
+#if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
+            using var stream = FileSystem.Current.OpenAppPackageFileAsync(filename).Result;
+            using var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            return memoryStream.ToArray();
 #else
             using var stream = type.GetTypeInfo().Assembly.GetManifestResourceStream(filename);
             using var sr = new BinaryReader(stream!);
@@ -638,7 +637,7 @@ namespace Test
 
         internal static bool ReadFileByLines(string path, Func<string, bool> callback)
         {
-#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
+#if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
             using var stream = FileSystem.Current.OpenAppPackageFileAsync(path.Replace("C/tests/data/", "")).Result;
             using var tr = new StreamReader(stream);
 #else
@@ -655,9 +654,9 @@ namespace Test
             return true;
         }
 
-        internal Stream GetTestAsset(string path)
+        internal static Stream GetTestAsset(string path)
         {
-#if NET6_0_WINDOWS10 || NET_APPLE || NET_ANDROID
+#if CBL_PLATFORM_WINUI || CBL_PLATFORM_APPLE || CBL_PLATFORM_ANDROID
             return FileSystem.Current.OpenAppPackageFileAsync(path).Result;
 #else
             return File.Open(path, FileMode.Open, FileAccess.Read);
@@ -666,9 +665,6 @@ namespace Test
         }
 #endif
 
-        public void Dispose()
-        {
-            Dispose(true);
-        }
+        public void Dispose() => Dispose(true);
     }
 }

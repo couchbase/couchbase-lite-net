@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-// Windows 2012 doesn't define the more generic variants
-#if NETFRAMEWORK || NET462 || NET6_0_OR_GREATER
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -52,4 +50,3 @@ internal sealed class LinuxProxy : IProxy
         return Task.FromResult<WebProxy?>(new WebProxy(new Uri(proxyAddress), ignored?.Contains("<local>") == true || ignored?.Contains("*") == true, ignored));
     }
 }
-#endif

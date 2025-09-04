@@ -102,7 +102,7 @@ public sealed class TLSIdentityTest : TestCase
     [SkippableFact]
     public void TestImportIdentity()
     {
-#if NET_ANDROID
+#if CBL_PLATFORM_ANDROID
         Skip.If(Android.OS.Build.VERSION.SdkInt < Android.OS.BuildVersionCodes.M, 
             "An apparent Android bug appears to affect this test on API < 23");
 

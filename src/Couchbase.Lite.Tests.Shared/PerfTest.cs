@@ -38,13 +38,6 @@ public abstract class PerfTest
     
     protected Collection DefaultCollection => Db.ShouldNotBeNull().GetDefaultCollection();
 
-#if NET6_0_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET_ANDROID && !__IOS__ && !WINUI
-        static PerfTest()
-        {
-            Couchbase.Lite.Support.NetDesktop.CheckVersion();
-        }
-#endif
-
     protected PerfTest(ITestOutputHelper output)
     {
         _output = output;

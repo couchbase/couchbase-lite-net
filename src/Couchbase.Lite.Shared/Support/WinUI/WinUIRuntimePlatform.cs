@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-#if CBL_PLATFORM_WINUI
+
 using Couchbase.Lite.DI;
 using Windows.Security.ExchangeActiveSyncProvisioning;
 using Windows.System.Profile;
@@ -55,4 +55,3 @@ namespace Couchbase.Lite.Support
         #endregion
     }
 }
-#endif

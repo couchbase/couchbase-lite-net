@@ -59,7 +59,7 @@ using Couchbase.Lite.Support;
 using System.Diagnostics;
 #endif
 
-#if __ANDROID__ || __IOS__ || WINUI
+#if !CBL_PLATFORM_DOTNETFX && !CBL_PLATFORM_DOTNET
 using Couchbase.Lite.DI;
 #endif
 
@@ -598,7 +598,7 @@ namespace Test
             }
         }
 
-#if __ANDROID__ || __IOS__ || WINUI
+#if !CBL_PLATFORM_DOTNETFX && !CBL_PLATFORM_DOTNET
 
         [Fact]
         public async Task TestMainThreadScheduler()
@@ -822,7 +822,7 @@ namespace Test
             var configs = CollectionConfiguration.FromCollections(DefaultCollection, Db.CreateCollection("second"));
             var replicationConfigStandard = new ReplicatorConfiguration(configs, new URLEndpoint(new("ws://fake")));
             
-#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
+#if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
             using var cert =  FileSystem.OpenAppPackageFileAsync("SelfSigned.cer").Result;
 #else
             using var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer");

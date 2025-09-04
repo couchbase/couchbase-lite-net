@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if CBL_PLATFORM_WINUI
+
 using System;
 using System.Threading.Tasks;
 
@@ -69,4 +69,3 @@ namespace Couchbase.Lite.Support
         #endregion
     }
 }
-#endif

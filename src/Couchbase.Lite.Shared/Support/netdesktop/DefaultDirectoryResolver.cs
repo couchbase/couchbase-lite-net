@@ -16,8 +16,6 @@
 //  limitations under the License.
 //
 
-// Windows 2012 doesn't define the more generic variants
-#if (NETFRAMEWORK || NET462 || NET6_0_OR_GREATER) && !__MOBILE__ && !CBL_PLATFORM_WINUI
 using System;
 using System.IO;
 using Couchbase.Lite.DI;
@@ -37,5 +35,3 @@ internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
         return Path.Combine(baseDirectory, "CouchbaseLite");
     }
 }
-
-#endif

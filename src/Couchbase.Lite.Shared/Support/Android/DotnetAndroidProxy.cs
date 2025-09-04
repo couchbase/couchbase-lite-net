@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-#if __ANDROID__
+
 using System;
 using System.Linq;
 using System.Net;
@@ -70,5 +70,3 @@ internal sealed class DotnetAndroidProxy : IProxy
         return bldr.ToString();
     }
 }
-
-#endif

@@ -20,9 +20,14 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
+#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
+using System.Runtime.InteropServices;
+#endif
+
+#if !CBL_PLATFORM_APPLE && !CBL_PLATFORM_WINUI
 using Couchbase.Lite.Support;
+#endif
 
 using LiteCore.Interop;
 using SimpleInjector;
@@ -41,8 +46,7 @@ public static class Service
     {
         ServiceCollection.Options.AllowOverridingRegistrations = true;
 
-        // Windows 2012 doesn't define NETFRAMEWORK for some reason
-#if (NET6_0_OR_GREATER || NETFRAMEWORK || NET462) && !CBL_PLATFORM_WINUI && !__MOBILE__
+#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
         AutoRegister(typeof(Database).GetTypeInfo().Assembly);
         
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -53,20 +57,20 @@ public static class Service
             Register<IProxy>(new LinuxProxy());
         }
 #elif CBL_PLATFORM_WINUI
-        Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
-#elif __ANDROID__
+        AutoRegister(typeof(Database).GetTypeInfo().Assembly);
+#elif CBL_PLATFORM_ANDROID
         #if !TEST_COVERAGE
         if (Droid.Context == null) {
             throw new RuntimeException(
                 "Android context not set.  Please ensure that a call to Couchbase.Lite.Support.Droid.Activate() is made.");
         }
 
-        Service.AutoRegister(typeof(Database).Assembly);
-        Service.Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(Droid.Context));
-        Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(Droid.Context));
+        AutoRegister(typeof(Database).Assembly);
+        Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(Droid.Context));
+        Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(Droid.Context));
         #endif
-#elif __IOS__
-        Service.AutoRegister(typeof(Database).Assembly);
+#elif CBL_PLATFORM_APPLE
+        AutoRegister(typeof(Database).Assembly);
 #else
         #error Unknown Platform
 #endif

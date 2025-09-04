@@ -17,9 +17,11 @@
 // 
 
 using System;
-using System.IO;
 using System.Linq;
 using System.Reflection;
+
+#if !CBL_PLATFORM_WINUI
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -28,6 +30,9 @@ using Microsoft.Win32;
 #if NET8_0_OR_GREATER
 using System.Runtime.Versioning;
 #endif
+#endif
+
+
 
 namespace Couchbase.Lite.Support;
 
@@ -36,7 +41,9 @@ namespace Couchbase.Lite.Support;
 /// </summary>
 public static partial class NetDesktop
 {
+#if !CBL_PLATFORM_WINUI
     private static int Activated;
+#endif
 
     /// <summary>
     /// A sanity check to ensure that the versions of Couchbase.Lite and Couchbase.Lite.Support.NetDesktop match.
@@ -62,6 +69,7 @@ public static partial class NetDesktop
         }
     }
 
+    #if !CBL_PLATFORM_WINUI
     /// <summary>
     /// Loads the native LiteCore.dll from disk. This is needed on Windows because
     /// the architecture is unknown until runtime and thus the correct dll needs
@@ -189,4 +197,5 @@ public static partial class NetDesktop
     private static extern
 #endif
         IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
+#endif
 }

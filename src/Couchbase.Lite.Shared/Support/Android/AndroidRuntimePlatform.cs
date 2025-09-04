@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __ANDROID__
+
 using System;
 using Android.OS;
 using Couchbase.Lite.DI;
@@ -53,4 +53,3 @@ internal sealed class AndroidRuntimePlatform : IRuntimePlatform
 		return $"{Char.ToUpperInvariant(input[0])}{input.Substring((1))}";
 	}
 }
-#endif

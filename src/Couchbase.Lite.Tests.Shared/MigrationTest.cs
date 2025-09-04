@@ -32,7 +32,7 @@ public sealed class MigrationTest(ITestOutputHelper output) : TestCase(output)
     public void TestOpenExistingDBv1X()
     {
         Database.Delete("android-sqlite", Directory);
-        using(var za = new ZipArchive(GetTestAsset("replacedb/android140-sqlite.cblite2.zip"))) {
+        using(var za = new ZipArchive(TestCase.GetTestAsset("replacedb/android140-sqlite.cblite2.zip"))) {
             za.ExtractToDirectory(Directory);
         }
 
@@ -61,7 +61,7 @@ public sealed class MigrationTest(ITestOutputHelper output) : TestCase(output)
     public void TestOpenExistingDBv1XNoAttachment()
     {
         Database.Delete("android-sqlite", Directory);
-        using (var za = new ZipArchive(GetTestAsset("replacedb/android140-sqlite-noattachment.cblite2.zip"))) {
+        using (var za = new ZipArchive(TestCase.GetTestAsset("replacedb/android140-sqlite-noattachment.cblite2.zip"))) {
             za.ExtractToDirectory(Directory);
         }
 
@@ -82,7 +82,7 @@ public sealed class MigrationTest(ITestOutputHelper output) : TestCase(output)
     public void TestOpenExistingDB()
     {
         Database.Delete("android-sqlite", Directory);
-        using (var za = new ZipArchive(GetTestAsset("replacedb/android200-sqlite.cblite2.zip"))) {
+        using (var za = new ZipArchive(TestCase.GetTestAsset("replacedb/android200-sqlite.cblite2.zip"))) {
             za.ExtractToDirectory(Directory);
         }
 

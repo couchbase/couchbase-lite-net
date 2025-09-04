@@ -116,9 +116,9 @@ internal sealed unsafe class LiveQuerier : IDisposable
         }
     }
 
-        #if __IOS__
+#if CBL_PLATFORM_APPLE
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4QueryObserverCallback))]
-        #endif
+#endif
     private static void QueryObserverCallback(C4QueryObserver* obs, C4Query* query, void* context)
     {
         var obj = GCHandle.FromIntPtr((IntPtr)context).Target as LiveQuerier;

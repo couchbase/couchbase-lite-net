@@ -22,8 +22,6 @@ using System;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 
-#if !__IOS__ && !__ANDROID__
-
 namespace Couchbase.Lite.Support;
 
 [CouchbaseDependency]
@@ -43,5 +41,3 @@ internal sealed class ConsoleLogWriter : IConsoleLogWriter
         }
     }
 }
-
-#endif

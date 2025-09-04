@@ -16,7 +16,6 @@
 //  limitations under the License.
 // 
 
-#if CBL_PLATFORM_WINUI
 using System;
 using System.Linq;
 using System.Net;
@@ -74,4 +73,3 @@ namespace Couchbase.Lite.Support
         #endregion
     }
 }
-#endif

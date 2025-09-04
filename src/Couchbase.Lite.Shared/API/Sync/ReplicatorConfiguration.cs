@@ -87,9 +87,6 @@ public sealed partial record ReplicatorConfiguration
     private readonly IEndpoint _target = null!; // Set via property
     private bool _isDefaultMaxAttemptSet = true;
 
-#if __IOS__ && !MACCATALYST
-#endif
-
     /// <summary>
     /// Gets or sets whether a cookie can be set on a parent domain
     /// of the host that issued it (i.e. foo.bar.com can set a cookie for all
@@ -103,7 +100,7 @@ public sealed partial record ReplicatorConfiguration
         init => Options.AcceptParentDomainCookies = value;
     }
 
-#if __IOS__ && !MACCATALYST
+#if CBL_PLATFORM_IOS
         /// <summary>
         /// Allows the replicator to continue replicating in the background. The default
         /// value is <c>false</c>, which means that the replicator will suspend itself when the
@@ -381,7 +378,7 @@ public sealed partial record ReplicatorConfiguration
         ReplicatorType = other.ReplicatorType;
         MaxAttempts = other.MaxAttempts;
         
-#if __IOS__ && !MACCATALYST
+#if CBL_PLATFORM_IOS
         AllowReplicatingInBackground = other.AllowReplicatingInBackground;
 #endif
     }

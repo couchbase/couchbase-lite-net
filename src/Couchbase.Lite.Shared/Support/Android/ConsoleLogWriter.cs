@@ -14,8 +14,6 @@
 // limitations under the License.
 // 
 
-#if __ANDROID__
-
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
@@ -44,5 +42,3 @@ internal sealed class ConsoleLogWriter : IConsoleLogWriter
         }
     }
 }
-
-#endif

@@ -130,7 +130,7 @@ internal static class Status
                         c4Err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
                     }
 
-#if __IOS__
+#if CBL_PLATFORM_APPLE
                         if (ie.Message == "Connection closed.") {
                         //AppleTlsContext.cs
                         //case SslStatus.ClosedAbort:
