@@ -15,119 +15,92 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#nullable disable
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using Xunit;
 using Xunit.Abstractions;
 
-namespace Test.Util
+namespace Test.Util;
+
+internal sealed class Benchmark(ITestOutputHelper output)
 {
-    internal sealed class Benchmark
+    private readonly Stopwatch _st = new();
+    private readonly List<TimeSpan> _times = [];
+
+    public TimeSpan Elapsed => _st.Elapsed;
+
+    public void Start()
     {
-        private readonly ITestOutputHelper _output;
-        private Stopwatch _st = new Stopwatch();
-        private List<TimeSpan> _times = new List<TimeSpan>();
+        _st.Reset();
+        _st.Start();
+    }
 
-        public TimeSpan Elapsed
-        {
-            get {
-                return _st.Elapsed;
-            }
-        }
+    public TimeSpan Stop()
+    {
+        _st.Stop();
+        var t = Elapsed;
+        _times.Add(t);
+        return t;
+    }
 
-        public Benchmark(ITestOutputHelper output)
-        {
-            _output = output;
-        }
+    public void Sort() => _times.Sort();
 
-        public void Start()
-        {
-            _st.Reset();
-            _st.Start();
-        }
+    public TimeSpan Median()
+    {
+        Sort();
+        return _times[_times.Count / 2];
+    }
 
-        public TimeSpan Stop()
-        {
-            _st.Stop();
-            var t = Elapsed;
-            _times.Add(t);
-            return t;
-        }
+    public TimeSpan Average()
+    {
+        Sort();
+        var n = _times.Count;
+        var skip = n / 10;
+        var total = _times.Skip(skip).Sum(t => t.Ticks);
 
-        public void Sort()
-        {
-            _times.Sort();
-        }
+        return TimeSpan.FromTicks(total / (n - 2 * skip));
+    }
 
-        public TimeSpan Median()
-        {
-            Sort();
-            return _times[_times.Count / 2];
-        }
+    public TimeSpan StdDev()
+    {
+        var avg = Average().TotalMilliseconds;
+        var n = _times.Count;
+        var skip = n / 10;
+        var total = _times.Skip(skip).Sum(t => Math.Pow(t.TotalMilliseconds - avg, 2.0));
 
-        public TimeSpan Average()
-        {
-            Sort();
-            var n = _times.Count;
-            var skip = n / 10;
-            var total = 0L;
-            foreach(var t in _times.Skip(skip)) {
-                total += t.Ticks;
-            }
+        return TimeSpan.FromMilliseconds(Math.Sqrt(total / (n - 2.0 * skip)));
+    }
 
-            return TimeSpan.FromTicks(total / (n - 2 * skip));
-        }
+    public Tuple<TimeSpan, TimeSpan> Range()
+    {
+        Sort();
+        return Tuple.Create(_times.First(), _times.Last());
+    }
 
-        public TimeSpan Stddev()
-        {
-            var avg = Average().TotalMilliseconds;
-            var n = _times.Count;
-            var skip = n / 10;
-            var total = 0.0;
-            foreach(var t in _times.Skip(skip)) {
-                total += Math.Pow(t.TotalMilliseconds - avg, 2.0);
+    public void Reset() => _times.Clear();
+
+    public void PrintReport(double scale = 1.0, string? items = null)
+    {
+        var r = Range();
+        var timeScales = new[] { "sec", "ms", "us", "ns" };
+        var avg = Average().TotalSeconds;
+        var scaleName = default(string);
+        for(uint i = 0; i < timeScales.Length; i++) {
+            scaleName = timeScales[i];
+            if(avg * scale > 1.0) {
+                break;
             }
 
-            return TimeSpan.FromMilliseconds(Math.Sqrt(total / (n - 2.0 * skip)));
+            scale *= 1000;
         }
 
-        public Tuple<TimeSpan, TimeSpan> Range()
-        {
-            Sort();
-            return Tuple.Create(_times.First(), _times.Last());
+        if(items != null) {
+            scaleName = $"{scaleName}/{items}";
         }
 
-        public void Reset()
-        {
-            _times.Clear();
-        }
-
-        public void PrintReport(double scale = 1.0, string items = null)
-        {
-            var r = Range();
-            var TimeScales = new[] { "sec", "ms", "us", "ns" };
-            var avg = Average().TotalSeconds;
-            var scaleName = default(string);
-            for(uint i = 0; i < TimeScales.Length; i++) {
-                scaleName = TimeScales[i];
-                if(avg * scale > 1.0) {
-                    break;
-                }
-
-                scale *= 1000;
-            }
-
-            if(items != null) {
-                scaleName = $"{scaleName}/{items}";
-            }
-
-            var line = $"Range: {r.Item1.TotalSeconds * scale:F3} ... {r.Item2.TotalSeconds * scale:F3} {scaleName}, median: {Median().TotalSeconds * scale:F3}, std dev: {Stddev().TotalSeconds * scale:G3}";
-            _output.WriteLine(line);
-        }
+        var line = $"Range: {r.Item1.TotalSeconds * scale:F3} ... {r.Item2.TotalSeconds * scale:F3} {scaleName}, median: {Median().TotalSeconds * scale:F3}, std dev: {StdDev().TotalSeconds * scale:G3}";
+        output.WriteLine(line);
     }
 }

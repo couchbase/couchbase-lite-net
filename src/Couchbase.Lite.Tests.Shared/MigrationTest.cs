@@ -24,91 +24,85 @@ using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Test
+namespace Test;
+
+public sealed class MigrationTest(ITestOutputHelper output) : TestCase(output)
 {
-    public sealed class MigrationTest : TestCase
+    [Fact]
+    public void TestOpenExistingDBv1X()
     {
-        public MigrationTest(ITestOutputHelper output) : base(output)
-        {
-
+        Database.Delete("android-sqlite", Directory);
+        using(var za = new ZipArchive(GetTestAsset("replacedb/android140-sqlite.cblite2.zip"))) {
+            za.ExtractToDirectory(Directory);
         }
 
-        [Fact]
-        public void TestOpenExistingDBv1x()
-        {
-            Database.Delete("android-sqlite", Directory);
-            using(var za = new ZipArchive(GetTestAsset("replacedb/android140-sqlite.cblite2.zip"))) {
-                za.ExtractToDirectory(Directory);
+        var config = new DatabaseConfiguration{ Directory = Directory };
+        using (var db = new Database("android-sqlite", config)) {
+            db.GetDefaultCollection().Count.ShouldBe(2UL);
+            for (var i = 1; i < 2; i++) {
+                var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
+                doc.ShouldNotBeNull();
+                doc.GetString("key").ShouldBe(i.ToString());
+
+                var attachments = doc.GetDictionary("_attachments");
+                attachments.ShouldNotBeNull();
+                var key = $"attach{i}";
+                var blob = attachments.GetBlob(key);
+                blob.ShouldNotBeNull();
+                var attach = Encoding.UTF8.GetBytes(key);
+                blob.Content.ShouldBe(attach);
             }
-
-            var config = new DatabaseConfiguration{ Directory = Directory };
-            using (var db = new Database("android-sqlite", config)) {
-                db.GetDefaultCollection().Count.ShouldBe(2UL);
-                for (int i = 1; i < 2; i++) {
-                    var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
-                    doc.ShouldNotBeNull();
-                    doc!.GetString("key").ShouldBe(i.ToString());
-
-                    var attachments = doc.GetDictionary("_attachments");
-                    attachments.ShouldNotBeNull();
-                    var key = $"attach{i}";
-                    var blob = attachments!.GetBlob(key);
-                    blob.ShouldNotBeNull();
-                    var attach = Encoding.UTF8.GetBytes(key);
-                    blob!.Content.ShouldBe(attach);
-                }
-            }
-
-            Database.Delete("android-sqlite", Directory);
         }
 
-        [Fact]
-        public void TestOpenExistingDBv1xNoAttachment()
-        {
-            Database.Delete("android-sqlite", Directory);
-            using (var za = new ZipArchive(GetTestAsset("replacedb/android140-sqlite-noattachment.cblite2.zip"))) {
-                za.ExtractToDirectory(Directory);
-            }
+        Database.Delete("android-sqlite", Directory);
+    }
 
-            var config = new DatabaseConfiguration { Directory = Directory };
-            using (var db = new Database("android-sqlite", config)) {
-                db.GetDefaultCollection().Count.ShouldBe(2UL);
-                for (int i = 1; i < 2; i++) {
-                    var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
-                    doc.ShouldNotBeNull();
-                    doc!.GetString("key").ShouldBe(i.ToString());
-                }
-            }
-
-            Database.Delete("android-sqlite", Directory);
+    [Fact]
+    public void TestOpenExistingDBv1XNoAttachment()
+    {
+        Database.Delete("android-sqlite", Directory);
+        using (var za = new ZipArchive(GetTestAsset("replacedb/android140-sqlite-noattachment.cblite2.zip"))) {
+            za.ExtractToDirectory(Directory);
         }
 
-        [Fact]
-        public void TestOpenExistingDB()
-        {
-            Database.Delete("android-sqlite", Directory);
-            using (var za = new ZipArchive(GetTestAsset("replacedb/android200-sqlite.cblite2.zip"))) {
-                za.ExtractToDirectory(Directory);
+        var config = new DatabaseConfiguration { Directory = Directory };
+        using (var db = new Database("android-sqlite", config)) {
+            db.GetDefaultCollection().Count.ShouldBe(2UL);
+            for (var i = 1; i < 2; i++) {
+                var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
+                doc.ShouldNotBeNull();
+                doc.GetString("key").ShouldBe(i.ToString());
             }
+        }
 
-            var config = new DatabaseConfiguration { Directory = Directory };
-            using (var db = new Database("android-sqlite", config)) {
-                db.GetDefaultCollection().Count.ShouldBe(2UL);
-                for (int i = 1; i < 2; i++) {
-                    var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
-                    doc.ShouldNotBeNull();
-                    doc!.GetString("key").ShouldBe(i.ToString());
+        Database.Delete("android-sqlite", Directory);
+    }
+
+    [Fact]
+    public void TestOpenExistingDB()
+    {
+        Database.Delete("android-sqlite", Directory);
+        using (var za = new ZipArchive(GetTestAsset("replacedb/android200-sqlite.cblite2.zip"))) {
+            za.ExtractToDirectory(Directory);
+        }
+
+        var config = new DatabaseConfiguration { Directory = Directory };
+        using (var db = new Database("android-sqlite", config)) {
+            db.GetDefaultCollection().Count.ShouldBe(2UL);
+            for (var i = 1; i < 2; i++) {
+                var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
+                doc.ShouldNotBeNull();
+                doc.GetString("key").ShouldBe(i.ToString());
                     
-                    var key = $"attach{i}";
-                    var blob = doc.GetBlob(key);
-                    blob.ShouldNotBeNull();
-                    var attach = Encoding.UTF8.GetBytes(key);
-                    blob!.Content.ShouldBe(attach);
-                }
+                var key = $"attach{i}";
+                var blob = doc.GetBlob(key);
+                blob.ShouldNotBeNull();
+                var attach = Encoding.UTF8.GetBytes(key);
+                blob.Content.ShouldBe(attach);
             }
-
-            Database.Delete("android-sqlite", Directory);
         }
+
+        Database.Delete("android-sqlite", Directory);
     }
 }
 #endif

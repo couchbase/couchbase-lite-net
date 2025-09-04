@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#nullable disable
 
 using System;
 using System.Collections.Generic;
@@ -23,115 +22,115 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite;
+
+public sealed class WaitAssert : IDisposable
 {
-    public sealed class WaitAssert : IDisposable
+    private readonly ManualResetEventSlim _mre = new();
+    private Exception? _caughtException;
+
+    public IList<Exception> CaughtExceptions { get; } = new List<Exception>();
+
+    public static bool WaitAll(IEnumerable<ManualResetEventSlim> handles, TimeSpan timeout)
     {
-        private ManualResetEventSlim _mre = new ManualResetEventSlim();
-        private Exception _caughtException;
-
-        public IList<Exception> CaughtExceptions { get; } = new List<Exception>();
-
-        public static bool WaitAll(IEnumerable<ManualResetEventSlim> handles, TimeSpan timeout)
-        {
-            bool allSignaled = false;
-            if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) {
-                // STA thread workaround
-                var startTime = DateTime.Now;
-                while (DateTime.Now - startTime < timeout) {
-                    if(handles.All(h => h.IsSet)) { 
-                        allSignaled = true;
-                        break;
-                    }
-                    Thread.Sleep(100);
+        var allSignaled = false;
+        var handleList = handles.ToArray();
+        if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) {
+            // STA thread workaround
+            var startTime = DateTime.Now;
+            while (DateTime.Now - startTime < timeout) {
+                if(handleList.All(h => h.IsSet)) { 
+                    allSignaled = true;
+                    break;
                 }
-            } else {
-                // MTA thread can use WaitAll directly
-                allSignaled = WaitHandle.WaitAll(
-                    handles.Select(x => x.WaitHandle).ToArray(),
-                    timeout
-                );
+                Thread.Sleep(100);
             }
-
-            return allSignaled;
+        } else {
+            // MTA thread can use WaitAll directly
+            allSignaled = WaitHandle.WaitAll(
+                handleList.Select(x => x.WaitHandle).ToArray(),
+                timeout
+            );
         }
 
-        public static void WaitFor(TimeSpan timeout, params WaitAssert[] asserts)
-        {
-            if(!WaitAll(asserts.Select(x => x._mre), timeout)) {
-                throw new TimeoutException("Timeout waiting for array of WaitAsserts");
-            }
-        }
+        return allSignaled;
+    }
 
-        public void RunAssert(Action assertAction)
-        {
-            try {
-                assertAction();
-            } catch (Exception e) {
-                _caughtException = e;
-                CaughtExceptions.Add(e);
-            } finally {
-                _mre.Set();
-            }
+    public static void WaitFor(TimeSpan timeout, params WaitAssert[] asserts)
+    {
+        if(!WaitAll(asserts.Select(x => x._mre), timeout)) {
+            throw new TimeoutException("Timeout waiting for array of WaitAsserts");
         }
+    }
 
-        public async Task RunAssertAsync(Action assertAction)
-        {
-            try {
-                await Task.Run(assertAction).ConfigureAwait(false);
-            } catch (Exception e) {
-                _caughtException = e;
-                CaughtExceptions.Add(e);
-            } finally {
-                _mre.Set();
-            }
-        }
-
-        public async Task RunAssertAsync<T>(Action<T> assertAction, T arg)
-        {
-            try {
-                await Task.Run(() => assertAction(arg)).ConfigureAwait(false);
-            } catch (Exception e) {
-                _caughtException = e;
-                CaughtExceptions.Add(e);
-            } finally {
-                _mre.Set();
-            }
-        }
-
-        public void RunConditionalAssert(Func<bool> assertAction)
-        {
-            var done = false;
-            try {
-                done = assertAction();
-            } catch (Exception e) {
-                _caughtException = e;
-            } finally {
-                if (done || _caughtException != null) {
-                    _mre.Set();
-                }
-            }
-        }
-
-        public void Fulfill()
-        {
+    public void RunAssert(Action assertAction)
+    {
+        try {
+            assertAction();
+        } catch (Exception e) {
+            _caughtException = e;
+            CaughtExceptions.Add(e);
+        } finally {
             _mre.Set();
         }
+    }
 
-        public void WaitForResult(TimeSpan timeout)
-        {
-            if (!_mre.Wait(timeout)) {
-                throw new TimeoutException("Timeout waiting for WaitAssert");
-            }
+    public async Task RunAssertAsync(Action assertAction)
+    {
+        try {
+            await Task.Run(assertAction).ConfigureAwait(false);
+        } catch (Exception e) {
+            _caughtException = e;
+            CaughtExceptions.Add(e);
+        } finally {
+            _mre.Set();
+        }
+    }
 
-            if (_caughtException != null) {
-                throw _caughtException;
+    public async Task RunAssertAsync<T>(Action<T> assertAction, T arg)
+    {
+        try {
+            await Task.Run(() => assertAction(arg)).ConfigureAwait(false);
+        } catch (Exception e) {
+            _caughtException = e;
+            CaughtExceptions.Add(e);
+        } finally {
+            _mre.Set();
+        }
+    }
+
+    public void RunConditionalAssert(Func<bool> assertAction)
+    {
+        var done = false;
+        try {
+            done = assertAction();
+        } catch (Exception e) {
+            _caughtException = e;
+        } finally {
+            if (done || _caughtException != null) {
+                _mre.Set();
             }
         }
+    }
 
-        public void Dispose()
-        {
-            _mre.Dispose();
+    public void Fulfill()
+    {
+        _mre.Set();
+    }
+
+    public void WaitForResult(TimeSpan timeout)
+    {
+        if (!_mre.Wait(timeout)) {
+            throw new TimeoutException("Timeout waiting for WaitAssert");
         }
+
+        if (_caughtException != null) {
+            throw _caughtException;
+        }
+    }
+
+    public void Dispose()
+    {
+        _mre.Dispose();
     }
 }

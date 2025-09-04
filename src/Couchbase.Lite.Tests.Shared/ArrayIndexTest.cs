@@ -29,117 +29,110 @@ using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite;
 using Shouldly;
 
-namespace Test
+namespace Test;
+// https://github.com/couchbaselabs/couchbase-lite-api/blob/013c871dbaaa8d023a70ab71848c157de02bb57a/spec/tests/T0004-Unnest-Array-Index.md
+// T0004 Unnest and Array Index Tests v1.0.2
+
+public sealed class ArrayIndexTest(ITestOutputHelper output) : TestCase(output)
 {
-    // https://github.com/couchbaselabs/couchbase-lite-api/blob/013c871dbaaa8d023a70ab71848c157de02bb57a/spec/tests/T0004-Unnest-Array-Index.md
-    // T0004 Unnest and Array Index Tests v1.0.2
-
-    public sealed class ArrayIndexTest : TestCase
+    private void TestCreateArrayIndexWith(string indexName, string path, params string[] expressions)
     {
-        public ArrayIndexTest(ITestOutputHelper output) : base(output)
-        {
-            
+        var indexNameB = $"{indexName}b";
+        using var profiles = Db.CreateCollection("profiles");
+        LoadJSONResource("profiles_100", coll: profiles);
+        var indexConfig = new ArrayIndexConfiguration(path, expressions);
+        var indexConfigB = new ArrayIndexConfiguration(path, expressions.Any() ? new List<string>(expressions) : null);
+        profiles.CreateIndex(indexName, indexConfig);
+        profiles.CreateIndex(indexNameB, indexConfigB);
+        profiles.GetIndexes().Any(x => x == indexName).ShouldBeTrue("because the index was just created");
+        profiles.GetIndexes().Any(x => x == indexNameB).ShouldBeTrue("because the index was just created");
+        IDictionary<string, object>? indexInfo;
+        unsafe {
+            C4Error err;
+            var allIndexInfo = TestNative.c4coll_getIndexesInfo(profiles, &err);
+            allIndexInfo.ShouldNotBeNull("because an index exists");
+            indexInfo = allIndexInfo.FirstOrDefault(x => x["name"] as string == indexName);
         }
-
-        private void TestCreateArrayIndexWith(string indexName, string path, params string[] expressions)
-        {
-            var indexNameB = $"{indexName}b";
-            using var profiles = Db.CreateCollection("profiles");
-            LoadJSONResource("profiles_100", coll: profiles);
-            var indexConfig = new ArrayIndexConfiguration(path, expressions);
-            var indexConfigb = new ArrayIndexConfiguration(path, expressions.Any() ? new List<string>(expressions) : null);
-            profiles.CreateIndex(indexName, indexConfig);
-            profiles.CreateIndex(indexNameB, indexConfigb);
-            profiles.GetIndexes().Any(x => x == indexName).ShouldBeTrue("because the index was just created");
-            profiles.GetIndexes().Any(x => x == indexNameB).ShouldBeTrue("because the index was just created");
-            IDictionary<string, object>? indexInfo;
-            unsafe {
-                C4Error err;
-                var allIndexInfo = TestNative.c4coll_getIndexesInfo(profiles, &err);
-                allIndexInfo.ShouldNotBeNull("because an index exists");
-                indexInfo = allIndexInfo.FirstOrDefault(x => x["name"] as string == indexName);
-            }
-            indexInfo.ShouldNotBeNull("because otherwise the contacts index does not exist");
-            ((long)indexInfo["type"]).ShouldBe((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
-            (indexInfo["lang"] as string).ShouldBe("n1ql", "because otherwise the wrong query language was used");
-            (indexInfo["expr"] as string).ShouldBe(String.Join(",", expressions), "because otherwise the wrong expression was used");
-        }
-
-        /// <summary>
-        /// Description
-        /// Test that creating an ArrayIndexConfiguration with invalid expressions which are
-        /// an empty expressions or contain null.
-        /// 
-        /// Steps
-        /// 1. Create a ArrayIndexConfiguration object.
-        ///     - path: "contacts"
-        ///     - expressions: []
-        /// 2. Check that an invalid arument exception is thrown.
-        /// 3. Create a ArrayIndexConfiguration object.
-        ///     - path: "contacts"
-        ///     - expressions: [""]
-        /// 4. Check that an invalid arument exception is thrown.
-        /// </summary>
-        [Fact]
-        public void TestArrayIndexConfigInvalidExpressions()
-        {
-            using var profiles = Db.CreateCollection("profiles");
-            Should.Throw<ArgumentException>(() => new ArrayIndexConfiguration("contacts", new List<string> { "" }));
-        }
-
-        /// <summary>
-        /// Test that creating an array index with only path works as expected.
-        /// 
-        /// Steps
-        /// 1. Load profiles.json into the collection named "_default.profiles".
-        /// 2. Create a ArrayIndexConfiguration object.
-        ///     - path: "contacts"
-        ///     - expressions:  null
-        /// 3. Create an array index named "contacts" in the profiles collection.
-        /// 4. Get index names from the profiles collection and check that the index named "contacts" exists.
-        /// 5. Get info of the index named "contacts" using an internal API and check that the index has
-        ///     path and expressions as configured.
-        /// </summary>
-        [Fact]
-        public void TestCreateArrayIndexWithPath()
-            => TestCreateArrayIndexWith("contacts", "contacts");
-
-        /// <summary>
-        /// Test that creating an array index with path and expressions works as expected.
-        /// 
-        /// Steps
-        /// 1. Load profiles.json into the collection named "_default.profiles".
-        /// 2. Create a ArrayIndexConfiguration object.
-        ///     - path: "contacts"
-        ///     - expressions:  ["address.city", "address.state"]
-        /// 3. Create an array index named "contacts" in the profiles collection.
-        /// 4. Get index names from the profiles collection and check that the index named "contacts" exists.
-        /// 5. Get info of the index named "contacts" using an internal API and check that the index has
-        ///     path and expressions as configured.
-        /// </summary>
-        [Fact]
-        public void TestCreateArrayIndexWithPathAndExpressions()
-            => TestCreateArrayIndexWith("contacts", "contacts", "address.city", "address.state");
+        indexInfo.ShouldNotBeNull("because otherwise the contacts index does not exist");
+        ((long)indexInfo["type"]).ShouldBe((long)C4IndexType.ArrayIndex, "because otherwise the wrong type of index was created");
+        (indexInfo["lang"] as string).ShouldBe("n1ql", "because otherwise the wrong query language was used");
+        (indexInfo["expr"] as string).ShouldBe(String.Join(",", expressions), "because otherwise the wrong expression was used");
     }
 
-    internal unsafe static partial class TestNative
+    /// <summary>
+    /// Description
+    /// Test that creating an ArrayIndexConfiguration with invalid expressions which are
+    /// an empty expressions or contain null.
+    /// 
+    /// Steps
+    /// 1. Create a ArrayIndexConfiguration object.
+    ///     - path: "contacts"
+    ///     - expressions: []
+    /// 2. Check that an invalid argument exception is thrown.
+    /// 3. Create a ArrayIndexConfiguration object.
+    ///     - path: "contacts"
+    ///     - expressions: [""]
+    /// 4. Check that an invalid argument exception is thrown.
+    /// </summary>
+    [Fact]
+    public void TestArrayIndexConfigInvalidExpressions()
     {
-        public static IList<IDictionary<string, object>>? c4coll_getIndexesInfo(Collection collection, C4Error* error)
-        {
-            using var rawData = TestNativeRaw.c4coll_getIndexesInfo(collection.C4Coll.RawCollection, error);
-            if (rawData.size == 0) {
-                return null;
-            }
+        using var profiles = Db.CreateCollection("profiles");
+        Should.Throw<ArgumentException>(() => new ArrayIndexConfiguration("contacts", new List<string> { "" }));
+    }
 
-            var flValue = NativeRaw.FLValue_FromData((FLSlice)rawData, FLTrust.Trusted);
-            var halfwayConverted = FLValueConverter.ToCouchbaseObject(flValue, null, true) as IList<object>;
-            return halfwayConverted?.Cast<IDictionary<string, object>>().ToList();
+    /// <summary>
+    /// Test that creating an array index with only path works as expected.
+    /// 
+    /// Steps
+    /// 1. Load profiles.json into the collection named "_default.profiles".
+    /// 2. Create a ArrayIndexConfiguration object.
+    ///     - path: "contacts"
+    ///     - expressions:  null
+    /// 3. Create an array index named "contacts" in the profiles collection.
+    /// 4. Get index names from the profiles collection and check that the index named "contacts" exists.
+    /// 5. Get info of the index named "contacts" using an internal API and check that the index has
+    ///     path and expressions as configured.
+    /// </summary>
+    [Fact]
+    public void TestCreateArrayIndexWithPath()
+        => TestCreateArrayIndexWith("contacts", "contacts");
+
+    /// <summary>
+    /// Test that creating an array index with path and expressions works as expected.
+    /// 
+    /// Steps
+    /// 1. Load profiles.json into the collection named "_default.profiles".
+    /// 2. Create a ArrayIndexConfiguration object.
+    ///     - path: "contacts"
+    ///     - expressions:  ["address.city", "address.state"]
+    /// 3. Create an array index named "contacts" in the profiles collection.
+    /// 4. Get index names from the profiles collection and check that the index named "contacts" exists.
+    /// 5. Get info of the index named "contacts" using an internal API and check that the index has
+    ///     path and expressions as configured.
+    /// </summary>
+    [Fact]
+    public void TestCreateArrayIndexWithPathAndExpressions()
+        => TestCreateArrayIndexWith("contacts", "contacts", "address.city", "address.state");
+}
+
+internal static unsafe partial class TestNative
+{
+    public static IList<IDictionary<string, object>>? c4coll_getIndexesInfo(Collection collection, C4Error* error)
+    {
+        using var rawData = TestNativeRaw.c4coll_getIndexesInfo(collection.C4Coll.RawCollection, error);
+        if (rawData.size == 0) {
+            return null;
         }
-    }
 
-    internal static unsafe class TestNativeRaw
-    {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* error);
+        var flValue = NativeRaw.FLValue_FromData((FLSlice)rawData, FLTrust.Trusted);
+        var halfwayConverted = FLValueConverter.ToCouchbaseObject(flValue, null, true) as IList<object>;
+        return halfwayConverted?.Cast<IDictionary<string, object>>().ToList();
     }
+}
+
+internal static unsafe class TestNativeRaw
+{
+    [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern FLSliceResult c4coll_getIndexesInfo(C4Collection* collection, C4Error* error);
 }

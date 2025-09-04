@@ -27,20 +27,15 @@ using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Util;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
+// ReSharper disable AccessToDisposedClosure
 
 namespace Test
 {
-    public sealed class ConcurrencyTest : TestCase
+    public sealed class ConcurrencyTest(ITestOutputHelper output) : TestCase(output)
     {
-        public ConcurrencyTest(ITestOutputHelper output) : base(output)
-        {
-
-        }
-
         [Fact]
         public void TestConcurrentCreate()
         {
@@ -95,7 +90,7 @@ namespace Test
 
             for (uint i = 0; i < nConcurrent; i++) {
                 var tag = $"Update{i}";
-                VerifyByTagName(tag, (n, row) =>
+                VerifyByTagName(tag, (_, _) =>
                 {
                     count++;
                 });
@@ -114,7 +109,7 @@ namespace Test
             var docs = CreateDocs(nDocs, "Create");
             var docIDs = docs.Select(x => x.Id).ToList();
 
-            ConcurrentRuns(nConcurrent, (index) =>
+            ConcurrentRuns(nConcurrent, _ =>
             {
                 ReadDocs(docIDs, nRounds);
             });
@@ -130,7 +125,7 @@ namespace Test
             var docs = CreateDocs(nDocs, "Create");
             var docIDs = docs.Select(x => x.Id).ToList();
 
-            ConcurrentRuns(nConcurrent, (index) =>
+            ConcurrentRuns(nConcurrent, _ =>
             {
                 Db.InBatch(() => { ReadDocs(docIDs, nRounds); });
             });
@@ -148,7 +143,7 @@ namespace Test
             var t1 = Task.Run(() => ReadDocs(docIDs, nRounds));
             var t2 = Task.Run(() => UpdateDocs(docIDs, nRounds, tag));
 
-            Task.WaitAll(new[] { t1, t2 }, TimeSpan.FromSeconds(60)).ShouldBeTrue();
+            Task.WaitAll([t1, t2], TimeSpan.FromSeconds(60)).ShouldBeTrue();
         }
 
         [Fact]
@@ -159,7 +154,7 @@ namespace Test
             docs.Count.ShouldBe(nDocs);
 
             var delete1 = new WaitAssert();
-            var ignore = delete1.RunAssertAsync(() =>
+            _ = delete1.RunAssertAsync(() =>
             {
                 foreach (var doc in docs) {
                     DefaultCollection.Delete(doc);
@@ -167,7 +162,7 @@ namespace Test
             });
 
             var delete2 = new WaitAssert();
-            ignore = delete2.RunAssertAsync(() =>
+            _ = delete2.RunAssertAsync(() =>
             {
                 foreach (var doc in docs) {
                     DefaultCollection.Delete(doc);
@@ -184,11 +179,7 @@ namespace Test
             const int nDocs = 1000;
             const uint nConcurrent = 10;
 
-            ConcurrentRuns(nConcurrent, (index) => {
-                if (Db == null) {
-                    return;
-                }
-
+            ConcurrentRuns(nConcurrent, index => {
                 Db.InBatch(() => {
                     var tag = $"Create{index}";
                     CreateDocs(nDocs, tag).Count().ShouldBe(nDocs); // Force evaluation, not a needed assert
@@ -210,7 +201,7 @@ namespace Test
             var docs = CreateDocs(nDocs, "Create").ToList();
             docs.Count.ShouldBe(nDocs);
 
-            ConcurrentRuns(nConcurrent, index => {
+            ConcurrentRuns(nConcurrent, _ => {
                 foreach (var doc in docs) {
                     try {
                         DefaultCollection.Purge(doc);
@@ -234,7 +225,7 @@ namespace Test
 
             CreateDocs(nDocs, "Create").Count().ShouldBe(nDocs);
 
-            ConcurrentRuns(nConcurrent, index =>
+            ConcurrentRuns(nConcurrent, _ =>
             {
                 for (uint i = 0; i < nRounds; i++) {
                     Db.PerformMaintenance(MaintenanceType.Compact);
@@ -248,10 +239,10 @@ namespace Test
             const int nDocs = 1000;
             
             var exp1 = new WaitAssert();
-            var ignore = exp1.RunAssertAsync(() =>
+            _ = exp1.RunAssertAsync(() =>
             {
-                Action a = () => CreateDocs(nDocs, "Create").ToList();
-                Should.Throw<InvalidOperationException>(a);
+                void BadAct() => _ = CreateDocs(nDocs, "Create").ToList();
+                Should.Throw<InvalidOperationException>(BadAct);
             });
 
             Db.Close();
@@ -264,10 +255,10 @@ namespace Test
             const int nDocs = 1000;
             
             var exp1 = new WaitAssert();
-            var ignore = exp1.RunAssertAsync(() =>
+            _ = exp1.RunAssertAsync(() =>
             {
-                Action a = () => CreateDocs(nDocs, "Create").ToList();
-                Should.Throw<InvalidOperationException>(a);
+                void BadAct() => _ = CreateDocs(nDocs, "Create").ToList();
+                Should.Throw<InvalidOperationException>(BadAct);
             });
 
             Db.Delete();
@@ -280,9 +271,9 @@ namespace Test
             const int nDocs = 1000;
             
             var exp1 = new WaitAssert();
-            var ignore = exp1.RunAssertAsync(() =>
+            _ = exp1.RunAssertAsync(() =>
             {
-                CreateDocs(nDocs, "Create").ToList();
+                _ = CreateDocs(nDocs, "Create").ToList();
             });
 
             Db.PerformMaintenance(MaintenanceType.Compact);
@@ -295,9 +286,9 @@ namespace Test
             const int nDocs = 1000;
             
             var exp1 = new WaitAssert();
-            var ignore = exp1.RunAssertAsync(() =>
+            _ = exp1.RunAssertAsync(() =>
             {
-                CreateDocs(nDocs, "Create").ToList();
+                _ = CreateDocs(nDocs, "Create").ToList();
             });
 
             DefaultCollection.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
@@ -309,7 +300,7 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            DefaultCollection.AddChangeListener(null, (sender, args) =>
+            DefaultCollection.AddChangeListener(null, (_, _) =>
             {
                 exp2.RunAssert(() =>
                 {
@@ -317,7 +308,7 @@ namespace Test
                 });
             });
 
-            var ignore = exp1.RunAssertAsync(() =>
+            _ = exp1.RunAssertAsync(() =>
             {
                 DefaultCollection.Save(new MutableDocument("doc1"));
             });
@@ -330,7 +321,7 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            DefaultCollection.AddDocumentChangeListener("doc1", (sender, args) =>
+            DefaultCollection.AddDocumentChangeListener("doc1", (_, _) =>
             {
                 WriteLine("Reached document changed callback");
                 exp2.RunAssert(() =>
@@ -341,10 +332,10 @@ namespace Test
             });
 
             WriteLine("Triggering async save");
-            var ignore = exp1.RunAssertAsync(() =>
+            _ = exp1.RunAssertAsync(() =>
             {
                 WriteLine("Running async save");
-                DefaultCollection.Save(new MutableDocument("doc1"));
+                DefaultCollection.Save(new("doc1"));
                 WriteLine("Async save completed");
             });
 
@@ -384,7 +375,6 @@ namespace Test
                     enterInBatchLock.Wait(TimeSpan.FromSeconds(1)).ShouldBeTrue("because otherwise t1 didn't enter InBatch");
                     Interlocked.CompareExchange(ref stepCount, 2, 1);
                     using var rs = Db.CreateQuery("select * from _").Execute();
-                    var realized = rs.ToList();
                     enterQueryLock.Set(); // Should have already timed out but set anyway
                     Interlocked.CompareExchange(ref stepCount, 4, 3);
                 } catch (Exception e) {
@@ -408,11 +398,12 @@ namespace Test
 
         private void ReadDocs(IEnumerable<string> docIDs, uint rounds)
         {
+            var docIDList = docIDs.ToArray();
             for (uint r = 1; r <= rounds; r++) {
-                foreach (var docID in docIDs) {
+                foreach (var docID in docIDList) {
                     var doc = DefaultCollection.GetDocument(docID);
                     doc.ShouldNotBeNull();
-                    doc!.Id.ShouldBe(docID);
+                    doc.Id.ShouldBe(docID);
                 }
             }
         }
@@ -420,21 +411,23 @@ namespace Test
         private void UpdateDocs(IEnumerable<string> docIDs, uint rounds, string tag)
         {
             uint n = 0;
+            var docIDsList = docIDs.ToArray();
             for (uint r = 1; r <= rounds; r++) {
-                foreach (var docID in docIDs) {
+                foreach (var docID in docIDsList) {
                     var doc = DefaultCollection.GetDocument(docID)?.ToMutable();
                     doc.ShouldNotBeNull($"because otherwise document '{docID}' does not exist");
-                    doc!.SetString("tag", tag);
+                    doc.SetString("tag", tag);
 
                     var address = doc.GetDictionary("address");
                     address.ShouldNotBeNull();
                     var street = $"{n} street.";
-                    address!.SetString("street", street);
+                    address.SetString("street", street);
 
                     var phones = doc.GetArray("phones");
+                    phones.ShouldNotBeNull();
                     phones.Count.ShouldBe(2);
                     var phone = $"650-000-{n}";
-                    phones!.SetString(0, phone);
+                    phones.SetString(0, phone);
 
                     doc.SetDate("updated", DateTimeOffset.UtcNow);
 
@@ -446,23 +439,24 @@ namespace Test
 
         private void VerifyByTagName(string name, Action<ulong, Result> test)
         {
-            var TAG = Expression.Property("tag");
-            var DOCID = SelectResult.Expression(Meta.ID);
-            using (var q = QueryBuilder.Select(DOCID).From(DataSource.Collection(DefaultCollection)).Where(TAG.EqualTo(Expression.String(name)))) {
-                WriteLine((q as XQuery)!.Explain());
+            var tag = Expression.Property("tag");
+            var docID = SelectResult.Expression(Meta.ID);
+            using var q = QueryBuilder.Select(docID)
+                .From(DataSource.Collection(DefaultCollection))
+                .Where(tag.EqualTo(Expression.String(name)));
+            WriteLine((q as XQuery)!.Explain());
 
-                var e = q.Execute();
-                ulong n = 0;
-                foreach (var row in e) {
-                    test(++n, row);
-                }
+            var e = q.Execute();
+            ulong n = 0;
+            foreach (var row in e) {
+                test(++n, row);
             }
         }
 
         private void VerifyByTagName(string name, uint numRows)
         {
             uint count = 0;
-            VerifyByTagName(name, (n, row) =>
+            VerifyByTagName(name, (_, _) =>
             {
                 count++;
             });
@@ -509,8 +503,8 @@ namespace Test
         {
             var expectations = new WaitAssert[nRuns];
             for (uint i = 0; i < nRuns; i++) {
-                expectations[i] = new WaitAssert();
-                var ignore = expectations[i].RunAssertAsync(block, i);
+                expectations[i] = new();
+                _ = expectations[i].RunAssertAsync(block, i);
             }
 
             WaitAssert.WaitFor(TimeSpan.FromSeconds(60), expectations);
