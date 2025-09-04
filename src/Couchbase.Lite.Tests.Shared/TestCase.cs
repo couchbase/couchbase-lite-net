@@ -67,7 +67,7 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
+#if !CBL_JUST_BUILT && (CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX)
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
