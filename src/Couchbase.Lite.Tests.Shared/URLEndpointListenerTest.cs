@@ -35,10 +35,7 @@ using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 using System.Diagnostics.CodeAnalysis;
-
-#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
 using System.Runtime.InteropServices;
-#endif
 
 namespace Test;
 
