@@ -20,13 +20,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Text.Json;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Sync;
 
 using Shouldly;
 
-using Newtonsoft.Json;
 using System.Collections.Immutable;
 
 using Test.Util;
@@ -457,7 +457,7 @@ public sealed class ScopesCollectionsReplicationTest(ITestOutputHelper output) :
         {
             r.AddDocumentReplicationListener((_, args) =>
             {
-                _output.WriteLine($"{args.IsPush} {JsonConvert.SerializeObject(args.Documents.Select(x => $"{x.Flags} {x.CollectionName} {x.Id}"))}");
+                _output.WriteLine($"{args.IsPush} {JsonSerializer.Serialize(args.Documents.Select(x => $"{x.Flags} {x.CollectionName} {x.Id}"))}");
                 pushWait.RunConditionalAssert(() =>
                     args.IsPush 
                     && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted) && x is { CollectionName: "colA", Id: "doc" })

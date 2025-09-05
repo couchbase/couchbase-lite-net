@@ -19,14 +19,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
 using LiteCore;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite;
 
@@ -171,66 +171,62 @@ public class ArrayObject : IArray, IJSON
 }
 
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal sealed class IArrayConverter : JsonConverter
+internal sealed class IArrayConverter : JsonConverter<IArray>
 {
-    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-    {
-        var arr = value as IArray ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
-            "Invalid input received in WriteJson (not IArray)");
-        writer.WriteStartArray();
-        foreach (var item in arr) {
-            serializer.Serialize(writer, item);
-        }
-
-        writer.WriteEndArray();
-    }
-
-    public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    public override IArray Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var arr = new MutableArrayObject();
-        while (reader.Read()) {
+
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray) {
             switch (reader.TokenType) {
-                case JsonToken.EndObject:
+                case JsonTokenType.StartObject:
                 {
-                    var val = serializer.Deserialize(reader) as IDictionary<string, object>
-                        ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Corrupt input received in ReadJson (EndObject != IDictionary)");
-                    if (val.TryGetValue(Constants.ObjectTypeProperty, out var value) &&
-                        value.Equals(Constants.ObjectTypeBlob)) {
-                        var blob = serializer.Deserialize<Blob>(reader)
-                            ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing blob in ReadJson (IArray)");
+                    using var document = JsonDocument.ParseValue(ref reader);
+                    var element = document.RootElement;
+                    if (element.TryGetProperty(Constants.ObjectTypeProperty, out var prop)
+                        && prop.GetString() == Constants.ObjectTypeBlob) {
+                        var blob = element.Deserialize<Blob>(options) ??
+                                   throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
+                                       "Error deserializing blob in ReadJson (IArray)");
                         arr.AddBlob(blob);
-                    } else {
-                        var dict = serializer.Deserialize<MutableDictionaryObject>(reader)
-                            ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing dict in ReadJson (IArray)");
+                    }
+                    else {
+                        var dict = element.Deserialize<MutableDictionaryObject>(options) ??
+                                   throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
+                                       "Error deserializing dict in ReadJson (IArray)");
                         arr.AddValue(dict);
                     }
                     break;
                 }
-                case JsonToken.EndArray:
-                {
-                    var array = serializer.Deserialize<MutableArrayObject>(reader)
-                        ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, "Error deserializing array in ReadJson (IArray)");
+                case JsonTokenType.StartArray:
+                    var array = JsonSerializer.Deserialize<MutableArrayObject>(ref reader) ??
+                               throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
+                                   "Error deserializing array in ReadJson (IArray)");
                     arr.AddValue(array);
                     break;
-                }
-                case JsonToken.None:
-                case JsonToken.StartObject:
-                case JsonToken.StartArray:
-                case JsonToken.StartConstructor:
-                case JsonToken.PropertyName:
-                case JsonToken.Comment:
-                case JsonToken.Raw:
-                case JsonToken.Integer:
-                case JsonToken.Float:
-                case JsonToken.String:
-                case JsonToken.Boolean:
-                case JsonToken.Null:
-                case JsonToken.Undefined:
-                case JsonToken.EndConstructor:
-                case JsonToken.Date:
-                case JsonToken.Bytes:
+                case JsonTokenType.String:
+                    arr.AddValue(reader.GetString());
+                    break;
+                case JsonTokenType.Number:
+                    if (reader.TryGetInt64(out var longValue)) {
+                        arr.AddValue(longValue);
+                    } else {
+                        arr.AddValue(reader.GetDouble());
+                    }
+                    break;
+                case JsonTokenType.True:
+                case JsonTokenType.False:
+                    arr.AddValue(reader.GetBoolean());
+                    break;
+                case JsonTokenType.Null:
+                    arr.AddValue(null);
+                    break;
+                case JsonTokenType.None:
+                case JsonTokenType.EndObject:
+                case JsonTokenType.EndArray:
+                case JsonTokenType.PropertyName:
+                case JsonTokenType.Comment:
                 default:
-                    arr.AddValue(reader.Value);
                     break;
             }
         }
@@ -238,5 +234,13 @@ internal sealed class IArrayConverter : JsonConverter
         return arr;
     }
 
-    public override bool CanConvert(Type objectType) => typeof(IArray).IsAssignableFrom(objectType);
+    public override void Write(Utf8JsonWriter writer, IArray value, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        foreach (var item in value) {
+            JsonSerializer.Serialize(writer, item, options);
+        }
+        
+        writer.WriteEndArray();
+    }
 }

@@ -28,6 +28,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 
 using LiteCore.Interop;
+using Microsoft.Extensions.DependencyInjection;
 
 #if !NET8_0_OR_GREATER
 using Couchbase.Lite.Util;
@@ -185,7 +186,7 @@ internal sealed class HTTPLogic(Uri url)
             version = match.Groups[1].Value;
         }
 
-        var runtimePlatform = Service.GetInstance<IRuntimePlatform>();
+        var runtimePlatform = Service.Provider.GetService<IRuntimePlatform>();
         var osDescription = runtimePlatform?.OSDescription ?? RuntimeInformation.OSDescription;
         var hardware = runtimePlatform?.HardwareName != null ? $"; {runtimePlatform.HardwareName}" : "";
         return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";

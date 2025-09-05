@@ -19,11 +19,11 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 
 using Shouldly;
-using Newtonsoft.Json;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -536,7 +536,7 @@ public sealed class DictionaryTest(ITestOutputHelper output) : TestCase(output)
     public void TestMutableDictWithJsonString()
     {
         var dic = PopulateDictData();
-        var dicJson = JsonConvert.SerializeObject(dic, _jsonSerializerSettings);
+        var dicJson = JsonSerializer.Serialize(dic);
         var md = new MutableDictionaryObject(dicJson);
 
         ValidateValuesInMutableDictFromJson(dic, md);
@@ -559,7 +559,7 @@ public sealed class DictionaryTest(ITestOutputHelper output) : TestCase(output)
 
         //with array json string    
         string[] arr = ["apple", "banana", "orange"];
-        var jArr = JsonConvert.SerializeObject(arr);
+        var jArr = JsonSerializer.Serialize(arr);
         ex = Should.Throw<CouchbaseLiteException>(() => md.SetJSON(jArr));
         ex.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
     }
@@ -573,7 +573,7 @@ public sealed class DictionaryTest(ITestOutputHelper output) : TestCase(output)
 
         //with array json string    
         string[] arr = ["apple", "banana", "orange"];
-        var jArr = JsonConvert.SerializeObject(arr);
+        var jArr = JsonSerializer.Serialize(arr);
         ex = Should.Throw<CouchbaseLiteException>(() => new MutableDictionaryObject(jArr));
         ex.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
     }

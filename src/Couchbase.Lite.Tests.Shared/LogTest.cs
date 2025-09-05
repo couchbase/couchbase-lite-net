@@ -27,7 +27,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
-
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
@@ -36,13 +36,6 @@ namespace Test;
 
 public sealed class LogTest(ITestOutputHelper output)
 {
-#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
-        static LogTest()
-        {
-            Couchbase.Lite.Support.NetDesktop.CheckVersion();
-        }
-#endif
-
     [Fact]
     public void TestDefaultLogFormat()
     {
@@ -313,7 +306,7 @@ public sealed class LogTest(ITestOutputHelper output)
         try {
             using var sw = new StringWriter();
             Console.SetOut(sw);
-            var fakePath = Path.Combine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
+            var fakePath = Path.Combine(Service.Provider.GetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
 
             LogSinks.File = new FileLogSink(LogLevel.Info, fakePath);
             LogSinks.File = null;

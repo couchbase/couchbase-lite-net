@@ -21,13 +21,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
 using LiteCore;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite;
 
@@ -56,7 +57,7 @@ public sealed unsafe class Blob : IJSON
     /// <summary>
     /// Gets the metadata type of this object (hardcoded to <see cref="Constants.ObjectTypeBlob"/>)
     /// </summary>
-    [JsonProperty("@type")]
+    [JsonPropertyName("@type")]
  #pragma warning disable CA1822
     public string Type => Constants.ObjectTypeBlob;
  #pragma warning restore CA1822
@@ -153,19 +154,19 @@ public sealed unsafe class Blob : IJSON
     /// <summary>
     /// Gets the content type of the blob
     /// </summary>
-    [JsonProperty("content_type")]
+    [JsonPropertyName("content_type")]
     public string? ContentType { get; }
 
     /// <summary>
     /// Gets the digest of the blob, once it is saved
     /// </summary>
-    [JsonProperty("digest")]
+    [JsonPropertyName("digest")]
     public string? Digest { get; internal set; }
 
     /// <summary>
     /// Gets the length of the data that the blob contains
     /// </summary>
-    [JsonProperty("length")]
+    [JsonPropertyName("length")]
     public int Length { get; private set; }
 
     /// <summary>
@@ -378,7 +379,7 @@ public sealed unsafe class Blob : IJSON
     public string ToJSON() =>
         Digest == null 
             ? throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB) 
-            : JsonConvert.SerializeObject(JsonRepresentation);
+            : JsonSerializer.Serialize(JsonRepresentation);
 
     private void SetupProperties(IDictionary<string, object?> properties)
     {

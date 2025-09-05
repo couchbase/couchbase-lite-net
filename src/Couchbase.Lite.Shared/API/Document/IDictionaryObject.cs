@@ -18,14 +18,11 @@
 using System;
 using System.Collections.Generic;
 
-using Newtonsoft.Json;
-
 namespace Couchbase.Lite;
 
 /// <summary>
 /// An interface representing a readonly key-value collection with type-safe accessors
 /// </summary>
-[JsonConverter(typeof(IDictionaryObjectConverter))]
 public interface IDictionaryObject : IDictionaryFragment, IEnumerable<KeyValuePair<string, object?>>
 {
     /// <summary>

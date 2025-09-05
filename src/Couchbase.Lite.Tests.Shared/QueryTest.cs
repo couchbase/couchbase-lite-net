@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,8 +31,6 @@ using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 
 using Shouldly;
-
-using Newtonsoft.Json;
 
 using Test.Util;
 using Xunit;
@@ -1420,7 +1419,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
             var docID = $"doc-{i++}";
             using var doc = new MutableDocument(docID);
             doc.SetValue("paths", cities);
-            var d = JsonConvert.SerializeObject(doc.ToDictionary());
+            var d = JsonSerializer.Serialize(doc.ToDictionary());
             WriteLine(d);
             DefaultCollection.Save(doc);
         }
@@ -1772,7 +1771,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
                    .Where(typeExpr.EqualTo(Expression.String("bookmark")))) {
             var rs = q.Execute();
             foreach (var r in rs) {
-                WriteLine(JsonConvert.SerializeObject(r.ToDictionary()));
+                WriteLine(JsonSerializer.Serialize(r.ToDictionary()));
             }
         }
     }
@@ -1789,7 +1788,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
         var rs = q.Execute();
         var counter = 0;
         foreach (var r in rs) {
-            WriteLine($"Round 1: Result -> {JsonConvert.SerializeObject(r.ToDictionary())}");
+            WriteLine($"Round 1: Result -> {JsonSerializer.Serialize(r.ToDictionary())}");
             counter++;
         }
 
@@ -1804,7 +1803,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
         counter = 0;
         foreach (var r in rs) {
             r.GetString(0).ShouldBe(task2.Id);
-            WriteLine($"Round 2: Result -> {JsonConvert.SerializeObject(r.ToDictionary())}");
+            WriteLine($"Round 2: Result -> {JsonSerializer.Serialize(r.ToDictionary())}");
             counter++;
         }
 
@@ -1828,7 +1827,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
                        .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                 var numRows = VerifyQuery(q, (_, row) =>
                 {
-                    WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                    WriteLine($"res -> {JsonSerializer.Serialize(row.ToDictionary())}");
                     var dict = row.GetDictionary("_default");
                     dict.ShouldNotBeNull("because otherwise the query returned incorrect data");
                     dict.GetBoolean("complete").ShouldBeTrue();
@@ -1844,7 +1843,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
                        .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                 var numRows = VerifyQuery(q, (_, row) =>
                 {
-                    WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                    WriteLine($"res -> {JsonSerializer.Serialize(row.ToDictionary())}");
                     var dict = row.GetDictionary("_default");
                     dict.ShouldNotBeNull("because otherwise the query returned incorrect data");
                     dict.GetBoolean("complete").ShouldBeFalse();
@@ -1860,7 +1859,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
                        .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                 var numRows = VerifyQuery(q, (_, row) =>
                 {
-                    WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                    WriteLine($"res -> {JsonSerializer.Serialize(row.ToDictionary())}");
                     row.GetInt(0).ShouldBe(2);
                 });
 
@@ -1872,7 +1871,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
                        .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                 var numRows = VerifyQuery(q, (_, row) =>
                 {
-                    WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                    WriteLine($"res -> {JsonSerializer.Serialize(row.ToDictionary())}");
                     row.GetInt(0).ShouldBe(1);
                 });
 
@@ -1912,10 +1911,10 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
                 var mainAll2 = row.GetDictionary("main");
                 var secondAll1 = row.GetDictionary(1);
                 var secondAll2 = row.GetDictionary("secondary");
-                WriteLine($"mainAll1 -> {JsonConvert.SerializeObject(mainAll1)}");
-                WriteLine($"mainAll2 -> {JsonConvert.SerializeObject(mainAll2)}");
-                WriteLine($"secondAll1 -> {JsonConvert.SerializeObject(secondAll1)}");
-                WriteLine($"secondAll2 -> {JsonConvert.SerializeObject(secondAll2)}");
+                WriteLine($"mainAll1 -> {JsonSerializer.Serialize(mainAll1)}");
+                WriteLine($"mainAll2 -> {JsonSerializer.Serialize(mainAll2)}");
+                WriteLine($"secondAll1 -> {JsonSerializer.Serialize(secondAll1)}");
+                WriteLine($"secondAll2 -> {JsonSerializer.Serialize(secondAll2)}");
 
                 mainAll1?.GetInt("number1").ShouldBe(42);
                 mainAll2?.GetInt("number1").ShouldBe(42);
@@ -2338,11 +2337,11 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
             var numRows = VerifyQuery(q, (n, row) =>
             {
                 if (n == 41) {
-                    WriteLine($"41: {JsonConvert.SerializeObject(row.ToDictionary())}");
+                    WriteLine($"41: {JsonSerializer.Serialize(row.ToDictionary())}");
                     row.GetDictionary("main")?.GetInt("number2").ShouldBe(59);
                     row.GetDictionary("secondary").ShouldBeNull();
                 } else if (n == 42) {
-                    WriteLine($"42: {JsonConvert.SerializeObject(row.ToDictionary())}");
+                    WriteLine($"42: {JsonSerializer.Serialize(row.ToDictionary())}");
                     row.GetDictionary("main")?.GetInt("number2").ShouldBe(58);
                     row.GetDictionary("secondary")?.GetInt("theone").ShouldBe(42);
                 }

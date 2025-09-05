@@ -22,6 +22,7 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Logging;
 
@@ -36,7 +37,7 @@ namespace Couchbase.Lite.Logging;
 /// <param name="level">The log level to emit (see <see cref="BaseLogSink.Level"/>)</param>
 public sealed class ConsoleLogSink(LogLevel level) : BaseLogSink(level)
 {
-    private readonly IConsoleLogWriter _logWriter = Service.GetRequiredInstance<IConsoleLogWriter>();
+    private readonly IConsoleLogWriter _logWriter = Service.Provider.GetRequiredService<IConsoleLogWriter>();
 
     /// <summary>
     /// Gets the domains to include for logging (useful for reducing noise when

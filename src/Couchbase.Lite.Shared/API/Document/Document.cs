@@ -246,19 +246,6 @@ public unsafe class Document : IDictionaryObject, IJSON, IDisposable
             ? throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter) 
             : new MutableDocument(this);
 
-#if CBL_LINQ
-        public T ToModel<T>() where T : class, Linq.IDocumentModel, new()
-        {
-            var serializer = Newtonsoft.Json.JsonSerializer.CreateDefault();
-            var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) c4Doc.RawDoc->selectedRev.body);
-            using (var reader = new Internal.Serialization.JsonFLValueReader(flValue, Database.SharedStrings)) {
-                var retVal = serializer.Deserialize<T>(reader);
-                retVal.Document = this;
-                return retVal;
-            }
-        }
-#endif
-
     internal virtual FLSliceResult Encode()
     {
         _disposalWatchdog.CheckDisposed();

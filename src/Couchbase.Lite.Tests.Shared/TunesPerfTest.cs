@@ -21,11 +21,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using Shouldly;
 
-using Newtonsoft.Json;
 using Test.Util;
 using Xunit;
 using Xunit.Abstractions;
@@ -62,14 +62,10 @@ namespace Test
         protected override void SetUp()
         {
             _tracks = new();
-            var settings = new JsonSerializerSettings
-            {
-                DateParseHandling = DateParseHandling.DateTimeOffset
-            };
 
             TestCase.ReadFileByLines("C/tests/data/iTunesMusicLibrary.json", line =>
             {
-                _tracks.Add(JsonConvert.DeserializeObject<IDictionary<string, object>>(line, settings)!);
+                _tracks.Add(DataOps.ParseTo<IDictionary<string, object>>(line)!);
                 return true;
             });
 

@@ -21,16 +21,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Enterprise.Query;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Query;
 
 using Shouldly;
 
 using LiteCore.Interop;
-
-using Newtonsoft.Json;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -912,7 +912,7 @@ public sealed class PredictiveQueryTest : TestCase
 
     private void TestDistanceFunction(IExpression distance, string testData)
     {
-        var tests = JsonConvert.DeserializeObject<IList<IList<object?>>>(testData);
+        var tests = DataOps.ParseTo<IList<IList<object?>>>(testData);
         tests.ShouldNotBeNull("because otherwise testData was invalid");
 
         foreach (var t in tests) {

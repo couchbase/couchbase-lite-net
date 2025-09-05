@@ -21,14 +21,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 
 using Shouldly;
 using LiteCore;
 using LiteCore.Interop;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -142,7 +141,7 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
 
         var json = blob.ToJSON();
 
-        var blobFromJStr = JsonConvert.DeserializeObject<Dictionary<string, object?>>(json);
+        var blobFromJStr = DataOps.ParseTo<Dictionary<string, object>>(json);
         blobFromJStr.ShouldNotBeNull("because otherwise the blob JSON was invalid");
         blob.JSONEquals(blobFromJStr!).ShouldBeTrue();
     }
@@ -188,7 +187,7 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
             var b = d.GetBlob("blob");
             b.ShouldNotBeNull("because it was saved into the document");
             var json = b.ToJSON();
-            var blobFromJson = JsonConvert.DeserializeObject<Dictionary<string, object?>>(json);
+            var blobFromJson = DataOps.ParseTo<IDictionary<string, object>>(json);
             blobFromJson.ShouldNotBeNull("because otherwise the blob JSON was invalid");
             blobFromJson.ShouldContainKeys(Blob.ContentTypeKey, Blob.DigestKey, Blob.LengthKey, Constants.ObjectTypeProperty);
         }
@@ -220,8 +219,7 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
 
         var blobJson = blob.ToJSON();
 
-        var o = JObject.Parse(blobJson);
-        var mDictFromJObj = o.ToObject<Dictionary<string, object>>();
+        var mDictFromJObj = DataOps.ParseTo<Dictionary<string, object>>(blobJson);
 
         using (var cbDoc = new MutableDocument("doc1")) {
             cbDoc.SetValue("dict", mDictFromJObj);
@@ -232,9 +230,9 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
         gotBlob.ShouldNotBeNull();
         var newJson = gotBlob.ToJSON();
 
-        var blobJsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(blobJson);
+        var blobJsonD = DataOps.ParseTo<Dictionary<string, object>>(blobJson);
         blobJsonD.ShouldNotBeNull("because otherwise the pre-save blob JSON was invalid");
-        var newJsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(newJson);
+        var newJsonD = DataOps.ParseTo<Dictionary<string, object>>(newJson);
         newJsonD.ShouldNotBeNull("because otherwise the post-save blob JSON was invalid");
 
         foreach (var kv in blobJsonD) {
@@ -256,7 +254,7 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
                     { Constants.ObjectTypeProperty, "blob" }
                 }};
 
-        var listContainsBlobJson = JsonConvert.SerializeObject(blobDict);
+        var listContainsBlobJson = JsonSerializer.Serialize(blobDict);
         using var md = new MutableDocument("doc1");
         var ma = new MutableArrayObject(listContainsBlobJson);
         var blobInMa = (MutableDictionaryObject?)ma.GetValue(0);
@@ -286,7 +284,7 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
             { "blobUnderArr", new List<object>() { b1, b2, b3 } }
         };
 
-        var dicJson = JsonConvert.SerializeObject(keyValueDictionary);
+        var dicJson = JsonSerializer.Serialize(keyValueDictionary);
         var md = new MutableDictionaryObject(dicJson);
         using (var mdoc = new MutableDocument("doc1")) {
             mdoc.SetDictionary("dict", md);

@@ -19,14 +19,11 @@
 using System;
 using System.Collections.Generic;
 
-using Newtonsoft.Json;
-
 namespace Couchbase.Lite;
 
 /// <summary>
 /// An interface representing a read-only linear collection of objects
 /// </summary>
-[JsonConverter(typeof(IArrayConverter))]
 public interface IArray : IArrayFragment, IEnumerable<object?>
 {
     /// <summary>

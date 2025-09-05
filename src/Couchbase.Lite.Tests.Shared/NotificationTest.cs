@@ -19,10 +19,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Couchbase.Lite;
 using Shouldly;
 
-using Newtonsoft.Json;
 using Xunit;
 using Xunit.Abstractions;
 // ReSharper disable AccessToDisposedClosure
@@ -457,7 +457,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
                     }
 
                     WriteLine(
-                        $"Expecting {_expectedDocumentChanges.Count} more changes ({JsonConvert.SerializeObject(_expectedDocumentChanges)})");
+                        $"Expecting {_expectedDocumentChanges.Count} more changes ({JsonSerializer.Serialize(_expectedDocumentChanges)})");
                     return _expectedDocumentChanges.Count == 0;
                 }
             });
@@ -479,7 +479,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
                     _expectedDocumentChanges.Remove(args.DocumentID);
 
                     WriteLine(
-                        $"Expecting {_expectedDocumentChanges.Count} more changes ({JsonConvert.SerializeObject(_expectedDocumentChanges)})");
+                        $"Expecting {_expectedDocumentChanges.Count} more changes ({JsonSerializer.Serialize(_expectedDocumentChanges)})");
                     return _expectedDocumentChanges.Count == 0;
                 }
             });

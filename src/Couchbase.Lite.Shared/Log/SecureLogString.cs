@@ -15,9 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-using Newtonsoft.Json;
+
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 
 namespace Couchbase.Lite.Logging;
 
@@ -93,7 +94,7 @@ internal sealed class SecureLogJsonString(object input, LogMessageSensitivity se
                 return _str;
             }
 
-            var str = JsonConvert.SerializeObject(_object);
+            var str = JsonSerializer.Serialize(_object);
             _str = str.Length > 100 ? $"{new string(str.Take(100).ToArray())}..." : str;
 
             return _str;

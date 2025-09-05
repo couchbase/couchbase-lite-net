@@ -24,6 +24,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Couchbase.Lite;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
@@ -34,7 +35,6 @@ using Shouldly;
 
 using LiteCore.Interop;
 
-using Newtonsoft.Json;
 using System.Collections.Immutable;
 using System.Reflection;
 
@@ -1267,7 +1267,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
                 }
             }
 
-            WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
+            WriteLine($"Resulting merge: {JsonSerializer.Serialize(updateDocDict)}");
 
             var doc1 = new MutableDocument(conflict.DocumentID);
             doc1.SetData(updateDocDict);

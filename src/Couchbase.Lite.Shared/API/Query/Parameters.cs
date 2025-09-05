@@ -18,15 +18,13 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Text.Json;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
-
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Query;
 
@@ -226,5 +224,5 @@ public sealed class Parameters
     internal FLSliceResult FLEncode() => _params.FLEncode();
 
     /// <inheritdoc />
-    public override string ToString() => JsonConvert.SerializeObject(_params);
+    public override string ToString() => JsonSerializer.Serialize(_params);
 }

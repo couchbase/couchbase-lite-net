@@ -37,6 +37,7 @@ using LiteCore.Util;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite;
 
@@ -761,7 +762,7 @@ public sealed unsafe partial class Database : IDisposable
     private static string DatabasePath(string? directory)
     {
         var directoryToUse = String.IsNullOrWhiteSpace(directory)
-            ? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()
+            ? Service.Provider.GetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory()
             : directory;
 
         if (String.IsNullOrWhiteSpace(directoryToUse)) {

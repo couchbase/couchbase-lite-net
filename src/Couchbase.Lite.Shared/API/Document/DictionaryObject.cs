@@ -21,54 +21,48 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
-using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite;
 
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal sealed class IDictionaryObjectConverter : JsonConverter
+internal sealed class IDictionaryObjectConverter : JsonConverter<IDictionaryObject>
 {
-    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-    {
-        var dict = value as IDictionaryObject ?? throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
-            "Invalid input received in WriteJson (not IDictionaryObject)"); 
-        writer.WriteStartObject();
-        foreach (var pair in dict) {
-            writer.WritePropertyName(pair.Key);
-            serializer.Serialize(writer, pair.Value);
-        }
-        writer.WriteEndObject();
-    }
-
-    public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    public override IDictionaryObject Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var dict = new MutableDictionaryObject();
-        if (reader.TokenType == JsonToken.StartObject) {
+        if (reader.TokenType == JsonTokenType.StartObject) {
             reader.Read();
         }
 
-        while (reader.TokenType != JsonToken.EndObject && reader.Read()) {
-            var key = reader.Value as string;
+        while (reader.TokenType != JsonTokenType.EndObject && reader.Read()) {
+            var key = reader.GetString();
             if (key == null) {
                 throw new InvalidDataException(CouchbaseLiteErrorMessage.InvalidValueToBeDeserialized);
             }
 
             reader.Read();
-            var value = reader.Value;
+            var value = JsonSerializer.Deserialize<object?>(ref reader, options);
             dict.SetValue(key, value);
         }
 
         return dict;
     }
 
-    public override bool CanConvert(Type objectType)
+    public override void Write(Utf8JsonWriter writer, IDictionaryObject value, JsonSerializerOptions options)
     {
-        return typeof(IDictionaryObject).IsAssignableFrom(objectType);
+        writer.WriteStartObject();
+        foreach (var pair in value) {
+            writer.WritePropertyName(pair.Key);
+            JsonSerializer.Serialize(writer, pair.Value);
+        }
+        
+        writer.WriteEndObject();
     }
 }
 
