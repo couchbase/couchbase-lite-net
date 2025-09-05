@@ -36,7 +36,7 @@ namespace Test;
 
 public sealed class LogTest(ITestOutputHelper output)
 {
-#if NET6_0_OR_GREATER && !CBL_NO_VERSION_CHECK && !__ANDROID__ && !__IOS__ && !WINUI
+#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
         static LogTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
@@ -220,7 +220,7 @@ public sealed class LogTest(ITestOutputHelper output)
         TestWithConfiguration(newSink, Test);
     }
 
-#if !__ANDROID__ && !__IOS__
+#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
     [Fact]
     public void TestConsoleLoggingLevels()
     {

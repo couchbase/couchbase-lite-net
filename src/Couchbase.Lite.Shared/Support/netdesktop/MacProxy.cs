@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-// Windows 2012 doesn't define the more generic variants
-#if NETFRAMEWORK || NET462 || NET6_0_OR_GREATER
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -191,4 +189,3 @@ internal sealed class MacProxy : IProxy
     [DllImport (CoreFoundationLibrary)]
     private static extern /* CFStringRef */ IntPtr CFStringCreateWithCString(/* CFAllocatorRef */ IntPtr  alloc, string cStr, uint encoding);
 }
-#endif

@@ -70,10 +70,10 @@ public abstract class ReplicatorTestBase : TestCase
     protected X509Certificate2 DefaultServerCert
     {
         get {
-#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
+#if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
             using var cert =  FileSystem.OpenAppPackageFileAsync("SelfSigned.cer").Result;
 #else
-            using var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer");
+            using var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer")!;
 #endif
             using var ms = new MemoryStream();
             cert.CopyTo(ms);
@@ -2120,7 +2120,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
         stoppedWait.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue("because otherwise the replicator didn't stop");
     }
 
-#if __IOS__ && !SANITY_ONLY
+#if CBL_PLATFORM_IOS
         [SkippableFact]
         public void TestSwitchBackgroundForeground()
         {

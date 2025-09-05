@@ -63,7 +63,7 @@ internal static unsafe class WriteLog
     internal static void SetCallbackLevel(LogLevel level) => 
         Native.c4log_writeToCallback((C4LogLevel)level, LogCallback, true);
 
-#if __IOS__
+#if CBL_PLATFORM_APPLE
     [ObjCRuntime.MonoPInvokeCallback(typeof(C4LogCallback))]
 #endif
     private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr ignored)

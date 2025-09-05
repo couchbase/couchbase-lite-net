@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-#if __IOS__
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -190,5 +190,3 @@ internal sealed partial class IOSProxy  : IProxy
     private static partial /* CFStringRef */ IntPtr CFStringCreateWithCString(/* CFAllocatorRef */ IntPtr alloc, 
         [MarshalAs(UnmanagedType.LPStr)]string cStr, uint encoding);
 }
-
-#endif

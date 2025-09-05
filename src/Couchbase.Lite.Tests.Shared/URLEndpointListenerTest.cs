@@ -35,10 +35,7 @@ using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 using System.Diagnostics.CodeAnalysis;
-
-#if NET6_0_OR_GREATER
 using System.Runtime.InteropServices;
-#endif
 
 namespace Test;
 
@@ -70,7 +67,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
     private URLEndpointListener? _listener;
     private readonly X509Store _store = new(StoreName.My);
 
-#if !NET_ANDROID
+#if !CBL_PLATFORM_ANDROID
 
     [Fact]
     public void TestPort()
@@ -265,7 +262,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         wrongPwSecureString.Dispose();
     }
 
-#if !NET_ANDROID
+#if !CBL_PLATFORM_ANDROID
 #if !SANITY_ONLY
     [Fact]
     public void TestClientCertAuthWithCallback()
@@ -382,14 +379,14 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
     }
 #endif
 
-#if !NET_ANDROID
+#if !CBL_PLATFORM_ANDROID
 #if !SANITY_ONLY
     [Fact]
     public void TestClientCertAuthenticatorRootCerts()
     {
         var caData = GetFileByteArray("client-ca.der", typeof(URLEndpointListenerTest));
 
-#if NET_ANDROID
+#if CBL_PLATFORM_ANDROID
         var clientData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
 #else
         var clientData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
@@ -432,10 +429,10 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
     [Fact]
     public void TestListenerWithImportIdentity()
     {
-#if NET_ANDROID
-            byte[] serverData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
+#if CBL_PLATFORM_ANDROID
+        var serverData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
 #else
-        byte[] serverData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
+        var serverData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
 #endif
 
         // Cleanup
@@ -634,7 +631,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         }
 #endif
 
-#if !NET_ANDROID
+#if !CBL_PLATFORM_ANDROID
     [Fact]
     public void TestMultipleListenersOnSameDatabase()
     {
@@ -782,7 +779,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
     [Fact]
     public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
 
-#if !NET_ANDROID
+#if !CBL_PLATFORM_ANDROID
     [Fact]
     public void TestReplicatorServerCertWithTLS() => CheckReplicatorServerCert(true, true);
 
@@ -804,30 +801,29 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
     }
 #endif
 
-#if NET6_0_OR_GREATER
     [Fact]
     public void TestMultipleReplicatorsOnReadOnlyListener()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        { 
-            var config = CreateListenerConfig(readOnly: true);
-            _listener = Listen(config);
-
-            // save a doc on listener DB
-            using (var doc = new MutableDocument()) {
-                OtherDefaultCollection.Save(doc);
-            }
-
-            ValidateMultipleReplications(ReplicatorType.Pull, 1, 2);
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            return;
         }
+        
+        var config = CreateListenerConfig(readOnly: true);
+        _listener = Listen(config);
+
+        // save a doc on listener DB
+        using (var doc = new MutableDocument()) {
+            OtherDefaultCollection.Save(doc);
+        }
+
+        ValidateMultipleReplications(ReplicatorType.Pull, 1, 2);
     }
-#endif
 
 #if !SANITY_ONLY
-    [Fact] //hang maui android
+    [Fact]
     public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
-    [Fact]//hang maui android
+    [Fact]
     public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 #endif
 
@@ -990,16 +986,16 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
     private static int GetEADDRINUSECode()
     {
-#if NET6_0_OR_GREATER && !__MOBILE__
+#if CBL_PLATFORM_DOTNET || CBL_PLATFORM_DOTNETFX
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return 100;
         }
 
         return RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 48 : 98; // Linux
-#elif __IOS__
+#elif CBL_PLATFORM_IOS
             return 48;
-#elif __ANDROID__
+#elif CBL_PLATFORM_ANDROID
             return 98;
 #else
             return 100;

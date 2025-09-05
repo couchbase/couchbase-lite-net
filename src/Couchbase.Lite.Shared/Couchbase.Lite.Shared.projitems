@@ -180,31 +180,15 @@
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MDict.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MValue.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\AndroidRuntimePlatform.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\ConsoleLogWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\DefaultDirectoryResolver.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\DotnetAndroidProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\Android\MainThreadTaskScheduler.cs" />
+    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-android')) " Include="$(MSBuildThisFileDirectory)Support\Android\*.cs" />
+    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-ios')) or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-maccatalyst')) " Include="$(MSBuildThisFileDirectory)Support\iOS\*.cs" />
+    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) " Include="$(MSBuildThisFileDirectory)Support\WinUI\*.cs" />
+    <Compile Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' " Include="$(MSBuildThisFileDirectory)Support\netdesktop\*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Freezer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\ConsoleLogWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\DefaultDirectoryResolver.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\IOSProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\iOSReachability.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\iOSRuntimePlatform.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\MainThreadTaskScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IStoppable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IThreadSafety.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\ConsoleLogWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\DefaultDirectoryResolver.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\LinuxProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\MacProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\WindowsProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Status.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\ThreadSafety.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\WinUI\DefaultDirectoryResolver.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\WinUI\Reachability.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\WinUI\WinUIProxy.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Support\WinUI\WinUIRuntimePlatform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sync\AuthOptionsDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sync\HTTPLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sync\HttpMessageParser.cs" />

@@ -110,10 +110,10 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
     [Fact]
     public unsafe void TestBlobStreamCopyTo()
     {
-        byte[] bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
+        var bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
         C4BlobKey key;
-#if NET6_0_WINDOWS10 || NET_ANDROID || NET_APPLE
-            using (var stream = FileSystem.OpenAppPackageFileAsync("iTunesMusicLibrary.json").Result) {
+#if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
+        using (var stream = FileSystem.OpenAppPackageFileAsync("iTunesMusicLibrary.json").Result) {
 #else
         using (var stream = typeof(BlobTest).GetTypeInfo().Assembly
                    .GetManifestResourceStream("iTunesMusicLibrary.json")) {

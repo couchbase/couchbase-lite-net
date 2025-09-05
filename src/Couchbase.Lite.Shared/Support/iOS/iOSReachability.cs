@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __IOS__
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -159,5 +159,3 @@ internal sealed class iOSReachability : IReachability
         });
     }
 }
-
-#endif

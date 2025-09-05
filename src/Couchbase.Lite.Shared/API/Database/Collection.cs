@@ -651,9 +651,9 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
         return query;
     }
 
-        #if __IOS__
+#if CBL_PLATFORM_APPLE
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
-        #endif
+#endif
     private static void DoDbObserverCallback(C4CollectionObserver* db, void* context)
     {
         var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
@@ -663,9 +663,9 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
         });
     }
 
-        #if __IOS__
+#if CBL_PLATFORM_APPLE
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
-        #endif
+#endif
     private static void DoDocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
     {
         if (docId.buf == null) {

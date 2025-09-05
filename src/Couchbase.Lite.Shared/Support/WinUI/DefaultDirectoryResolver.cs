@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-#if CBL_PLATFORM_WINUI
 using Couchbase.Lite.DI;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -61,4 +60,3 @@ namespace Couchbase.Lite.Support
         private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, StringBuilder packageFullName);
     }
 }
-#endif

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#if __IOS__
+
 using System.IO;
 using Couchbase.Lite.DI;
 using Foundation;
@@ -35,5 +35,3 @@ internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
         return Path.Combine(path, "CouchbaseLite");
     }
 }
-
-#endif

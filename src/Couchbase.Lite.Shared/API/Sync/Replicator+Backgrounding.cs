@@ -16,7 +16,7 @@
 //  limitations under the License.
 // 
 
-#if __IOS__ && !MACCATALYST
+#if CBL_PLATFORM_IOS
 
 using Couchbase.Lite.Internal.Logging;
 using Foundation;

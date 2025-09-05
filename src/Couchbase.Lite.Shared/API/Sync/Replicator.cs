@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Sync;
 /// (i.e. pusher and puller are no longer separate) between a database and a URL
 /// or a database and another database on the same filesystem.
 /// </summary>
-#if __IOS__
+#if CBL_PLATFORM_APPLE
 public sealed unsafe partial class Replicator 
 #else
 public sealed unsafe class Replicator 
@@ -101,7 +101,7 @@ public sealed unsafe class Replicator
     private C4ReplicatorWrapper? _repl;
     private readonly ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
     
-    #if __IOS__
+    #if CBL_PLATFORM_APPLE
     private 
     #else
     private readonly
@@ -311,7 +311,7 @@ public sealed unsafe class Replicator
                     Config.Options.Reset = false;
                     Config.DatabaseInternal.AddActiveStoppable(this);
                     status = NativeSafe.c4repl_getStatus(_repl);
-#if __IOS__ && !MACCATALYST
+#if CBL_PLATFORM_IOS
                         if(!Config.AllowReplicatingInBackground) {
                             if (ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.DEVICE) {
                                 StartBackgroundingMonitor();
@@ -494,9 +494,9 @@ public sealed unsafe class Replicator
         wrapper.CookiesToSetReceived += OnCookiesToSetReceived;
     }
 
-        #if __IOS__
+#if CBL_PLATFORM_APPLE
     [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        #endif
+#endif
     private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
     {
         var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -517,9 +517,9 @@ public sealed unsafe class Replicator
         return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString()!, dict, flags);
     }
 
-        #if __IOS__
+#if CBL_PLATFORM_APPLE
     [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        #endif
+#endif
     private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
     {
         var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -576,7 +576,7 @@ public sealed unsafe class Replicator
 
     }
 
-#if __IOS__
+#if CBL_PLATFORM_APPLE
     [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
 #endif
     private static void OnDocEnded(C4Replicator* repl, bool pushing, IntPtr numDocs, C4DocumentEnded** docs, void* context)
@@ -621,7 +621,7 @@ public sealed unsafe class Replicator
             return;
         }
 
-#if __IOS__ && !MACCATALYST
+#if CBL_PLATFORM_IOS
             if(ConflictResolutionSuspended) {
                 return;
             }
@@ -692,9 +692,9 @@ public sealed unsafe class Replicator
         _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
     }
 
-        #if __IOS__
+#if CBL_PLATFORM_APPLE
     [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
-        #endif
+#endif
     private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
     {
         var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -998,9 +998,9 @@ public sealed unsafe class Replicator
         _state = ReplicatorState.Stopped;
         Config.DatabaseInternal.RemoveActiveStoppable(this);
             
-            #if __IOS__ && !MACCATALYST
-            EndBackgroundingMonitor();
-            #endif
+#if CBL_PLATFORM_IOS
+        EndBackgroundingMonitor();
+#endif
             
         if(_disposalState == DisposalState.Disposing) {
             _disposalState = DisposalState.Disposed;

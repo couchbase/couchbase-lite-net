@@ -16,7 +16,6 @@
 // limitations under the License.
 // 
 
-#if __IOS__
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
@@ -45,4 +44,3 @@ internal sealed class ConsoleLogWriter : IConsoleLogWriter
         _logger.Log(appleLevel, message);
     }
 }
-#endif
