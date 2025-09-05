@@ -37,23 +37,19 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>
     <DocumentationFile>bin\Packaging\$(TargetFramework)\Couchbase.Lite.xml</DocumentationFile>
-    <DefineConstants>TRACE;PACKAGING;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;PACKAGING</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;DEBUG</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Coverage|AnyCPU'">
-    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;DEBUG;TEST_COVERAGE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>TRACE;RELEASE;LITECORE_PACKAGED</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) ">
-    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
-    <DefineConstants>$(DefineConstants);CBL_PLATFORM_WINUI</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;RELEASE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Coverage|AnyCPU'">
-    <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;TEST_COVERAGE</DefineConstants>
     <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' ">
