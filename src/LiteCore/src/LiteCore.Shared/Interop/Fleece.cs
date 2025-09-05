@@ -25,8 +25,9 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
-
+using System.Text.Json;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal.Doc;
 
 namespace LiteCore.Interop;
 
@@ -532,6 +533,35 @@ internal static unsafe class FLSliceExtensions
                 break;
             case SecureString ss:
                 new NetworkCredential(string.Empty, ss).Password.FLEncode(enc);
+                break;
+            case JsonElement jObj:
+                switch (jObj.ValueKind) {
+                    case JsonValueKind.Array:
+                        jObj.Deserialize<IList>(DataOps.SerializerOptions)!.FLEncode();
+                        break;
+                    case JsonValueKind.Object:
+                        jObj.Deserialize<IDictionary<string, object?>>(DataOps.SerializerOptions)!.FLEncode();
+                        break;
+                    case JsonValueKind.Number:
+                        if (jObj.TryGetInt64(out var l)) {
+                            Native.FLEncoder_WriteInt(enc, l);
+                        } else {
+                            Native.FLEncoder_WriteDouble(enc, jObj.GetDouble());
+                        }
+                        break;
+                    case JsonValueKind.String:
+                        Native.FLEncoder_WriteString(enc, jObj.GetString());
+                        break;
+                    case JsonValueKind.True:
+                    case JsonValueKind.False:
+                        Native.FLEncoder_WriteBool(enc, jObj.GetBoolean());
+                        break;
+                    case JsonValueKind.Null:
+                        Native.FLEncoder_WriteNull(enc);
+                        break;
+                    default:
+                        throw new ArgumentException("Invalid JsonElement type: " + jObj.ValueKind);
+                }
                 break;
             default:
                 throw new ArgumentException($"Cannot encode {obj.GetType().FullName} to Fleece!");

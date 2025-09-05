@@ -39,6 +39,7 @@ using LiteCore.Interop;
 using LiteCore.Util;
 
 using Dispatch;
+using Microsoft.Extensions.DependencyInjection;
 
 #if !NET8_0_OR_GREATER
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
@@ -776,7 +777,7 @@ public sealed unsafe class Replicator
             return;
         }
 
-        _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
+        _reachability = Service.Provider.GetService<IReachability>() ?? new Reachability();
         _reachability.StatusChanged += ReachabilityChanged;
         _reachability.Url = remoteUrl;
         _reachability.Start();

@@ -37,8 +37,6 @@ using Couchbase.Lite.Util;
 
 using Shouldly;
 using LiteCore.Interop;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 using Extensions = Couchbase.Lite.Util.Extensions;
 using Couchbase.Lite.Internal.Logging;
@@ -47,7 +45,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -61,6 +59,10 @@ using System.Diagnostics;
 
 #if !CBL_PLATFORM_DOTNETFX && !CBL_PLATFORM_DOTNET
 using Couchbase.Lite.DI;
+#endif
+
+#if NET9_0_OR_GREATER
+using System.Security.Cryptography.X509Certificates;
 #endif
 
 namespace Test
@@ -284,15 +286,10 @@ namespace Test
         public unsafe void TestSerializationRoundTrip()
         {
             var masterList = new List<Dictionary<string, object>>();
-            var settings = new JsonSerializerSettings {
-                DateParseHandling = DateParseHandling.None
-            };
-            var s = JsonSerializer.CreateDefault(settings);
 
             ReadFileByLines("C/tests/data/iTunesMusicLibrary.json", line =>
             {
-                using var reader = new JsonTextReader(new StringReader(line));
-                var gotten = s.Deserialize<Dictionary<string, object?>>(reader);
+                var gotten = DataOps.ParseTo<Dictionary<string, object?>>(line);
                 gotten.ShouldNotBeNull("because otherwise the JSON on disk was corrupt");
                 masterList.Add(gotten!);
 
@@ -533,29 +530,6 @@ namespace Test
 #endif
 
         [Fact]
-        public void TestAutoConvertJson()
-        {
-            var jVal = new JValue("test");
-            var jArray = new JArray(jVal);
-            var jObj = new JObject { ["test"] = jVal };
-
-            DataOps.ToCouchbaseObject(jVal).ShouldBe("test");
-            (DataOps.ToCouchbaseObject(jArray) as MutableArrayObject)?[0].String.ShouldBe("test");
-            (DataOps.ToCouchbaseObject(jObj) as MutableDictionaryObject)?["test"].String.ShouldBe("test");
-
-            const string JSONString = """{"level1":{"foo":"bar"},"level2":{"list":[1, 3.14, "s"]}, "$type":"JSON .NET Object"}""";
-            var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(JSONString);
-            var converted = DataOps.ToCouchbaseObject(json) as MutableDictionaryObject;
-            converted.ShouldNotBeNull();
-
-            converted["level1"]["foo"].String.ShouldBe("bar");
-            converted["level2"]["list"][0].Int.ShouldBe(1);
-            converted["level2"]["list"][1].Double.ShouldBe(3.14);
-            converted["level2"]["list"][2].String.ShouldBe("s");
-            converted["$type"].String.ShouldBe("JSON .NET Object");
-        }
-
-        [Fact]
         public void TestCreateExceptions()
         {
             var fleeceException = CouchbaseException.Create(new C4Error(FLError.EncodeError)) as CouchbaseFleeceException;
@@ -603,7 +577,7 @@ namespace Test
         [Fact]
         public async Task TestMainThreadScheduler()
         {
-            var scheduler = Service.GetInstance<IMainThreadTaskScheduler>();
+            var scheduler = Service.Provider.GetService<IMainThreadTaskScheduler>();
             if(scheduler == null) {
                 return;
             }

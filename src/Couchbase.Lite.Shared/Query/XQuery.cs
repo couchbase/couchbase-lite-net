@@ -20,13 +20,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-
+using System.Text.Json;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query;
 
@@ -224,7 +223,7 @@ internal class XQuery : QueryBase
             parameters["HAVING"] = HavingImpl.ToJSON();
         }
 
-        return JsonConvert.SerializeObject(parameters);
+        return JsonSerializer.Serialize(parameters);
     }
 
     private void Check()

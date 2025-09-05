@@ -35,14 +35,6 @@ namespace Couchbase.Lite;
 /// </summary>
 public sealed class MutableDocument : Document, IMutableDictionary
 {
-    #if CBL_LINQ
-    private Linq.IDocumentModel _model;
-    #endif
-
-    #if CBL_LINQ
-    internal override bool IsEmpty => _model == null && base.IsEmpty;
-    #endif
-
     private protected override bool IsMutable => true;
     
     private IMutableDictionary? Dict => _dict as IMutableDictionary;
@@ -120,25 +112,6 @@ public sealed class MutableDocument : Document, IMutableDictionary
 
         _dict = dict;
     }
-
-    #if CBL_LINQ
-    internal void SetFromModel(Linq.IDocumentModel model)
-    {
-        _model = model;
-    }
-    #endif
-
-    #if CBL_LINQ
-    private FLSliceResult EncodeModel(FLEncoder* encoder)
-    {
-        var serializer = JsonSerializer.CreateDefault();
-        using (var writer = new Internal.Serialization.JsonFLValueWriter(c4Db)) {
-            serializer.Serialize(writer, _model);
-            writer.Flush();
-            return writer.Result;
-        }
-    }
-    #endif
 
     private static object? MutableCopy(object? original)
     {

@@ -20,7 +20,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Text.Json;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
@@ -28,7 +28,6 @@ using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Query;
 
@@ -302,5 +301,5 @@ public sealed unsafe class Result : IArray, IDictionaryObject, IJSON
     }
 
     /// <inheritdoc />
-    public string ToJSON() => JsonConvert.SerializeObject(ToDictionary());
+    public string ToJSON() => JsonSerializer.Serialize(ToDictionary());
 }

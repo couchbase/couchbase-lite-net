@@ -20,6 +20,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
+using Microsoft.Extensions.DependencyInjection;
 
 #if NET8_0_OR_GREATER
 using System.Runtime.Versioning;
@@ -41,7 +42,7 @@ namespace Couchbase.Lite
         /// </summary>
         public string Directory
         {
-            get => _directory ?? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
+            get => _directory ?? Service.Provider.GetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory();
             init => _directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value);
         }
 

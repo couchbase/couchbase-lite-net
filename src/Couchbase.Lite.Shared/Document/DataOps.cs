@@ -19,24 +19,89 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Lite.Internal.Serialization;
 using LiteCore.Interop;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc;
 
+internal sealed class CouchbaseConverter : JsonConverter<object>
+{
+    public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return reader.TokenType switch
+        {
+            JsonTokenType.True => true,
+            JsonTokenType.False => false,
+            JsonTokenType.Number => ReadNumber(ref reader),
+            JsonTokenType.String => reader.GetString(),
+            JsonTokenType.StartObject => ReadObject(ref reader),
+            JsonTokenType.StartArray => ReadArray(ref reader),
+            JsonTokenType.Null => null,
+            _ => throw new JsonException($"Unexpected token parsing JSON. Token: {reader.TokenType}")
+        };
+    }
+
+    public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+    {
+        JsonSerializer.Serialize(writer, value, options);
+    }
+    
+    private object ReadNumber(ref Utf8JsonReader reader)
+    {
+        if (reader.TryGetInt64(out var l))
+            return l;
+
+        return reader.GetDouble();
+    }
+
+    private Dictionary<string, object> ReadObject(ref Utf8JsonReader reader)
+    {
+        var dictionary = new Dictionary<string, object>();
+        
+        while (reader.Read()) {
+            if (reader.TokenType == JsonTokenType.EndObject)
+                break;
+
+            if (reader.TokenType != JsonTokenType.PropertyName)
+                throw new JsonException("Expected property name");
+
+            var propertyName = reader.GetString()!;
+            reader.Read();
+            dictionary[propertyName] = Read(ref reader, typeof(object), null!)!;
+        }
+
+        return dictionary;
+    }
+    
+    private List<object> ReadArray(ref Utf8JsonReader reader)
+    {
+        var list = new List<object>();
+        while (reader.Read()) {
+            if (reader.TokenType == JsonTokenType.EndArray)
+                break;
+
+            list.Add(Read(ref reader, typeof(object), null!)!);
+        }
+
+        return list;
+    }
+}
+
 internal static class DataOps
 {
+    internal static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        Converters = { new CouchbaseConverter(), new IArrayConverter(), new IDictionaryObjectConverter() },
+        PreferredObjectCreationHandling = JsonObjectCreationHandling.Replace
+    };
+    
     internal static T? ParseTo<T>(string json)
     {
         T? retVal;
         try {
-            var settings = new JsonSerializerSettings {
-                DateParseHandling = DateParseHandling.DateTimeOffset,
-                TypeNameHandling = TypeNameHandling.All
-            };
-            retVal = JsonConvert.DeserializeObject<T>(json, settings);
+            retVal = JsonSerializer.Deserialize<T>(json, SerializerOptions);
         } catch {
             throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
         }
@@ -120,19 +185,24 @@ internal static class DataOps
                 return rodic.ToMutable();
             case ArrayObject roarr and not MutableArrayObject:
                 return roarr.ToMutable();
-            case JObject jobj:
-                var jobjDict = jobj.ToObject<IDictionary<string, object>>();
-
-                //The dictionary may contain the json dict represents Blob. Developer should be able to retrieve Blob object using the Database.GetBlob(dict).
-                return ConvertDictionary(jobjDict!); 
-            case JArray jarr:
-                return ConvertList(jarr.ToObject<IList>()!);
-            case JToken jToken:
-                return jToken.Type switch
-                {
-                    JTokenType.Date => (DateTimeOffset)jToken,
-                    _ => jToken.ToObject<object>()
-                };
+            case JsonElement jobj:
+                switch (jobj.ValueKind) {
+                    case JsonValueKind.Array:
+                        return ConvertList(jobj.Deserialize<IList>(SerializerOptions)!);
+                    case JsonValueKind.Object:
+                        return ConvertDictionary(jobj.Deserialize<IDictionary<string, object>>(SerializerOptions)!);
+                    case JsonValueKind.Number:
+                        return jobj.TryGetInt64(out var l) ? l : jobj.GetDouble();
+                    case JsonValueKind.String:
+                        return jobj.GetString();
+                    case JsonValueKind.True:
+                    case JsonValueKind.False:
+                        return jobj.GetBoolean();
+                    case JsonValueKind.Null:
+                        return null;
+                    default:
+                        throw new ArgumentException("Invalid JsonElement type: " + jobj.ValueKind);
+                }
             case IDictionary<string, object?> dict:
                 return ConvertDictionary(dict);
             case IList list:

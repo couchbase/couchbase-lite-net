@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Text.Json;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
@@ -28,12 +29,10 @@ using Couchbase.Lite.Query;
 
 using Shouldly;
 
-using Newtonsoft.Json;
 using Test.Util;
 using System.Reflection;
 using System.Text;
 
-using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal.Doc;
 using Xunit;
 using Xunit.Abstractions;
@@ -225,7 +224,7 @@ namespace Test
                 switch (i.Key) {
                     case "blob":
                     {
-                        var b1JsonD = ((JObject) jDict[i.Key]).ToObject<IDictionary<string, object?>>();
+                        var b1JsonD = jDict[i.Key] as IDictionary<string, object?>;
                         b1JsonD.ShouldNotBeNull("because otherwise ToObject failed");
                         var b2JsonD = ((Blob?) dic[i.Key])!.JsonRepresentation;
 
@@ -234,7 +233,7 @@ namespace Test
                             hasValue.ShouldBeTrue($"because otherwise b1JsonD is missing the key {kv.Key}");
                             gotValue!.ToString().ShouldBe(kv.Value?.ToString());
                         }
-
+                        
                         var blob = new Blob(Db, b1JsonD);
                         blob.ShouldBeEquivalentToFluent((Blob) dic[i.Key]!);
                         break;
@@ -248,11 +247,6 @@ namespace Test
                 }
             }
         }
-
-        internal readonly JsonSerializerSettings _jsonSerializerSettings = new()
-        {
-            DateParseHandling = DateParseHandling.DateTimeOffset
-        };
 
         internal static Blob ArrayTestBlob() => new Blob("text/plain", Encoding.UTF8.GetBytes("12345"));
 
@@ -620,7 +614,7 @@ namespace Test
                 ReadFileByLines($"C/tests/data/{resourceName}.json", line =>
                 {
                     var docID = $"doc-{++n:D3}";
-                    var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
+                    var json = DataOps.ParseTo<IDictionary<string, object>>(line);
                     json.ShouldNotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
                     doc.SetData(json!);

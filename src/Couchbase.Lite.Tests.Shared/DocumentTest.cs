@@ -21,10 +21,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using Couchbase.Lite;
 using Shouldly;
-using Newtonsoft.Json;
 using Xunit;
 using Xunit.Abstractions;
 // ReSharper disable AccessToModifiedClosure
@@ -2098,7 +2098,7 @@ public class DocumentTest(ITestOutputHelper output) : TestCase(output)
     public void TestMutableDocWithJsonString()
     {
         var dic = PopulateDictData();
-        var dicJson = JsonConvert.SerializeObject(dic, _jsonSerializerSettings);
+        var dicJson = JsonSerializer.Serialize(dic);
         using var md = new MutableDocument("doc1", dicJson);
         ValidateValuesInMutableDictFromJson(dic, md);
     }
@@ -2119,7 +2119,7 @@ public class DocumentTest(ITestOutputHelper output) : TestCase(output)
 
         //with array json string    
         string[] arr = ["apple", "banana", "orange"];
-        var jArr = JsonConvert.SerializeObject(arr);
+        var jArr = JsonSerializer.Serialize(arr);
         Should.Throw<CouchbaseLiteException>(() => md.SetJSON(jArr));
     }
 
@@ -2131,7 +2131,7 @@ public class DocumentTest(ITestOutputHelper output) : TestCase(output)
 
         //with array json string    
         string[] arr = ["apple", "banana", "orange"];
-        var jArr = JsonConvert.SerializeObject(arr);
+        var jArr = JsonSerializer.Serialize(arr);
         Should.Throw<CouchbaseLiteException>(() => new MutableDocument("doc1", jArr));
     }
 

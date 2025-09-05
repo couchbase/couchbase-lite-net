@@ -26,13 +26,13 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace Couchbase.Lite;
 
@@ -534,7 +534,7 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
         CheckCollectionValid();
         var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
         var jsonObj = concreteIndex.ToJSON();
-        var json = JsonConvert.SerializeObject(jsonObj);
+        var json = JsonSerializer.Serialize(jsonObj);
         LiteCoreBridge.Check(err =>
         {
             var internalOpts = concreteIndex.Options;

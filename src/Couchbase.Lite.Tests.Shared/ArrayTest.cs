@@ -22,11 +22,10 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 using Shouldly;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -1340,12 +1339,13 @@ public sealed class ArrayTest(ITestOutputHelper output) : TestCase(output)
             jList.Count.ShouldBe(17, "because 17 entries were added");
             for (var i = 0; i < count; i++) {
                 if (array[i] != null && array[i] is Blob) {
-                    var b1JsonD = ((JObject)jList[i]).ToObject<Dictionary<string, object?>>()!;
+                    var b1JsonD = jList[i] as Dictionary<string, object?>;
+                    b1JsonD.ShouldNotBeNull();
                     var b2JsonD = ((Blob?)array[i])!.JsonRepresentation;
 
                     var blob = new Blob(Db, b1JsonD);
                     blob.ShouldBe((Blob?) array[i]);
-
+                    
                     foreach (var kv in b1JsonD) {
                         var hasValue = b2JsonD.TryGetValue(kv.Key, out var gotValue);
                         hasValue.ShouldBeTrue($"because otherwise b2JsonD is missing key '{kv.Key}'");
@@ -1364,7 +1364,7 @@ public sealed class ArrayTest(ITestOutputHelper output) : TestCase(output)
     public void TestMutableArrayWithJsonString()
     {
         var array = PopulateArrayData();
-        var arrayJson = JsonConvert.SerializeObject(array, _jsonSerializerSettings);
+        var arrayJson = JsonSerializer.Serialize(array);
         var ma = new MutableArrayObject(arrayJson);
         var cnt = ma.Count();
         for (int index=0; index < cnt; index++) {
@@ -1424,7 +1424,7 @@ public sealed class ArrayTest(ITestOutputHelper output) : TestCase(output)
 
         //with dict json string    
         var dict = new Dictionary<string, int> { { "apple", 5 }, { "banana", 2 }, { "orange", 10 } };
-        var jDict = JsonConvert.SerializeObject(dict);
+        var jDict = JsonSerializer.Serialize(dict);
         ex = Should.Throw<CouchbaseLiteException>(() => ma.SetJSON(jDict));
         ex.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
     }
@@ -1445,7 +1445,7 @@ public sealed class ArrayTest(ITestOutputHelper output) : TestCase(output)
 
         //with dict json string    
         var dict = new Dictionary<string, int> { { "apple", 5}, { "banana", 2 }, { "orange", 10 } };
-        var jDict = JsonConvert.SerializeObject(dict);
+        var jDict = JsonSerializer.Serialize(dict);
         ex = Should.Throw<CouchbaseLiteException>(() => new MutableArrayObject(jDict));
         ex.Message.ShouldBe(CouchbaseLiteErrorMessage.InvalidJSON);
     }

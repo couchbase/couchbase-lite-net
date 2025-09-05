@@ -37,6 +37,7 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 using Dispatch;
 using LiteCore.Interop;
+using Microsoft.Extensions.DependencyInjection;
 
 #if NET9_0_OR_GREATER
 using LockType = System.Threading.Lock;
@@ -128,7 +129,7 @@ internal sealed class WebSocketWrapper
     private BlockingCollection<byte[]>? _writeQueue;
     private readonly LockType _writeQueueLock = new(); // Used to avoid disposal race
 
-    private readonly IReachability _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
+    private readonly IReachability _reachability = Service.Provider.GetService<IReachability>() ?? new Reachability();
 
     public Stream? NetworkStream { get; private set; }
 
@@ -227,7 +228,7 @@ internal sealed class WebSocketWrapper
             // STEP 2.5: The IProxy interface will detect a system-wide proxy that is set
             // And if it is, it will return an IWebProxy object to use
             // Sending "CONNECT" request if IWebProxy object is not null
-            var proxy = Service.GetInstance<IProxy>();
+            var proxy = Service.Provider.GetService<IProxy>();
             if (_client is { Connected: false } && proxy != null) {
                 ConnectProxyAsync(proxy);
             }
