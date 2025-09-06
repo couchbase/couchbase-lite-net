@@ -63,9 +63,12 @@ public readonly struct ListenerToken : IEquatable<ListenerToken>
         _changeObservableRemovable.RemoveChangeListener(this);
     }
     
+    /// <inheritdoc />
     public bool Equals(ListenerToken other) => EventHandler.Equals(other.EventHandler) && Type == other.Type && _changeObservableRemovable.Equals(other._changeObservableRemovable);
     
+    /// <inheritdoc />
     public override bool Equals(object? obj) => obj is ListenerToken other && Equals(other);
 
+    /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(EventHandler, Type, _changeObservableRemovable);
 }

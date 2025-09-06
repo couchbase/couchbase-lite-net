@@ -18,6 +18,9 @@
 
 namespace Couchbase.Lite.Unsupported;
 
+/// <summary>
+/// Extension methods for <see cref="Document"/> that are unsupported and may be removed or changed at any time.
+/// </summary>
 public static class DocumentExtensions
 {
     /// <summary>

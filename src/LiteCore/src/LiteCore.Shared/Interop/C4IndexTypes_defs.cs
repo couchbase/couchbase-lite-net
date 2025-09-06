@@ -107,14 +107,18 @@ namespace LiteCore.Interop
         }
     }
 
-	internal unsafe partial struct C4IndexOptions
+    internal unsafe partial struct C4IndexOptions
     {
         private IntPtr _language;
         private byte _ignoreDiacritics;
         private byte _disableStemming;
         private IntPtr _stopWords;
         private IntPtr _unnestPath;
+
+        #if COUCHBASE_ENTERPRISE
         public C4VectorIndexOptions vector;
+        #endif
+
         private IntPtr _where;
 
         public string? language

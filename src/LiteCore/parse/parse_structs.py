@@ -5,6 +5,7 @@ import re
 from datetime import date
 import parse_enums
 import sys
+import logging
 
 type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte","C4StorageEngine":"string","char*":"string","uint64_t":"ulong","uint16_t":"ushort","C4SequenceNumber":"ulong", 
 "C4String":"FLSlice","C4FullTextID":"ulong","C4RemoteID":"uint","C4HeapString":"FLHeapSlice","C4Slice":"FLSlice","C4HeapSlice":"FLHeapSlice","C4SliceResult":"FLSliceResult","FLDoc":"FLDoc*",
@@ -38,6 +39,7 @@ def make_literal(type):
     except:
         return None
 
+    logging.warning(f"Using manually written definition for {type}, double check its content!")
     ret_val = fin.read().rstrip('\n')
     fin.close()
     return ret_val
@@ -163,8 +165,9 @@ if __name__ == "__main__":
             if len(variables) == 1 and variables[0] == "skip":
                 try:
                     tin = open("templates/{}.cs".format(name))
+                    logging.warning(f"Using template for {name}, double check its content!")
                 except:
-                    print("No definition found for {}; skipping...".format(name))
+                    logging.warning("No definition found for {}; skipping...".format(name))
                     continue
 
                 out_text += "{}\n\n".format(tin.read())

@@ -52,7 +52,6 @@ using Xunit.Abstractions;
 #if !SANITY_ONLY
 using System.Threading.Tasks;
 using System.Threading;
-using Dispatch;
 using Couchbase.Lite.Support;
 using System.Diagnostics;
 #endif
@@ -510,24 +509,6 @@ namespace Test
                 3.14m.RecursiveEqual(num).ShouldBeTrue();
             }
         }
-
-#if !SANITY_ONLY
-        [Fact]
-        public async Task TestSerialQueue()
-        {
-            var queue = new SerialQueue();
-            var now = DateTime.Now;
-            var then = now;
-            using var ignore = queue.DispatchAfter(TimeSpan.FromSeconds(1), () => then = DateTime.Now);
-            await Task.Delay(250);
-            then.ShouldBe(now);
-            await Task.Delay(800);
-            then.ShouldNotBe(now);
-
-            var testBool = false;
-            queue.DispatchSync<bool>(() => Volatile.Read(ref testBool)).ShouldBeFalse();
-        }
-#endif
 
         [Fact]
         public void TestCreateExceptions()

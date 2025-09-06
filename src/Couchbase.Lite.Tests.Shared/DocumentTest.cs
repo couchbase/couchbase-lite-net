@@ -27,12 +27,10 @@ using Couchbase.Lite;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
-// ReSharper disable AccessToModifiedClosure
-
-#if NET8_0_OR_GREATER
 using Test.Util;
+
+// ReSharper disable AccessToModifiedClosure
 // ReSharper disable AccessToDisposedClosure
-#endif
 
 namespace Test;
 

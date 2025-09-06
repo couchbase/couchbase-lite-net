@@ -18,7 +18,16 @@
 
 namespace Couchbase.Lite;
 
+// The sync version where Stop will remove the active stoppable
+// before returning
 internal interface IStoppable
 {
     void Stop();
+}
+
+// Similar to the above, except the active stoppable is removed later
+// Sometimes it can fail too, so provide a pollable property
+internal interface IAsyncStoppable : IStoppable
+{
+    bool IsStopped { get;  }
 }

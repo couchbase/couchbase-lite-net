@@ -154,7 +154,6 @@ namespace LiteCore.Interop
         public IntPtr collectionCount;
         public C4KeyPair* externalKey;
     }
-
 }
 
 #pragma warning restore IDE0051 // Remove unused private members

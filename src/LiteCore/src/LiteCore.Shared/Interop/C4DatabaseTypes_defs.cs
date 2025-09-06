@@ -45,7 +45,6 @@ namespace LiteCore.Interop
         ReadOnly        = 0x02,
         AutoCompact     = 0x04,
         VersionVectors  = 0x08,
-        MmapDisabled    = 0x10,
         NoUpgrade       = 0x20,
         NonObservable   = 0x40,
         DiskSyncFull    = 0x80,

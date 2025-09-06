@@ -807,14 +807,14 @@ public sealed class ScopeCollectionTest(ITestOutputHelper output) : TestCase(out
         var q = QueryBuilder.Select(SelectResult.Expression(key))
             .From(DataSource.Collection(CollA))
             .Where(key.GreaterThan(Expression.Int(9)));
-        q.Explain().Contains("USING INDEX KeyIndex").ShouldBeTrue();
+        q.Explain().Contains("USING COVERING INDEX KeyIndex").ShouldBeTrue();
 
         //Reindex
         Db.PerformMaintenance(MaintenanceType.Reindex);
 
         //Check if the index is still there and used
         CollA.GetIndexes().Count.ShouldBe(1);
-        q.Explain().Contains("USING INDEX KeyIndex").ShouldBeTrue();
+        q.Explain().Contains("USING COVERING INDEX KeyIndex").ShouldBeTrue();
     }
 
     [Fact]

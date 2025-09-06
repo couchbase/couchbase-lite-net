@@ -649,7 +649,7 @@ public sealed class PredictiveQueryTest : TestCase
             .From(DataSource.Collection(DefaultCollection))
             .Where(prediction.Property("sum").EqualTo(Expression.Int(15)));
         var explain = q.Explain();
-        explain.Contains("USING INDEX SumIndex").ShouldBeTrue();
+        explain.Contains("USING COVERING INDEX SumIndex").ShouldBeTrue();
 
         var rows = VerifyQuery(q, (_, result) => { result.GetInt(1).ShouldBe(15); });
         aggregateModel.Error.ShouldBeNull();
@@ -720,7 +720,7 @@ public sealed class PredictiveQueryTest : TestCase
             .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).And(
                 prediction.Property("avg").EqualTo(Expression.Int(3))));
         var explain = q.Explain();
-        explain.Contains("USING INDEX SumAvgIndex").ShouldBeTrue();
+        explain.Contains("USING COVERING INDEX SumAvgIndex").ShouldBeTrue();
 
         var rows = VerifyQuery(q, (_, result) =>
         {
@@ -755,7 +755,7 @@ public sealed class PredictiveQueryTest : TestCase
                    .From(DataSource.Collection(DefaultCollection))
                    .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
             var explain = q.Explain();
-            explain.Contains("USING INDEX SumIndex").ShouldBeTrue();
+            explain.Contains("USING COVERING INDEX SumIndex").ShouldBeTrue();
 
             var rows = VerifyQuery(q, (_, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
             aggregateModel.Error.ShouldBeNull();
@@ -770,7 +770,7 @@ public sealed class PredictiveQueryTest : TestCase
                    .From(DataSource.Collection(DefaultCollection))
                    .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
             var explain = q.Explain();
-            explain.Contains("USING INDEX SumIndex").ShouldBeFalse();
+            explain.Contains("USING COVERING INDEX SumIndex").ShouldBeFalse();
 
             var rows = VerifyQuery(q, (_, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
             aggregateModel.Error.ShouldBeNull();
@@ -841,7 +841,7 @@ public sealed class PredictiveQueryTest : TestCase
                    .From(DataSource.Collection(DefaultCollection))
                    .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
             var explain = q.Explain();
-            explain.Contains("USING INDEX AvgIndex").ShouldBeTrue();
+            explain.Contains("USING COVERING INDEX AvgIndex").ShouldBeTrue();
 
             var rows = VerifyQuery(q, (_, result) => { result.GetArray(0)?.Count.ShouldBeGreaterThan(0); });
             aggregateModel.Error.ShouldBeNull();

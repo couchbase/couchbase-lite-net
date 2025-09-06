@@ -85,10 +85,6 @@
 <ItemGroup Condition=" ($(TargetFramework.StartsWith('$(MauiDotNetVersion)-ios')) or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj" />
 </ItemGroup>
-  <ItemGroup>
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
   <Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
 </Project>
