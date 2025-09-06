@@ -39,6 +39,10 @@ namespace Couchbase.Lite.DI;
 /// </summary>
 public static class Service
 {
+    /// <summary>
+    /// The service provider containing all the dependency injected
+    /// classes for Couchbase Lite .NET
+    /// </summary>
     public static readonly ServiceProvider Provider;
 
     [ExcludeFromCodeCoverage]

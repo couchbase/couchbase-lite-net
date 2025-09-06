@@ -35,6 +35,11 @@ public sealed record ValueIndexConfiguration : IndexConfiguration
         where = Where
     };
     
+    /// <summary>
+    /// The where clause to use when creating this index.  If set to
+    /// non-null the index becomes a partial index, only adding things
+    /// which are evaluated to true by the where clause.
+    /// </summary>
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public string? Where { get; init; }
     
