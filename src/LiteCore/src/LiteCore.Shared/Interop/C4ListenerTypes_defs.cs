@@ -109,7 +109,6 @@ namespace LiteCore.Interop
         }
     }
 
-
 	internal unsafe struct C4ListenerDatabaseConfig
     {
         private byte _allowPush;

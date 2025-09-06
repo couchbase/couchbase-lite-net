@@ -58,7 +58,7 @@ public sealed unsafe partial class Replicator
 #else
 public sealed unsafe class Replicator 
 #endif
-    : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>,
+    : IDisposable, IAsyncStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>,
     IDocumentReplicatedObservable
 {
     private const string Tag = nameof(Replicator);
@@ -134,6 +134,9 @@ public sealed unsafe class Replicator
     public X509Certificate2? ServerCertificate { get; private set; }
         
     internal int PendingConflictCount => _conflictTasks.Count;
+
+    bool IAsyncStoppable.IsStopped => 
+        _repl == null || NativeSafe.c4repl_getStatus(_repl).level == C4ReplicatorActivityLevel.Stopped;
 
     static Replicator()
     {

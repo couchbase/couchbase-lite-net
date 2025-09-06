@@ -58,7 +58,8 @@ namespace LiteCore.Interop
         
         Untrusted,
         
-        Trusted
+        Trusted,
+        _TrustInternalUseOnly = -1
     }
 
 	internal unsafe struct FLValue

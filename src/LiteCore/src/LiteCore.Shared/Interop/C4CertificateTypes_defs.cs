@@ -1,7 +1,7 @@
 //
 // C4CertificateTypes_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,13 +58,13 @@ namespace LiteCore.Interop
 
     internal enum C4SignatureDigestAlgorithm : int
     {
-        SignatureDigestNone = 0,
-        SignatureDigestSHA1 = 4,
-        SignatureDigestSHA224,
+        SignatureDigestNone      = 0,
+        SignatureDigestRIPEMD160 = 4,
+        SignatureDigestSHA1,
+        SignatureDigestSHA224 = 8,
         SignatureDigestSHA256,
         SignatureDigestSHA384,
         SignatureDigestSHA512,
-        SignatureDigestRIPEMD160,
     }
 
 	internal unsafe struct C4CertNameInfo
