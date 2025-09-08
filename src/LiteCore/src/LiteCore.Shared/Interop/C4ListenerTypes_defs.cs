@@ -65,7 +65,6 @@ namespace LiteCore.Interop
         }
     }
 
-
     internal unsafe struct C4ListenerConfig
     {
         public ushort port;
@@ -109,7 +108,6 @@ namespace LiteCore.Interop
             }
         }
     }
-
 
 	internal unsafe struct C4ListenerDatabaseConfig
     {

@@ -81,6 +81,10 @@ internal abstract class QueryBase : IQuery, IStoppable
 
     public void Stop()
     {
+        if (_observingCount == 0) {
+            return;
+        }
+        
         // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
         Collection?.Database?.RemoveActiveStoppable(this);
         foreach (var t in _listenerTokens) {

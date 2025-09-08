@@ -45,7 +45,6 @@
     <Optimize>true</Optimize>
     <DebugType>portable</DebugType>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.iOS.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 //
 // C4PredictiveQuery_defs.cs
 //
-// Copyright (c) 2024 Couchbase, Inc All rights reserved.
+// Copyright (c) 2025 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,7 +46,6 @@ namespace LiteCore.Interop
         public IntPtr prediction;
         public IntPtr unregistered;
     }
-
 }
 
 #pragma warning restore IDE0051 // Remove unused private members

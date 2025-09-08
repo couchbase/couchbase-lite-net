@@ -986,12 +986,22 @@ public sealed unsafe partial class Database : IDisposable
             _isClosing = true;
         }
 
-        foreach (var q in ActiveStoppables) {
-            q.Key.Stop();
+        foreach (var q in ActiveStoppables.Keys) {
+            q.Stop();
         }
 
         while (!_closeCondition.Wait(TimeSpan.FromSeconds(5))) {
             WriteLog.To.Database.W(Tag, "Taking a while for active items to stop...");
+            foreach (var q in ActiveStoppables.Keys) {
+                if (q is not IAsyncStoppable asyncStoppable) {
+                    WriteLog.To.Database.W(Tag, $"Non async stoppable not removed after stop: {q}");
+                    RemoveActiveStoppable(q);
+                } else if (asyncStoppable.IsStopped) {
+                    RemoveActiveStoppable(asyncStoppable);
+                } else {
+                    WriteLog.To.Database.W(Tag, $"{q} is still not stopped...");
+                }
+            }
         }
 
         using var scope = ThreadSafety.BeginLockedScope();
