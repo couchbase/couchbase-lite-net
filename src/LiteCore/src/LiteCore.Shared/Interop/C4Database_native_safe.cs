@@ -20,13 +20,18 @@
 #pragma warning disable IDE1006
 
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace LiteCore.Interop;
 
 internal sealed unsafe class C4DatabaseWrapper(C4Database* db) : NativeWrapper((IntPtr)db)
 {
     public delegate T NativeCallback<out T>(C4Database* db);
+
+    private readonly ConcurrentStack<IDisposable> _transactionEntries = new();
 
     public C4Database* RawDatabase => (C4Database*)_nativeInstance;
 
@@ -36,6 +41,23 @@ internal sealed unsafe class C4DatabaseWrapper(C4Database* db) : NativeWrapper((
     {
         using var scope = BeginLockedScope(true);
         return a(RawDatabase);
+    }
+
+    public bool EnterTransaction(C4Error* outError)
+    {
+        _transactionEntries.Push(BeginLockedScope(true));
+        return Native.c4db_beginTransaction(RawDatabase, outError);
+    }
+    
+    public bool ExitTransaction(bool commit, C4Error* outError)
+    {
+        if(!_transactionEntries.TryPop(out var next)) {
+            throw new InvalidOperationException("ExitTransaction called while not in a transaction");
+        }
+        
+        var retVal = Native.c4db_endTransaction(RawDatabase, commit, outError);
+        next.Dispose();
+        return retVal;
     }
 
     protected override void Dispose(bool disposing) => Native.c4db_release(RawDatabase);
@@ -73,11 +95,11 @@ internal static unsafe partial class NativeSafe
     public static bool c4db_maintenance(C4DatabaseWrapper database, C4MaintenanceType type, C4Error* outError) => 
         database.UseSafe(db => Native.c4db_maintenance(db, type, outError));
 
-    public static bool c4db_beginTransaction(C4DatabaseWrapper database, C4Error* outError) => 
-        database.UseSafe(db => Native.c4db_beginTransaction(db, outError));
+    public static bool c4db_beginTransaction(C4DatabaseWrapper database, C4Error* outError) =>
+        database.EnterTransaction(outError);
 
-    public static bool c4db_endTransaction(C4DatabaseWrapper database, bool commit, C4Error* outError) => 
-        database.UseSafe(db => Native.c4db_endTransaction(db, commit, outError));
+    public static bool c4db_endTransaction(C4DatabaseWrapper database, bool commit, C4Error* outError) =>
+        database.ExitTransaction(commit, outError);
 
     public static bool c4db_rekey(C4DatabaseWrapper database, C4EncryptionKey* newKey, C4Error* outError) => 
         database.UseSafe(db => Native.c4db_rekey(db, newKey, outError));
