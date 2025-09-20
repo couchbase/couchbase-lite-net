@@ -764,8 +764,14 @@ public sealed unsafe class Replicator
         }
         
         var array = _conflictTasks.Keys.ToArray();
-        if (array.Length > 0) {
+        if (array.Length == 0) {
+            return;
+        }
+
+        try {
             Task.WaitAll(array);
+        } catch (TaskCanceledException) {
+            WriteLog.To.Sync.I(Tag, "Conflict tasks were cancelled");
         }
     }
 

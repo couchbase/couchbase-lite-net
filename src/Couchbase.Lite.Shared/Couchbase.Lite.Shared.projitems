@@ -52,7 +52,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\LogSinks.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayFunction.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)api\query\ArrayIndexConfiguration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\query\ArrayIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Collation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\DataSource.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Expression.cs" />
@@ -104,13 +104,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ValueIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\RuntimeException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Authenticator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)api\sync\BackgroundMonitor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Sync\BackgroundMonitor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\BasicAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\CollectionConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\IEndpoint.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)api\sync\ProxyAuthenticator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Sync\ProxyAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\ReplicationActivityLevel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)api\sync\Replicator+Backgrounding.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Replicator+Backgrounding.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Replicator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\ReplicatorConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\ReplicatorProgress.cs" />
@@ -191,6 +191,5 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Misc.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\OptionsDictionary.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\RunOnce.cs" />
   </ItemGroup>
 </Project>
