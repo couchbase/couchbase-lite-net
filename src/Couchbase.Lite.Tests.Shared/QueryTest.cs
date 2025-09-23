@@ -1911,10 +1911,10 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
                 var mainAll2 = row.GetDictionary("main");
                 var secondAll1 = row.GetDictionary(1);
                 var secondAll2 = row.GetDictionary("secondary");
-                WriteLine($"mainAll1 -> {JsonSerializer.Serialize(mainAll1)}");
-                WriteLine($"mainAll2 -> {JsonSerializer.Serialize(mainAll2)}");
-                WriteLine($"secondAll1 -> {JsonSerializer.Serialize(secondAll1)}");
-                WriteLine($"secondAll2 -> {JsonSerializer.Serialize(secondAll2)}");
+                WriteLine($"mainAll1 -> {JsonSerializer.Serialize(mainAll1?.ToDictionary())}");
+                WriteLine($"mainAll2 -> {JsonSerializer.Serialize(mainAll2?.ToDictionary())}");
+                WriteLine($"secondAll1 -> {JsonSerializer.Serialize(secondAll1?.ToDictionary())}");
+                WriteLine($"secondAll2 -> {JsonSerializer.Serialize(secondAll2?.ToDictionary())}");
 
                 mainAll1?.GetInt("number1").ShouldBe(42);
                 mainAll2?.GetInt("number1").ShouldBe(42);
