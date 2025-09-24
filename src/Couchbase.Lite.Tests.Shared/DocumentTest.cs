@@ -2096,7 +2096,7 @@ public class DocumentTest(ITestOutputHelper output) : TestCase(output)
     public void TestMutableDocWithJsonString()
     {
         var dic = PopulateDictData();
-        var dicJson = JsonSerializer.Serialize(dic);
+        var dicJson = JsonSerializer.Serialize(dic, JsonOptions);
         using var md = new MutableDocument("doc1", dicJson);
         ValidateValuesInMutableDictFromJson(dic, md);
     }

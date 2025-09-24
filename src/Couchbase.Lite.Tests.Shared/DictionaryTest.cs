@@ -536,7 +536,7 @@ public sealed class DictionaryTest(ITestOutputHelper output) : TestCase(output)
     public void TestMutableDictWithJsonString()
     {
         var dic = PopulateDictData();
-        var dicJson = JsonSerializer.Serialize(dic);
+        var dicJson = JsonSerializer.Serialize(dic, JsonOptions);
         var md = new MutableDictionaryObject(dicJson);
 
         ValidateValuesInMutableDictFromJson(dic, md);

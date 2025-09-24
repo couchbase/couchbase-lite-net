@@ -804,6 +804,9 @@ namespace Test
                 EnableAutoPurge = false,
                 MaxAttempts = 2,
                 MaxAttemptsWaitTime = TimeSpan.FromDays(1)
+#if CBL_PLATFORM_IOS
+                ,AllowReplicatingInBackground = true
+#endif
             };
             
             configs.Add(new(Db.CreateCollection("third")));
