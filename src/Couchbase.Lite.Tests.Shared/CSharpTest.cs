@@ -772,18 +772,18 @@ namespace Test
 #endif
 
         [Fact]
-        public void TestReplicatorConfigurationCopy()
+        public async Task TestReplicatorConfigurationCopy()
         {
             var configs = CollectionConfiguration.FromCollections(DefaultCollection, Db.CreateCollection("second"));
             var replicationConfigStandard = new ReplicatorConfiguration(configs, new URLEndpoint(new("ws://fake")));
             
 #if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
-            using var cert =  FileSystem.OpenAppPackageFileAsync("SelfSigned.cer").Result;
+            await using var cert = await FileSystem.OpenAppPackageFileAsync("SelfSigned.cer");
 #else
-            using var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer");
+            using var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer")!;
 #endif
             using var ms = new MemoryStream();
-            cert!.CopyTo(ms);
+            await cert.CopyToAsync(ms);
             
             // Set all properties to non-default to ensure the correctness of the copy constructor later
             var replicationConfig1 = new ReplicatorConfiguration(configs, new URLEndpoint(new("ws://fake")))

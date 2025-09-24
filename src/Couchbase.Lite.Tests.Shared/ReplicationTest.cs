@@ -844,7 +844,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
     }
 
     [Fact]
-    public void TestStopContinuousReplicator()
+    public async Task TestStopContinuousReplicator()
     {
         var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         var config = CreateConfig(collectionConfigs, true, false, true);
@@ -887,7 +887,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             }
 
             // increase delay time to prevent intermittent failures due to replicator ref might not be completely disposed
-            Task.Delay(500).Wait(); 
+            await Task.Delay(500); 
         }
     }
 #endif

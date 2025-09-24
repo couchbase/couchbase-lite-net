@@ -22,6 +22,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 
@@ -107,26 +108,25 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
     }
 
     [Fact]
-    public unsafe void TestBlobStreamCopyTo()
+    public async Task TestBlobStreamCopyTo()
     {
         var bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
-        C4BlobKey key;
 #if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
-        using (var stream = FileSystem.OpenAppPackageFileAsync("iTunesMusicLibrary.json").Result) {
+        await using var inputStream = await FileSystem.OpenAppPackageFileAsync("iTunesMusicLibrary.json");
 #else
-        using (var stream = typeof(BlobTest).GetTypeInfo().Assembly
-                   .GetManifestResourceStream("iTunesMusicLibrary.json")) {
+        await using var inputStream = typeof(BlobTest).GetTypeInfo().Assembly
+                   .GetManifestResourceStream("iTunesMusicLibrary.json");
 #endif
-            stream.ShouldNotBeNull("because otherwise the test data source is missing");
-            using (var writeStream = new BlobWriteStream(Db.BlobStore)) {
-                stream.CopyTo(writeStream);
-                writeStream.Flush();
-                key = writeStream.Key;
-            }
-        }
-
-        using (var stream = new BlobReadStream(Db.BlobStore, key)) {
-            stream.Length.ShouldBe(bytes.Length);
+        inputStream.ShouldNotBeNull("because otherwise the test data source is missing");
+        unsafe {
+            using var writeStream = new BlobWriteStream(Db.BlobStore);
+            // ReSharper disable once MethodHasAsyncOverload
+            inputStream.CopyTo(writeStream);
+            writeStream.Flush();
+            var key = writeStream.Key;
+            
+            using var readStream = new BlobReadStream(Db.BlobStore, key);
+            readStream.Length.ShouldBe(bytes.Length);
         }
     }
 
