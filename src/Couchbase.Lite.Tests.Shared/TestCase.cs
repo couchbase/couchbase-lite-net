@@ -37,11 +37,24 @@ using Couchbase.Lite.Internal.Doc;
 using Xunit;
 using Xunit.Abstractions;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Test
 {
+    internal sealed class DateTimeOffsetConverter : JsonConverter<DateTimeOffset>
+    {
+        public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return DateTimeOffset.Parse(reader.GetString()!, null, System.Globalization.DateTimeStyles.RoundtripKind);
+        }
+
+        public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.ToString("o"));
+        }
+    }
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";
@@ -55,6 +68,11 @@ namespace Test
         private static int Counter;
 
         private readonly bool _initializing;
+        protected static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            Converters = { new DateTimeOffsetConverter() }
+        };
+        
         protected readonly ITestOutputHelper _output;
 
         protected Database Db { get; private set; }

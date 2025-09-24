@@ -1364,7 +1364,7 @@ public sealed class ArrayTest(ITestOutputHelper output) : TestCase(output)
     public void TestMutableArrayWithJsonString()
     {
         var array = PopulateArrayData();
-        var arrayJson = JsonSerializer.Serialize(array);
+        var arrayJson = JsonSerializer.Serialize(array, JsonOptions);
         var ma = new MutableArrayObject(arrayJson);
         var cnt = ma.Count();
         for (int index=0; index < cnt; index++) {
