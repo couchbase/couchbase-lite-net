@@ -108,11 +108,20 @@ public sealed class BlobTest(ITestOutputHelper output) : TestCase(output)
     }
 
     [Fact]
-    public async Task TestBlobStreamCopyTo()
+    public 
+#if CBL_PLATFORM_DOTNETFX
+    void
+#else
+    async Task 
+#endif 
+    TestBlobStreamCopyTo()
     {
         var bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
 #if CBL_PLATFORM_WINUI || CBL_PLATFORM_ANDROID || CBL_PLATFORM_APPLE
         await using var inputStream = await FileSystem.OpenAppPackageFileAsync("iTunesMusicLibrary.json");
+#elif CBL_PLATFORM_DOTNETFX
+        using var inputStream = typeof(BlobTest).GetTypeInfo().Assembly
+            .GetManifestResourceStream("iTunesMusicLibrary.json");
 #else
         await using var inputStream = typeof(BlobTest).GetTypeInfo().Assembly
                    .GetManifestResourceStream("iTunesMusicLibrary.json");
