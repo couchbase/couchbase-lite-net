@@ -879,15 +879,18 @@ public sealed unsafe partial class Database : IDisposable
             resolvedDoc.Collection = GetDefaultCollection();
         }
 
-        // The remote branch has to win, so that the doc revision history matches the server's.
         var winningRevID = remoteDoc.RevisionID;
         var losingRevID = localDoc.RevisionID;
+        if (ReferenceEquals(resolvedDoc, localDoc)) {
+             winningRevID = localDoc.RevisionID;
+             losingRevID = remoteDoc.RevisionID;
+        }
 
         // mergedBody:
         FLSliceResult mergedBody = (FLSliceResult) FLSlice.Null;
-        if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
+        if (!ReferenceEquals(resolvedDoc, remoteDoc) && !ReferenceEquals(resolvedDoc, localDoc)) {
             if (resolvedDoc != null) {
-                // Unless the remote revision is being used as-is, we need a new revision:
+                // Unless one of the local or remote is being used as-is, we need a new revision:
                 mergedBody = resolvedDoc.Encode();
                 if (mergedBody.Equals((FLSliceResult) FLSlice.Null))
                     throw new RuntimeException(CouchbaseLiteErrorMessage.ResolvedDocContainsNull);
