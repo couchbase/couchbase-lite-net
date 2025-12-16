@@ -101,20 +101,45 @@ internal sealed class iOSReachability : IReachability
             return;
         }
 
-        using var session = NSUrlSession.SharedSession;
-        var request = new NSUrlRequest(new NSUrl(Url.AbsoluteUri));
-
-        var task = session.CreateDataTask(request, (_, response, error) =>
+        var parameters = NWParameters.CreateTcp();
+        using var endpoint = NWEndpoint.Create(Url.Host, Url.Port.ToString());
+        if (endpoint == null) {
+            WriteLog.To.Sync.E(Tag, $"{Url} is not parseable for reachability check");
+            return;
+        }
+        
+        var connection = new NWConnection(endpoint, parameters);
+        var flags = baseFlags;
+        
+        connection.SetQueue(_queue);
+        connection.SetStateChangeHandler((state, error) =>
         {
-            var flags = baseFlags;
-            if (error.Code != 0 || response is NSHttpUrlResponse { StatusCode: >= 400 }) {
-                flags &= ~NetworkReachabilityFlags.Reachable;
+            if (error != null) {
+                WriteLog.To.Sync.W(Tag, $"Connection error to {Url}: {error}");
             }
             
-            NotifyFlagsChanged(flags);
+            switch (state) {
+                case NWConnectionState.Ready:
+                    flags |= NetworkReachabilityFlags.Reachable;
+                    NotifyFlagsChanged(flags);
+                    connection.Cancel();
+                    break;
+                case NWConnectionState.Failed:
+                case NWConnectionState.Cancelled:
+                    flags &= ~NetworkReachabilityFlags.Reachable;
+                    NotifyFlagsChanged(flags);
+                    connection.Cancel();
+                    break;
+                case NWConnectionState.Invalid:
+                case NWConnectionState.Waiting:
+                case NWConnectionState.Preparing:
+                default:
+                    WriteLog.To.Sync.V(Tag, $"Ignoring connection state: {state}");
+                    break;
+            }
         });
         
-        task.Resume();
+        connection.Start();
     }
 
     public void Start()
