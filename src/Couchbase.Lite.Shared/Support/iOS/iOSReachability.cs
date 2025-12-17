@@ -27,8 +27,6 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Sync;
 
-using Foundation;
-
 using Network;
 
 namespace Couchbase.Lite.Support;
@@ -110,10 +108,17 @@ internal sealed class iOSReachability : IReachability
         
         var connection = new NWConnection(endpoint, parameters);
         var flags = baseFlags;
+        var completed = false; // prevent re-entrancy / duplicate notifications after Cancel
         
         connection.SetQueue(_queue);
         connection.SetStateChangeHandler((state, error) =>
         {
+            // Ignore any subsequent callbacks once we've made a reachability decision
+            if (completed) {
+                WriteLog.To.Sync.V(Tag, $"Ignoring state after completion: {state}");
+                return;
+            }
+            
             if (error != null) {
                 WriteLog.To.Sync.W(Tag, $"Connection error to {Url}: {error}");
             }
@@ -122,14 +127,19 @@ internal sealed class iOSReachability : IReachability
                 case NWConnectionState.Ready:
                     flags |= NetworkReachabilityFlags.Reachable;
                     NotifyFlagsChanged(flags);
+                    completed = true;
+                    // Replace handler with no-op before cancel to avoid processing Cancelled state
+                    connection.SetStateChangeHandler((_, _) => { });
                     connection.Cancel();
                     break;
                 case NWConnectionState.Failed:
-                case NWConnectionState.Cancelled:
                     flags &= ~NetworkReachabilityFlags.Reachable;
                     NotifyFlagsChanged(flags);
+                    completed = true;
+                    connection.SetStateChangeHandler((_, _) => { });
                     connection.Cancel();
                     break;
+                case NWConnectionState.Cancelled:
                 case NWConnectionState.Invalid:
                 case NWConnectionState.Waiting:
                 case NWConnectionState.Preparing:
