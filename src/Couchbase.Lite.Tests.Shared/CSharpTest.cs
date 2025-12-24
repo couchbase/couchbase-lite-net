@@ -46,11 +46,11 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
 #if !SANITY_ONLY
-using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Support;
 using System.Diagnostics;
