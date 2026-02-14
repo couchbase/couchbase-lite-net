@@ -17,176 +17,90 @@
 // 
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Net;
-using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
-
+using CoreFoundation;
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
+using Foundation;
+using CFNetworkLib = CoreFoundation.CFNetwork;
 
 namespace Couchbase.Lite.Support;
 
 [CouchbaseDependency]
 [SuppressMessage("ReSharper", "InconsistentNaming")]
-internal sealed partial class IOSProxy  : IProxy
+internal sealed class IOSProxy : IProxy
 {
-    private const string libSystemLibrary = "/usr/lib/libSystem.dylib";
+    private const string Tag = nameof(IOSProxy);
 
-    private const string CFNetworkLibrary =
-        "/System/Library/Frameworks/CFNetwork.framework/CFNetwork";
-
-    private const string CFNetworkLibraryOld =
-        "/System/Library/Frameworks/CoreServices.framework/Frameworks/CFNetwork.framework/CFNetwork";
-
-    private const string CoreFoundationLibrary =
-        "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
-
-    private static readonly IntPtr kCFProxyTypeKey = ReadCFNetworkPointer(nameof(kCFProxyTypeKey));
-    private static readonly IntPtr kCFProxyTypeNone = ReadCFNetworkPointer(nameof(kCFProxyTypeNone));
-    private static readonly IntPtr kCFProxyHostNameKey = ReadCFNetworkPointer(nameof(kCFProxyHostNameKey));
-    private static readonly IntPtr kCFProxyPortNumberKey = ReadCFNetworkPointer(nameof(kCFProxyPortNumberKey));
-
-    private const uint kCFStringEncodingASCII = 0x0600;
-    private const int kCFNumberIntType = 9;
-
-    public unsafe Task<WebProxy?> CreateProxyAsync(Uri destination)
+    public Task<WebProxy?> CreateProxyAsync(Uri destination)
     {
-        IntPtr cFNetworkHandle = LoadCFNetwork();
-        if (cFNetworkHandle == IntPtr.Zero) {
+        var proxySettings = CFNetworkLib.GetSystemProxySettings();
+        if (proxySettings == null) {
             return Task.FromResult(default(WebProxy));
         }
 
-        var proxySettings = CopySystemProxySettings(cFNetworkHandle);
-        if (proxySettings == IntPtr.Zero) {
+        var proxies = CFNetworkLib.GetProxiesForUri(destination, proxySettings);
+        if (proxies == null || proxies.Length == 0) {
             return Task.FromResult(default(WebProxy));
         }
 
-        var cfUrlString = CFStringCreateWithCString(IntPtr.Zero, destination.AbsoluteUri,
-            kCFStringEncodingASCII);
-        if (cfUrlString == IntPtr.Zero) {
-            CFRelease(proxySettings);
-            return Task.FromResult(default(WebProxy));
+        var proxy = proxies[0];
+        var retVal = Task.FromResult(default(WebProxy));
+        switch (proxy.ProxyType) {
+            case CFProxyType.HTTP:
+                retVal = Task.FromResult<WebProxy?>(new(new Uri($"{proxy.HostName}:{proxy.Port}")));
+                break;
+            case CFProxyType.AutoConfigurationUrl or CFProxyType.AutoConfigurationJavaScript:
+                retVal = CreateAutoConfigProxyAsync(proxy, destination,
+                    proxy.ProxyType == CFProxyType.AutoConfigurationUrl);
+                break;
+            default:
+                WriteLog.To.Sync.I(Tag, $"Nothing to do for proxy type {proxy.ProxyType}");
+                break;
         }
 
-        var cfDestination = CFURLCreateWithString(IntPtr.Zero, cfUrlString, IntPtr.Zero);
-        if (cfDestination == IntPtr.Zero) {
-            CFRelease(proxySettings);
-            CFRelease(cfUrlString);
-            return Task.FromResult(default(WebProxy));
+        return retVal;
+    }
+
+    private static async Task<WebProxy?> CreateAutoConfigProxyAsync(CFProxy proxy, Uri destination, bool isUrl)
+    {
+        NSUrl? pacURL = null;
+        CFProxy[]? proxies = null;
+        NSError? err = null;
+        if (isUrl) {
+            pacURL = proxy.AutoConfigurationUrl;
+            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script at {0}", pacURL);
+            var result = await CFNetworkLib.ExecuteProxyAutoConfigurationUrlAsync(pacURL!, destination,
+                CancellationToken.None);
+            if (result.error != null) {
+                err = result.error;
+            } else {
+                proxies = result.proxies;
+            }
+        }
+        else {
+            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script");
+            var js = proxy.AutoConfigurationJavaScript;
+            Debug.Assert(js != null);
+            proxies = CFNetworkLib.GetProxiesForAutoConfigurationScript(js, destination);
         }
 
-        var proxies = CopyProxiesForURL(cFNetworkHandle, cfDestination, proxySettings);
-        CFRelease(proxySettings);
-        CFRelease(cfDestination);
-        CFRelease(cfUrlString);
-
-        if (CFArrayGetCount(proxies) == 0) {
-            CFRelease(proxies);
-            return Task.FromResult(default(WebProxy));
+        if (proxies == null) {
+            WriteLog.To.Sync.W(Tag, "Failed to resolve proxy auto configuration script at {0}: {1}",
+                pacURL, err?.LocalizedDescription);
+            return null;
         }
 
-        var proxy = CFArrayGetValueAtIndex(proxies, 0);
-        var proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyTypeKey);
-        if (proxyKeyValue == kCFProxyTypeNone) {
-            CFRelease(proxies);
-            return Task.FromResult(default(WebProxy));
+        if (proxies.Length == 0) {
+            WriteLog.To.Sync.W(Tag, "No proxies found in PAC script at {0}",
+                pacURL?.AbsoluteString ?? "(inline script)");
+            return null;
         }
 
-        proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyHostNameKey);
-        var hostUrlString = GetCString(proxyKeyValue);
-        proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyPortNumberKey);
-        var port = 0;
-        if (!CFNumberGetValue(proxyKeyValue, kCFNumberIntType, &port)) {
-            CFRelease(proxies);
-            return Task.FromResult(default(WebProxy));
-        }
-
-        CFRelease(proxies);
-        return Task.FromResult<WebProxy?>(new WebProxy(new Uri($"{hostUrlString}:{port}")));
+        return new(new Uri($"{proxies[0].HostName}:{proxies[0].Port}"));
     }
-
-    private static IntPtr LoadCFNetwork() => 
-        LoadLibrary(File.Exists(CFNetworkLibraryOld) ? CFNetworkLibraryOld : CFNetworkLibrary);
-
-    private static IntPtr LoadLibrary(string libPath)
-    {
-        var libHandle = dlopen(libPath, 0);
-        return libHandle == IntPtr.Zero ? throw new DllNotFoundException($"Unable to find or open library at {libPath}") : libHandle;
-    }
-
-    private static IntPtr GetPointer(IntPtr libHandle, string symbolName, string? libPath = null)
-    {
-        var symbolHandle = dlsym(libHandle, symbolName);
-        return symbolHandle == IntPtr.Zero ? throw new EntryPointNotFoundException($"Unable to find the symbol {symbolName} in {libPath ?? libHandle.ToString()}") : symbolHandle;
-    }
-
-    private static T GetDelegate<T>(IntPtr libHandle)
-    {
-        var symbolHandle = GetPointer(libHandle, typeof(T).Name);
-        return Marshal.GetDelegateForFunctionPointer<T>(symbolHandle);
-    }
-
-    private static IntPtr ReadCFNetworkPointer(string symbolName)
-    {
-        var libHandle = LoadCFNetwork();
-        var symbolHandle = GetPointer(libHandle, symbolName, "CFNetwork");
-        return Marshal.ReadIntPtr(symbolHandle);
-    }
-
-    private static string? GetCString(IntPtr /* CFStringRef */ theString)
-    {
-        var pointer = CFStringGetCStringPtr(theString, kCFStringEncodingASCII);
-        return Marshal.PtrToStringAnsi(pointer);
-    }
-
-    private static IntPtr CopySystemProxySettings(IntPtr cFNetworkHandle)
-    {
-        return GetDelegate<CFNetworkCopySystemProxySettings>(cFNetworkHandle)();
-    }
-
-    private static IntPtr CopyProxiesForURL(IntPtr cFNetworkHandle, IntPtr url, IntPtr proxySettings)
-    {
-        return GetDelegate<CFNetworkCopyProxiesForURL>(cFNetworkHandle)(url, proxySettings);
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate /* CFDictionaryRef __nullable */ IntPtr CFNetworkCopySystemProxySettings();
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate /* CFArrayRef __nonnull */ IntPtr CFNetworkCopyProxiesForURL(/* CFURLRef __nonnull */ IntPtr url, /* CFDictionaryRef __nonnull */ IntPtr proxySettings);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    private static unsafe partial bool CFNumberGetValue(IntPtr /* CFNumberRef */ number, int /* CFNumberType */ theType, void* valuePtr);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    private static partial IntPtr /* const char* */ CFStringGetCStringPtr(IntPtr /* CFStringRef */ theString, uint /* CFStringEncoding */ encoding);
-
-    [LibraryImport(libSystemLibrary)]
-    private static partial IntPtr dlsym(IntPtr handle, [MarshalAs(UnmanagedType.LPStr)]string symbol);
-
-    [LibraryImport(libSystemLibrary)]
-    private static partial IntPtr dlopen([MarshalAs(UnmanagedType.LPUTF8Str)]string path, int mode);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    private static partial /* void* */ IntPtr CFDictionaryGetValue(/* CFDictionaryRef */ IntPtr theDict, /* const void* */ IntPtr key);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    private static partial /* void* */ IntPtr CFArrayGetValueAtIndex(/* CFArrayRef */ IntPtr theArray, /* CFIndex */ long idx);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    private static partial /* CFIndex */ long CFArrayGetCount(/* CFArrayRef */ IntPtr theArray);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    private static partial void CFRelease(IntPtr obj);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    private static partial /* CFURLRef */ IntPtr CFURLCreateWithString(/* CFAllocatorRef */ IntPtr allocator,
-        /* CFStringRef */ IntPtr URLString,
-        /* CFStringRef */ IntPtr baseURL);
-
-    [LibraryImport(CoreFoundationLibrary)]
-    private static partial /* CFStringRef */ IntPtr CFStringCreateWithCString(/* CFAllocatorRef */ IntPtr alloc, 
-        [MarshalAs(UnmanagedType.LPStr)]string cStr, uint encoding);
 }
