@@ -36,6 +36,10 @@ internal sealed class IOSProxy : IProxy
 {
     private const string Tag = nameof(IOSProxy);
 
+    // WARNING: A VPN connection often will result in the OS reporting back that there is no proxy
+    // in place for anything (i.e. everything is CFProxyType.None).  In hindsight this makes sense
+    // because a VPN functions by routing traffic through itself like a proxy, but I lost a few hours
+    // of my day figuring out why this logic "wasn't working."
     public Task<WebProxy?> CreateProxyAsync(Uri destination)
     {
         var proxySettings = CFNetworkLib.GetSystemProxySettings();
@@ -66,14 +70,14 @@ internal sealed class IOSProxy : IProxy
         return retVal;
     }
 
-    private static async Task<WebProxy?> CreateAutoConfigProxyAsync(CFProxy proxy, Uri destination, bool isUrl)
+    private async static Task<WebProxy?> CreateAutoConfigProxyAsync(CFProxy proxy, Uri destination, bool isUrl)
     {
         NSUrl? pacURL = null;
         CFProxy[]? proxies = null;
         NSError? err = null;
         if (isUrl) {
             pacURL = proxy.AutoConfigurationUrl;
-            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script at {0}", pacURL);
+            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script at {0}", pacURL!.AbsoluteString);
             var result = await CFNetworkLib.ExecuteProxyAutoConfigurationUrlAsync(pacURL!, destination,
                 CancellationToken.None);
             if (result.error != null) {
@@ -89,14 +93,15 @@ internal sealed class IOSProxy : IProxy
             proxies = CFNetworkLib.GetProxiesForAutoConfigurationScript(js, destination);
         }
 
-        if (proxies == null) {
+        if (proxies == null || proxies.Length == 0) {
             WriteLog.To.Sync.W(Tag, "Failed to resolve proxy auto configuration script at {0}: {1}",
                 pacURL, err?.LocalizedDescription);
             return null;
         }
 
-        if (proxies.Length == 0) {
-            WriteLog.To.Sync.W(Tag, "No proxies found in PAC script at {0}",
+        var finalProxy = proxies[0];
+        if (finalProxy.HostName == null) {
+            WriteLog.To.Sync.V(Tag, "PAC script at {0} indicated direct connection", 
                 pacURL?.AbsoluteString ?? "(inline script)");
             return null;
         }
