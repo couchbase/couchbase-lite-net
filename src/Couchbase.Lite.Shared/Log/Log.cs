@@ -142,7 +142,8 @@ namespace Couchbase.Lite.Internal.Logging
 
             var domainName = Native.c4log_getDomainName(domain) ?? "";
             var logDomain = To.DomainForString(domainName);
-            var actualMessage = message.ToUTF8String();
+            var actualMessage = message.ToUTF8String() ?? "";
+
             if (DomainLogger.OldApiUsed()) {
 #pragma warning disable CS0618 // Type or member is obsolete
                 Database.Log.Console.Log((LogLevel)level, logDomain, actualMessage);

@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using Couchbase.Lite.Sync;
 
@@ -36,15 +35,23 @@ namespace Couchbase.Lite.Util
     {
         #region Public Methods
 
-        public static unsafe string ToUTF8String(this IntPtr ptr)
+        public static unsafe string? ToUTF8String(this IntPtr ptr)
         {
-            var utf8Bytes = (sbyte*) ptr.ToPointer();
+            if (ptr == IntPtr.Zero) {
+                return null;
+            }
+
+#if NET6_0_OR_GREATER
+            return System.Runtime.InteropServices.Marshal.PtrToStringUTF8(ptr);
+#else
+            var utf8Bytes = (byte*) ptr.ToPointer();
             var size = 0;
             while (utf8Bytes[size] != 0) {
                 size++;
             }
 
-            return new string(utf8Bytes, 0, size, Encoding.UTF8);
+            return size == 0 ? String.Empty : Encoding.UTF8.GetString(utf8Bytes, size);
+#endif
         }
 
         public static DocumentFlags ToDocumentFlags(this C4RevisionFlags flags)
