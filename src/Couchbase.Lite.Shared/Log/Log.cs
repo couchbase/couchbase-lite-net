@@ -142,7 +142,36 @@ namespace Couchbase.Lite.Internal.Logging
 
             var domainName = Native.c4log_getDomainName(domain) ?? "";
             var logDomain = To.DomainForString(domainName);
-            var actualMessage = message.ToUTF8String() ?? "";
+            string actualMessage;
+            try {
+                actualMessage = message.ToUTF8String() ?? "";
+            }
+            catch (ArgumentException) {
+                var b = (byte *)message.ToPointer();
+                var i = 0;
+                var bytes = new byte[64];
+                while (*b != 0 && i < 2047) {
+                    i++;
+                }
+                
+                Marshal.Copy(message, bytes, 0, Math.Min(64, i));
+                
+                if (DomainLogger.OldApiUsed()) {
+#pragma warning disable CS0618 // Type or member is obsolete
+                    Database.Log.Console.Log((LogLevel)level, logDomain, $"Broken message at 0x{message.ToInt64():16X} had {i} bytes");
+                    Database.Log.Custom?.Log((LogLevel)level, logDomain, $"Broken message 0x{message.ToInt64():16X} had {i} bytes");
+                    Database.Log.Console.Log((LogLevel)level, logDomain, $"First 64 bytes: {BitConverter.ToString(bytes)}");
+                    Database.Log.Custom?.Log((LogLevel)level, logDomain, $"First 64 bytes: {BitConverter.ToString(bytes)}");
+#pragma warning restore CS0618 // Type or member is obsolete
+                } else {
+                    LogSinks.Console?.Log((LogLevel)level, logDomain, $"Broken message 0x{message.ToInt64():16X} had {i} bytes");
+                    LogSinks.Custom?.Log((LogLevel)level, logDomain, $"Broken message 0x{message.ToInt64():16X} had {i} bytes");
+                    LogSinks.Console?.Log((LogLevel)level, logDomain, $"First 64 bytes: {BitConverter.ToString(bytes)}");
+                    LogSinks.Custom?.Log((LogLevel)level, logDomain, $"First 64 bytes: {BitConverter.ToString(bytes)}");
+                }
+                
+                throw;
+            }
 
             if (DomainLogger.OldApiUsed()) {
 #pragma warning disable CS0618 // Type or member is obsolete
