@@ -58,13 +58,13 @@ namespace LiteCore.Interop
 
     internal enum C4SignatureDigestAlgorithm : int
     {
-        SignatureDigestNone = 0,
-        SignatureDigestSHA1 = 4,
-        SignatureDigestSHA224,
+        SignatureDigestNone      = 0,
+        SignatureDigestRIPEMD160 = 4,
+        SignatureDigestSHA1,
+        SignatureDigestSHA224 = 8,
         SignatureDigestSHA256,
         SignatureDigestSHA384,
         SignatureDigestSHA512,
-        SignatureDigestRIPEMD160,
     }
 
 	internal unsafe struct C4CertNameInfo
