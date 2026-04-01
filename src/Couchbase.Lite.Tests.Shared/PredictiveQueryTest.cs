@@ -605,7 +605,7 @@ namespace Test
                 .From(DataSource.Collection(DefaultCollection))
                 .Where(sumPrediction.EqualTo(Expression.Int(15)).And(avgPrediction.EqualTo(Expression.Int(3))))) {
                 var explain = q.Explain();
-                explain.IndexOf("USING COVERING INDEX SumAvgIndex").Should().NotBe(-1, "because the sum index should be used");
+                explain.IndexOf("USING INDEX SumAvgIndex").Should().NotBe(-1, "because the sum index should be used");
 
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -746,7 +746,7 @@ namespace Test
                 .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).And(
                     prediction.Property("avg").EqualTo(Expression.Int(3))))) {
                 var explain = q.Explain();
-                explain.Contains("USING INDEX SumAvgIndex").Should().BeTrue();
+                explain.Contains("USING COVERING INDEX SumAvgIndex").Should().BeTrue();
 
                 var rows = VerifyQuery(q, (n, result) =>
                 {
