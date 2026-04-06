@@ -4,6 +4,6 @@ on:
 
 jobs:
   warn-release:
-    uses: couchbase/couchbase-lite-core/.github/workflows/release-pr-comment.yml@master
+    uses: couchbase/couchbase-lite-core/.github/workflows/warn_release.yml@master
     permissions:
       pull-requests: write
