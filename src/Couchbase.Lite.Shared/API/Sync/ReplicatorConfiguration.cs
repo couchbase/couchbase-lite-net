@@ -449,6 +449,13 @@ namespace Couchbase.Lite.Sync
 
         /// <summary>
         /// [DEPRECATED] Constructs a new builder object with the required properties
+        /// <p>When using this constructor, the default collection of the provided
+        /// database will be automatically included in the configuration.</p>
+        ///
+        /// <p>If you do not intend to replicate the default collection, use
+        /// ReplicatorConfiguration(Endpoint) instead, and explicitly add 
+        /// the intended collections to avoid unintended behavior.
+        /// explicitly specify the collections and avoid unintended behavior.</p>
         /// </summary>
         /// <param name="database">The database that will serve as the local side of the replication</param>
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
