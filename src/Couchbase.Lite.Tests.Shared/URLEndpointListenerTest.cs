@@ -57,6 +57,7 @@ internal static class URLEndpointListenerExtensions
     }
 }
 
+[ImplementsTestSpec("T0013-CorrelationID", "1.0.1")]
 public sealed class URLEndpointListenerTest(ITestOutputHelper output) : ReplicatorTestBase(output)
 {
     private const ushort WsPort = 5984;
@@ -66,6 +67,40 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
     private URLEndpointListener? _listener;
     private readonly X509Store _store = new(StoreName.My);
+
+    [Fact]
+    public void TestGetCorrelationID()
+    {
+        _listener = CreateListener(false);
+        var targetEndpoint = _listener.LocalEndpoint();
+        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
+        var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
+        {
+            ReplicatorType = ReplicatorType.PushAndPull
+        };
+        
+        using var repl = new Replicator(config);
+        var stopAssert = new WaitAssert();
+        var token = repl.AddChangeListener((sender, args) =>
+        {
+            sender.ShouldNotBeNull();
+            var capturedRepl = (Replicator)sender;
+            stopAssert.RunConditionalAssert(() =>
+            {
+                if (args.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    return false;
+                }
+                
+                capturedRepl.CorrelationID.ShouldNotBeNull("because the replicator has already been running until stop");
+                return true;
+            });
+        });
+        
+        repl.CorrelationID.ShouldBeNull("because the replicator has not started yet");
+        repl.Start();
+        stopAssert.WaitForResult(TimeSpan.FromSeconds(5));
+        token.Remove();
+    }
 
 #if !CBL_PLATFORM_ANDROID
 
