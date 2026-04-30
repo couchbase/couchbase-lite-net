@@ -1186,7 +1186,9 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
 
         Database.Delete(dbName, dir);
         Db.Path.ShouldNotBeNull("because an open database should always have a path");
-        Database.Copy(Db.Path!, dbName, config);
+        var path = Db.Path!;
+        Db.Close();
+        Database.Copy(path, dbName, config);
 
         Database.Exists(dbName, dir).ShouldBeTrue();
         using (var nuDb = new Database(dbName, config)) {

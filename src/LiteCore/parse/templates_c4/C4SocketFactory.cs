@@ -8,4 +8,5 @@
         public IntPtr close;
         public IntPtr requestClose;
         public IntPtr dispose;
+        public IntPtr attached;
     }
