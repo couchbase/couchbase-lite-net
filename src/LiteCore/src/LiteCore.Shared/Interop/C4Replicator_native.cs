@@ -1,7 +1,7 @@
 //
 // C4Replicator_native.cs
 //
-// Copyright (c) 2025 Couchbase, Inc All rights reserved.
+// Copyright (c) 2026 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -127,6 +127,17 @@ namespace LiteCore.Interop
         public static extern bool c4repl_setProgressLevel(C4Replicator* repl, C4ReplicatorProgressLevel level, C4Error* outErr);
 
 #if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceResultMarshaller))]
+        public static partial string? c4repl_getCorrelationID(C4Replicator* repl);
+#else
+        public static string? c4repl_getCorrelationID(C4Replicator* repl)
+        {
+            using var retVal = NativeRaw.c4repl_getCorrelationID(repl);
+            return ((FLSlice)retVal).CreateString();
+        }
+#endif
+
+#if NET8_0_OR_GREATER
         [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
         [return: MarshalAs(UnmanagedType.U1)]
         public static partial bool c4db_setCookie(C4Database* db, string? setCookieHeader, string? fromHost, string? fromPath, [MarshalAs(UnmanagedType.U1)] bool acceptParentDomain, C4Error* outError);
@@ -173,6 +184,9 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4repl_isDocumentPending(C4Replicator* repl, FLSlice docID, C4CollectionSpec spec, C4Error* outErr);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4repl_getCorrelationID(C4Replicator* repl);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

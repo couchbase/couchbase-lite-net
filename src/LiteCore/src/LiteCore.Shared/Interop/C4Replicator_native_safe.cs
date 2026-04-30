@@ -62,6 +62,9 @@ internal static unsafe partial class NativeSafe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool c4address_fromURL(FLSlice url, C4Address* address, FLSlice* dbName) => 
         NativeRaw.c4address_fromURL(url, address, dbName);
+    
+    public static string? c4repl_getCorrelationID(C4ReplicatorWrapper repl) =>
+        Native.c4repl_getCorrelationID(repl.RawReplicator);
 
     public static void c4repl_start(C4ReplicatorWrapper repl, bool reset) => Native.c4repl_start(repl.RawReplicator, reset);
 

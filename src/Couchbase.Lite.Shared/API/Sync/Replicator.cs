@@ -124,14 +124,21 @@ public sealed unsafe class Replicator
     /// </summary>
     public ReplicatorStatus Status { get; set; }
 
-    internal SerialQueue DispatchQueue { get; } = new SerialQueue();
-
     /// <summary>
     /// This property allows the developer to know what the current server certificate is when using TLS communication. 
     /// The developer could save the certificate and pin the certificate next time when setting up the replicator to 
     /// provide an SSH type of authentication.
     /// </summary>
     public X509Certificate2? ServerCertificate { get; private set; }
+
+    /// <summary>
+    /// Gets the correlation ID of this replication so that it can be analyzed along
+    /// with the logs from the remote side.  If not started, or unavailable, returns
+    /// <c>null</c>
+    /// </summary>
+    public string? CorrelationID => _repl == null ? null : NativeSafe.c4repl_getCorrelationID(_repl);
+    
+    internal SerialQueue DispatchQueue { get; } = new();
         
     internal int PendingConflictCount => _conflictTasks.Count;
 
