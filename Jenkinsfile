@@ -38,18 +38,18 @@ pipeline {
                         }
                         stage("Compile CE") {
                             steps {
-                                powershell 'jenkins\\compile_ce.ps1'
+                                powershell '.\\build.ps1 --community=true'
                             }
                         }
                         stage("Compile MAUI tests") {
                             // MAUI tests compile EE for all platforms
                             steps {
-                                powershell 'jenkins\\compile_maui_tests.ps1'
+                                powershell '.\\build.ps1 -e -t CompileMauiTest'
                             }
                         }
                         stage(".NET Windows") {
                             steps {
-                                powershell 'jenkins\\run_net_console_tests.ps1'
+                                powershell '.\\build.ps1 -e -t PRValidation'
                             }
                         }
                     }
