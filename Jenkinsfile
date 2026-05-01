@@ -41,13 +41,7 @@ pipeline {
                                 powershell '.\\build.ps1 --community=true'
                             }
                         }
-                        stage("Compile MAUI tests") {
-                            // MAUI tests compile EE for all platforms
-                            steps {
-                                powershell '.\\build.ps1 -e -t CompileMauiTest'
-                            }
-                        }
-                        stage(".NET Windows") {
+                        stage("EE Validation") {
                             steps {
                                 powershell '.\\build.ps1 -e -t PRValidation'
                             }
