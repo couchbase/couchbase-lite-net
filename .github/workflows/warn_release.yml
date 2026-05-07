@@ -1,6 +1,8 @@
 on:
   pull_request:
-    branches: ['release/**']
+    branches: ["release/**"]
+    paths-ignore:
+      - "core_version.ini" # Ignore changes here since the relevant changes will have been approved in Core already.
 
 jobs:
   warn-release:
