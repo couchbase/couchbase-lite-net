@@ -175,10 +175,6 @@ internal sealed class HTTPLogic(Uri url)
         var version = versionAtt?.InformationalVersion ?? "Unknown";
         var regex = new Regex("((?:[0-9+]\\.)+[0-9]+)-b([0-9]+)");
         var build = "0";
-        var commit = ThisAssembly.Git.Commit;
-            #if COUCHBASE_ENTERPRISE
-        commit += $"+{SubmoduleInfo.Commit}";
-            #endif
         if (regex.IsMatch(version))
         {
             var match = regex.Match(version);
@@ -189,7 +185,7 @@ internal sealed class HTTPLogic(Uri url)
         var runtimePlatform = Service.Provider.GetService<IRuntimePlatform>();
         var osDescription = runtimePlatform?.OSDescription ?? RuntimeInformation.OSDescription;
         var hardware = runtimePlatform?.HardwareName != null ? $"; {runtimePlatform.HardwareName}" : "";
-        return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";
+        return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()}";
     }
 
     private string? CreateAuthHeader()

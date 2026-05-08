@@ -8,6 +8,7 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <AssemblyName>Couchbase.Lite.Analyzer</AssemblyName>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
