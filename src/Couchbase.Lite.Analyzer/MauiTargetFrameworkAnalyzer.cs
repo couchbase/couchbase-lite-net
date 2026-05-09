@@ -33,13 +33,13 @@ public sealed class MauiTargetFrameworkAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         id: DiagnosticId,
         title: "Unsupported MAUI target framework",
-        messageFormat: $"Couchbase Lite requires .NET {MauiTarget} or later for MAUI targets. '{{1}}' is not supported; use net{MauiTarget}.0-{{2}} or later.",
+        messageFormat: $"Couchbase Lite requires .NET {MauiTarget} or later for MAUI targets. '{{0}}' is not supported; use net{MauiTarget}.0-{{1}} or later.",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: $"MAUI targets (Android, iOS, Mac Catalyst, Windows) require net{MauiTarget} or later.",
         customTags: WellKnownDiagnosticTags.CompilationEnd);
-
+    
     private static readonly Regex TfmPattern = new(
         @"^net(\d+)\.0-(android|ios|maccatalyst|windows)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -56,8 +56,9 @@ public sealed class MauiTargetFrameworkAnalyzer : DiagnosticAnalyzer
     private static void Analyze(CompilationAnalysisContext context)
     {
         var options = context.Options.AnalyzerConfigOptionsProvider.GlobalOptions;
-        if (!options.TryGetValue("build_property.TargetFramework", out var tf))
+        if (!options.TryGetValue("build_property.TargetFramework", out var tf)) {
             return;
+        }
 
         var match = TfmPattern.Match(tf);
         if (!match.Success)
