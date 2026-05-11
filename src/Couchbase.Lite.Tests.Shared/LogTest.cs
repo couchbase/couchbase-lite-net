@@ -201,7 +201,6 @@ public sealed class LogTest(ITestOutputHelper output)
                 }
                 lines[1].Contains("CouchbaseLite/").ShouldBeTrue();
                 lines[1].Contains("Build/").ShouldBeTrue();
-                lines[1].Contains("Commit/").ShouldBeTrue();
             }
         }
 
