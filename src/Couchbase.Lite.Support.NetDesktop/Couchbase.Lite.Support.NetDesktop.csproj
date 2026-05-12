@@ -96,10 +96,5 @@
       <Pack>true</Pack>
       <PackagePath>runtimes/linux-x64/native/libicuuc.so.76</PackagePath>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\linux\x86_64\lib\libstdc++.so.6">
-      <Link>libicuuc.so.76</Link>
-      <Pack>true</Pack>
-      <PackagePath>runtimes/linux-x64/native/libstdc++.so.6</PackagePath>
-    </None>
   </ItemGroup>
 </Project>

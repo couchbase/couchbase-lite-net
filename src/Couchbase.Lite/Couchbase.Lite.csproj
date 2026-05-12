@@ -16,15 +16,27 @@
 
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-    <TargetFrameworks>$(ConsoleDotNetVersion);$(MauiDotNetVersion)-android;$(MauiDotNetVersion)-ios;$(MauiDotNetVersion)-maccatalyst</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);$(DotNetFrameworkVersion);$(MauiDotNetVersion)-windows$(WinUIMinimumVersion)</TargetFrameworks>
+    <TargetFrameworks>
+      $(ConsoleDotNetVersion);$(MauiDotNetVersion)-android;$(MauiDotNetVersion)-ios;$(MauiDotNetVersion)-maccatalyst</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">
+      $(TargetFrameworks);$(DotNetFrameworkVersion);$(MauiDotNetVersion)-windows$(WinUIMinimumVersion)</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">$(iOSMinimumVersion)</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">$(MacCatalystMinimumVersion)</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">$(MinimumAndroidAPI)</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(WinUIMinimumVersion)</SupportedOSPlatformVersion>
-    <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(WinUIMinimumVersion)</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion
+      Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+      $(iOSMinimumVersion)</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+      $(MacCatalystMinimumVersion)</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion
+      Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+      $(MinimumAndroidAPI)</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+      $(WinUIMinimumVersion)</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion
+      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+      $(WinUIMinimumVersion)</TargetPlatformMinVersion>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
     <DebugType>portable</DebugType>
@@ -52,7 +64,8 @@
     <DefineConstants>$(DefineConstants);TRACE;TEST_COVERAGE</DefineConstants>
     <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' ">
+  <PropertyGroup
+    Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' ">
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -62,33 +75,44 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="SerialQueue" Version="2.1.0" />
-    <PackageReference Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion)'"  Include="IndexRange" Version="1.1.1" />
-    <PackageReference Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion)'" Include="Nullable" Version="1.3.1">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PackageReference Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion)'"
+      Include="IndexRange" Version="1.1.1" />
+    <PackageReference Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion)'"
+      Include="Nullable" Version="1.3.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion)'"  Include="PolySharp" Version="1.15.0">
+    <PackageReference Condition="'$(TargetFramework)' == '$(DotNetFrameworkVersion)'"
+      Include="PolySharp" Version="1.15.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="GitInfo" Version="3.6.0" PrivateAssets="all" />
-    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' " Include="System.Text.Json" Version="9.0.8" />
-    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' " Include="System.Collections.Immutable" Version="9.0.8" />
-    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' " Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
+    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' "
+      Include="System.Text.Json" Version="9.0.8" />
+    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' "
+      Include="System.Collections.Immutable" Version="9.0.8" />
+    <PackageReference Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' "
+      Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) ">
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
+  <ItemGroup
+    Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) ">
+    <ProjectReference
+      Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-android')) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
+  <ItemGroup
+    Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-android')) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+    <ProjectReference
+      Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
   </ItemGroup>
-<ItemGroup Condition=" ($(TargetFramework.StartsWith('$(MauiDotNetVersion)-ios')) or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj" />
-</ItemGroup>
+  <ItemGroup
+    Condition=" ($(TargetFramework.StartsWith('$(MauiDotNetVersion)-ios')) or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-maccatalyst'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+    <ProjectReference
+      Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite.Analyzer\Couchbase.Lite.Analyzer.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
   <Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
