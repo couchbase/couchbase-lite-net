@@ -1,6 +1,9 @@
 on:
   pull_request:
-    branches: ['release/**']
+    types: [opened]
+    branches: ["release/**"]
+    paths:
+      - "src/**"
 
 jobs:
   warn-release:
