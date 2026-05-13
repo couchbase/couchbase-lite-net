@@ -545,10 +545,11 @@ namespace Couchbase.Lite.Sync
         #endif
         private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid null replicator, aborting and returning true...");
-                return true;
+            var gcHandle = GCHandle.FromIntPtr((IntPtr)context);
+            if (gcHandle.Target is not Replicator replicator) {
+                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid null replicator, aborting and returning false...");
+                WriteLog.To.Database.E(Tag, $"Allocated: {gcHandle.IsAllocated}, Target Type: {gcHandle.Target?.GetType()?.Name}");
+                return false;
             }
 
             var docIDStr = docID.CreateString();
@@ -568,10 +569,11 @@ namespace Couchbase.Lite.Sync
         #endif
         private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid null replicator, aborting and returning true...");
-                return true;
+            var gcHandle = GCHandle.FromIntPtr((IntPtr)context);
+            if (gcHandle.Target is not Replicator replicator) {
+                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid null replicator, aborting and returning false...");
+                WriteLog.To.Database.E(Tag, $"Allocated: {gcHandle.IsAllocated}, Target Type: {gcHandle.Target?.GetType()?.Name}");
+                return false;
             }
 
             var docIDStr = docID.CreateString();
@@ -590,14 +592,14 @@ namespace Couchbase.Lite.Sync
         {
             var coll = Config.Collections.FirstOrDefault(x => x.Name == collName && x.Scope.Name == scope);
             if(coll == null) {
-                WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
-                return true;
+                WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning false...");
+                return false;
             }
 
             var config = Config.GetCollectionConfig(coll);
             if(config?.PullFilter == null) {
-                WriteLog.To.Sync.E(Tag, "Unable to find filter inside PullValidateCallback, aborting and returning true...");
-                return true;
+                WriteLog.To.Sync.E(Tag, "Unable to find filter inside PullValidateCallback, aborting and returning false...");
+                return false;
             }
 
             return config.PullFilter(new Document(coll, docID, revID, value), flags);
@@ -607,14 +609,14 @@ namespace Couchbase.Lite.Sync
         {
             var coll = Config.Collections.FirstOrDefault(x => x.Name == collName && x.Scope.Name == scope);
             if (coll == null) {
-                WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PushFilterCallback, aborting and returning true...");
-                return true;
+                WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PushFilterCallback, aborting and returning false...");
+                return false;
             }
 
             var config = Config.GetCollectionConfig(coll);
             if (config?.PushFilter == null) {
-                WriteLog.To.Sync.E(Tag, "Unable to find filter inside PushFilterCallback, aborting and returning true...");
-                return true;
+                WriteLog.To.Sync.E(Tag, "Unable to find filter inside PushFilterCallback, aborting and returning false...");
+                return false;
             }
 
             return config.PushFilter(new Document(coll, docID, revID, value), flags);
