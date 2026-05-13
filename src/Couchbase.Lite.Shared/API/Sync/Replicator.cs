@@ -530,7 +530,7 @@ public sealed unsafe class Replicator
         var gcHandle = GCHandle.FromIntPtr((IntPtr)context);
         if (gcHandle.Target is not Replicator replicator) {
             WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid null replicator, aborting and returning false...");
-            WriteLog.To.Database.E(Tag, $"Allocated: {gcHandle.IsAllocated}, Target Type: {gcHandle.Target.GetType().Name}");
+            WriteLog.To.Database.E(Tag, $"Allocated: {gcHandle.IsAllocated}, Target Type: {gcHandle.Target?.GetType()?.Name}");
             return false;
         }
 
