@@ -503,10 +503,11 @@ public sealed unsafe class Replicator
 #endif
     private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
     {
-        var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-        if (replicator == null) {
-            WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid null replicator, aborting and returning true...");
-            return true;
+        var gcHandle = GCHandle.FromIntPtr((IntPtr)context);
+        if (gcHandle.Target is not Replicator replicator) {
+            WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid null replicator, aborting and returning false...");
+            WriteLog.To.Database.E(Tag, $"Allocated: {gcHandle.IsAllocated}, Target Type: {gcHandle.Target?.GetType()?.Name}");
+            return false;
         }
 
         var docIDStr = docID.CreateString();
@@ -526,10 +527,11 @@ public sealed unsafe class Replicator
 #endif
     private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
     {
-        var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-        if (replicator == null) {
-            WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid null replicator, aborting and returning true...");
-            return true;
+        var gcHandle = GCHandle.FromIntPtr((IntPtr)context);
+        if (gcHandle.Target is not Replicator replicator) {
+            WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid null replicator, aborting and returning false...");
+            WriteLog.To.Database.E(Tag, $"Allocated: {gcHandle.IsAllocated}, Target Type: {gcHandle.Target?.GetType()?.Name}");
+            return false;
         }
 
         var docIDStr = docID.CreateString();
@@ -549,16 +551,16 @@ public sealed unsafe class Replicator
         var config = Config.Collections.FirstOrDefault(x => 
             x.Collection.Name == collName && x.Collection.Scope.Name == scope);
         if(config == null) {
-            WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
-            return true;
+            WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning false...");
+            return false;
         }
 
         if (config.PullFilter != null) {
             return config.PullFilter(new(config.Collection, docID, revID, value), flags);
         }
         
-        WriteLog.To.Sync.E(Tag, "Unable to find filter inside PullValidateCallback, aborting and returning true...");
-        return true;
+        WriteLog.To.Sync.E(Tag, "Unable to find filter inside PullValidateCallback, aborting and returning false...");
+        return false;
 
     }
 
@@ -567,16 +569,16 @@ public sealed unsafe class Replicator
         var config = Config.Collections.FirstOrDefault(x => 
             x.Collection.Name == collName && x.Collection.Scope.Name == scope);
         if(config == null) {
-            WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning true...");
-            return true;
+            WriteLog.To.Sync.E(Tag, "Collection doesn't exist inside PullValidateCallback, aborting and returning false...");
+            return false;
         }
 
         if (config.PushFilter != null) {
             return config.PushFilter(new(config.Collection, docID, revID, value), flags);
         }
         
-        WriteLog.To.Sync.E(Tag, "Unable to find filter inside PushFilterCallback, aborting and returning true...");
-        return true;
+        WriteLog.To.Sync.E(Tag, "Unable to find filter inside PushFilterCallback, aborting and returning false...");
+        return false;
 
     }
 
