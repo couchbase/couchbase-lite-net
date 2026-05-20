@@ -27,6 +27,14 @@ if($env:WORKSPACE) {
 }
 
 Write-Host
+Write-Host *** RESTORING WORKLOADS ***
+Write-Host
+
+Push-Location $PSScriptRoot\..\..\src\Couchbase.Lite
+dotnet workload update
+dotnet workload restore --project Couchbase.Lite.csproj
+Pop-Location
+Write-Host
 Write-Host *** RESTORING DEP PACKAGES ***
 Write-Host
 
