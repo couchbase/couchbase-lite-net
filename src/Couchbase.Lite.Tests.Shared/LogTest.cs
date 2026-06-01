@@ -80,7 +80,7 @@ public sealed class LogTest(ITestOutputHelper output)
         string logDirectory;
             
         // ReSharper disable once ConvertToConstant.Local
-        var totalCount = 10;
+        var totalCount = 11;
 #if !DEBUG
             totalCount -= 1; // Non-debug builds won't log debug files
 #endif
@@ -154,7 +154,7 @@ public sealed class LogTest(ITestOutputHelper output)
             WriteLog.To.Database.V("TEST", sentinel);
 
             foreach (var file in Directory.EnumerateFiles(logDirectory)) {
-                if (file.Contains("debug")) {
+                if (file.Contains("debug") || file.Contains("crash")) {
                     continue;
                 }
 
