@@ -630,9 +630,7 @@ internal sealed class WebSocketWrapper
                 });
             } catch (OperationCanceledException) {
                 return;
-            } catch (ArgumentNullException) {
-                return; // Sometimes happens because of Dispose() call to _writeQueue, safe to ignore
-            } catch (NullReferenceException) {
+            } catch (SystemException e) when (e is ArgumentNullException or NullReferenceException or ObjectDisposedException) {
                 return; // Sometimes happens because of Dispose() call to _writeQueue, safe to ignore
             }
         }
