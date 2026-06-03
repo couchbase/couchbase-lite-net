@@ -225,7 +225,7 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
             throw new CouchbaseLiteException(err);
         }
 
-        Config = configuration ?? new DatabaseConfiguration();
+        Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
         Open();
     }
 
