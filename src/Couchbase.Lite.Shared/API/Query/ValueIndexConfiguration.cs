@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Query;
 /// <summary>
 /// A class for an index based on a simple property value
 /// </summary>
-public sealed record ValueIndexConfiguration : IndexConfiguration
+public sealed class ValueIndexConfiguration : IndexConfiguration
 {
     internal override C4IndexOptions Options => new()
     {
@@ -40,17 +40,27 @@ public sealed record ValueIndexConfiguration : IndexConfiguration
     /// non-null the index becomes a partial index, only adding things
     /// which are evaluated to true by the where clause.
     /// </summary>
-    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-    public string? Where { get; init; }
+    public string? Where { get; set; }
     
     /// <summary>
     /// Starts the creation of an index based on a simple property
     /// </summary>
     /// <param name="expressions">The expressions to use to create the index</param>
     /// <returns>The beginning of a value based index</returns>
-    [SetsRequiredMembers]
     public ValueIndexConfiguration(params string[] expressions)
         : base(C4IndexType.ValueIndex, expressions)
     {
+    }
+    
+    /// <summary>
+    /// Starts the creation of an index based on one or more simple property values,
+    /// and a predicate for enabling partial indexes.
+    /// </summary>
+    /// <param name="expressions">The expressions to use to create the index</param>
+    /// <param name="where">A where clause used to determine whether or not to include a particular doc</param>
+    public ValueIndexConfiguration(IEnumerable<string> expressions, string? where = null)
+        : base(C4IndexType.ValueIndex, expressions.ToArray())
+    {
+        Where = where;
     }
 }

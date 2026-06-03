@@ -26,18 +26,19 @@ namespace Couchbase.Lite.Internal.Query;
 /// A configuration object that stores the details of how a given <see cref="Couchbase.Lite.Query.IIndex"/>
 /// object should be created
 /// </summary>
-public abstract record IndexConfiguration
+public abstract class IndexConfiguration
 {
+    private const string Tag = nameof(IndexConfiguration);
+    
     /// <summary>
     /// Gets the expressions to use to create the index
     /// </summary>
-    public required string[] Expressions { get; init; }
+    public string[] Expressions { get; }
 
     internal C4IndexType IndexType { get; }
 
     internal abstract C4IndexOptions Options { get; }
 
-    [SetsRequiredMembers]
     internal IndexConfiguration(C4IndexType indexType, string[] expressions)
     {
         if(indexType == C4IndexType.ArrayIndex && expressions is [""])

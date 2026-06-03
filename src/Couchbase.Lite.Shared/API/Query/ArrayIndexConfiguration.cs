@@ -28,14 +28,8 @@ namespace Couchbase.Lite.Query;
 /// Configuration for indexing property values within nested arrays
 /// in documents, intended for use with the UNNEST query keyword.
 /// </summary>
-public sealed record ArrayIndexConfiguration : IndexConfiguration
+public sealed class ArrayIndexConfiguration : IndexConfiguration
 {
-    /// <summary>
-    /// Path to the array, which can be nested.
-    /// </summary>
-    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-    public required string Path { get; init; }
-    
     /// <summary>
     /// Constructor
     /// </summary>
@@ -51,7 +45,6 @@ public sealed record ArrayIndexConfiguration : IndexConfiguration
     /// to be indexed.If the array specified by the path contains
     /// scalar values.
     /// </param>
-    [SetsRequiredMembers]
     public ArrayIndexConfiguration(string path, IEnumerable<string>? expressions = null) 
         : base(C4IndexType.ArrayIndex, expressions?.ToArray() ?? [])
     {
@@ -73,7 +66,6 @@ public sealed record ArrayIndexConfiguration : IndexConfiguration
     /// to be indexed.If the array specified by the path contains
     /// scalar values.
     /// </param>
-    [SetsRequiredMembers]
     public ArrayIndexConfiguration(string path, params string[] expressions)
         : base(C4IndexType.ArrayIndex, expressions)
     {
@@ -84,4 +76,9 @@ public sealed record ArrayIndexConfiguration : IndexConfiguration
     {
         unnestPath = Path
     };
+    
+    /// <summary>
+    /// Path to the array, which can be nested.
+    /// </summary>
+    public string Path { get; }
 }

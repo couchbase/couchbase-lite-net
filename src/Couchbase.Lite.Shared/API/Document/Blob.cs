@@ -394,7 +394,7 @@ public sealed unsafe class Blob : IJSON
         try {
             *outBlobStore = _db != null ? _db.BlobStore : null;
             return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
-        } catch(CouchbaseLiteException) {
+        } catch(InvalidOperationException) {
             return false;
         }
     }

@@ -59,78 +59,77 @@ public sealed class P2PTest : ReplicatorTestBase
     public void TestShortP2P()
     {
         foreach (var protocolType in new[] { ProtocolType.ByteStream, ProtocolType.MessageStream }) {
-            using (var mDoc = new MutableDocument("livesindb")) {
-                mDoc.SetString("name", "db");
-                DefaultCollection.Save(mDoc);
+                using (var mdoc = new MutableDocument("livesindb")) {
+                    mdoc.SetString("name", "db");
+                    DefaultCollection.Save(mdoc);
+                }
+
+                using (var mdoc = new MutableDocument("livesinotherdb")) {
+                    mdoc.SetString("name", "otherdb");
+                    OtherDefaultCollection.Save(mdoc);
+                }
+
+                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(new[] { OtherDefaultCollection }, protocolType));
+                var server = new MockServerConnection(listener, protocolType);
+                var messageendpoint = new MessageEndpoint($"p2ptest1", server, protocolType,
+                        new MockConnectionFactory(null));
+                var uid = messageendpoint.Uid;
+
+                // PUSH
+                var config = new ReplicatorConfiguration(messageendpoint) {
+                    ReplicatorType = ReplicatorType.Push,
+                    Continuous = false
+                };
+                config.AddCollection(DefaultCollection);
+                RunReplication(config, 0, 0);
+                OtherDefaultCollection.Count.ShouldBe(2UL, "because it contains the original and new");
+                DefaultCollection.Count.ShouldBe(1UL, "because there is no pull, so the first db should only have the original");
+
+                // PULL
+                config = new ReplicatorConfiguration(messageendpoint) {
+                    ReplicatorType = ReplicatorType.Pull,
+                    Continuous = false
+                };
+                config.AddCollection(DefaultCollection);
+
+                RunReplication(config, 0, 0);
+                DefaultCollection.Count.ShouldBe(2UL, "because the pull should add the document from otherDB");
+
+                using (var savedDoc = DefaultCollection.GetDocument("livesinotherdb"))
+                using (var mdoc = savedDoc.ToMutable()) {
+                    mdoc.SetBoolean("modified", true);
+                    DefaultCollection.Save(mdoc);
+                }
+
+                using (var savedDoc = OtherDefaultCollection.GetDocument("livesindb"))
+                using (var mdoc = savedDoc.ToMutable()) {
+                    mdoc.SetBoolean("modified", true);
+                    OtherDefaultCollection.Save(mdoc);
+                }
+
+                // PUSH & PULL
+                config = new ReplicatorConfiguration(new MessageEndpoint($"p2ptest1", server, protocolType,
+                            new MockConnectionFactory(null))) { Continuous = false };
+                config.AddCollection(DefaultCollection);
+
+                RunReplication(config, 0, 0);
+                DefaultCollection.Count.ShouldBe(2UL, "because no new documents were added");
+
+                using (var savedDoc = DefaultCollection.GetDocument("livesindb")) {
+                    savedDoc.GetBoolean("modified")
+                        .ShouldBeTrue("because the property change should have come from the other DB");
+                }
+
+                using (var savedDoc = OtherDefaultCollection.GetDocument("livesinotherdb")) {
+                    savedDoc.GetBoolean("modified")
+                        .ShouldBeTrue("because the property change should come from the original DB");
+                }
+
+                Db.Delete();
+                ReopenDB();
+                OtherDb.Delete();
+                OtherDb = OpenDB(OtherDb.Name);
             }
-
-            using (var mDoc = new MutableDocument("livesinotherdb")) {
-                mDoc.SetString("name", "otherdb");
-                OtherDefaultCollection.Save(mDoc);
-            }
-
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration([OtherDefaultCollection], protocolType));
-            var server = new MockServerConnection(listener, protocolType);
-            var messageEndpoint = new MessageEndpoint($"p2ptest1", server, protocolType,
-                new MockConnectionFactory(null));
-
-            // PUSH
-            var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), messageEndpoint) {
-                ReplicatorType = ReplicatorType.Push,
-                Continuous = false
-            };
-                
-            RunReplication(config, 0, 0);
-            OtherDefaultCollection.Count.ShouldBe(2UL, "because it contains the original and new");
-            DefaultCollection.Count.ShouldBe(1UL, "because there is no pull, so the first db should only have the original");
-
-            // PULL
-            config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), messageEndpoint) {
-                ReplicatorType = ReplicatorType.Pull,
-                Continuous = false
-            };
-
-            RunReplication(config, 0, 0);
-            DefaultCollection.Count.ShouldBe(2UL, "because the pull should add the document from otherDB");
-
-            using (var savedDoc = DefaultCollection.GetDocument("livesinotherdb"))
-            using (var mDoc = savedDoc?.ToMutable()) {
-                mDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
-                mDoc.SetBoolean("modified", true);
-                DefaultCollection.Save(mDoc);
-            }
-
-            using (var savedDoc = OtherDefaultCollection.GetDocument("livesindb"))
-            using (var mDoc = savedDoc?.ToMutable()) {
-                mDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
-                mDoc.SetBoolean("modified", true);
-                OtherDefaultCollection.Save(mDoc);
-            }
-
-            // PUSH & PULL
-            config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-                new MessageEndpoint($"p2ptest1", server, protocolType,  new MockConnectionFactory(null))) { Continuous = false };
-
-            RunReplication(config, 0, 0);
-            DefaultCollection.Count.ShouldBe(2UL, "because no new documents were added");
-
-            using (var savedDoc = DefaultCollection.GetDocument("livesindb")) {
-                savedDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
-                savedDoc.GetBoolean("modified")
-                    .ShouldBeTrue("because the property change should have come from the other DB");
-            }
-
-            using (var savedDoc = OtherDefaultCollection.GetDocument("livesinotherdb")) {
-                savedDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesinotherdb' failed");
-                savedDoc.GetBoolean("modified")
-                    .ShouldBeTrue("because the property change should come from the original DB");
-            }
-
-            Db.Delete();
-            ReopenDB();
-            OtherDb.Delete();
-            OtherDb = OpenDB(OtherDb.Name);
-        }
     }
 
     [Fact] 
@@ -181,144 +180,144 @@ public sealed class P2PTest : ReplicatorTestBase
     [Fact]
     public void TestP2PPassiveClose()
     {
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration([OtherDefaultCollection], ProtocolType.MessageStream));
+        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(new[] { OtherDefaultCollection }, ProtocolType.MessageStream));
         var awaiter = new ListenerAwaiter(listener);
         var serverConnection = new MockServerConnection(listener, ProtocolType.MessageStream);
         var errorLogic = new ReconnectErrorLogic();
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-            new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.MessageStream, new MockConnectionFactory(errorLogic))) {
+        var config = new ReplicatorConfiguration(new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.MessageStream,
+            new MockConnectionFactory(errorLogic))) {
             Continuous = true
         };
+        config.AddCollection(DefaultCollection);
 
-        using var replicator = new Replicator(config);
-        replicator.Start();
+        using (var replicator = new Replicator(config)) {
+            replicator.Start();
 
-        var count = 0;
-        while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-            Thread.Sleep(500);
-            count.ShouldBeLessThan(10, "because otherwise the replicator never went idle");
+            var count = 0;
+            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                Thread.Sleep(500);
+                count.ShouldBeLessThan(10, "because otherwise the replicator never went idle");
+            }
+            var connection = listener.Connections;
+            errorLogic.ErrorActive = true;
+            listener.Close(serverConnection);
+            count = 0;
+            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                Thread.Sleep(500);
+                count.ShouldBeLessThan(10, "because otherwise the replicator never stopped");
+            }
+
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).ShouldBeTrue();
+            awaiter.Validate();
+
+            replicator.Status.Error
+                .ShouldNotBeNull("because closing the passive side creates an error on the active one");
         }
-            
-        errorLogic.ErrorActive = true;
-        listener.Close(serverConnection);
-        count = 0;
-        while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-            Thread.Sleep(500);
-            count.ShouldBeLessThan(10, "because otherwise the replicator never stopped");
-        }
-
-        awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).ShouldBeTrue();
-        awaiter.Validate();
-
-        replicator.Status.Error
-            .ShouldNotBeNull("because closing the passive side creates an error on the active one");
     }
 #endif
 
     [Fact]
     public void TestP2PPassiveCloseAll()
     {
-        using (var doc = new MutableDocument("test")) {
-            doc.SetString("name", "Smokey");
-            DefaultCollection.Save(doc);
-        }
-
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration([OtherDefaultCollection], ProtocolType.MessageStream));
-        var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
-        var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
-        var closeWait1 = new ManualResetEventSlim();
-        var closeWait2 = new ManualResetEventSlim();
-        var errorLogic = new ReconnectErrorLogic();
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-            new MessageEndpoint("p2ptest1", serverConnection1, ProtocolType.MessageStream, new MockConnectionFactory(errorLogic)))
-        {
-            Continuous = true
-        };
-
-        var config2 = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-            new MessageEndpoint("p2ptest2", serverConnection2, ProtocolType.MessageStream, new MockConnectionFactory(errorLogic)))
-        {
-            Continuous = true
-        };
-
-        using (var replicator = new Replicator(config))
-        using (var replicator2 = new Replicator(config2))
-        {
-            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+        using (var doc = new MutableDocument("test"))
             {
-                if (args.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    return;
-                }
-                    
-                // ReSharper disable AccessToDisposedClosure
-                if (sender == replicator) {
-                    closeWait1.Set();
-                } else {
-                    closeWait2.Set();
-                }
-                // ReSharper restore AccessToDisposedClosure
+                doc.SetString("name", "Smokey");
+                DefaultCollection.Save(doc);
+            }
+
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(new[] { OtherDefaultCollection }, ProtocolType.MessageStream));
+            var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var closeWait1 = new ManualResetEventSlim();
+            var closeWait2 = new ManualResetEventSlim();
+            var errorLogic = new ReconnectErrorLogic();
+            var config = new ReplicatorConfiguration(new MessageEndpoint("p2ptest1", serverConnection1, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
             };
+            config.AddCollection(DefaultCollection);
 
-            replicator.AddChangeListener(changeListener);
-            replicator2.AddChangeListener(changeListener);
-            replicator.Start();
-            replicator2.Start();
+            var config2 = new ReplicatorConfiguration(new MessageEndpoint("p2ptest2", serverConnection2, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
+            };
+            config2.AddCollection(DefaultCollection);
 
-            errorLogic.ErrorActive = true;
-            listener.CloseAll();
+            using (var replicator = new Replicator(config))
+            using (var replicator2 = new Replicator(config2))
+            {
+                EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        if (sender == replicator) {
+                            closeWait1.Set();
+                        } else {
+                            closeWait2.Set();
+                        }
+                    }
+                };
 
+                replicator.AddChangeListener(changeListener);
+                replicator2.AddChangeListener(changeListener);
+                replicator.Start();
+                replicator2.Start();
 
-            WaitAssert.WaitAll([closeWait1, closeWait2], TimeSpan.FromSeconds(20)).ShouldBeTrue();
+                errorLogic.ErrorActive = true;
+                listener.CloseAll();
 
-            replicator.Status.Error
-                .ShouldNotBeNull("because closing the passive side creates an error on the active one");
-            replicator2.Status.Error
-                .ShouldNotBeNull("because closing the passive side creates an error on the active one");
-        }
+                WaitHandle.WaitAll(new[] { closeWait1.WaitHandle, closeWait2.WaitHandle }, TimeSpan.FromSeconds(20)).ShouldBeTrue();
 
-        closeWait1.Dispose();
-        closeWait2.Dispose();
+                replicator.Status.Error
+                    .ShouldNotBeNull("because closing the passive side creates an error on the active one");
+                replicator2.Status.Error
+                    .ShouldNotBeNull("because closing the passive side creates an error on the active one");
+            }
+
+            closeWait1.Dispose();
+            closeWait2.Dispose();
     }
 
     [Fact]
     public void TestP2PChangeListener()
     {
         var statuses = new List<ReplicatorActivityLevel>();
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration([OtherDefaultCollection], ProtocolType.ByteStream));
+        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(new[] { OtherDefaultCollection }, ProtocolType.ByteStream));
         var awaiter = new ListenerAwaiter(listener);
         var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-            new MessageEndpoint( "p2ptest1", serverConnection, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
+        var config = new ReplicatorConfiguration(new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
+            new MockConnectionFactory(null))) {
             Continuous = true
         };
-            
-        listener.AddChangeListener((_, args) => {
+        config.AddCollection(DefaultCollection);
+        listener.AddChangeListener((sender, args) => {
             statuses.Add(args.Status.Activity);
         });
-            
+        var connection = listener.Connections;
         RunReplication(config, 0, 0);
         awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).ShouldBeTrue();
         awaiter.Validate();
-        statuses.Count
-            .ShouldBeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
+        statuses.Count.ShouldBeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
     }
 
     [Fact]
     public void TestRemoveChangeListener()
     {
         var statuses = new List<ReplicatorActivityLevel>();
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration([OtherDefaultCollection], ProtocolType.ByteStream));
+        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(new[] { OtherDefaultCollection }, ProtocolType.ByteStream));
         var awaiter = new ListenerAwaiter(listener);
         var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-            new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
+        var config = new ReplicatorConfiguration(new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
+            new MockConnectionFactory(null))) {
             Continuous = true
         };
+        config.AddCollection(DefaultCollection);
 
-        var token = listener.AddChangeListener((_, args) => {
+        var token = listener.AddChangeListener((sender, args) => {
             statuses.Add(args.Status.Activity);
         });
-            
+        var connection = listener.Connections;
         token.Remove();
         RunReplication(config, 0, 0);
         awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).ShouldBeTrue();
@@ -336,23 +335,22 @@ public sealed class P2PTest : ReplicatorTestBase
     [Fact]
     public void TestMismatchedCollectionReplication()
     {
-        using var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA");
-        using var colADb = Db.CreateCollection("colB", "scopeA");
-        var collsOtherDb = new List<Collection>
-        {
-            colAOtherDb
-        };
-            
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
-        var server = new MockServerConnection(listener, ProtocolType.ByteStream);
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(colADb), 
-            new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
-        {
-            ReplicatorType = ReplicatorType.PushAndPull,
-            Continuous = false
-        };
+        using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
+        using (var colADb = Db.CreateCollection("colB", "scopeA")) {
+            var collsOtherDb = new List<Collection>();
+            collsOtherDb.Add(colAOtherDb);
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
+            var server = new MockServerConnection(listener, ProtocolType.ByteStream);
+            var config = new ReplicatorConfiguration(new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = false
+            };
 
-        RunReplication(config, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
+            config.AddCollection(colADb);
+
+            RunReplication(config, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
+        }
     }
 
     [Fact]
@@ -369,44 +367,45 @@ public sealed class P2PTest : ReplicatorTestBase
 
     private void CollectionPushPullReplication(bool continuous)
     {
-        using var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA");
-        using var colADb = Db.CreateCollection("colA", "scopeA");
-        using (var doc = new MutableDocument("doc"))
-        using (var doc1 = new MutableDocument("doc1")) {
-            doc.SetString("str", "string");
-            doc1.SetString("str1", "string1");
-            colADb.Save(doc);
-            colADb.Save(doc1);
+        using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
+        using (var colADb = Db.CreateCollection("colA", "scopeA")) {
+
+            using (var doc = new MutableDocument("doc"))
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc.SetString("str", "string");
+                doc1.SetString("str1", "string1");
+                colADb.Save(doc);
+                colADb.Save(doc1);
+            }
+
+            using (var doc = new MutableDocument("doc2"))
+            using (var doc1 = new MutableDocument("doc3")) {
+                doc.SetString("str2", "string2");
+                doc1.SetString("str3", "string3");
+                colAOtherDb.Save(doc);
+                colAOtherDb.Save(doc1);
+            }
+
+            var collsOtherDb = new List<Collection>();
+            collsOtherDb.Add(colAOtherDb);
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
+            var server = new MockServerConnection(listener, ProtocolType.ByteStream);
+            var config = new ReplicatorConfiguration(new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = continuous
+            };
+
+            config.AddCollection(colADb);
+
+            RunReplication(config, 0, 0);
+
+            // Check docs are replicated between collections colADb & colAOtherDb
+            colAOtherDb.GetDocument("doc").GetString("str").ShouldBe("string");
+            colAOtherDb.GetDocument("doc1").GetString("str1").ShouldBe("string1");
+            colADb.GetDocument("doc2").GetString("str2").ShouldBe("string2");
+            colADb.GetDocument("doc3").GetString("str3").ShouldBe("string3");
         }
-
-        using (var doc = new MutableDocument("doc2"))
-        using (var doc1 = new MutableDocument("doc3")) {
-            doc.SetString("str2", "string2");
-            doc1.SetString("str3", "string3");
-            colAOtherDb.Save(doc);
-            colAOtherDb.Save(doc1);
-        }
-
-        var collsOtherDb = new List<Collection>
-        {
-            colAOtherDb
-        };
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
-        var server = new MockServerConnection(listener, ProtocolType.ByteStream);
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(colADb), 
-            new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
-        {
-            ReplicatorType = ReplicatorType.PushAndPull,
-            Continuous = continuous
-        };
-
-        RunReplication(config, 0, 0);
-
-        // Check docs are replicated between collections colADb & colAOtherDb
-        colAOtherDb.GetDocument("doc")?.GetString("str").ShouldBe("string");
-        colAOtherDb.GetDocument("doc1")?.GetString("str1").ShouldBe("string1");
-        colADb.GetDocument("doc2")?.GetString("str2").ShouldBe("string2");
-        colADb.GetDocument("doc3")?.GetString("str3").ShouldBe("string3");
     }
 
     private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
@@ -419,18 +418,18 @@ public sealed class P2PTest : ReplicatorTestBase
             errorLocation.WithPermanentException();
         }
 
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration([OtherDefaultCollection], protocolType));
+        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(new[] { OtherDefaultCollection }, protocolType));
         var server = new MockServerConnection(listener, protocolType) {
             ErrorLogic = errorLocation
         };
 
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-            new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation))) {
+        var config = new ReplicatorConfiguration(new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation))) {
             ReplicatorType = ReplicatorType.Push,
             Continuous = false,
             MaxAttempts = 2,
             MaxAttemptsWaitTime = TimeSpan.FromMinutes(10)
         };
+        config.AddCollection(DefaultCollection);
             
         return config;
     }
@@ -454,103 +453,97 @@ public sealed class P2PTest : ReplicatorTestBase
 #if !SANITY_ONLY
     private void RunTwoStepContinuous(ReplicatorType type, string uid)
     {
-        using var otherDb1 = OpenDB(OtherDb.Name);
-        using var db1 = OpenDB(Db.Name);
-        var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration([otherDb1.GetDefaultCollection()], ProtocolType.ByteStream));
-        var server = new MockServerConnection(listener, ProtocolType.ByteStream);
-        var config = new ReplicatorConfiguration(CollectionConfiguration.FromCollections(DefaultCollection), 
-            new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
-            ReplicatorType = type,
-            Continuous = true
-        };
+        using (var OtherDb1 = OpenDB(OtherDb.Name))
+            using (var Db1 = OpenDB(Db.Name)) {
+                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(new[] { OtherDb1.GetDefaultCollection() }, ProtocolType.ByteStream));
+                var server = new MockServerConnection(listener, ProtocolType.ByteStream);
+                var config = new ReplicatorConfiguration(new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
+                    ReplicatorType = type,
+                    Continuous = true
+                };
+                config.AddCollection(DefaultCollection);
 
-        using var replicator = new Replicator(config);
-        Collection? firstSource;
-        Collection? secondSource;
-        Collection? firstTarget;
-        Collection? secondTarget;
-            
-        switch (type) {
-            case ReplicatorType.Push:
-                firstSource = db1.GetDefaultCollection();
-                secondSource = db1.GetDefaultCollection();
-                firstTarget = otherDb1.GetDefaultCollection();
-                secondTarget = otherDb1.GetDefaultCollection();
-                break;
-            case ReplicatorType.Pull:
-                firstSource = otherDb1.GetDefaultCollection();
-                secondSource = otherDb1.GetDefaultCollection();
-                firstTarget = db1.GetDefaultCollection();
-                secondTarget = db1.GetDefaultCollection();
-                break;
-            case ReplicatorType.PushAndPull:
-            default:
-                firstSource = db1.GetDefaultCollection();
-                secondSource = otherDb1.GetDefaultCollection();
-                firstTarget = otherDb1.GetDefaultCollection();
-                secondTarget = db1.GetDefaultCollection();
-                break;
-        }
+                using (var replicator = new Replicator(config)) {
+                    Collection firstSource = null;
+                    Collection secondSource = null;
+                    Collection firstTarget = null;
+                    Collection secondTarget = null;
+                    if (type == ReplicatorType.Push) {
+                        firstSource = Db1.GetDefaultCollection();
+                        secondSource = Db1.GetDefaultCollection();
+                        firstTarget = OtherDb1.GetDefaultCollection();
+                        secondTarget = OtherDb1.GetDefaultCollection();
+                    } else if (type == ReplicatorType.Pull) {
+                        firstSource = OtherDb1.GetDefaultCollection();
+                        secondSource = OtherDb1.GetDefaultCollection();
+                        firstTarget = Db1.GetDefaultCollection();
+                        secondTarget = Db1.GetDefaultCollection();
+                    } else {
+                        firstSource = Db1.GetDefaultCollection();
+                        secondSource = OtherDb1.GetDefaultCollection();
+                        firstTarget = OtherDb1.GetDefaultCollection();
+                        secondTarget = Db1.GetDefaultCollection();
+                    }
 
-        replicator.Start();
+                    replicator.Start();
 
-        using (var mdoc = new MutableDocument("livesindb")) {
-            mdoc.SetString("name", "db");
-            mdoc.SetInt("version", 1);
-            firstSource.Save(mdoc);
-        }
+                    using (var mdoc = new MutableDocument("livesindb")) {
+                        mdoc.SetString("name", "db");
+                        mdoc.SetInt("version", 1);
+                        firstSource.Save(mdoc);
+                    }
 
-        var count = 0;
-        if (type != ReplicatorType.Push) {
-            while (true) {
-                count++;
-                Thread.Sleep(1000);
-                if (replicator.Status.Progress.Completed > 0 &&
-                    replicator.Status.Activity == ReplicatorActivityLevel.Idle)
-                    break;
-            }
+                    var count = 0;
+                    if (type != ReplicatorType.Push) {
+                        while (true) {
+                            count++;
+                            Thread.Sleep(1000);
+                            if (replicator.Status.Progress.Completed > 0 &&
+                               replicator.Status.Activity == ReplicatorActivityLevel.Idle)
+                                break;
+                        }
                         
-            count.ShouldBeLessThan(10, "because otherwise the replicator did not advance");
-        } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
-            Thread.Sleep(1000);
-        }
+                        count.ShouldBeLessThan(10, "because otherwise the replicator did not advance");
+                    } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
+                        Thread.Sleep(1000);
+                    }
 
-        var previousCompleted = replicator.Status.Progress.Completed;
-        firstTarget.Count.ShouldBe(1UL);
+                    var previousCompleted = replicator.Status.Progress.Completed;
+                    firstTarget.Count.ShouldBe(1UL);
 
-        using (var savedDoc = secondSource.GetDocument("livesindb"))
-        using (var mdoc = savedDoc?.ToMutable()) {
-            mdoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
-            mdoc.SetInt("version", 2);
-            secondSource.Save(mdoc);
-        }
+                    using (var savedDoc = secondSource.GetDocument("livesindb"))
+                    using (var mdoc = savedDoc.ToMutable()) {
+                        mdoc.SetInt("version", 2);
+                        secondSource.Save(mdoc);
+                    }
 
-        count = 0;
-        if (type != ReplicatorType.Push) {
-            while (true) {
-                count++;
-                Thread.Sleep(1000);
-                if (replicator.Status.Progress.Completed > previousCompleted &&
-                    replicator.Status.Activity == ReplicatorActivityLevel.Idle)
-                    break;
-            }
+                    count = 0;
+                    if (type != ReplicatorType.Push) {
+                        while (true) {
+                            count++;
+                            Thread.Sleep(1000);
+                            if (replicator.Status.Progress.Completed > previousCompleted &&
+                               replicator.Status.Activity == ReplicatorActivityLevel.Idle)
+                                break;
+                        }
                         
-            count.ShouldBeLessThan(10, "because otherwise the replicator did not advance");
-        } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
-            Thread.Sleep(1000);
-        }
+                        count.ShouldBeLessThan(10, "because otherwise the replicator did not advance");
+                    } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
+                        Thread.Sleep(1000);
+                    }
                     
-        using (var savedDoc = secondTarget.GetDocument("livesindb")) {
-            savedDoc.ShouldNotBeNull("because otherwise the retrieval of 'livesindb' failed");
-            savedDoc.GetInt("version").ShouldBe(2);
-        }
+                    using (var savedDoc = secondTarget.GetDocument("livesindb")) {
+                        savedDoc.GetInt("version").ShouldBe(2);
+                    }
 
-        replicator.Stop();
-        Thread.Sleep(100);
-        while (true) {
-            if (replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
-                break;
-        }
+                    replicator.Stop();
+                    Thread.Sleep(100);
+                    while (true) {
+                        if (replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
+                            break;
+                    }
+                }
+            }
     }
 #endif
 

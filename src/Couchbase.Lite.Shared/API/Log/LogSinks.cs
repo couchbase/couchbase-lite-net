@@ -44,7 +44,6 @@ public static class LogSinks
 
     static LogSinks()
     {
-        Native.c4log_enableFatalExceptionBacktrace();
         SetupDomainObjects();
         SetDomainLevels(LogLevel.Warning);
     }

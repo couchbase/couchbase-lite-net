@@ -141,6 +141,15 @@ public unsafe class Document : IDictionaryObject, IJSON, IDisposable
         }
     }
 
+
+    internal uint Generation
+    {
+        get {
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            return C4Doc?.HasValue == true ? NativeRaw.c4rev_getGeneration(C4Doc.RawDoc->selectedRev.revID) : 0U;
+        }
+    }
+
     /// <summary>
     /// Gets this document's unique ID
     /// </summary>

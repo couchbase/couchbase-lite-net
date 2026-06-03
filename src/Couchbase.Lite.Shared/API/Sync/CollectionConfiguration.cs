@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite.Sync;
 
@@ -28,13 +29,15 @@ namespace Couchbase.Lite.Sync;
 /// A configuration object for setting the details of how to treat
 /// a collection when used inside a <see cref="Replicator"/>
 /// </summary>
-public sealed record CollectionConfiguration
+public sealed class CollectionConfiguration
 {
-    /// <summary>
-    /// The collection that this configuration is going
-    /// to be applied to
-    /// </summary>
-    public required Collection Collection { get; init; }
+    private const string Tag = nameof(CollectionConfiguration);
+    
+    private readonly Freezer _freezer = new Freezer();
+    private IConflictResolver _resolver = Lite.ConflictResolver.Default;
+    private Func<Document, DocumentFlags, bool>? _pushFilter;
+    private Func<Document, DocumentFlags, bool>? _pullValidator;
+    internal ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
     
     /// <summary>
     /// The implemented custom conflict resolver object can be registered to the replicator 
@@ -42,21 +45,39 @@ public sealed record CollectionConfiguration
     /// When the value is null, the default conflict resolution will be applied.
     /// The default value is <see cref="ConflictResolver.Default" />. 
     /// </summary>
-    public IConflictResolver? ConflictResolver { get; init; } = Lite.ConflictResolver.Default;
+    public IConflictResolver? ConflictResolver
+    {
+        get => _resolver;
+        set 
+        { 
+            if(value == null) 
+                _freezer.PerformAction(() => _resolver = Lite.ConflictResolver.Default);
+            else
+                _freezer.PerformAction(() => _resolver = value); 
+        }
+    }
 
     /// <summary>
     /// Func delegate that takes Document input parameter and bool output parameter
     /// Document pull will be allowed if output is true, otherwise, Document pull 
     /// will not be allowed
     /// </summary>
-    public Func<Document, DocumentFlags, bool>? PullFilter { get; init; }
+    public Func<Document, DocumentFlags, bool>? PullFilter
+    {
+        get => _pullValidator;
+        set => _freezer.PerformAction(() => _pullValidator = value);
+    }
 
     /// <summary>
     /// Func delegate that takes Document input parameter and bool output parameter
     /// Document push will be allowed if output is true, otherwise, Document push 
     /// will not be allowed
     /// </summary>
-    public Func<Document, DocumentFlags, bool>? PushFilter { get; init; }
+    public Func<Document, DocumentFlags, bool>? PushFilter
+    {
+        get => _pushFilter;
+        set => _freezer.PerformAction(() => _pushFilter = value);
+    }
 
     /// <summary>
     /// A set of Sync Gateway channel names to pull from.  Ignored for push replication.
@@ -67,51 +88,57 @@ public sealed record CollectionConfiguration
     /// <remarks>
     /// Note: Channels property is only applicable in the replications with Sync Gateway. 
     /// </remarks>
-    public IImmutableList<string>? Channels
+    public IList<string>? Channels
     {
         get => Options.Channels;
-        init => Options.Channels = value?.Any() == true ? value : null;
+        set => _freezer.PerformAction(() => Options.Channels = value?.Any() == true ? value : null);
     }
 
     /// <summary>
     /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
     /// and/or pulled.  Zero length lists are not allowed, and will be replaced with null
     /// </summary>
-    public IImmutableList<string>? DocumentIDs
+    public IList<string>? DocumentIDs
     {
         get => Options.DocIDs;
-        init => Options.DocIDs = value?.Any() == true ? value : null;
+        set => _freezer.PerformAction(() => Options.DocIDs = value?.Any() == true ? value : null);
+    }
+    
+    internal ReplicatorType ReplicatorType
+    {
+        get => _replicatorType;
+        set => _replicatorType = value;
     }
 
-    internal ReplicatorOptionsDictionary Options { get; } = new();
+    internal ReplicatorOptionsDictionary Options { get; set; } = new();
+    
     
     /// <summary>
-    /// A convenience method to create a list of configurations for the provided collections
-    /// when the default settings are acceptable.
+    /// The default constructor
     /// </summary>
-    /// <param name="collections">The collections to create configurations for</param>
-    /// <returns>The list of configuration options.</returns>
-    public static List<CollectionConfiguration> FromCollections(params Collection[] collections) =>
-        collections.Select(c => new CollectionConfiguration(c)).ToList();
-    
-    /// <summary>
-    /// Convenience constructor
-    /// </summary>
-    /// <param name="collection">The collection to apply the configuration to</param>
-    [SetsRequiredMembers]
-    public CollectionConfiguration(Collection collection)
-    {
-        Collection = collection;
-    }
+    public CollectionConfiguration() {}
 
-    [SetsRequiredMembers]
-    internal CollectionConfiguration(CollectionConfiguration other)
+    internal CollectionConfiguration(CollectionConfiguration? copy)
     {
-        Collection = other.Collection;
-        Options = new(other.Options);
-        
-        ConflictResolver = other.ConflictResolver;
-        PushFilter = other.PushFilter;
-        PullFilter = other.PullFilter;
+        PushFilter = copy?.PushFilter;
+        PullFilter = copy?.PullFilter;
+        ConflictResolver = copy?.ConflictResolver;
+        ReplicatorType = copy?.ReplicatorType ?? ReplicatorType.PushAndPull;
+        Options = copy?.Options ?? new ReplicatorOptionsDictionary();
+    }
+    
+    internal CollectionConfiguration Freeze()
+    {
+        var retVal = new CollectionConfiguration()
+        {
+            PushFilter = PushFilter,
+            PullFilter = PullFilter,
+            ConflictResolver = ConflictResolver,
+            ReplicatorType = ReplicatorType,
+            Options = Options
+        };
+
+        retVal._freezer.Freeze("Cannot modify a CollectionConfiguration that is in use");
+        return retVal;
     }
 }
