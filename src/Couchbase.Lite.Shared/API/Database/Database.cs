@@ -100,8 +100,9 @@ public enum MaintenanceType
 /// and can be seeded with pre-populated data if desired.
 /// </summary>
 #pragma warning disable CS0618 // Type or member is obsolete
-public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedEventArgs>, IDocumentChangeObservable
+public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedEventArgs>, IDocumentChangeObservable,
 #pragma warning restore CS0618 // Type or member is obsolete
+    IDisposable
 {
     private static readonly C4DatabaseConfig2 DBConfig = new C4DatabaseConfig2 {
         flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.VersionVectors

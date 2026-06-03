@@ -168,6 +168,9 @@ internal abstract class QueryExpression : IExpression
 
     public IExpression IsNot(IExpression expression) => 
         GetOperator(BinaryOpType.IsNot, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+
+    [Obsolete("This query expression deprecated, please use IsNotValued().")]
+    public IExpression IsNullOrMissing() => new QueryUnaryExpression(this, UnaryOpType.Null);
     public IExpression IsNotValued() => Expression.Not(IsValued());
     public IExpression IsValued() => new QueryUnaryExpression(this, UnaryOpType.Valued);
     public IExpression LessThan(IExpression expression) => 
@@ -181,6 +184,8 @@ internal abstract class QueryExpression : IExpression
         GetOperator(BinaryOpType.Modulus, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
     public IExpression Multiply(IExpression expression) => 
         GetOperator(BinaryOpType.Multiply, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+    [Obsolete("This query expression deprecated, please use IsValued().")]
+    public IExpression NotNullOrMissing() => Expression.Not(IsNullOrMissing());
     public IExpression NotEqualTo(IExpression expression) => 
         GetOperator(BinaryOpType.NotEqualTo, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
     public IExpression Or(IExpression expression) => 

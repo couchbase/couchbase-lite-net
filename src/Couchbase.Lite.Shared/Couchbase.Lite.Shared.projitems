@@ -58,6 +58,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Collation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\DataSource.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Expression.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextFunction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Function.cs" />
