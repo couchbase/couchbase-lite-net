@@ -24,21 +24,19 @@ namespace Couchbase.Lite;
 /// <summary>
 /// The parameters of a collection changed event
 /// </summary>
-public sealed class CollectionChangedEventArgs : EventArgs
+#pragma warning disable CS0618 // Type or member is obsolete
+public sealed class CollectionChangedEventArgs : DatabaseChangedEventArgs
+#pragma warning restore CS0618 // Type or member is obsolete
 {
     /// <summary>
     /// Gets the collection in which the change occurred
     /// </summary>
     public Collection Collection { get; }
 
-    /// <summary>
-    /// Gets the document that was changed
-    /// </summary>
-    public IReadOnlyList<string> DocumentIDs { get; }
-
-    internal CollectionChangedEventArgs(Collection collection, IReadOnlyList<string> documentIDs)
+    internal CollectionChangedEventArgs(Collection collection, IReadOnlyList<string> documentIDs,
+        Database database)
+        :base(database, documentIDs)
     {
-        DocumentIDs = documentIDs; 
         Collection = collection;
     }
 }

@@ -15,6 +15,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Collection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\CollectionChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DocumentChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Interfaces\IChangeObservable.cs" />
@@ -168,10 +169,16 @@
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MDict.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MValue.cs" />
-    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-android')) " Include="$(MSBuildThisFileDirectory)Support\Android\*.cs" />
-    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-ios')) or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-maccatalyst')) " Include="$(MSBuildThisFileDirectory)Support\iOS\*.cs" />
-    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) " Include="$(MSBuildThisFileDirectory)Support\WinUI\*.cs" />
-    <Compile Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' " Include="$(MSBuildThisFileDirectory)Support\netdesktop\*.cs" />
+    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-android')) "
+      Include="$(MSBuildThisFileDirectory)Support\Android\*.cs" />
+    <Compile
+      Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-ios')) or $(TargetFramework.StartsWith('$(MauiDotNetVersion)-maccatalyst')) "
+      Include="$(MSBuildThisFileDirectory)Support\iOS\*.cs" />
+    <Compile Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) "
+      Include="$(MSBuildThisFileDirectory)Support\WinUI\*.cs" />
+    <Compile
+      Condition=" '$(TargetFramework)' == '$(DotNetFrameworkVersion)' or '$(TargetFramework)' == '$(ConsoleDotNetVersion)' "
+      Include="$(MSBuildThisFileDirectory)Support\netdesktop\*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Freezer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IStoppable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IThreadSafety.cs" />
