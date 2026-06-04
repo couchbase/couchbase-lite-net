@@ -374,6 +374,17 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
     [Fact]
     public void TestReplicatorOneMaxAttempts() => ReplicatorMaxAttempts(1);
 #endif
+    
+    [Fact]
+    public void TestReadOnlyConfiguration()
+    {
+        var config = CreateConfig(true, false, false);
+        using (var repl = new Replicator(config)) {
+            config = repl.Config;
+            Should.Throw<InvalidOperationException>(() => config.ReplicatorType = ReplicatorType.PushAndPull, 
+                "because the configuration from a replicator should be read only");
+        }
+    }
 
     [Fact]
     public void TestEmptyPush()
