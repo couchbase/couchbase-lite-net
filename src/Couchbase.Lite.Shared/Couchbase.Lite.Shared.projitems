@@ -49,8 +49,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessageNetOnly.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\BaseLogSink.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogSink.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogSink.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\ILogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\Log.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\LogSinks.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayFunction.cs" />

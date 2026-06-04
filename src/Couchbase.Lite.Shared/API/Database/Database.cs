@@ -107,6 +107,8 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
     private static readonly C4DatabaseConfig2 DBConfig = new C4DatabaseConfig2 {
         flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.VersionVectors
     };
+    
+    private static Log? _Log;
 
     private const string DBExtension = "cblite2";
 
@@ -143,6 +145,25 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
     /// <returns>The <see cref="DocumentFragment"/> object</returns>
     [Obsolete("Document subscript in the Database class is deprecated, please use Document Script of the default collection.")]
     public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
+    
+    /// <summary>
+    /// [DEPRECATED] Gets the object that stores the available logging methods
+    /// for Couchbase Lite
+    /// </summary>
+    [Obsolete("Use the new LogSinks static class")]
+    public static Log Log 
+    {
+        get {
+            // This is a bit weird to do, since normally you'd just say Log = new Log() above,
+            // but that doesn't play well with iOS native AOT for some reason, so lazily
+            // init this instead.
+            if(_Log == null) {
+                _Log = new Log();
+            }
+
+            return _Log;
+        }
+    }
 
     /// <summary>
     /// Gets the database's name

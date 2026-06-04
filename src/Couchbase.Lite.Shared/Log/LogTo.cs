@@ -29,17 +29,27 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Logging;
 
-internal sealed class DomainLogger
+ internal sealed class DomainLogger
 {
+    #region Properties
+
     public LogDomain Domain { get; }
 
     public string Subdomain { get; }
+
+    #endregion
+
+    #region Constructors
 
     internal DomainLogger(string? domainStr, LogDomain domain)
     {
         Subdomain = domainStr ?? "Default";
         Domain = domain;
     }
+
+    #endregion
+
+    #region Internal Methods
 
     [Conditional("DEBUG")]
     internal void D(string tag, string msg)
@@ -91,7 +101,7 @@ internal sealed class DomainLogger
 
     internal void V(string tag, string msg)
     {
-        SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg));
+       SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg));
     }
 
     internal void V(string tag, string msg, Exception tr)
@@ -119,23 +129,55 @@ internal sealed class DomainLogger
         SendToLoggers(LogLevel.Warning, String.Format(FormatMessage(tag, format), args));
     }
 
-    private static string FormatMessage(string tag, string message)
+    internal static bool OldApiUsed()
+    {
+#pragma warning disable CS0618 // Type or member is obsolete
+        return Database.Log.Console.Level != LogLevel.Warning
+            || Database.Log.File.Config != null
+            || Database.Log.Custom != null;
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    internal static void ThrowIfOldApiUsed()
+    {
+#pragma warning disable CS0618 // Type or member is obsolete
+        if (OldApiUsed()) {
+            throw new InvalidOperationException("Cannot use both new and old Logging API simultaneously (old API previously used)");
+        }
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    internal static void ThrowIfNewApiUsed()
+    {
+        if(LogSinks.Console == null
+            || LogSinks.Console.Level != LogLevel.Warning
+            || LogSinks.File != null
+            || LogSinks.Custom != null) {
+            throw new InvalidOperationException("Cannot use both new and old logging API simultaneously (new API previously used)");
+        }
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    private string FormatMessage(string tag, string message)
     {
         Debug.Assert(tag != null && message != null);
 
-        var threadId = Thread.CurrentThread.Name != null
-            ? $"{Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})"
+        var threadId = Thread.CurrentThread?.Name != null
+            ? $"{Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})"
             : Environment.CurrentManagedThreadId.ToString();
 
         return $"({tag}) [{threadId}] {message}";
     }
 
-    private static string FormatMessage(string tag, string message, Exception e)
+    private string FormatMessage(string tag, string message, Exception e)
     {
         Debug.Assert(tag != null && message != null && e != null);
 
-        var threadId = Thread.CurrentThread.Name != null
-            ? $"{Thread.CurrentThread.Name} ({Environment.CurrentManagedThreadId})"
+        var threadId = Thread.CurrentThread?.Name != null
+            ? $"{Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})"
             : Environment.CurrentManagedThreadId.ToString();
 
         return $"({tag}) [{threadId}] {message}: {e}";
@@ -144,33 +186,63 @@ internal sealed class DomainLogger
     private void SendToLoggers(LogLevel level, string msg)
     {
         var fileSucceeded = false;
-        LogSinks.Console?.Log(level, Domain, msg);
-        try {
-            LogSinks.File?.Log(level, Domain, msg);
-            fileSucceeded = true;
-            LogSinks.Custom?.Log(level, Domain, msg);
-        } catch (Exception e) {
-            var logType = fileSucceeded
-                ? LogSinks.Custom?.GetType()?.Name
-                : "log file";
-            var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
-            LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
-            if (!fileSucceeded) {
+        if (OldApiUsed()) {
+#pragma warning disable CS0618 // Type or member is obsolete
+            Database.Log.Console.Log(level, Domain, msg);
+            try {
+                Database.Log.File.Log(level, Domain, msg);
+                fileSucceeded = true;
+                Database.Log.Custom?.Log(level, Domain, msg);
+            } catch (Exception e) {
+                var logType = fileSucceeded
+                    ? Database.Log.Custom?.GetType().Name
+                    : "log file";
+                var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
+                Database.Log.Console.Log(LogLevel.Error, LogDomain.None, errMsg);
+                if (!fileSucceeded) {
+                    Database.Log.Custom?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                }
+            }
+#pragma warning restore CS0618 // Type or member is obsolete
+        } else {
+            LogSinks.Console?.Log(level, Domain, msg);
+            try {
+                LogSinks.File?.Log(level, Domain, msg);
+                fileSucceeded = true;
+                LogSinks.Custom?.Log(level, Domain, msg);
+            } catch (Exception e) {
+                var logType = fileSucceeded
+                    ? LogSinks.Custom?.GetType()?.Name
+                    : "log file";
+                var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
                 LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                if (!fileSucceeded) {
+                    LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
+                }
             }
         }
     }
 
+    #endregion
+
+    #region Overrides
+
     public override bool Equals(object? obj)
     {
-        if (obj is not DomainLogger other) {
+        var other = obj as DomainLogger;
+        if (other == null) {
             return false;
         }
 
         return other.Domain == Domain;
     }
 
-    public override int GetHashCode() => Domain.GetHashCode();
+    public override int GetHashCode()
+    {
+        return Domain.GetHashCode();
+    }
+
+    #endregion
 }
 
 internal sealed class LogTo
