@@ -30,9 +30,10 @@ namespace Couchbase.Lite;
 /// An object representing a Couchbase Lite Scope.  Scopes are a grouping level above 
 /// <see cref="Collection"/> objects that can segregate data.  There is not a direct
 /// SQL equivalent, but it can be thought of a logical grouping of tables with potential
-/// foreign key links.
+/// foreign key links.  NOTE: For API compatibility this class is IDisposable, but
+/// there is no need to dispose it (no-op).  In 4.0 it was made non disposable.
 /// </summary>
-public sealed unsafe class Scope
+public sealed unsafe class Scope : IDisposable
 {
 
     /// <summary>
@@ -205,4 +206,10 @@ public sealed unsafe class Scope
 
     /// <inheritdoc />
     public override string ToString() => $"SCOPE[{Name}]";
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        // No-op
+    }
 }
