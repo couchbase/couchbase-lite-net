@@ -537,44 +537,44 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
     }
     
     /// <summary>
-        /// [DEPRECATED] Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
-        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
-        /// The name can be used for deleting the index. Creating a new different index with an existing
-        /// index name will replace the old index; creating the same index with the same name will be no-ops.
-        /// </summary>
-        /// <param name="name">The index name</param>
-        /// <param name="index">The index</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
-        /// provided ones is used</exception>
-        [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
-        public void CreateIndex(string name, IIndex index)
-        {
-            GetDefaultCollection().CreateIndex(name, index);
-        }
+    /// [DEPRECATED] Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
+    /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+    /// The name can be used for deleting the index. Creating a new different index with an existing
+    /// index name will replace the old index; creating the same index with the same name will be no-ops.
+    /// </summary>
+    /// <param name="name">The index name</param>
+    /// <param name="index">The index</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
+    /// is <c>null</c></exception>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+    /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+    /// provided ones is used</exception>
+    [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
+    public void CreateIndex(string name, IIndex index)
+    {
+        GetDefaultCollection().CreateIndex(name, index);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Creates a SQL++ query index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
-        /// from <see cref="FullTextIndexConfiguration"/> with the given name.
-        /// The name can be used for deleting the index. Creating a new different index with an existing
-        /// index name will replace the old index; creating the same index with the same name will be no-ops.
-        /// </summary>
-        /// <param name="name">The index name</param>
-        /// <param name="indexConfig">The index</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="indexConfig"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
-        /// provided ones is used</exception>
-        [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
-        public void CreateIndex(string name, IndexConfiguration indexConfig)
-        {
-            GetDefaultCollection().CreateIndex(name, indexConfig);
-        }
+    /// <summary>
+    /// [DEPRECATED] Creates a SQL++ query index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
+    /// from <see cref="FullTextIndexConfiguration"/> with the given name.
+    /// The name can be used for deleting the index. Creating a new different index with an existing
+    /// index name will replace the old index; creating the same index with the same name will be no-ops.
+    /// </summary>
+    /// <param name="name">The index name</param>
+    /// <param name="indexConfig">The index</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="indexConfig"/>
+    /// is <c>null</c></exception>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+    /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+    /// provided ones is used</exception>
+    [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
+    public void CreateIndex(string name, IndexConfiguration indexConfig)
+    {
+        GetDefaultCollection().CreateIndex(name, indexConfig);
+    }
 
     /// <summary>
     /// Creates a Query object from the given SQL++ string.
@@ -609,69 +609,69 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
     }
     
     /// <summary>
-        /// [DEPRECATED] Deletes a document from the database.  When write operations are executed
-        /// concurrently, the last writer will overwrite all other written values.
-        /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
-        /// with <see cref="ConcurrencyControl.LastWriteWins"/>
-        /// </summary>
-        /// <param name="document">The document</param>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a database other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
-        public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
+    /// [DEPRECATED] Deletes a document from the database.  When write operations are executed
+    /// concurrently, the last writer will overwrite all other written values.
+    /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
+    /// with <see cref="ConcurrencyControl.LastWriteWins"/>
+    /// </summary>
+    /// <param name="document">The document</param>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+    /// when trying to save a document into a database other than the one it was previously added to</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
+    /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+    [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
+    public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
-        /// <summary>
-        /// [DEPRECATED] Deletes the given <see cref="Document"/> from this database
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
-        /// <returns><c>true</c> if the delete succeeded, <c>false</c> if there was a conflict</returns>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a database other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
-        public bool Delete(Document document, ConcurrencyControl concurrencyControl)
-        {
-            return GetDefaultCollection().Delete(document, concurrencyControl);
-        }
+    /// <summary>
+    /// [DEPRECATED] Deletes the given <see cref="Document"/> from this database
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
+    /// <returns><c>true</c> if the delete succeeded, <c>false</c> if there was a conflict</returns>
+    /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+    /// when trying to save a document into a database other than the one it was previously added to</exception>
+    /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
+    /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+    [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
+    public bool Delete(Document document, ConcurrencyControl concurrencyControl)
+    {
+        return GetDefaultCollection().Delete(document, concurrencyControl);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Deletes the index with the given name
-        /// </summary>
-        /// <param name="name">The name of the index to delete</param>
-        [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
-        public void DeleteIndex(string name)
-        {
-            GetDefaultCollection().DeleteIndex(name);
-        }
+    /// <summary>
+    /// [DEPRECATED] Deletes the index with the given name
+    /// </summary>
+    /// <param name="name">The name of the index to delete</param>
+    [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
+    public void DeleteIndex(string name)
+    {
+        GetDefaultCollection().DeleteIndex(name);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Gets the <see cref="Document"/> with the specified ID
-        /// </summary>
-        /// <param name="id">The ID to use when creating or getting the document</param>
-        /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
-        [Obsolete("GetDocument is deprecated, please use GetDefaultCollection().GetDocument")]
-        public Document? GetDocument(string id)
-        {
-            return GetDefaultCollection().GetDocument(id);
-        }
+    /// <summary>
+    /// [DEPRECATED] Gets the <see cref="Document"/> with the specified ID
+    /// </summary>
+    /// <param name="id">The ID to use when creating or getting the document</param>
+    /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
+    [Obsolete("GetDocument is deprecated, please use GetDefaultCollection().GetDocument")]
+    public Document? GetDocument(string id)
+    {
+        return GetDefaultCollection().GetDocument(id);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Gets a list of index names that are present in the database
-        /// </summary>
-        /// <returns>The list of created index names</returns>
-        [Obsolete("GetIndexes is deprecated, please use GetDefaultCollection().GetIndexes")]
-        public IList<string> GetIndexes()
-        {
-            return GetDefaultCollection().GetIndexes();
-        }
+    /// <summary>
+    /// [DEPRECATED] Gets a list of index names that are present in the database
+    /// </summary>
+    /// <returns>The list of created index names</returns>
+    [Obsolete("GetIndexes is deprecated, please use GetDefaultCollection().GetIndexes")]
+    public IList<string> GetIndexes()
+    {
+        return GetDefaultCollection().GetIndexes();
+    }
 
     /// <summary>
     /// Runs the given batch of operations as an atomic unit
@@ -701,103 +701,103 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
     }
     
     /// <summary>
-        /// [DEPRECATED] Purges the given <see cref="Document"/> from the database.  This leaves
-        /// no trace behind and will not be replicated
-        /// </summary>
-        /// <param name="document">The document to purge</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
-        /// other than the one it was previously added to</exception>
-        [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
-        public void Purge(Document document)
-        {
-            GetDefaultCollection().Purge(document);
-        }
+    /// [DEPRECATED] Purges the given <see cref="Document"/> from the database.  This leaves
+    /// no trace behind and will not be replicated
+    /// </summary>
+    /// <param name="document">The document to purge</param>
+    /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
+    /// other than the one it was previously added to</exception>
+    [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
+    public void Purge(Document document)
+    {
+        GetDefaultCollection().Purge(document);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Purges the given document id of the <see cref="Document"/> 
-        /// from the database.  This leaves no trace behind and will 
-        /// not be replicated
-        /// </summary>
-        /// <param name="docId">The id of the document to purge</param>
-        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
-        /// of the docId doesn't exist.</exception>
-        [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
-        public void Purge(string docId)
-        {
-            GetDefaultCollection().Purge(docId);
-        }
+    /// <summary>
+    /// [DEPRECATED] Purges the given document id of the <see cref="Document"/> 
+    /// from the database.  This leaves no trace behind and will 
+    /// not be replicated
+    /// </summary>
+    /// <param name="docId">The id of the document to purge</param>
+    /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+    /// of the docId doesn't exist.</exception>
+    [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
+    public void Purge(string docId)
+    {
+        GetDefaultCollection().Purge(docId);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Sets an expiration date on a document. After this time, the document
-        /// will be purged from the database.
-        /// </summary>
-        /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
-        /// <param name="expiration"> Nullable expiration timestamp as a 
-        /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
-        /// to remove expiration date time from doc.</param>
-        /// <returns>Whether successfully sets an expiration date on the document</returns>
-        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
-        /// doesn't exist</exception>
-        [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
-        public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
-        {
-            return GetDefaultCollection().SetDocumentExpiration(docId, expiration);
-        }
+    /// <summary>
+    /// [DEPRECATED] Sets an expiration date on a document. After this time, the document
+    /// will be purged from the database.
+    /// </summary>
+    /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
+    /// <param name="expiration"> Nullable expiration timestamp as a 
+    /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
+    /// to remove expiration date time from doc.</param>
+    /// <returns>Whether successfully sets an expiration date on the document</returns>
+    /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
+    /// doesn't exist</exception>
+    [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
+    public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
+    {
+        return GetDefaultCollection().SetDocumentExpiration(docId, expiration);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Returns the expiration time of the document. <c>null</c> will be returned
-        /// if there is no expiration time set
-        /// </summary>
-        /// <param name="docId"> The ID of the <see cref="Document"/> </param>
-        /// <returns>Nullable expiration timestamp as a <see cref="DateTimeOffset"/> 
-        /// of the document or <c>null</c> if time not set. </returns>
-        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
-        /// doesn't exist</exception>
-        [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
-        public DateTimeOffset? GetDocumentExpiration(string docId)
-        {
-            return GetDefaultCollection().GetDocumentExpiration(docId);
-        }
+    /// <summary>
+    /// [DEPRECATED] Returns the expiration time of the document. <c>null</c> will be returned
+    /// if there is no expiration time set
+    /// </summary>
+    /// <param name="docId"> The ID of the <see cref="Document"/> </param>
+    /// <returns>Nullable expiration timestamp as a <see cref="DateTimeOffset"/> 
+    /// of the document or <c>null</c> if time not set. </returns>
+    /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
+    /// doesn't exist</exception>
+    [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
+    public DateTimeOffset? GetDocumentExpiration(string docId)
+    {
+        return GetDefaultCollection().GetDocumentExpiration(docId);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Saves the given <see cref="MutableDocument"/> into this database.  This call is equivalent to calling
-        /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
-        /// <see cref="ConcurrencyControl.LastWriteWins"/>
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
-        /// other than the one it was previously added to</exception>
-        [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
-        public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
+    /// <summary>
+    /// [DEPRECATED] Saves the given <see cref="MutableDocument"/> into this database.  This call is equivalent to calling
+    /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
+    /// <see cref="ConcurrencyControl.LastWriteWins"/>
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+    /// other than the one it was previously added to</exception>
+    [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
+    public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
-        /// <summary>
-        /// [DEPRECATED] Saves the given <see cref="MutableDocument"/> into this database
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
-        /// other than the one it was previously added to</exception>
-        /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
-        public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
-        {
-            return GetDefaultCollection().Save(document, concurrencyControl);
-        }
+    /// <summary>
+    /// [DEPRECATED] Saves the given <see cref="MutableDocument"/> into this database
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
+    /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+    /// other than the one it was previously added to</exception>
+    /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+    [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
+    public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
+    {
+        return GetDefaultCollection().Save(document, concurrencyControl);
+    }
 
-        /// <summary>
-        /// [DEPRECATED] Saves a document to the database. When write operations are executed concurrently, 
-        /// and if conflicts occur, conflict handler will be called. Use the handler to directly
-        /// edit the document.Returning true, will save the document. Returning false, will cancel
-        /// the save operation.
-        /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
-        /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
-        public bool Save(MutableDocument document, Func<MutableDocument, Document?, bool> conflictHandler)
-        {
-            return GetDefaultCollection().Save(document, conflictHandler);
-        }
+    /// <summary>
+    /// [DEPRECATED] Saves a document to the database. When write operations are executed concurrently, 
+    /// and if conflicts occur, conflict handler will be called. Use the handler to directly
+    /// edit the document.Returning true, will save the document. Returning false, will cancel
+    /// the save operation.
+    /// </summary>
+    /// <param name="document">The document to save</param>
+    /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
+    /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+    [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
+    public bool Save(MutableDocument document, Func<MutableDocument, Document?, bool> conflictHandler)
+    {
+        return GetDefaultCollection().Save(document, conflictHandler);
+    }
 
     /// <summary>
     /// Save a blob object directly into the database without associating it with any documents.
