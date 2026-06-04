@@ -3017,12 +3017,12 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             return doc;
         });
 
+        config = CreateConfig(true, true, false);
         config.AddCollection(DefaultCollection, new CollectionConfiguration
         {
             ConflictResolver = resolver2
         });
                 
-        config = CreateConfig(true, true, false);
         RunReplication(config, 0, 0);
     }
 
