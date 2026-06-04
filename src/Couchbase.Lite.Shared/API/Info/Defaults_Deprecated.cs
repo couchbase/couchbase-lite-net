@@ -23,6 +23,13 @@ namespace Couchbase.Lite.Info;
 
 public static partial class Constants
 {
+	/// <summary>
+	/// Default value for <see cref="LogFileConfiguration.UsePlaintext" /> (false)
+	/// Plaintext is not used, and instead binary encoding is used in log files
+	/// </summary>
+	[Obsolete("Use Constants.UsePlantext instead")]
+	public static readonly bool DefaultLogFileUsePlainText = DefaultLogFileUsePlaintext;
+	
     /// <summary>
 	/// Default value for <see cref="ReplicatorConfiguration.MaxAttemptsWaitTime" /> (TimeSpan.FromSeconds(300))
 	/// Max wait time between retry attempts in seconds
