@@ -29,7 +29,7 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Logging;
 
- internal sealed class DomainLogger
+internal sealed class DomainLogger
 {
     #region Properties
 
@@ -101,7 +101,7 @@ namespace Couchbase.Lite.Internal.Logging;
 
     internal void V(string tag, string msg)
     {
-       SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg));
+        SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg));
     }
 
     internal void V(string tag, string msg, Exception tr)

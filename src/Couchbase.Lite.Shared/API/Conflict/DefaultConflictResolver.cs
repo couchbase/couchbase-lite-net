@@ -18,28 +18,27 @@
 
 using System;
 
-namespace Couchbase.Lite
-{
-    internal sealed class DefaultConflictResolver : IConflictResolver
-    {
-        /// <summary>
-        /// The callback default conflict resolve method, if conflict occurs.
-        /// </summary>
-        public Document? Resolve(Conflict conflict)
-        {
-            return ResolveFunc(conflict);
-        }
+namespace Couchbase.Lite;
 
-        private Document? ResolveFunc(Conflict conflict)
-        {
-            if (conflict.RemoteDocument == null || conflict.LocalDocument == null)
-                return null;
-            else if (conflict.LocalDocument.Generation > conflict.RemoteDocument.Generation)
-                return conflict.LocalDocument;
-            else if (conflict.LocalDocument.Generation < conflict.RemoteDocument.Generation)
-                return conflict.RemoteDocument;
-            else return String.CompareOrdinal(conflict.LocalDocument.RevisionID, conflict.RemoteDocument.RevisionID) > 0
-                ? conflict.LocalDocument : conflict.RemoteDocument;
-        }
+internal sealed class DefaultConflictResolver : IConflictResolver
+{
+    /// <summary>
+    /// The callback default conflict resolve method, if conflict occurs.
+    /// </summary>
+    public Document? Resolve(Conflict conflict)
+    {
+        return ResolveFunc(conflict);
+    }
+
+    private Document? ResolveFunc(Conflict conflict)
+    {
+        if (conflict.RemoteDocument == null || conflict.LocalDocument == null)
+            return null;
+        else if (conflict.LocalDocument.Generation > conflict.RemoteDocument.Generation)
+            return conflict.LocalDocument;
+        else if (conflict.LocalDocument.Generation < conflict.RemoteDocument.Generation)
+            return conflict.RemoteDocument;
+        else return String.CompareOrdinal(conflict.LocalDocument.RevisionID, conflict.RemoteDocument.RevisionID) > 0
+            ? conflict.LocalDocument : conflict.RemoteDocument;
     }
 }
