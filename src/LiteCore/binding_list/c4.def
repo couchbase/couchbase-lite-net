@@ -11,7 +11,6 @@ c4log_binaryFileLevel
 c4log_setBinaryFileLevel
 c4log_getDomain
 c4log_getDomainName
-c4log_enableFatalExceptionBacktrace
 
 c4error_make
 c4error_getMessage
@@ -65,6 +64,7 @@ c4doc_bodyAsJSON
 c4doc_getProperties
 
 c4rev_getTimestamp
+c4rev_getGeneration
 
 c4queryenum_next
 c4queryenum_seek

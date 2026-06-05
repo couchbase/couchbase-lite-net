@@ -33,9 +33,18 @@ internal sealed class DatabaseSource : QueryDataSource, IDataSourceAs
     private string? _as;
     private readonly string _collection;
     private readonly string _scope;
+    private readonly bool _legacyColumn;
 
-    // ReSharper disable once ConvertToAutoPropertyWithPrivateSetter
-    internal override string? ColumnName => _as;
+    internal override string? ColumnName
+    {
+        get {
+            if (_as != null) {
+                return _as;
+            }
+
+            return _legacyColumn ? Collection?.Database?.Name : null;
+        }
+    }
 
     internal Collection? Collection => Source as Collection;
 
@@ -43,6 +52,12 @@ internal sealed class DatabaseSource : QueryDataSource, IDataSourceAs
     {
         _collection = collection.Name;
         _scope = collection.Scope.Name;
+    }
+    
+    internal DatabaseSource(Database database, ThreadSafety threadSafety)
+        : this(database.GetDefaultCollection(), threadSafety)
+    {
+        _legacyColumn = true;
     }
 
     public override object ToJSON()

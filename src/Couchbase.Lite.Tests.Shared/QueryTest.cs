@@ -308,6 +308,58 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
         numRows.ShouldBe(100, "because otherwise the incorrect number of rows was returned");
     }
 #endif
+    
+    [Fact]
+    [Obsolete]
+    public void TestWhereNullOrMissing()
+    {
+        MutableDocument doc1 = null, doc2 = null;
+        doc1 = new MutableDocument("doc1");
+        doc1.SetString("name", "Scott");
+        DefaultCollection.Save(doc1);
+
+        doc2 = new MutableDocument("doc2");
+        doc2.SetString("name", "Tiger");
+        doc2.SetString("address", "123 1st ave.");
+        doc2.SetInt("age", 20);
+        DefaultCollection.Save(doc2);
+
+        var name = Expression.Property("name");
+        var address = Expression.Property("address");
+        var age = Expression.Property("age");
+        var work = Expression.Property("work");
+
+        var tests = new[] {
+            Tuple.Create(name.NotNullOrMissing(), new[] { doc1, doc2 }),
+            Tuple.Create(name.IsNullOrMissing(), Array.Empty<MutableDocument>()),
+            Tuple.Create(address.NotNullOrMissing(), new[] { doc2 }),
+            Tuple.Create(address.IsNullOrMissing(), new[] { doc1 }),
+            Tuple.Create(age.NotNullOrMissing(), new[] { doc2 }),
+            Tuple.Create(age.IsNullOrMissing(), new[] { doc1 }),
+            Tuple.Create(work.NotNullOrMissing(), Array.Empty<MutableDocument>()),
+            Tuple.Create(work.IsNullOrMissing(), new[] { doc1, doc2 })
+        };
+
+        int testNum = 1;
+        foreach (var test in tests) {
+            var exp = test.Item1;
+            var expectedDocs = test.Item2;
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(DefaultCollection)).Where(exp)) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    if (n <= expectedDocs.Length) {
+                        var doc = expectedDocs[n - 1];
+                        row.GetString("id")
+                            .ShouldBe(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
+                    }
+                });
+
+                numRows.ShouldBe(expectedDocs.Length, "because otherwise too many rows were returned");
+            }
+
+            testNum++;
+        }
+    }
 
     [Fact]
     public void TestWhereValued()

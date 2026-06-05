@@ -40,4 +40,13 @@ internal sealed class Freezer
 
         a();
     }
+    
+    public void SetValue<T>(ref T location, T newValue, [CallerMemberName]string? caller = null)
+    {
+        if (_frozen) {
+            throw new InvalidOperationException($"{CouchbaseLiteErrorMessage.ReadOnlyObject} '{caller}' ({_message})");
+        }
+
+        location = newValue;
+    }
 }

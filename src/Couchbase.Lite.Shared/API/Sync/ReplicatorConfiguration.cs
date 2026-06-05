@@ -26,6 +26,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
@@ -78,14 +79,23 @@ public enum DocumentFlags
 /// <summary>
 /// A class representing configuration options for a <see cref="Replicator"/>
 /// </summary>
-public sealed partial record ReplicatorConfiguration
+public sealed partial class ReplicatorConfiguration
 {
     private const string Tag = nameof(ReplicatorConfiguration);
 
-    private readonly bool _continuous;
-    private readonly C4SocketFactory _socketFactory;
-    private readonly IEndpoint _target = null!; // Set via property
+    private readonly Freezer _freezer = new Freezer();
+    private Authenticator? _authenticator;
+    private ProxyAuthenticator? _proxyAuthenticator;
+    private bool _continuous = Constants.DefaultReplicatorContinuous;
+    private Database? _otherDb;
+    private Uri? _remoteUrl;
+    private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
+    private C4SocketFactory _socketFactory;
     private bool _isDefaultMaxAttemptSet = true;
+    
+    #if CBL_PLATFORM_IOS
+    private bool _allowReplicatingInBackground;
+    #endif
 
     /// <summary>
     /// Gets or sets whether a cookie can be set on a parent domain
@@ -93,11 +103,10 @@ public sealed partial record ReplicatorConfiguration
     /// of bar.com).  This is only recommended if the host issuing the cookie
     /// is well trusted.
     /// </summary>
-    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public bool AcceptParentDomainCookies
     {
         get => Options.AcceptParentDomainCookies;
-        init => Options.AcceptParentDomainCookies = value;
+        set => _freezer.PerformAction(() => Options.AcceptParentDomainCookies = value);
     }
 
 #if CBL_PLATFORM_IOS
@@ -114,19 +123,51 @@ public sealed partial record ReplicatorConfiguration
         /// > There is a bug in earlier versions in which the functionality is reversed from
         /// > what the documentation says, so please upgrade to get the correct behavior
         /// </remarks>
-        public bool AllowReplicatingInBackground { get; init; }
+        public bool AllowReplicatingInBackground
+        {
+            get => _allowReplicatingInBackground;
+            set => _freezer.SetValue(ref _allowReplicatingInBackground, value);
+        }
 #endif
 
     /// <summary>
     /// Gets or sets the class which will authenticate the replication
     /// </summary>
-    public Authenticator? Authenticator { get; init; }
+    public Authenticator? Authenticator
+    {
+        get => _authenticator;
+        set => _freezer.SetValue(ref _authenticator, value);
+    }
+    
+    /// <summary>
+    /// [DEPRECATED] A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
+    /// The default value is null, meaning that all accessible channels will be pulled.
+    /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
+    /// </summary>
+    /// <remarks>
+    /// Note: Channels property is only applicable in the replications with Sync Gateway.
+    /// </remarks>
+    [Obsolete("Channels is deprecated, please use CollectionConfiguration.Channels")]
+    public IList<string>? Channels
+    {
+        get => DefaultCollectionConfig.Options.Channels;
+        set {
+            _freezer.PerformAction(() =>
+            {
+                DefaultCollectionConfig.Options.Channels = value;
+                Options.Channels = value;
+            });
+        }
+    }
 
     /// <summary>
     /// Gets or sets the class which will authenticate with the proxy, if needed.
     /// </summary>
-    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-    public ProxyAuthenticator? ProxyAuthenticator { get; init; }
+    public ProxyAuthenticator? ProxyAuthenticator
+    {
+        get => _proxyAuthenticator;
+        set => _freezer.SetValue(ref _proxyAuthenticator, value);
+    }
 
     /// <summary>
     /// Gets or sets whether the <see cref="Replicator"/> should stay
@@ -136,20 +177,46 @@ public sealed partial record ReplicatorConfiguration
     public bool Continuous
     {
         get => _continuous;
-        init {
-            _continuous = value;
+        set
+        {
+            _freezer.SetValue(ref _continuous, value);
             if (_isDefaultMaxAttemptSet)
-                SetMaxAttempts(0);
+                MaxAttempts = 0;
+        }
+    }
+    
+    /// <summary>
+    /// [DEPRECATED] Gets the local database participating in the replication. 
+    /// </summary>
+    /// <exception cref="CouchbaseLiteException">Thrown if Database doesn't exist in the replicator configuration.</exception>
+    [Obsolete("Database is deprecated, please use Collections")]
+    public Database Database => Collections.Count > 0 && Collections[0].Database != null ? Collections[0].Database
+        : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a missing Database in the Replication Configuration.");
+
+    /// <summary>
+    /// [DEPRECATED] A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
+    /// and/or pulled
+    /// </summary>
+    [Obsolete("DocumentIDs is deprecated, please use CollectionConfiguration.DocumentIDs")]
+    public IList<string>? DocumentIDs
+    {
+        get => DefaultCollectionConfig.Options.DocIDs;
+        set {
+            _freezer.PerformAction(() =>
+            {
+                DefaultCollectionConfig.Options.DocIDs = value;
+                Options.DocIDs = value;
+            });
         }
     }
 
     /// <summary>
     /// Extra HTTP headers to send in all requests to the remote target
     /// </summary>
-    public IImmutableDictionary<string, string?> Headers
+    public IDictionary<string, string?> Headers
     {
         get => Options.Headers;
-        init => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value);
+        set => _freezer.PerformAction(() => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value));
     }
 
     /// <summary>
@@ -163,7 +230,7 @@ public sealed partial record ReplicatorConfiguration
     public X509Certificate2? PinnedServerCertificate
     {
         get => Options.PinnedServerCertificate;
-        init => Options.PinnedServerCertificate = value;
+        set => _freezer.PerformAction(() => Options.PinnedServerCertificate = value);
     }
 
     /// <summary>
@@ -178,7 +245,31 @@ public sealed partial record ReplicatorConfiguration
     internal string? NetworkInterface
     {
         get => Options.NetworkInterface;
-        init => Options.NetworkInterface = value;
+        set => _freezer.PerformAction(() => Options.NetworkInterface = value);
+    }
+    
+    /// <summary>
+    /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
+    /// Document pull will be allowed if output is true, othewise, Document pull 
+    /// will not be allowed
+    /// </summary>
+    [Obsolete("PullFilter is deprecated, please use CollectionConfiguration.PullFilter")]
+    public Func<Document, DocumentFlags, bool>? PullFilter
+    {
+        get => DefaultCollectionConfig.PullFilter;
+        set => _freezer.PerformAction(() => DefaultCollectionConfig.PullFilter = value);
+    }
+
+    /// <summary>
+    /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
+    /// Document push will be allowed if output is true, othewise, Document push 
+    /// will not be allowed
+    /// </summary>
+    [Obsolete("PushFilter is deprecated, please use CollectionConfiguration.PushFilter")]
+    public Func<Document, DocumentFlags, bool>? PushFilter
+    {
+        get => DefaultCollectionConfig.PushFilter;
+        set => _freezer.PerformAction(() => DefaultCollectionConfig.PushFilter = value);
     }
 
     /// <summary>
@@ -186,7 +277,11 @@ public sealed partial record ReplicatorConfiguration
     /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
     /// Default value is <see cref="Constants.DefaultReplicatorType" />
     /// </summary>
-    public ReplicatorType ReplicatorType { get; init; }
+    public ReplicatorType ReplicatorType
+    {
+        get => _replicatorType;
+        set =>_freezer.SetValue(ref _replicatorType, value);
+    }
 
     /// <summary>
     /// Gets or sets the value to enable/disable the auto-purge feature. 
@@ -203,11 +298,10 @@ public sealed partial record ReplicatorConfiguration
     /// * auto-purge will not be performed when DocumentIDs filter <see cref="CollectionConfiguration.DocumentIDs"/> is used.
     /// Default value is <see cref="Constants.DefaultReplicatorEnableAutoPurge" />
     /// </summary>
-    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public bool EnableAutoPurge
     {
         get => Options.EnableAutoPurge;
-        init => Options.EnableAutoPurge = value;
+        set => _freezer.PerformAction(() => Options.EnableAutoPurge = value);
     }
 
     /// <summary>
@@ -221,8 +315,9 @@ public sealed partial record ReplicatorConfiguration
     public TimeSpan? Heartbeat
     {
         get => Options.Heartbeat;
-        init => Options.Heartbeat = value;
+        set => _freezer.PerformAction(() => Options.Heartbeat = value);
     }
+
 
     /// <summary>
     /// Gets or sets the Max number of retry attempts. The retry attempts will reset
@@ -240,7 +335,16 @@ public sealed partial record ReplicatorConfiguration
     public int MaxAttempts
     {
         get => Options.MaxAttempts;
-        init => SetMaxAttempts(value);
+        set 
+        {
+            if (value == 0) { // backward compatible when user set the value to 0
+                _freezer.PerformAction(() => Options.MaxAttempts = Continuous ? Constants.DefaultReplicatorMaxAttemptsContinuous : Constants.DefaultReplicatorMaxAttemptsSingleShot);
+                _isDefaultMaxAttemptSet = true;
+            } else {
+                _freezer.PerformAction(() => Options.MaxAttempts = value);
+                _isDefaultMaxAttemptSet = false;
+            }
+        }
     }
 
     /// <summary>
@@ -256,141 +360,210 @@ public sealed partial record ReplicatorConfiguration
     public TimeSpan? MaxAttemptsWaitTime
     {
         get => Options.MaxAttemptsWaitTime;
-        init => Options.MaxAttemptsWaitTime = value;
+        set => _freezer.PerformAction(() => Options.MaxAttemptsWaitTime = value);
     }
 
     /// <summary>
     /// Gets the target to replicate with (either <see cref="Database"/>
     /// or <see cref="Uri"/>
     /// </summary>
-    public required IEndpoint Target
+    public IEndpoint Target { get; }
+
+    /// <summary>
+    /// [DEPRECATED] The implemented custom conflict resolver object can be registered to the replicator 
+    /// at ConflictResolver property. The default value of the conflictResolver is null. 
+    /// When the value is null, the default conflict resolution will be applied.
+    /// </summary>
+    [Obsolete("ConflictResolver is deprecated, please use CollectionConfiguration.ConflictResolver")]
+    public IConflictResolver? ConflictResolver
     {
-        get => _target;
-        init {
-            switch (value) {
-                case URLEndpoint e:
-                    RemoteUrl = e.Url;
-                    break;
-    #if COUCHBASE_ENTERPRISE
-                case DatabaseEndpoint e:
-                    OtherDB = e.Database;
-                    break;
-                case P2P.MessageEndpoint e:
-                    SocketFactory = e.SocketFactory;
-                    RemoteUrl = new("x-msg-endpoint://");
-                    Options.RemoteDBUniqueID = e.Uid;
-                    break;
-    #endif
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "Invalid implementation of IEndpoint");
-            }
-            _target = value;
-        }
+        get => DefaultCollectionConfig.ConflictResolver;
+        set => _freezer.PerformAction(() => DefaultCollectionConfig.ConflictResolver = value);
     }
 
     /// <summary>
-    /// The configuration for the collections in the replication.
+    /// The collections in the replication.
     /// </summary>
-    public required IImmutableList<CollectionConfiguration> Collections { get; init; }
+    public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
+    
+    //Pre 3.1 Default Collection Config
+    internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(DatabaseInternal.GetDefaultCollection()) ? CollectionConfigs[DatabaseInternal.GetDefaultCollection()] 
+        : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
+
+    internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
+
     
     internal TimeSpan CheckpointInterval
     {
         get => Options.CheckpointInterval;
-        init => Options.CheckpointInterval = value;
+        set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
     }
 
-    internal ReplicatorOptionsDictionary Options { get; }
+    internal ReplicatorOptionsDictionary Options { get; set; } = new();
+    
+    internal Database? OtherDB
+    {
+        get => _otherDb;
+        set => _freezer.SetValue(ref _otherDb, value);
+    }
 
     internal Database DatabaseInternal
     {
         get {
-            Debug.Assert(Collections.Count != 0);
-            return Collections[0].Collection.Database;
+            Debug.Assert(Collections.Any());
+            return Collections.First().Database;
         }
     }
 
-    internal Uri? RemoteUrl { get; init; }
-
-    internal Database? OtherDB { get; init; }
+    internal Uri? RemoteUrl
+    {
+        get => _remoteUrl;
+        set => _freezer.SetValue(ref _remoteUrl, value);
+    }
 
     internal C4SocketFactory SocketFactory
     {
         get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
-        init => _socketFactory = value;
+        set => _freezer.SetValue(ref _socketFactory, value);
     }
 
     /// <summary>
-    /// Constructs a ReplicatorConfiguration object with the provided collection configurations
-    /// and endpoint target.
+    /// Constructs a new builder object with the required properties
     /// </summary>
-    /// <param name="collections">Configurations for each collection to be replicated</param>
-    /// <param name="target">The endpoint to replicate with</param>
-    /// <exception cref="CouchbaseLiteException">If the collection set is empty or invalid</exception>
-    [SetsRequiredMembers]
-    public ReplicatorConfiguration(IEnumerable<CollectionConfiguration> collections,
-        IEndpoint target)
+    /// <remarks>
+    /// After the ReplicatorConfiguration created, use <see cref="AddCollection(Collection, CollectionConfiguration)"/> 
+    /// or <see cref="AddCollections(IList{Collection}, CollectionConfiguration)"/> to
+    /// configure the collections in the replication with the target. If there is no collection
+    /// specified, the replicator will not start with a no collections specified error.
+    /// </remarks>
+    /// <param name="target">The endpoint to replicate to, either local or remote</param>
+    /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
+    /// is provided as <paramref name="target"/></exception>
+    public ReplicatorConfiguration(IEndpoint target)
     {
-        
-        // Set this first, other properties reference it
-        Options = new();
-        
-        Continuous = Constants.DefaultReplicatorContinuous;
-        AcceptParentDomainCookies = Constants.DefaultReplicatorAcceptParentCookies;
-        EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
-        Heartbeat = Constants.DefaultReplicatorHeartbeat;
-        MaxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
-        ReplicatorType = Constants.DefaultReplicatorType;
-        
-        #if COUCHBASE_ENTERPRISE
-        AcceptOnlySelfSignedServerCertificate = Constants.DefaultReplicatorSelfSignedCertificateOnly;
-        #endif
-
-        // ReSharper disable once UseCollectionExpression (not supported in .NET 4.6.2)
-        Collections = collections.ToImmutableArray();
-        if (Collections.Count == 0) {
-            throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "No collections were specified for replication. At least one collection must be specified.");
-        }
-
-        foreach (var c in Collections.Where(c => !ReferenceEquals(c.Collection.Database, DatabaseInternal))) {
-            throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
-                $"The given collection database {c.Collection.Database} doesn't match the database {DatabaseInternal} "
-                + $"participating in the replication. All collections in the replication configuration must operate on the same database.");
-        }
-        
         Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
-    }
 
-    [SetsRequiredMembers]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor
-    internal ReplicatorConfiguration(ReplicatorConfiguration other)
-#pragma warning restore CS8618
-    {
-        // Normally this would be generated by the compiler, but we need to adjust
-        // Options so that it's a copy, not a reference to the same object
-        Options = new(other.Options);
-        Collections = other.Collections;
-        Target = other.Target;
-        
-        // The rest of the properties not below are set via Options or Target above
-        Authenticator = other.Authenticator;
-        ProxyAuthenticator = other.ProxyAuthenticator;
-        Continuous = other.Continuous;
-        ReplicatorType = other.ReplicatorType;
-        MaxAttempts = other.MaxAttempts;
-        
-#if CBL_PLATFORM_IOS
-        AllowReplicatingInBackground = other.AllowReplicatingInBackground;
-#endif
+        var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
+        castTarget.Visit(this);
     }
-
-    private void SetMaxAttempts(int newValue)
+    
+    /// <summary>
+    /// [DEPRECATED] Constructs a new builder object with the required properties
+    /// <p>When using this constructor, the default collection of the provided
+    /// database will be automatically included in the configuration.</p>
+    ///
+    /// <p>If you do not intend to replicate the default collection, use
+    /// ReplicatorConfiguration(Endpoint) instead, and explicitly add 
+    /// the intended collections to avoid unintended behavior.
+    /// explicitly specify the collections and avoid unintended behavior.</p>
+    /// </summary>
+    /// <param name="database">The database that will serve as the local side of the replication</param>
+    /// <param name="target">The endpoint to replicate to, either local or remote</param>
+    /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
+    /// is provided as <paramref name="target"/></exception>
+    [Obsolete("Constructor ReplicatorConfiguration(Database, IEndpoint) is deprecated, please use ReplicatorConfiguration(IEndpoint)")]
+    public ReplicatorConfiguration(Database database, IEndpoint target)
+        :this(target)
     {
-        if (newValue == 0) { // backward compatible when user set the value to 0
-            Options.MaxAttempts = Continuous ? Constants.DefaultReplicatorMaxAttemptsContinuous : Constants.DefaultReplicatorMaxAttemptsSingleShot;
-            _isDefaultMaxAttemptSet = true;
-        } else {
-            Options.MaxAttempts = newValue;
-            _isDefaultMaxAttemptSet = false;
+        CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
+        AddCollection(database.GetDefaultCollection());
+    }
+    
+    /// <summary>
+        /// Add a list of collections in the replication with an optional shared configuration. 
+        /// </summary>
+        /// <param name="collections"> that the given config will apply to</param>
+        /// <param name="config"> will apply to the given collections</param>
+        public void AddCollections(IList<Collection> collections, CollectionConfiguration? config = null)
+        {
+            if (collections == null || collections.Count == 0)
+                return;
+
+            foreach(var col in collections) {
+                AddCollection(col, config);
+            }
         }
-    }
+
+        /// <summary>
+        /// Add a collection in the replication with an optional collection configuration. 
+        /// </summary>
+        /// <remarks>
+        /// The given configuration will replace the existing configuration of the given collection in replication.
+        /// Default configuration will apply in the replication of the given collection if the given configuration is null.
+        /// Configuration will be read only once applied to the collection in the replication.
+        /// </remarks>
+        /// <param name="collection"> to be added in the collections' configuration list</param>
+        /// <param name="config"> to be added in the collections' configuration list</param>
+        /// <exception cref="CouchbaseLiteException">Thrown if database of the given collection doesn't match 
+        /// with the database <see cref="Database"/> of the replicator configuration.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if collection is null.</exception>
+        public void AddCollection(Collection collection, CollectionConfiguration? config = null)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
+
+            if (Collections.Count > 0 && collection.Database != DatabaseInternal)
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, 
+                    $"The given collection database {collection.Database} doesn't match the database {DatabaseInternal} participating in the replication. All collections in the replication configuration must operate on the same database.");
+
+            config = config == null ? new CollectionConfiguration() : new CollectionConfiguration(config);
+
+            if (CollectionConfigs.ContainsKey(collection))
+                CollectionConfigs.Remove(collection);
+
+            CollectionConfigs.Add(collection, config);
+        }
+
+        /// <summary>
+        /// Remove the give collection and it's configuration from the replication.
+        /// </summary>
+        /// <param name="collection"> to be removed</param>
+        public void RemoveCollection(Collection collection)
+        {
+            CollectionConfigs.Remove(collection);
+        }
+
+        /// <summary>
+        /// Get a copy of the given collection’s config. 
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="AddCollection(Collection, CollectionConfiguration)"/> to add or update collection configuration in a replication.
+        /// </remarks>
+        /// <param name="collection">The collection config belongs to</param>
+        /// <returns>The collection config of the given collection</returns>
+        public CollectionConfiguration? GetCollectionConfig(Collection collection)
+        {
+            if (!CollectionConfigs.TryGetValue(collection, out var config)) {
+                WriteLog.To.Sync.W(Tag, $"Failed getting the collection {collection}'s config.");
+                return null;
+            }
+
+            return config;
+        }
+    
+        internal ReplicatorConfiguration Freeze()
+        {
+            var frozenConfigs = new Dictionary<Collection, CollectionConfiguration>();
+            foreach (var cc in CollectionConfigs) {
+                frozenConfigs[cc.Key] = cc.Value.Freeze();
+            }
+
+            var retVal = new ReplicatorConfiguration(Target)
+            {
+                Authenticator = Authenticator,
+                ProxyAuthenticator = ProxyAuthenticator,
+#if COUCHBASE_ENTERPRISE
+                AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
+#endif
+#if CBL_PLATFORM_IOS
+                AllowReplicatingInBackground = AllowReplicatingInBackground,
+#endif
+                Continuous = Continuous,
+                ReplicatorType = ReplicatorType,
+                Options = Options,
+                CollectionConfigs = frozenConfigs
+            };
+
+            retVal._freezer.Freeze("Cannot modify a ReplicatorConfiguration that is in use");
+            return retVal;
+        }
 }

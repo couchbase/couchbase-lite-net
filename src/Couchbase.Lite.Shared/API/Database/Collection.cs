@@ -920,7 +920,7 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
             if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
                 if (docIDs.Count > 0) {
                     // Only notify if there are actually changes to send
-                    var args = new CollectionChangedEventArgs(this, docIDs);
+                    var args = new CollectionChangedEventArgs(this, docIDs, Database);
                     _databaseChanged.Fire(this, args);
                     docIDs = new List<string>();
                 }

@@ -73,11 +73,11 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
     {
         _listener = CreateListener(false);
         var targetEndpoint = _listener.LocalEndpoint();
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
-        var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
+        var config = new ReplicatorConfiguration(targetEndpoint)
         {
             ReplicatorType = ReplicatorType.PushAndPull
         };
+        config.AddCollection(DefaultCollection);
         
         using var repl = new Replicator(config);
         var stopAssert = new WaitAssert();
@@ -209,8 +209,8 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         }
 
         var targetEndpoint = _listener.LocalEndpoint();
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
-        var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint);
+        var config = new ReplicatorConfiguration(targetEndpoint);
+        config.AddCollection(DefaultCollection);
 
         using (var repl = new Replicator(config)) {
             var waitAssert = new WaitAssert();
@@ -262,8 +262,8 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         // Replicator - No authenticator
         var targetEndpoint = _listener.LocalEndpoint();
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
-        var config = new ReplicatorConfiguration(collectionConfigs, targetEndpoint);
+        var config = new ReplicatorConfiguration(targetEndpoint);
+        config.AddCollection(DefaultCollection);
 
         RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
         const string Pw = "123";
@@ -279,18 +279,12 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         }
 
         // Replicator - Wrong Credentials
-        var nextConfig = config with
-        {
-            Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString)
-        };
-        RunReplication(nextConfig, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
+        config.Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString);
+        RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
         // Replicator - Success
-        nextConfig = config with
-        {
-            Authenticator = new BasicAuthenticator("daniel", pwSecureString)
-        };
-        RunReplication(nextConfig, 0, 0);
+        config.Authenticator = new BasicAuthenticator("daniel", pwSecureString);
+        RunReplication(config, 0, 0);
 
         _listener.Stop();
         pwSecureString.Dispose();
@@ -326,9 +320,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
             null);
         id.ShouldNotBeNull();
 
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -340,7 +332,6 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         );
 
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -355,7 +346,6 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         _listener = CreateListener(true, true, badAuth);
 
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -396,9 +386,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         id.ShouldNotBeNull();
             
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -442,10 +430,8 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         // Create client identity
         var id = TLSIdentity.ImportIdentity(_store, clientData, "123", ClientCertLabel, null);
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
 
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -489,9 +475,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         OtherDefaultCollection.Count.ShouldBe(0UL);
 
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -517,9 +501,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
             "because otherwise bogus certs were used");
 
         // listener = cert1; replicator.pin = cert2; acceptSelfSigned = true => fail
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -532,7 +514,6 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         // listener = cert1; replicator.pin = cert1; acceptSelfSigned = false => pass
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -557,9 +538,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         DisableDefaultServerCertPinning = true;
 
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -572,7 +551,6 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         );
 
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -598,9 +576,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         DisableDefaultServerCertPinning = true;
 
         // Replicator - TLS Error
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -613,7 +589,6 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         // Replicator - Success
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -681,9 +656,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
             OtherDefaultCollection.Save(doc2);
         }
 
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
         RunReplication(
-            collectionConfigs,
             _listener.LocalEndpoint(),
             ReplicatorType.PushAndPull,
             false,
@@ -714,8 +687,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         }
 
         var target = new DatabaseEndpoint(Db);
-        var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
-        var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true);
+        var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
         var repl1 = new Replicator(config1);
 
         Database.Delete("urlepTestDb", Directory);
@@ -724,9 +696,8 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
             urlepTestDb.GetDefaultCollection().Save(doc2);
         }
 
-        var collectionConfigs2 = CollectionConfiguration.FromCollections(urlepTestDb.GetDefaultCollection());
-        var config2 = CreateConfig(collectionConfigs2, _listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-            serverCert: _listener.TlsIdentity!.Certs[0]);
+        var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+            serverCert: _listener.TlsIdentity!.Certs[0], sourceDb:urlepTestDb);
         var repl2 = new Replicator(config2);
 
         var wait1 = new ManualResetEventSlim();
@@ -793,8 +764,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         };
 
         Listen(config);
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
-        RunReplication(collectionConfigs, _listener.LocalEndpoint(), ReplicatorType.PushAndPull,
+        RunReplication(_listener.LocalEndpoint(), ReplicatorType.PushAndPull,
             false, null, null,
             (int)CouchbaseLiteError.HTTPForbidden,
             CouchbaseLiteErrorType.CouchbaseLite);
@@ -880,8 +850,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         _listener = Listen(config);
 
         var target = _listener.LocalEndpoint();
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
-        var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true,
+        var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true,
             serverCert: null);
         using var repl = new Replicator(config1);
         repl.AddChangeListener((_, args) =>
@@ -942,12 +911,12 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         var listener = new URLEndpointListener(config);
         listener.Start();
         var targetEndpoint = listener.LocalEndpoint();
-        var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
-        var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
+        var replConfig = new ReplicatorConfiguration(targetEndpoint)
         {
             ReplicatorType = ReplicatorType.PushAndPull,
             Continuous = false
         };
+        replConfig.AddCollection(colADb);
 
         RunReplication(replConfig, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
 
@@ -1000,12 +969,12 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         listener.Start();
 
         var targetEndpoint = listener.LocalEndpoint();
-        var collectionConfigs = CollectionConfiguration.FromCollections(colADb);
-        var replConfig = new ReplicatorConfiguration(collectionConfigs, targetEndpoint)
+        var replConfig = new ReplicatorConfiguration(targetEndpoint)
         {
             ReplicatorType = ReplicatorType.PushAndPull,
             Continuous = continuous
         };
+        replConfig.AddCollection(colADb);
 
         RunReplication(replConfig, 0, 0);
 
@@ -1058,8 +1027,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         }
 
         var target = new DatabaseEndpoint(Db);
-        var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
-        var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true);
+        var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb:OtherDb);
         var repl1 = new Replicator(config1);
         repl1.AddChangeListener((_, args) => {
             waitIdleAssert1.RunConditionalAssert(() => args.Status.Activity == ReplicatorActivityLevel.Idle);
@@ -1102,8 +1070,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         }
 
         var target = new DatabaseEndpoint(Db);
-        var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
-        var config1 = CreateConfig(collectionConfigs, target, ReplicatorType.PushAndPull, true);
+        var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb:OtherDb);
         var repl1 = new Replicator(config1);
 
         Database.Delete("urlepTestDb", Directory);
@@ -1112,9 +1079,8 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
             urlepTestDb.GetDefaultCollection().Save(doc2);
         }
 
-        var collectionConfigs2 = CollectionConfiguration.FromCollections(urlepTestDb.GetDefaultCollection());
-        var config2 = CreateConfig(collectionConfigs2, _listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-            serverCert: _listener.TlsIdentity!.Certs[0]);
+        var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+            serverCert: _listener.TlsIdentity!.Certs[0], sourceDb:urlepTestDb);
         var repl2 = new Replicator(config2);
 
         EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
@@ -1200,8 +1166,7 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
 
         var target = _listener.LocalEndpoint();
         var serverCert = _listener.TlsIdentity!.Certs[0];
-        var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
-        var config1 = CreateConfig(collectionConfigs, target, replicatorType, true, 
+        var config1 = CreateConfig(target, replicatorType, true, 
             serverCert: serverCert);
         var repl1 = new Replicator(config1);
 
@@ -1211,9 +1176,8 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
             urlepTestDb.GetDefaultCollection().Save(doc2);
         }
 
-        var collectionConfigs2 = CollectionConfiguration.FromCollections(urlepTestDb.GetDefaultCollection());
-        var config2 = CreateConfig(collectionConfigs2, target, replicatorType, true,
-            serverCert: serverCert);
+        var config2 = CreateConfig(target, replicatorType, true,
+            serverCert: serverCert, sourceDb:urlepTestDb);
         var repl2 = new Replicator(config2);
 
         using var busy1 = new ManualResetEventSlim();
@@ -1357,10 +1321,9 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
     {
         var listener = CreateListener(listenerTls);
         var serverCert = listenerTls ? listener.TlsIdentity!.Certs[0] : null;
-        var collectionConfigs = CollectionConfiguration.FromCollections(OtherDefaultCollection);
-        var config = CreateConfig(collectionConfigs, listener.LocalEndpoint(),
+        var config = CreateConfig(listener.LocalEndpoint(),
             ReplicatorType.PushAndPull, true,
-            serverCert: replicatorTls ? serverCert : null);
+            serverCert: replicatorTls ? serverCert : null, sourceDb:OtherDb);
         X509Certificate2? receivedServerCert;
 
         using (var repl = new Replicator(config)) {
@@ -1369,9 +1332,9 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         }
 
         if (listenerTls != replicatorTls) {
-            config = CreateConfig(collectionConfigs, listener.LocalEndpoint(),
+            config = CreateConfig(listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull, true,
-                serverCert: receivedServerCert);
+                serverCert: receivedServerCert, sourceDb:OtherDb);
             using var repl = new Replicator(config);
             RunReplicatorServerCert(repl, true, serverCert);
         }

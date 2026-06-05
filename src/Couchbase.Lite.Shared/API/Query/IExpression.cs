@@ -16,6 +16,8 @@
 // limitations under the License.
 // 
 
+using System;
+
 namespace Couchbase.Lite.Query;
 
 /// <summary>
@@ -110,6 +112,14 @@ public interface IExpression
     /// <param name="expression">The expression to compare to</param>
     /// <returns>The expression representing the new operation</returns>
     IExpression IsNot(IExpression expression);
+    
+    /// <summary>
+    /// [DEPRECATED] Gets an expression representing if the current expression is null
+    /// or missing (i.e. does not have a value)
+    /// </summary>
+    /// <returns>The expression representing the new operation</returns>
+    [Obsolete("This query expression deprecated, please use IsNotValued().")]
+    IExpression IsNullOrMissing();
 
     /// <summary>
     /// Gets an expression representing if the current expression has a value
@@ -170,6 +180,14 @@ public interface IExpression
     /// <param name="expression">The expression to compare with the current one</param>
     /// <returns>The expression representing the new operation</returns>
     IExpression NotEqualTo(IExpression expression);
+    
+    /// <summary>
+    /// [DEPRECATED] Gets an expression representing if the current expression is neither null
+    /// nor missing (i.e. has a value)
+    /// </summary>
+    /// <returns>The expression representing the new operation</returns>
+    [Obsolete("This query expression deprecated, please use IsValued().")]
+    IExpression NotNullOrMissing();
 
     /// <summary>
     /// Logically "ors" the given expression with the current expression

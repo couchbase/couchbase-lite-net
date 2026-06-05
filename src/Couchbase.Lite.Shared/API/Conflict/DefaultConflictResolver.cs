@@ -16,6 +16,8 @@
 //  limitations under the License.
 // 
 
+using System;
+
 namespace Couchbase.Lite;
 
 internal sealed class DefaultConflictResolver : IConflictResolver
@@ -25,11 +27,18 @@ internal sealed class DefaultConflictResolver : IConflictResolver
     /// </summary>
     public Document? Resolve(Conflict conflict)
     {
+        return ResolveFunc(conflict);
+    }
+
+    private Document? ResolveFunc(Conflict conflict)
+    {
         if (conflict.RemoteDocument == null || conflict.LocalDocument == null)
             return null;
-
-        return conflict.LocalDocument.Timestamp > conflict.RemoteDocument.Timestamp
-            ? conflict.LocalDocument
-            : conflict.RemoteDocument;
+        else if (conflict.LocalDocument.Generation > conflict.RemoteDocument.Generation)
+            return conflict.LocalDocument;
+        else if (conflict.LocalDocument.Generation < conflict.RemoteDocument.Generation)
+            return conflict.RemoteDocument;
+        else return String.CompareOrdinal(conflict.LocalDocument.RevisionID, conflict.RemoteDocument.RevisionID) > 0
+            ? conflict.LocalDocument : conflict.RemoteDocument;
     }
 }

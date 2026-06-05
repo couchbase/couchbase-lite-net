@@ -1,7 +1,7 @@
 //
 // C4Document_native.cs
 //
-// Copyright (c) 2025 Couchbase, Inc All rights reserved.
+// Copyright (c) 2026 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,6 +55,18 @@ namespace LiteCore.Interop
 
 #if NET8_0_OR_GREATER
         [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
+        public static partial uint c4rev_getGeneration(string? revID);
+#else
+        public static uint c4rev_getGeneration(string? revID)
+        {
+            using var revID_ = new C4String(revID); {
+                return NativeRaw.c4rev_getGeneration(revID_.AsFLSlice());
+            }
+        }
+#endif
+
+#if NET8_0_OR_GREATER
+        [LibraryImport(Constants.DllName, StringMarshallingCustomType = typeof(FLSliceMarshaller))]
         public static partial ulong c4rev_getTimestamp(string? revID);
 #else
         public static ulong c4rev_getTimestamp(string? revID)
@@ -97,6 +109,9 @@ namespace LiteCore.Interop
 
     internal static unsafe partial class NativeRaw
     {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint c4rev_getGeneration(FLSlice revID);
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4rev_getTimestamp(FLSlice revID);
 

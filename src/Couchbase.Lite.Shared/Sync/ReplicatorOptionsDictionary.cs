@@ -101,9 +101,9 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
     /// <summary>
     /// Gets or sets the channels to replicate (pull only)
     /// </summary>
-    public IImmutableList<string>? Channels
+    public IList<string>? Channels
     {
-        get => this.GetCast<IImmutableList<string>>(ChannelsKey);
+        get => this.GetCast<IList<string>>(ChannelsKey);
         set => this[ChannelsKey] = value;
     }
 
@@ -134,9 +134,9 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
     /// <summary>
     /// Gets or sets the docIDs to replicate
     /// </summary>
-    public IImmutableList<string>? DocIDs
+    public IList<string>? DocIDs
     {
-        get => this.GetCast<IImmutableList<string>>(DocIDsKey);
+        get => this.GetCast<IList<string>>(DocIDsKey);
         set => this[DocIDsKey] = value;
     }
 
@@ -162,9 +162,9 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
     /// Gets a mutable collection of headers to be passed along with the initial
     /// HTTP request that starts replication
     /// </summary>
-    public IImmutableDictionary<string, string?> Headers
+    public IDictionary<string, string?> Headers
     {
-        get => this.GetCast<IImmutableDictionary<string, string?>>(HeadersKey, ImmutableDictionary<string, string?>.Empty)!;
+        get => this.GetCast<IDictionary<string, string?>>(HeadersKey, new Dictionary<string, string?>())!;
         set => this[HeadersKey] = value;
     }
 
@@ -346,15 +346,16 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
         }
 
         if (ContainsKey(ChannelsKey)) {
-            Channels = (this[ChannelsKey] as IImmutableList<string>)!;
+            Channels = (this[ChannelsKey] as IList<object>)?.Cast<string>().ToList();
         }
 
         if (ContainsKey(DocIDsKey)) {
-            DocIDs = (this[DocIDsKey] as IImmutableList<string>)!;
+            DocIDs = (this[DocIDsKey] as IList<object>)?.Cast<string>().ToList();
         }
 
         if (ContainsKey(HeadersKey)) {
-            Headers = (this[HeadersKey] as IImmutableDictionary<string, string>)!;
+            Headers = (this[HeadersKey] as IDictionary<string, object?>)?.ToDictionary(x => x.Key,
+                x => x.Value as string) ?? new Dictionary<string, string?>();
         }
 
         if (ContainsKey(PinnedCertKey)) {
@@ -423,7 +424,7 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
             this[ClientCertKey] = GCHandle.ToIntPtr(_clientCertHandle).ToInt64();
         }
 
-        Headers = Headers.SetItem("User-Agent", HTTPLogic.UserAgent);
+        Headers["User-Agent"] = HTTPLogic.UserAgent;
     }
 
     internal override bool Validate(string key, object? value)

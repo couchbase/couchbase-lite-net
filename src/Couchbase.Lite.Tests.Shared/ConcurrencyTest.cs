@@ -242,7 +242,7 @@ namespace Test
             _ = exp1.RunAssertAsync(() =>
             {
                 void BadAct() => _ = CreateDocs(nDocs, "Create").ToList();
-                Should.Throw<CouchbaseLiteException>(BadAct).Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                Should.Throw<InvalidOperationException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             });
 
             Db.Close();
@@ -258,7 +258,7 @@ namespace Test
             _ = exp1.RunAssertAsync(() =>
             {
                 void BadAct() => _ = CreateDocs(nDocs, "Create").ToList();
-                Should.Throw<CouchbaseLiteException>(BadAct).Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                Should.Throw<InvalidOperationException>(BadAct).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
             });
 
             Db.Delete();

@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+using System;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
@@ -39,5 +40,19 @@ public static class DataSource
     {
         var c = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
         return new DatabaseSource(c, c.ThreadSafety);
+    }
+    
+    /// <summary>
+    /// [DEPRECATED] Creates a data source for an <see cref="IQuery" /> that gets results from the given
+    /// <see cref="Database" />
+    /// </summary>
+    /// <param name="database">The database to operate on</param>
+    /// <returns>The source of data for the <see cref="IQuery" /></returns>
+    [Obsolete("DataSource.Database is deprecated, please use DataSource.Collection")]
+    public static IDataSourceAs Database(Database database)
+    {
+        var db = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(database), database);
+
+        return new DatabaseSource(database, db.ThreadSafety);
     }
 }

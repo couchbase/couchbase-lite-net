@@ -19,6 +19,7 @@
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -31,11 +32,13 @@ namespace Couchbase.Lite
     /// <summary>
     /// A record containing configuration for creating or opening database data
     /// </summary>
-    public sealed partial record DatabaseConfiguration
+    public sealed partial class DatabaseConfiguration
     {
         private const string Tag = nameof(DatabaseConfiguration);
-
-        private readonly string? _directory;
+        
+        private readonly Freezer _freezer = new Freezer();
+        private string? _directory;
+        private bool _fullSync = Constants.DefaultDatabaseFullSync;
 
         /// <summary>
         /// Gets or sets the directory to use when creating or opening the data
@@ -43,7 +46,7 @@ namespace Couchbase.Lite
         public string Directory
         {
             get => _directory ?? Service.Provider.GetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory();
-            init => _directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value);
+            set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
         }
 
         /// <summary>
@@ -56,7 +59,44 @@ namespace Couchbase.Lite
         /// synchronous is very safe, but it is also dramatically slower.
         /// </summary>
         /// <returns>A boolean representing whether full sync is enabled</returns>
-        public bool FullSync { get; init; } = Constants.DefaultDatabaseFullSync;
+        public bool FullSync 
+        {
+            get => _fullSync;
+            set => _freezer.SetValue(ref _fullSync, value);
+        }
+        
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        public DatabaseConfiguration()
+        {
+        }
+
+        
+        internal DatabaseConfiguration(bool frozen)
+        {
+            if (frozen) {
+                _freezer.Freeze("Cannot modify a DatabaseConfiguration that is currently in use");
+            }
+        }
+        
+        internal DatabaseConfiguration Freeze()
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            var retVal = new DatabaseConfiguration
+            {
+                Directory = Directory,
+                FullSync = FullSync
+            };
+#pragma warning restore CA1416 // Validate platform compatibility
+
+#if COUCHBASE_ENTERPRISE
+            retVal.EncryptionKey = EncryptionKey;
+#endif
+
+            retVal._freezer.Freeze("Cannot modify a DatabaseConfiguration that is currently in use");
+            return retVal;
+        }
     }
 }
 

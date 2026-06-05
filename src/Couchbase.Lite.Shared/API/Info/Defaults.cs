@@ -47,6 +47,24 @@ public static partial class Constants {
 	public static readonly bool DefaultDatabaseFullSync = false;
 
 	/// <summary>
+	/// Default value for <see cref="LogFileConfiguration.UsePlaintext" /> (false)
+	/// Plaintext is not used, and instead binary encoding is used in log files
+	/// </summary>
+	public static readonly bool DefaultLogFileUsePlaintext = false;
+	
+	/// <summary>
+	/// Default value for <see cref="LogFileConfiguration.MaxSize" /> (524288)
+	/// 512 KiB for the size of a log file
+	/// </summary>
+	public static readonly long DefaultLogFileMaxSize = 524288;
+
+	/// <summary>
+	/// Default value for <see cref="LogFileConfiguration.MaxRotateCount" /> (1)
+	/// 1 rotated file present (2 total, including the currently active log file)
+	/// </summary>
+	public static readonly int DefaultLogFileMaxRotateCount = 1;
+
+	/// <summary>
 	/// Default value for <see cref="FileLogSink.UsePlaintext" /> (false)
 	/// Plaintext is not used, and instead binary encoding is used in log files
 	/// </summary>

@@ -35,29 +35,6 @@ using LiteCore.Util;
 namespace Couchbase.Lite;
 
 /// <summary>
-/// An extension class for helping to turn a nanosecond based timestamp into a
-/// <see cref="DateTimeOffset"/> object
-/// </summary>
-public static class TimestampExtensions
-{
-    private static readonly DateTime UnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        
-    /// <summary>
-    /// Converts the nanosecond timestamp to a DateTimeOffset in UTC time
-    /// </summary>
-    /// <param name="rawVal">The nanosecond timestamp</param>
-    /// <returns>The DateTimeOffset object using the timestamp, or null if it was invalid</returns>
-    public static DateTimeOffset? AsDateTimeOffset(this ulong rawVal)
-    {
-        if(rawVal == 0) {
-            return null;
-        }
-
-        // .NET ticks are in 100 nanosecond intervals
-        return UnixEpoch + TimeSpan.FromTicks((long)(rawVal / 100));
-    }
-}
-/// <summary>
 /// A class representing a document which cannot be altered
 /// </summary>
 public unsafe class Document : IDictionaryObject, IJSON, IDisposable
@@ -141,6 +118,15 @@ public unsafe class Document : IDictionaryObject, IJSON, IDisposable
         }
     }
 
+
+    internal uint Generation
+    {
+        get {
+            using var threadSafetyScope = _threadSafety.BeginLockedScope();
+            return C4Doc?.HasValue == true ? NativeRaw.c4rev_getGeneration(C4Doc.RawDoc->selectedRev.revID) : 0U;
+        }
+    }
+
     /// <summary>
     /// Gets this document's unique ID
     /// </summary>
@@ -168,20 +154,6 @@ public unsafe class Document : IDictionaryObject, IJSON, IDisposable
         get {
             using var threadSafetyScope = _threadSafety.BeginLockedScope();
             return C4Doc?.HasValue == true ? C4Doc.RawDoc->selectedRev.revID.CreateString() : _revId;
-        }
-    }
-
-    /// <summary>
-    /// The hybrid logical timestamp that the revision was created, represented in nanoseconds
-    /// from the unix epoch.  If you want this value as a DateTimeOffset you can use the
-    /// convenience function <see cref="TimestampExtensions.AsDateTimeOffset(ulong)">AsDateTimeOffset</see>.
-    /// Just be aware that DateTimeOffset only handles 100 nanosecond resolution.
-    /// </summary>
-    public ulong Timestamp
-    {
-        get {
-            using var scope = _threadSafety.BeginLockedScope();
-            return C4Doc?.HasValue == true ? NativeRaw.c4rev_getTimestamp(C4Doc.RawDoc->selectedRev.revID) : 0;
         }
     }
 

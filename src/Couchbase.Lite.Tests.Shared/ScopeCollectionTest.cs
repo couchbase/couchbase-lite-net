@@ -920,37 +920,37 @@ public sealed class ScopeCollectionTest(ITestOutputHelper output) : TestCase(out
 
             dbDispose();
 
-            Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection(),
+            Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection(),
                     "Because GetCollection after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
 
-            Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultScope(),
+            Should.Throw<InvalidOperationException>(() => Db.GetDefaultScope(),
                     "Because GetDefaultScope after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
 
-            Should.Throw<CouchbaseLiteException>(() => Db.GetCollection("colA", "scopeA"),
+            Should.Throw<InvalidOperationException>(() => Db.GetCollection("colA", "scopeA"),
                     "Because GetCollection after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
 
-            Should.Throw<CouchbaseLiteException>(() => Db.GetCollections("scopeA"),
+            Should.Throw<InvalidOperationException>(() => Db.GetCollections("scopeA"),
                     "Because GetCollections after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
 
-            Should.Throw<CouchbaseLiteException>(() => Db.GetScope("scopeA"),
+            Should.Throw<InvalidOperationException>(() => Db.GetScope("scopeA"),
                     "Because GetScope after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
 
-            Should.Throw<CouchbaseLiteException>(() => Db.GetScopes(),
+            Should.Throw<InvalidOperationException>(() => Db.GetScopes(),
                     "Because GetScopes after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
 
-            Should.Throw<CouchbaseLiteException>(() => Db.CreateCollection("colA", "scopeA"),
+            Should.Throw<InvalidOperationException>(() => Db.CreateCollection("colA", "scopeA"),
                     "Because CreateCollection after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
 
-            Should.Throw<CouchbaseLiteException>(() => Db.DeleteCollection("colA", "scopeA"),
+            Should.Throw<InvalidOperationException>(() => Db.DeleteCollection("colA", "scopeA"),
                     "Because DeleteCollection after db is disposed.")
-                .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+                .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
         }
     }
 

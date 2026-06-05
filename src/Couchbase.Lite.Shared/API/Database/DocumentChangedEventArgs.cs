@@ -37,10 +37,19 @@ public sealed class DocumentChangedEventArgs : EventArgs
     /// </summary>
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public Collection Collection { get; }
+    
+    /// <summary>
+    /// [DEPRECATED] The source of the document that changed
+    /// </summary>
+    [Obsolete("Database is deprecated, please use Collection property instead")]
+    public Database Database { get; }
 
     internal DocumentChangedEventArgs(string documentID, Collection collection)
     {
         DocumentID = documentID;
         Collection = collection;
+#pragma warning disable CS0618 // Type or member is obsolete
+        Database = collection.Database;
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 }

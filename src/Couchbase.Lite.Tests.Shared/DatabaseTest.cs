@@ -200,8 +200,8 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
         using var _ = GenerateDocument("doc1");
         Db.Close();
 
-        Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().GetDocument("doc1"))
-            .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+        Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().GetDocument("doc1"))
+            .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
     }
 
     [Fact]
@@ -468,8 +468,8 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
         var doc = new MutableDocument("doc1");
         doc.SetInt("key", 1);
 
-        Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().Save(doc), 
-            "because this operation is invalid").Error.ShouldBe(CouchbaseLiteError.NotOpen);
+        Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().Save(doc), 
+            "because this operation is invalid").Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
     }
 
     [Fact]
@@ -568,8 +568,8 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
             DeleteDB(Db);
         }
 
-        Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().Delete(doc))
-            .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+        Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().Delete(doc))
+            .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
     }
 
     [Fact]
@@ -684,8 +684,8 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
             DeleteDB(Db);
         }
                 
-        Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().Purge(doc))
-            .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+        Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().Purge(doc))
+            .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
     }
 
     [Fact]
@@ -746,7 +746,7 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
     public void TestCloseThenDeleteDatabase()
     {
         Db.Dispose();
-        Should.Throw<CouchbaseLiteException>(() => DeleteDB(Db)).Error.ShouldBe(CouchbaseLiteError.NotOpen);
+        Should.Throw<InvalidOperationException>(() => DeleteDB(Db)).Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
     }
 
     [Theory]
@@ -777,8 +777,8 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
     public void TestDeleteTwice()
     {
         Db.Delete();
-        Should.Throw<CouchbaseLiteException>(() => Db.Delete())
-            .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+        Should.Throw<InvalidOperationException>(() => Db.Delete())
+            .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
     }
 
     [Fact]
@@ -1232,11 +1232,7 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
         // Basically '-' is the minus sign in N1QL expression. So needs to escape the expression string.
         // But I just couldn't get it to work...
         // var index3 = new FullTextIndexConfiguration(new string[]{ "es"+@"\-"+"detail" }, true, "es");
-        var index3 = new FullTextIndexConfiguration("es_detail")
-        {
-            IgnoreAccents = true,
-            Language = "es"
-        };
+        var index3 = new FullTextIndexConfiguration(new string[] { "es_detail" }, true, "es");
             
         DefaultCollection.CreateIndex("index3", index3);
 
@@ -1331,8 +1327,8 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
         using var _ = GenerateDocument("doc1");
         Db.Delete();
 
-        Should.Throw<CouchbaseLiteException>(() => Db.GetDefaultCollection().GetDocument("doc1"))
-            .Error.ShouldBe(CouchbaseLiteError.NotOpen);
+        Should.Throw<InvalidOperationException>(() => Db.GetDefaultCollection().GetDocument("doc1"))
+            .Message.ShouldBe(CouchbaseLiteErrorMessage.DBClosed);
     }
 
     [Fact]
