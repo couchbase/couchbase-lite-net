@@ -105,7 +105,7 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
     IDisposable
 {
     private static readonly C4DatabaseConfig2 DBConfig = new C4DatabaseConfig2 {
-        flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.VersionVectors
+        flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact
     };
     
     private static Log? _Log;
