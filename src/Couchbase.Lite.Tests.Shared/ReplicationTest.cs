@@ -2343,7 +2343,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             uint resolvingCount = 0;
 
             var target = new DatabaseEndpoint(OtherDb);
-            var config = new ReplicatorConfiguration([collectionConfig], target)
+            var config = new ReplicatorConfiguration(target)
             {
                 Continuous = true,
                 ReplicatorType = ReplicatorType.Pull
@@ -2353,7 +2353,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             config.AddCollection(DefaultCollection, new CollectionConfiguration
             {
                 // ReSharper disable AccessToDisposedClosure
-                ConflictResolver = new BlockConflictResolver(conflict =>
+                ConflictResolver = new TestConflictResolver(conflict =>
                 {
                     Interlocked.Increment(ref resolvingCount);
                     resolvingEvent.Set();
