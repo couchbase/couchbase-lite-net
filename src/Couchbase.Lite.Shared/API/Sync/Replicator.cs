@@ -703,8 +703,8 @@ public sealed unsafe class Replicator
                     
             t.ContinueWith(task =>
             {
-                _conflictTasks.TryRemove(task, out var dummy);
-            }, cancelToken);
+                _conflictTasks.TryRemove(task, out _);
+            }, CancellationToken.None);
 
             _conflictTasks.TryAdd(t, 0);
         }
@@ -810,6 +810,11 @@ public sealed unsafe class Replicator
             Task.WaitAll(array);
         } catch (TaskCanceledException) {
             WriteLog.To.Sync.I(Tag, "Conflict tasks were cancelled");
+        } catch (AggregateException e) when (e.InnerException is TaskCanceledException) {
+            // This happens on iOS on .NET 10 at least
+            WriteLog.To.Sync.I(Tag, "Conflict tasks were cancelled");
+        } catch (Exception e) {
+            WriteLog.To.Sync.W(Tag, "Exception waiting for conflict tasks", e);
         }
     }
 
