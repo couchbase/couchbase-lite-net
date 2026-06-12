@@ -466,7 +466,12 @@ public sealed class LogTest(ITestOutputHelper output)
         }
 
         if (Directory.Exists(path)) {
-            Directory.Delete(path, true);
+            foreach (var file in Directory.GetFiles(path)) {
+                // On Windows, this file sometimes cannot be deleted while the program is running
+                if (!file.Contains("cbl_crash")) {
+                    File.Delete(file);
+                }
+            }
         }
 
         return path;
