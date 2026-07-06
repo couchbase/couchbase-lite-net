@@ -18,9 +18,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -224,5 +224,5 @@ public sealed class Parameters
     internal FLSliceResult FLEncode() => _params.FLEncode();
 
     /// <inheritdoc />
-    public override string ToString() => JsonSerializer.Serialize(_params);
+    public override string ToString() => CouchbaseJson.Serialize(_params);
 }

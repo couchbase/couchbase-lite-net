@@ -183,26 +183,22 @@ internal sealed class IArrayConverter : JsonConverter<IArray>
                 {
                     using var document = JsonDocument.ParseValue(ref reader);
                     var element = document.RootElement;
+                    var properties = CouchbaseJson.ToNetObject(element) as Dictionary<string, object?> ??
+                                     throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError,
+                                         "Error deserializing dict in ReadJson (IArray)");
                     if (element.TryGetProperty(Constants.ObjectTypeProperty, out var prop)
                         && prop.GetString() == Constants.ObjectTypeBlob) {
-                        var blob = element.Deserialize<Blob>(options) ??
-                                   throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
-                                       "Error deserializing blob in ReadJson (IArray)");
-                        arr.AddBlob(blob);
+                        arr.AddBlob(new Blob(properties));
                     }
                     else {
-                        var dict = element.Deserialize<MutableDictionaryObject>(options) ??
-                                   throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
-                                       "Error deserializing dict in ReadJson (IArray)");
+                        var dict = new MutableDictionaryObject();
+                        dict.SetData(properties);
                         arr.AddValue(dict);
                     }
                     break;
                 }
                 case JsonTokenType.StartArray:
-                    var array = JsonSerializer.Deserialize<MutableArrayObject>(ref reader) ??
-                               throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError, 
-                                   "Error deserializing array in ReadJson (IArray)");
-                    arr.AddValue(array);
+                    arr.AddValue(Read(ref reader, typeToConvert, options));
                     break;
                 case JsonTokenType.String:
                     arr.AddValue(reader.GetString());
@@ -236,11 +232,6 @@ internal sealed class IArrayConverter : JsonConverter<IArray>
 
     public override void Write(Utf8JsonWriter writer, IArray value, JsonSerializerOptions options)
     {
-        writer.WriteStartArray();
-        foreach (var item in value) {
-            JsonSerializer.Serialize(writer, item, options);
-        }
-        
-        writer.WriteEndArray();
+        CouchbaseJson.WriteValue(writer, value);
     }
 }

@@ -19,9 +19,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.Json;
 
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
@@ -107,7 +107,7 @@ internal abstract class QueryExpression : IExpression
 
     public override string ToString()
     {
-        return $"[{GetType().Name}] => {JsonSerializer.Serialize(ConvertToJSON())}";
+        return $"[{GetType().Name}] => {CouchbaseJson.Serialize(ConvertToJSON())}";
     }
 
     public IExpression Add(IExpression expression) => 
