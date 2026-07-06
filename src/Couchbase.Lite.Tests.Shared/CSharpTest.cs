@@ -295,21 +295,22 @@ namespace Test
                 return true;
             });
 
-            var retrieved = default(List<Dictionary<string, object?>>);
+            var retrieved = default(List<object?>);
             Db.InBatch(() =>
             {
                 using var flData = masterList.FLEncode();
                 retrieved =
                     FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Db,
-                            true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
-                        List<Dictionary<string, object?>>;
+                            true) as List<object?>;
             });
 
             var i = 0;
             retrieved.ShouldNotBeNull("because otherwise the fleece conversion failed");
-            foreach (var entry in retrieved!) {
+            foreach (var entryObj in retrieved!) {
+                var entry = entryObj as Dictionary<string, object?>;
+                entry.ShouldNotBeNull("because every retrieved entry should be a dictionary");
                 var entry2 = masterList[i];
-                foreach (var key in entry.Keys) {
+                foreach (var key in entry!.Keys) {
                     entry[key].ShouldBe(entry2[key]);
                 }
 
