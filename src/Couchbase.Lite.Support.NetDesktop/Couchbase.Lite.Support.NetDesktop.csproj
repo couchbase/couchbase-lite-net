@@ -15,6 +15,10 @@
 	<SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+  <!-- Native AOT / trimming support.  Only applicable to .NET 7+. -->
+  <PropertyGroup Condition=" '$(TargetFramework)' == '$(ConsoleDotNetVersion)' ">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <DocumentationFile>bin\Packaging\$(TargetFramework)\Couchbase.Lite.Support.NetDesktop.xml</DocumentationFile>
     <DebugType>portable</DebugType>
