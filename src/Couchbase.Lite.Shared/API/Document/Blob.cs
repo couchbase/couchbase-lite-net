@@ -21,10 +21,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Util;
 
 using LiteCore;
@@ -377,9 +377,9 @@ public sealed unsafe class Blob : IJSON
 
     /// <inheritdoc />
     public string ToJSON() =>
-        Digest == null 
-            ? throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB) 
-            : JsonSerializer.Serialize(JsonRepresentation);
+        Digest == null
+            ? throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB)
+            : CouchbaseJson.Serialize(JsonRepresentation);
 
     private void SetupProperties(IDictionary<string, object?> properties)
     {

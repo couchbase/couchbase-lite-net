@@ -18,7 +18,8 @@
 
 using System.Linq;
 using System.Text;
-using System.Text.Json;
+
+using Couchbase.Lite.Internal.Serialization;
 
 namespace Couchbase.Lite.Logging;
 
@@ -94,7 +95,7 @@ internal sealed class SecureLogJsonString(object input, LogMessageSensitivity se
                 return _str;
             }
 
-            var str = JsonSerializer.Serialize(_object);
+            var str = CouchbaseJson.SerializeLenient(_object);
             _str = str.Length > 100 ? $"{new string(str.Take(100).ToArray())}..." : str;
 
             return _str;

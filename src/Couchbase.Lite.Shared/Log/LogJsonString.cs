@@ -20,7 +20,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
+
+using Couchbase.Lite.Internal.Serialization;
 
 namespace Couchbase.Lite.Logging;
 
@@ -47,5 +48,5 @@ internal sealed class LogJsonString(object obj)
 {
     private string? _serialized;
 
-    public override string ToString() => _serialized ??= JsonSerializer.Serialize(obj);
+    public override string ToString() => _serialized ??= CouchbaseJson.SerializeLenient(obj);
 }

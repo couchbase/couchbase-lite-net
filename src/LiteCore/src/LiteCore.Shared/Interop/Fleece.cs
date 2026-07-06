@@ -28,6 +28,7 @@ using System.Text;
 using System.Text.Json;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Serialization;
 
 namespace LiteCore.Interop;
 
@@ -537,10 +538,11 @@ internal static unsafe class FLSliceExtensions
             case JsonElement jObj:
                 switch (jObj.ValueKind) {
                     case JsonValueKind.Array:
-                        jObj.Deserialize<IList>(DataOps.SerializerOptions)!.FLEncode();
-                        break;
                     case JsonValueKind.Object:
-                        jObj.Deserialize<IDictionary<string, object?>>(DataOps.SerializerOptions)!.FLEncode();
+                        // Convert with AOT safe JsonElement traversal.  This also encodes
+                        // into the current encoder, where the previous code discarded the
+                        // encoded result.
+                        CouchbaseJson.ToNetObject(jObj).FLEncode(enc);
                         break;
                     case JsonValueKind.Number:
                         if (jObj.TryGetInt64(out var l)) {
