@@ -41,6 +41,7 @@ namespace Couchbase.Lite.Internal.Serialization;
 [JsonSerializable(typeof(IList<object>))]
 [JsonSerializable(typeof(IList))]
 [JsonSerializable(typeof(IList<IList<object>>))]
+[JsonSerializable(typeof(Dictionary<string,string[]>))]
 internal sealed partial class CouchbaseJsonContext : JsonSerializerContext
 {
 }
