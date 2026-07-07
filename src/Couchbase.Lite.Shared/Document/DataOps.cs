@@ -56,9 +56,11 @@ internal static class DataOps
         T? retVal;
         try {
             // The JsonTypeInfo overload is AOT safe; T must be registered on
-            // CouchbaseJsonContext (or handled by a registered converter)
+            // CouchbaseJsonContext (or handled by a registered converter).
+            // Only JsonException maps to InvalidJSON so that registration
+            // failures (NotSupportedException etc.) surface immediately.
             retVal = (T?)JsonSerializer.Deserialize(json, SerializerOptions.GetTypeInfo(typeof(T)));
-        } catch {
+        } catch (JsonException) {
             throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
         }
 
