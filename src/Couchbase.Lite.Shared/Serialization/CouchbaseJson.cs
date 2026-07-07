@@ -17,6 +17,7 @@
 //
 
 using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -55,12 +56,22 @@ internal static class CouchbaseJson
     // Serializes a tree of Couchbase supported values to a JSON string.
     internal static string Serialize(object? value)
     {
+#if NET6_0_OR_GREATER
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer)) {
+            WriteValue(writer, value);
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+#else
+        // ArrayBufferWriter<byte> is unavailable on .NET Framework
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream)) {
             WriteValue(writer, value);
         }
 
         return Encoding.UTF8.GetString(stream.ToArray());
+#endif
     }
 
     // Serialization for logging purposes.  Never throws on unsupported types so
