@@ -27,8 +27,6 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Sync;
 
-using Foundation;
-
 using Network;
 
 namespace Couchbase.Lite.Support;
@@ -101,20 +99,57 @@ internal sealed class iOSReachability : IReachability
             return;
         }
 
-        using var session = NSUrlSession.SharedSession;
-        var request = new NSUrlRequest(new NSUrl(Url.AbsoluteUri));
-
-        var task = session.CreateDataTask(request, (_, response, error) =>
+        var parameters = NWParameters.CreateTcp();
+        using var endpoint = NWEndpoint.Create(Url.Host, Url.Port.ToString());
+        if (endpoint == null) {
+            WriteLog.To.Sync.E(Tag, $"{Url} is not parseable for reachability check");
+            return;
+        }
+        
+        var connection = new NWConnection(endpoint, parameters);
+        var flags = baseFlags;
+        var completed = false; // prevent re-entrancy / duplicate notifications after Cancel
+        
+        connection.SetQueue(_queue);
+        connection.SetStateChangeHandler((state, error) =>
         {
-            var flags = baseFlags;
-            if (error.Code != 0 || response is NSHttpUrlResponse { StatusCode: >= 400 }) {
-                flags &= ~NetworkReachabilityFlags.Reachable;
+            // Ignore any subsequent callbacks once we've made a reachability decision
+            if (completed) {
+                WriteLog.To.Sync.V(Tag, $"Ignoring state after completion: {state}");
+                return;
             }
             
-            NotifyFlagsChanged(flags);
+            if (error != null) {
+                WriteLog.To.Sync.W(Tag, $"Connection error to {Url}: {error}");
+            }
+            
+            switch (state) {
+                case NWConnectionState.Ready:
+                    flags |= NetworkReachabilityFlags.Reachable;
+                    NotifyFlagsChanged(flags);
+                    completed = true;
+                    // Replace handler with no-op before cancel to avoid processing Cancelled state
+                    connection.SetStateChangeHandler((_, _) => { });
+                    connection.Cancel();
+                    break;
+                case NWConnectionState.Failed:
+                    flags &= ~NetworkReachabilityFlags.Reachable;
+                    NotifyFlagsChanged(flags);
+                    completed = true;
+                    connection.SetStateChangeHandler((_, _) => { });
+                    connection.Cancel();
+                    break;
+                case NWConnectionState.Cancelled:
+                case NWConnectionState.Invalid:
+                case NWConnectionState.Waiting:
+                case NWConnectionState.Preparing:
+                default:
+                    WriteLog.To.Sync.V(Tag, $"Ignoring connection state: {state}");
+                    break;
+            }
         });
         
-        task.Resume();
+        connection.Start();
     }
 
     public void Start()
