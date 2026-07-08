@@ -15,9 +15,11 @@
 	<SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
-  <!-- Native AOT / trimming support.  Only applicable to .NET 7+. -->
-  <PropertyGroup Condition=" '$(TargetFramework)' == '$(ConsoleDotNetVersion)' ">
-    <IsAotCompatible>true</IsAotCompatible>
+  <!-- Native AOT / trimming support, following the documented pattern for libraries
+       that multi-target frameworks without AOT analysis support (net8.0 is the minimum):
+       https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/#target-framework-requirements -->
+  <PropertyGroup>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <DocumentationFile>bin\Packaging\$(TargetFramework)\Couchbase.Lite.Support.NetDesktop.xml</DocumentationFile>
