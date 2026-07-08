@@ -47,7 +47,7 @@ internal sealed class IDictionaryObjectConverter : JsonConverter<IDictionaryObje
             }
 
             reader.Read();
-            var value = JsonSerializer.Deserialize<object?>(ref reader, options);
+            var value = CouchbaseJson.ReadValue(ref reader);
             dict.SetValue(key, value);
         }
 
@@ -56,13 +56,7 @@ internal sealed class IDictionaryObjectConverter : JsonConverter<IDictionaryObje
 
     public override void Write(Utf8JsonWriter writer, IDictionaryObject value, JsonSerializerOptions options)
     {
-        writer.WriteStartObject();
-        foreach (var pair in value) {
-            writer.WritePropertyName(pair.Key);
-            JsonSerializer.Serialize(writer, pair.Value);
-        }
-        
-        writer.WriteEndObject();
+        CouchbaseJson.WriteValue(writer, value);
     }
 }
 

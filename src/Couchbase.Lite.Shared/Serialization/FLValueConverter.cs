@@ -17,9 +17,7 @@
 // 
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Text;
 
 using LiteCore;
@@ -34,13 +32,13 @@ internal static unsafe class FLValueConverter
 {
     public delegate object ObjectConvertDelegate(FLDict* dict);
 
-    public static object? ToCouchbaseObject(FLValue* value, Database? db, bool dotNetTypes, Type? hintType1 = null, MRoot? root = null)
+    public static object? ToCouchbaseObject(FLValue* value, Database? db, bool dotNetTypes, MRoot? root = null)
     {
         switch (Native.FLValue_GetType(value)) {
             case FLValueType.Array:
             {
                 if (dotNetTypes) {
-                    return ToObject(value, db, 0, hintType1);
+                    return ToObject(value, db);
                 }
 
                 var array = new ArrayObject(new FleeceMutableArray(new MValue(value), root), false);
@@ -54,7 +52,7 @@ internal static unsafe class FLValueConverter
                     return new DictionaryObject(new MDict(new MValue(value), root), false);
                 }
 
-                return ToObject(value, db, 0, hintType1);
+                return ToObject(value, db);
             }
             case FLValueType.Undefined:
                 return null;
@@ -106,7 +104,7 @@ internal static unsafe class FLValueConverter
         return dict;
     }
 
-    private static object? ToObject(FLValue* value, Database? db, int level = 0, Type? hintType1 = null)
+    private static object? ToObject(FLValue* value, Database? db)
     {
         if (value == null) {
             return null;
@@ -116,20 +114,17 @@ internal static unsafe class FLValueConverter
             case FLValueType.Array:
             {
                 var arr = Native.FLValue_AsArray(value);
-                var hintType = level == 0 && hintType1 != null ? hintType1 : typeof(object);
                 var count = (int)Native.FLArray_Count(arr);
                 if (count == 0) {
                     return new List<object>();
                 }
 
-                var retVal =
-                    (IList)Activator.CreateInstance(typeof(List<>).GetTypeInfo().MakeGenericType(hintType),
-                        count)!;
+                var retVal = new List<object?>(count);
 
                 var i = default(FLArrayIterator);
                 Native.FLArrayIterator_Begin(arr, &i);
                 do {
-                    retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), db, level + 1, hintType1));
+                    retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), db));
                 } while (Native.FLArrayIterator_Next(&i));
 
                 return retVal;
@@ -142,21 +137,20 @@ internal static unsafe class FLValueConverter
             {
 
                 var dict = Native.FLValue_AsDict(value);
-                var hintType = level == 0 && hintType1 != null ? hintType1 : typeof(object);
                 var count = (int)Native.FLDict_Count(dict);
                 if (count == 0) {
                     return new Dictionary<string, object>();
                 }
 
-                var retVal = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeof(string), hintType), count)!;
+                var retVal = new Dictionary<string, object?>(count);
                 var i = default(FLDictIterator);
                 Native.FLDictIterator_Begin(dict, &i);
                 do {
                     var key = Native.FLDictIterator_GetKeyString(&i)!;
-                    retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
+                    retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db);
                 } while (Native.FLDictIterator_Next(&i));
 
-                return ConvertDictionary((retVal as IDictionary<string, object>)!, db) ?? retVal;
+                return ConvertDictionary(retVal, db) ?? retVal;
             }
             case FLValueType.Null:
                 return null;

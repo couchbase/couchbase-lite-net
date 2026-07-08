@@ -78,6 +78,10 @@ public static partial class NetDesktop
     /// <exception cref="PlatformNotSupportedException">Thrown for 32-bit targets, they are not supported</exception>
     /// <exception cref="DllNotFoundException">LiteCore.dll could not be found</exception>
     /// <exception cref="BadImageFormatException">LiteCore.dll was the wrong architecture or corrupted in some way</exception>
+#if NET6_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("SingleFile", "IL3000:Avoid accessing Assembly file path when publishing as a single file",
+        Justification = "An empty Assembly.Location is handled by falling back to AppContext.BaseDirectory")]
+#endif
     public static void LoadLiteCore()
     {
         if (Interlocked.Exchange(ref Activated, 1) == 1) {
@@ -94,7 +98,13 @@ public static partial class NetDesktop
         }
 
 #if NET6_0_OR_GREATER
-        var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
+        // Assembly.Location is empty when the app is published as single-file or
+        // Native AOT.  In that case the native libraries are extracted to (or sit
+        // next to) the application directory.
+        var assemblyLocation = typeof(NetDesktop).GetTypeInfo().Assembly.Location;
+        var codeBase = assemblyLocation.Length > 0
+            ? Path.GetDirectoryName(assemblyLocation)
+            : AppContext.BaseDirectory;
 #else
         var originalCodeBase = typeof(NetDesktop).GetTypeInfo().Assembly.CodeBase;
         var uri = new UriBuilder(originalCodeBase);

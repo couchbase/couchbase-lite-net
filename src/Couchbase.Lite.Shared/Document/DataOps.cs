@@ -30,62 +30,12 @@ internal sealed class CouchbaseConverter : JsonConverter<object>
 {
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        return reader.TokenType switch
-        {
-            JsonTokenType.True => true,
-            JsonTokenType.False => false,
-            JsonTokenType.Number => ReadNumber(ref reader),
-            JsonTokenType.String => reader.GetString(),
-            JsonTokenType.StartObject => ReadObject(ref reader),
-            JsonTokenType.StartArray => ReadArray(ref reader),
-            JsonTokenType.Null => null,
-            _ => throw new JsonException($"Unexpected token parsing JSON. Token: {reader.TokenType}")
-        };
+        return CouchbaseJson.ReadValue(ref reader);
     }
 
     public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(writer, value, options);
-    }
-    
-    private object ReadNumber(ref Utf8JsonReader reader)
-    {
-        if (reader.TryGetInt64(out var l))
-            return l;
-
-        return reader.GetDouble();
-    }
-
-    private Dictionary<string, object> ReadObject(ref Utf8JsonReader reader)
-    {
-        var dictionary = new Dictionary<string, object>();
-        
-        while (reader.Read()) {
-            if (reader.TokenType == JsonTokenType.EndObject)
-                break;
-
-            if (reader.TokenType != JsonTokenType.PropertyName)
-                throw new JsonException("Expected property name");
-
-            var propertyName = reader.GetString()!;
-            reader.Read();
-            dictionary[propertyName] = Read(ref reader, typeof(object), null!)!;
-        }
-
-        return dictionary;
-    }
-    
-    private List<object> ReadArray(ref Utf8JsonReader reader)
-    {
-        var list = new List<object>();
-        while (reader.Read()) {
-            if (reader.TokenType == JsonTokenType.EndArray)
-                break;
-
-            list.Add(Read(ref reader, typeof(object), null!)!);
-        }
-
-        return list;
+        CouchbaseJson.WriteValue(writer, value);
     }
 }
 
@@ -93,16 +43,24 @@ internal static class DataOps
 {
     internal static readonly JsonSerializerOptions SerializerOptions = new()
     {
+        // The source generated resolver keeps System.Text.Json off of its
+        // reflection based code paths so that deserialization works under
+        // Native AOT / trimming.  The converters do all of the actual work.
+        TypeInfoResolver = CouchbaseJsonContext.Default,
         Converters = { new CouchbaseConverter(), new IArrayConverter(), new IDictionaryObjectConverter() },
         PreferredObjectCreationHandling = JsonObjectCreationHandling.Replace
     };
-    
+
     internal static T? ParseTo<T>(string json)
     {
         T? retVal;
         try {
-            retVal = JsonSerializer.Deserialize<T>(json, SerializerOptions);
-        } catch {
+            // The JsonTypeInfo overload is AOT safe; T must be registered on
+            // CouchbaseJsonContext (or handled by a registered converter).
+            // Only JsonException maps to InvalidJSON so that registration
+            // failures (NotSupportedException etc.) surface immediately.
+            retVal = (T?)JsonSerializer.Deserialize(json, SerializerOptions.GetTypeInfo(typeof(T)));
+        } catch (JsonException) {
             throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
         }
 
@@ -186,23 +144,7 @@ internal static class DataOps
             case ArrayObject roarr and not MutableArrayObject:
                 return roarr.ToMutable();
             case JsonElement jobj:
-                switch (jobj.ValueKind) {
-                    case JsonValueKind.Array:
-                        return ConvertList(jobj.Deserialize<IList>(SerializerOptions)!);
-                    case JsonValueKind.Object:
-                        return ConvertDictionary(jobj.Deserialize<IDictionary<string, object>>(SerializerOptions)!);
-                    case JsonValueKind.Number:
-                        return jobj.TryGetInt64(out var l) ? l : jobj.GetDouble();
-                    case JsonValueKind.String:
-                        return jobj.GetString();
-                    case JsonValueKind.True:
-                    case JsonValueKind.False:
-                        return jobj.GetBoolean();
-                    case JsonValueKind.Null:
-                        return null;
-                    default:
-                        throw new ArgumentException("Invalid JsonElement type: " + jobj.ValueKind);
-                }
+                return ToCouchbaseObject(CouchbaseJson.ToNetObject(jobj));
             case IDictionary<string, object?> dict:
                 return ConvertDictionary(dict);
             case IList list:

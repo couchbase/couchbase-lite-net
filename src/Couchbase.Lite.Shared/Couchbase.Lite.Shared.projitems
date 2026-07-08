@@ -162,6 +162,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Query\Select.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\Where.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\XQuery.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Serialization\CouchbaseJson.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\FLValueConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MContext.cs" />

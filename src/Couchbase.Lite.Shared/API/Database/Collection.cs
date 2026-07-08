@@ -32,7 +32,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Text.Json;
 
 namespace Couchbase.Lite;
 
@@ -534,7 +533,7 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
         CheckCollectionValid();
         var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
         var jsonObj = concreteIndex.ToJSON();
-        var json = JsonSerializer.Serialize(jsonObj);
+        var json = CouchbaseJson.Serialize(jsonObj);
         LiteCoreBridge.Check(err =>
         {
             var internalOpts = concreteIndex.Options;
