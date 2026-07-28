@@ -118,7 +118,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite.Analyzer\Couchbase.Lite.Analyzer.csproj"
       OutputItemType="Analyzer"
-      ReferenceOutputAssembly="false" />
+      ReferenceOutputAssembly="false"
+      UndefineProperties="TargetFramework;TargetFrameworks" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
   <Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
