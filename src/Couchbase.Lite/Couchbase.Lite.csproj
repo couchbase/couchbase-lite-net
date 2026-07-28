@@ -22,21 +22,12 @@
       $(TargetFrameworks);$(DotNetFrameworkVersion);$(MauiDotNetVersion)-windows$(WinUIMinimumVersion)</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <SupportedOSPlatformVersion
-      Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
-      $(iOSMinimumVersion)</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion
-      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
-      $(MacCatalystMinimumVersion)</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion
-      Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
-      $(MinimumAndroidAPI)</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion
-      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
-      $(WinUIMinimumVersion)</SupportedOSPlatformVersion>
-    <TargetPlatformMinVersion
-      Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
-      $(WinUIMinimumVersion)</TargetPlatformMinVersion>
+    <!-- Keep each of these on one line: a line break before the value embeds a literal newline/indent into the compiled SupportedOSPlatform attribute (MSBuild doesn't trim it), which breaks CA1416 platform-compat checks for consumers. -->
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">$(iOSMinimumVersion)</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">$(MacCatalystMinimumVersion)</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">$(MinimumAndroidAPI)</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(WinUIMinimumVersion)</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(WinUIMinimumVersion)</TargetPlatformMinVersion>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
     <DebugType>portable</DebugType>
