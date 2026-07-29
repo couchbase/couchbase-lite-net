@@ -61,6 +61,7 @@ public static class Service
             collection.AddSingleton<IProxy>(new LinuxProxy());
         }
 #elif CBL_PLATFORM_WINUI
+        collection.AddSingleton<IConsoleLogWriter>(new ConsoleLogWriter());
         collection.AddSingleton<IDefaultDirectoryResolver>(new DefaultDirectoryResolver());
         collection.AddSingleton<IRuntimePlatform>(new WinUIRuntimePlatform());
         collection.AddSingleton<IProxy>(new WinUIProxy());
