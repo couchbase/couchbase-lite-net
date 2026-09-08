@@ -21,12 +21,14 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Couchbase.Lite;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Microsoft.DotNet.PlatformAbstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
@@ -81,9 +83,20 @@ public sealed class LogTest(ITestOutputHelper output)
             
         // ReSharper disable once ConvertToConstant.Local
         var totalCount = 11;
-#if !DEBUG
+// Unlike unix based systems, Windows can open the file when it needs to write,
+// and doesn't require it open pre-emptively.  Subtract one from the count to
+// account for hat.
+#if !DEBUG || CBL_PLATFORM_DOTNETFX || CBL_PLATFORM_WINUI
             totalCount -= 1; // Non-debug builds won't log debug files
 #endif
+        
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            totalCount -= 1;
+        }
+#endif
+        
 
         void Test()
         {
