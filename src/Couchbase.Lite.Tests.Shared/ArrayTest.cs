@@ -27,7 +27,6 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 using Shouldly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Test;
 

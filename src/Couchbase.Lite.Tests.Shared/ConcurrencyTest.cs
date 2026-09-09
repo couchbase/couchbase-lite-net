@@ -29,7 +29,6 @@ using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 using Shouldly;
 using Xunit;
-using Xunit.Abstractions;
 // ReSharper disable AccessToDisposedClosure
 
 namespace Test
@@ -132,7 +131,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestConcurrentReadNUpdate()
+        public async Task TestConcurrentReadNUpdate()
         {
             const uint nDocs = 10;
             const uint nRounds = 100;
@@ -140,10 +139,14 @@ namespace Test
 
             var docIDs = CreateDocs(nDocs, "Create").Select(x => x.Id).ToList();
 
-            var t1 = Task.Run(() => ReadDocs(docIDs, nRounds));
-            var t2 = Task.Run(() => UpdateDocs(docIDs, nRounds, tag));
+            var token = TestContext.Current.CancellationToken;
+            var t1 = Task.Run(() => ReadDocs(docIDs, nRounds), token);
+            var t2 = Task.Run(() => UpdateDocs(docIDs, nRounds, tag), token);
 
-            Task.WaitAll([t1, t2], TimeSpan.FromSeconds(60)).ShouldBeTrue();
+            var both = Task.WhenAll(t1, t2);
+            var finished = await Task.WhenAny(both, Task.Delay(TimeSpan.FromSeconds(60), token));
+            finished.ShouldBeSameAs(both, "because the concurrent read and update should finish within 60 seconds");
+            await both;
         }
 
         [Fact]

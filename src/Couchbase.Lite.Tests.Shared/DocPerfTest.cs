@@ -19,11 +19,10 @@
 #if PERFORMANCE
 using System.IO;
 using Couchbase.Lite;
-using Xunit;
 #endif
 
-using Xunit.Abstractions;
 using Shouldly;
+using Xunit;
 
 namespace Test;
 

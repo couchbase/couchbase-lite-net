@@ -3,10 +3,17 @@
     <MauiDotNetVersion>net10.0</MauiDotNetVersion>
     <ConsoleDotNetVersion>net8.0</ConsoleDotNetVersion>
     <DotNetFrameworkVersion>net462</DotNetFrameworkVersion>
+    <!-- xUnit v3 requires net472 or later, so test projects target this instead of
+         DotNetFrameworkVersion.  A test project opts in by setting IsTestProject to true
+         before importing this file; everything below then sees the test value. -->
+    <DotNetFrameworkTestVersion>net472</DotNetFrameworkTestVersion>
     <MinimumAndroidAPI>24.0</MinimumAndroidAPI>
     <iOSMinimumVersion>15.0</iOSMinimumVersion>
     <MacCatalystMinimumVersion>15.0</MacCatalystMinimumVersion>
     <WinUIMinimumVersion>10.0.19041.0</WinUIMinimumVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(IsTestProject)' == 'true' ">
+    <DotNetFrameworkVersion>$(DotNetFrameworkTestVersion)</DotNetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" $(TargetFramework.StartsWith('$(MauiDotNetVersion)-windows')) ">
     <DefineConstants>$(DefineConstants);CBL_PLATFORM_WINUI</DefineConstants>

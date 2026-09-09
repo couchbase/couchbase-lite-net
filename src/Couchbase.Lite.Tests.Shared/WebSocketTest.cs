@@ -24,7 +24,6 @@ using System.Collections.Immutable;
 using LiteCore.Interop;
 using System.Reflection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Test;
 

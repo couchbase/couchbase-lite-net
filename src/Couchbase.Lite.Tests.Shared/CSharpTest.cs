@@ -48,7 +48,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 #if !SANITY_ONLY
 using System.Threading;
@@ -564,7 +563,7 @@ namespace Test
                 return;
             }
 
-            var onMainThread = await Task.Factory.StartNew(() => scheduler.IsMainThread);
+            var onMainThread = await Task.Factory.StartNew(() => scheduler.IsMainThread, TestContext.Current.CancellationToken);
             onMainThread.ShouldBeFalse();
 
             var t = new Task<bool>(() => scheduler.IsMainThread);
@@ -784,7 +783,7 @@ namespace Test
             using var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer")!;
 #endif
             using var ms = new MemoryStream();
-            await cert.CopyToAsync(ms);
+            await cert.CopyToAsync(ms, 81920, TestContext.Current.CancellationToken);
             
             // Set all properties to non-default to ensure the correctness of the copy constructor later
             var replicationConfig1 = new ReplicatorConfiguration(configs, new URLEndpoint(new("ws://fake")))

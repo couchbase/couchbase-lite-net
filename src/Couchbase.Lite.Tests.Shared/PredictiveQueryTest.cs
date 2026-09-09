@@ -33,7 +33,6 @@ using Shouldly;
 using LiteCore.Interop;
 
 using Xunit;
-using Xunit.Abstractions;
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable StringIndexOfIsCultureSpecific.1
 

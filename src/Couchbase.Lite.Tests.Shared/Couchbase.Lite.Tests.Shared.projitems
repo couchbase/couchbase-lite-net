@@ -13,7 +13,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)ArrayTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)BlobTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ConcurrencyTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)CouchbaseTestFramework.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TestProgressAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CSharpTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseEncryptionTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />

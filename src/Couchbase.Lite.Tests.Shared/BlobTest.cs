@@ -30,7 +30,6 @@ using Shouldly;
 using LiteCore;
 using LiteCore.Interop;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Test;
 

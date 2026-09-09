@@ -17,7 +17,6 @@
 //
 
 using System;
-using Xunit.Abstractions;
 using Xunit;
 using Couchbase.Lite.Query;
 using System.Linq;

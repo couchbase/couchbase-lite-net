@@ -25,7 +25,6 @@ using Couchbase.Lite;
 using Shouldly;
 using Couchbase.Lite.P2P;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Test;
 
@@ -99,11 +98,11 @@ public sealed class TLSIdentityTest : TestCase
         TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
     }
 
-    [SkippableFact]
+    [Fact]
     public void TestImportIdentity()
     {
 #if CBL_PLATFORM_ANDROID
-        Skip.If(Android.OS.Build.VERSION.SdkInt < Android.OS.BuildVersionCodes.M, 
+        Assert.SkipWhen(Android.OS.Build.VERSION.SdkInt < Android.OS.BuildVersionCodes.M, 
             "An apparent Android bug appears to affect this test on API < 23");
 
         //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application

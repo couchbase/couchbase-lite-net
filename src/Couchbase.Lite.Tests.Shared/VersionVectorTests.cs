@@ -20,7 +20,6 @@ using Couchbase.Lite;
 using Shouldly;
 
 using Xunit;
-using Xunit.Abstractions;
 using Couchbase.Lite.Unsupported;
 using Couchbase.Lite.Sync;
 using System.Threading;

@@ -44,7 +44,6 @@ using Couchbase.Lite.P2P;
 #endif
 
 using Xunit;
-using Xunit.Abstractions;
 using System.Diagnostics.CodeAnalysis;
 
 // ReSharper disable AccessToDisposedClosure
@@ -833,13 +832,13 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
         repl.Start();
         while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
             WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
-            await Task.Delay(500);
+            await Task.Delay(500, TestContext.Current.CancellationToken);
         }
 
         repl.Stop();
         while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
             WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
-            await Task.Delay(500);
+            await Task.Delay(500, TestContext.Current.CancellationToken);
         }
     }
 
@@ -887,7 +886,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             }
 
             // increase delay time to prevent intermittent failures due to replicator ref might not be completely disposed
-            await Task.Delay(500); 
+            await Task.Delay(500, TestContext.Current.CancellationToken); 
         }
     }
 #endif
@@ -1682,7 +1681,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
         });
 
         replicator.Start();
-        firstReplicatorStart.Wait();
+        firstReplicatorStart.Wait(TestContext.Current.CancellationToken);
         replicator1.Start();
 
         try {
@@ -2117,14 +2116,14 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
 
         Thread.Sleep(500);
         replicator.Dispose();
-        stoppedWait.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue("because otherwise the replicator didn't stop");
+        stoppedWait.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken).ShouldBeTrue("because otherwise the replicator didn't stop");
     }
 
 #if CBL_PLATFORM_IOS
-        [SkippableFact]
+        [Fact]
         public void TestSwitchBackgroundForeground()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+            Assert.SkipWhen(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
@@ -2182,7 +2181,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             }
             
             r.Stop();
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator didn't stop");
             foregroundCount.ShouldBe(NUM_ROUNDS + 1,
                 "because otherwise an incorrect number of foreground events happened");
@@ -2192,10 +2191,10 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             token.Remove();
         }
 
-        [SkippableFact]
+        [Fact]
         public void TestSwitchToForegroundImmediately()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+            Assert.SkipWhen(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
@@ -2239,16 +2238,16 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
                 .ShouldBeTrue("because otherwise the replicator didn't go back to idle");
             
             r.Stop();
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator never stopped");
             
             token.Remove();
         }
 
-        [SkippableFact]
+        [Fact]
         public void TestBackgroundingWhenStopping()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+            Assert.SkipWhen(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
@@ -2285,14 +2284,14 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             });
                         
             r.Start();
-            idleEvent.Wait(TimeSpan.FromSeconds(5))
+            idleEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator never went idle");
 
             r.Stop();
             
             // This shouldn't prevent the replicator stopping
             r.AppBackgrounding(null, EventArgs.Empty);
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator never stopped");
             
             // This shouldn't wake up the replicator
@@ -2307,10 +2306,10 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             token.Remove();
         }
 
-        [SkippableFact]
+        [Fact]
         public void TestBackgroundDuringDataTransfer()
         {
-            Skip.If(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
+            Assert.SkipWhen(ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR, "Functionality not supported on simulator");
 
             var target = new DatabaseEndpoint(OtherDb);
             var collectionConfigs = CollectionConfiguration.FromCollections(DefaultCollection);
@@ -2357,24 +2356,24 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             
             OtherDefaultCollection.Count.ShouldBe(0UL, "because nothing was replicated yet");
             r.Start();
-            idleEvent.Wait(TimeSpan.FromSeconds(5))
+            idleEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator never went idle");
 
             using var doc1 = new MutableDocument("doc1");
             var blob = new Blob("image/jpeg", GetTestAsset("C/tests/data/for#354.jpg"));
             doc1.SetBlob("blob", blob);
             DefaultCollection.Save(doc1);
-            busyEvent.Wait(TimeSpan.FromSeconds(5))
+            busyEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator is stuck in idle");
 
             r.Suspended = true;
-            offlineEvent.Wait(TimeSpan.FromSeconds(5))
+            offlineEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the suspension didn't work");
 
             Thread.Sleep(200);
             r.Suspended = false;
 
-            stoppedEvent.Wait(TimeSpan.FromSeconds(10))
+            stoppedEvent.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator never finished");
             token.Remove();
 
@@ -2443,7 +2442,7 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
                         
             r.Start();
 
-            resolvingEvent.Wait(TimeSpan.FromSeconds(5))
+            resolvingEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise conflict resolution never started");
             r.Suspended = true;
 
@@ -2454,11 +2453,11 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
             }
 
             resolvingCount.ShouldBeLessThan((uint)NUM_DOCS, "because the conflicts should have been suspended");
-            offlineEvent.Wait(TimeSpan.FromSeconds(5))
+            offlineEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator never suspended");
             r.Stop();
 
-            stoppedEvent.Wait(TimeSpan.FromSeconds(5))
+            stoppedEvent.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
                 .ShouldBeTrue("because otherwise the replicator never stopped");
             token.Remove();
         }

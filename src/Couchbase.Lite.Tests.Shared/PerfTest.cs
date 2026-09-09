@@ -22,7 +22,7 @@ using Couchbase.Lite.Logging;
 using Shouldly;
 using Test.Util;
 
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Test;
 

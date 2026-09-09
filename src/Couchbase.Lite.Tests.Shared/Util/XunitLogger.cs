@@ -20,7 +20,7 @@ using System;
 
 using Couchbase.Lite.Logging;
 
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Test.Util;
 

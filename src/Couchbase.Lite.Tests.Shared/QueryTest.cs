@@ -34,7 +34,6 @@ using Shouldly;
 
 using Test.Util;
 using Xunit;
-using Xunit.Abstractions;
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable AccessToModifiedClosure
 
@@ -748,7 +747,7 @@ public class QueryTest(ITestOutputHelper output) : TestCase(output)
             }
         });
 
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         wa.WaitForResult(TimeSpan.FromSeconds(5));
         CreateDocInSeries(-1, 100);
         wa2.WaitForResult(TimeSpan.FromSeconds(5));
