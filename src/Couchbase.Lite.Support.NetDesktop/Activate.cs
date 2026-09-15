@@ -123,7 +123,7 @@ public static partial class NetDesktop
         var dllPathRuntimes =
             Path.Combine(codeBase, "runtimes", $"win-{architecture}", "native", "LiteCore.dll");
         var foundPath = default(string);
-        foreach (var path in new[] { dllPathRuntimes, dllPathArch, dllPath, dllPathAsp}) {
+        foreach (var path in new[] { dllPathRuntimes, dllPath, dllPathAsp, dllPathArch}) {
             foundPath = File.Exists(path) ? path : null;
             if (foundPath != null) {
                 break;

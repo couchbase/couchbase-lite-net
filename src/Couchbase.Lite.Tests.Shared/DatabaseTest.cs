@@ -28,7 +28,6 @@ using System.Threading;
 
 using Couchbase.Lite.Query;
 using Xunit;
-using Xunit.Abstractions;
 using System.Linq;
 // ReSharper disable AccessToDisposedClosure
 
@@ -409,7 +408,7 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
             });
             waitObj.Set();
             Thread.Sleep(250);
-        });
+        }, TestContext.Current.CancellationToken);
         
         waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
         doc1B.SetString("name", "Tim");

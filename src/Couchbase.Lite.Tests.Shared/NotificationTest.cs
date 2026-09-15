@@ -24,7 +24,6 @@ using Couchbase.Lite;
 using Shouldly;
 
 using Xunit;
-using Xunit.Abstractions;
 // ReSharper disable AccessToDisposedClosure
 
 namespace Test;
@@ -193,7 +192,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         doc1.SetString("name", "Scott Tiger");
         DefaultCollection.Save(doc1);
 
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
     }
 
@@ -217,7 +216,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         doc1.SetString("name", "Scott Tiger");
         colA.Save(doc1);
 
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
     }
 
@@ -243,7 +242,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         doc1.SetString("name", "Scott Pilgrim");
         DefaultCollection.Save(doc1);
 
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
 
         // Remove again
@@ -273,7 +272,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         doc1.SetString("name", "Scott Pilgrim");
         colA.Save(doc1);
 
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
 
         // Remove again
@@ -314,8 +313,8 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
             }
         });
 
-        countdownDB.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
-        countdownDoc.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        countdownDB.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken).ShouldBeTrue();
+        countdownDoc.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken).ShouldBeTrue();
     }
 
     [Fact]
@@ -353,8 +352,8 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
             }
         });
 
-        countdownDB.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
-        countdownDoc.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        countdownDB.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken).ShouldBeTrue();
+        countdownDoc.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken).ShouldBeTrue();
     }
 
 #if !SANITY_ONLY
@@ -400,7 +399,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         doc3B.SetString("name", "Jack");
         colB.Save(doc3B);
 
-        await Task.Delay(800);
+        await Task.Delay(800, TestContext.Current.CancellationToken);
         _expectedDocumentChanges.Count.ShouldBe(0);
         _unexpectedDocumentChanges.Count.ShouldBe(3);
 
@@ -410,7 +409,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         var doc6 = new MutableDocument("doc6");
         doc6.SetString("name", "Jack");
         colA.Save(doc6);
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         _expectedDocumentChanges.Count.ShouldBe(0);
 
         t1.Remove();
@@ -420,7 +419,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         var doc4 = new MutableDocument("doc4");
         doc4.SetString("name", "Jack");
         colA.Save(doc4);
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         _expectedDocumentChanges.Count.ShouldBe(0);
 
         t2.Remove();
@@ -430,7 +429,7 @@ public class NotificationTest(ITestOutputHelper output) : TestCase(output)
         var doc5 = new MutableDocument("doc5");
         doc5.SetString("name", "Jack");
         colA.Save(doc5);
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
 
         _wa.CaughtExceptions.ShouldBeEmpty("because otherwise too many callbacks happened");
         _expectedDocumentChanges.Count.ShouldBe(1);

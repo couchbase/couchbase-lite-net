@@ -33,7 +33,6 @@ using Test.Util;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Test;
 

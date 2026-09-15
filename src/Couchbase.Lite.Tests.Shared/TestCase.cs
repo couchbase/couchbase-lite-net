@@ -35,7 +35,6 @@ using System.Text;
 
 using Couchbase.Lite.Internal.Doc;
 using Xunit;
-using Xunit.Abstractions;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 

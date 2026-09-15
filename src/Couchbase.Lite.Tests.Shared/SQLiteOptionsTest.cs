@@ -22,7 +22,6 @@ using LiteCore;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Test;
 

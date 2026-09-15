@@ -2,7 +2,7 @@
   <PropertyGroup>
     <MauiDotNetVersion>net10.0</MauiDotNetVersion>
     <ConsoleDotNetVersion>net8.0</ConsoleDotNetVersion>
-    <DotNetFrameworkVersion>net462</DotNetFrameworkVersion>
+    <DotNetFrameworkVersion>net472</DotNetFrameworkVersion>
     <MinimumAndroidAPI>24.0</MinimumAndroidAPI>
     <iOSMinimumVersion>15.0</iOSMinimumVersion>
     <MacCatalystMinimumVersion>15.0</MacCatalystMinimumVersion>

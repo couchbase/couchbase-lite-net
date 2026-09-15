@@ -26,7 +26,6 @@ using System.Threading;
 using Couchbase.Lite;
 using Shouldly;
 using Xunit;
-using Xunit.Abstractions;
 using Test.Util;
 
 // ReSharper disable AccessToModifiedClosure
@@ -2041,7 +2040,7 @@ public class DocumentTest(ITestOutputHelper output) : TestCase(output)
 
             DefaultCollection.Purge("doc1");
             Thread.Sleep(1000);
-            mre.Wait(TimeSpan.FromSeconds(1)).ShouldBeTrue("because purge should fire a changed event");
+            mre.Wait(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken).ShouldBeTrue("because purge should fire a changed event");
         }
 #endif
 

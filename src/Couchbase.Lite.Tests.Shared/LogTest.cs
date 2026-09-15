@@ -31,7 +31,6 @@ using Couchbase.Lite.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Test;
 

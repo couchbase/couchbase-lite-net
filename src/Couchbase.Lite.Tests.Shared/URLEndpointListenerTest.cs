@@ -33,7 +33,6 @@ using Couchbase.Lite.Sync;
 using Shouldly;
 
 using Xunit;
-using Xunit.Abstractions;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
@@ -906,10 +905,10 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         repl.Start();
 
         // Wait until idle then stop the listener
-        waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).ShouldBeTrue();
+        waitIdleAssert.Wait(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken).ShouldBeTrue();
 
         // Wait for the replicator to be stopped
-        waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).ShouldBeTrue();
+        waitStoppedAssert.Wait(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken).ShouldBeTrue();
 
         // Check error
         var error = repl.Status.Error as CouchbaseWebsocketException;
