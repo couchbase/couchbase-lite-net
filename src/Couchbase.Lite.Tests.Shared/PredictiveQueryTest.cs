@@ -582,7 +582,7 @@ public sealed class PredictiveQueryTest : TestCase
             .From(DataSource.Collection(DefaultCollection))
             .Where(sumPrediction.EqualTo(Expression.Int(15)).And(avgPrediction.EqualTo(Expression.Int(3))));
         var explain = q.Explain();
-        explain.IndexOf("USING INDEX SumAvgIndex").ShouldNotBe(-1, "because the sum index should be used");
+        explain.IndexOf("USING COVERING INDEX SumAvgIndex").ShouldNotBe(-1, "because the sum index should be used");
 
         var numRows = VerifyQuery(q, (_, r) =>
         {

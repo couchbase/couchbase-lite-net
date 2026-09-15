@@ -1073,14 +1073,14 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
         var q = QueryBuilder.Select(SelectResult.Expression(key))
             .From(DataSource.Collection(DefaultCollection))
             .Where(key.GreaterThan(Expression.Int(9)));
-        q.Explain().Contains("USING INDEX KeyIndex").ShouldBeTrue();
+        q.Explain().Contains("USING COVERING INDEX KeyIndex").ShouldBeTrue();
 
         //Reindex
         Db.PerformMaintenance(MaintenanceType.Reindex);
 
         //Check if the index is still there and used
         DefaultCollection.GetIndexes().Count.ShouldBe(1);
-        q.Explain().Contains("USING INDEX KeyIndex").ShouldBeTrue();
+        q.Explain().Contains("USING COVERING INDEX KeyIndex").ShouldBeTrue();
     }
 
     [Fact]
@@ -1243,7 +1243,7 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
 
         using var q = DefaultCollection.CreateQuery("SELECT firstName FROM _ WHERE firstName = 'Jim'");
         var str = q.Explain();
-        str.ShouldContain("USING INDEX index1", Case.Insensitive, "because the above value index should be used in the query");
+        str.ShouldContain("USING COVERING INDEX index1", Case.Insensitive, "because the above value index should be used in the query");
     }
 
     [Fact]
