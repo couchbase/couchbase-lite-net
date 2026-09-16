@@ -60,7 +60,11 @@ internal sealed unsafe class C4DatabaseWrapper(C4Database* db) : NativeWrapper((
         return retVal;
     }
 
-    protected override void Dispose(bool disposing) => Native.c4db_release(RawDatabase);
+    protected override void Dispose(bool disposing)
+    {
+        using var scope = InstanceSafety.BeginLockedScope();
+        Native.c4db_release(RawDatabase);
+    }
 }
 
 internal static unsafe partial class NativeSafe
