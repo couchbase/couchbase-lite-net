@@ -31,25 +31,19 @@ pipeline {
                                 & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init
 
                                 Push-Location jenkins
-                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
+                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 --branch pre-4.2 proj
                                 Pop-Location
                                 '''
                             }
                         }
                         stage("Compile CE") {
                             steps {
-                                powershell 'jenkins\\compile_ce.ps1'
+                                powershell '.\\build.ps1 --community=true'
                             }
                         }
-                        stage("Compile MAUI tests") {
-                            // MAUI tests compile EE for all platforms
+                        stage("EE Validation") {
                             steps {
-                                powershell 'jenkins\\compile_maui_tests.ps1'
-                            }
-                        }
-                        stage(".NET Windows") {
-                            steps {
-                                powershell 'jenkins\\run_net_console_tests.ps1'
+                                powershell '.\\build.ps1 -e -t PRValidation'
                             }
                         }
                     }
