@@ -8,5 +8,7 @@ on:
 jobs:
   warn-release:
     uses: couchbase/couchbase-lite-core/.github/workflows/warn_release.yml@master
+    with:
+      reviewer: "borrrden"
     permissions:
       pull-requests: write
