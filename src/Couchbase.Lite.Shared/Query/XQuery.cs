@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
@@ -137,7 +138,7 @@ internal class XQuery : QueryBase
         {
             Debug.Assert(Database?.C4db != null);
             _queryExpression = EncodeAsJSON();
-            WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
+            WriteLog.To.Query.I(Tag, "Query encoded as {0}", new SecureLogString(_queryExpression, LogMessageSensitivity.UserData));
             return NativeSafe.c4query_new2(Database!.C4db!, C4QueryLanguage.JSONQuery, _queryExpression, null, err);
         })!;
     }
@@ -234,7 +235,7 @@ internal class XQuery : QueryBase
         using var threadSafetyScope = ThreadSafety.BeginLockedScope();
         DisposalWatchdog.CheckDisposed();
         _queryExpression = EncodeAsJSON();
-        WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
+        WriteLog.To.Query.I(Tag, "Query encoded as {0}", new SecureLogString(_queryExpression, LogMessageSensitivity.UserData));
 
         CreateQuery();
     }

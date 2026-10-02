@@ -16,6 +16,7 @@
 // limitations under the License.
 //
 
+using System;
 using System.Linq;
 using System.Text;
 
@@ -25,54 +26,65 @@ namespace Couchbase.Lite.Logging;
 
 internal enum LogMessageSensitivity
 {
-    PotentiallyInsecure = 1,
-    Insecure
+    SystemData = 1,
+    UserData
 }
 
 internal abstract class SecureLogItem(LogMessageSensitivity sensitivity)
 {
-    protected const int CharLimit = 100;
+    private const int CharLimit = 100;
 
-    // ReSharper disable once UnusedMember.Local
-    private readonly LogMessageSensitivity _sensitivity = sensitivity;
+    protected string Process(string input, bool truncate = true)
+    {
+        var retVal = truncate && input.Length > CharLimit ? $"{new string([.. input.Take(CharLimit)])}..." : input;
+        return sensitivity switch {
+            LogMessageSensitivity.SystemData => $"<sd>{retVal}</sd>",
+            LogMessageSensitivity.UserData => $"<ud>{retVal}</ud>",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
 }
 
 internal sealed class SecureLogString : SecureLogItem
 {
     private readonly byte[]? _bytes;
     private readonly object? _obj;
-    private string? _string;
+    private readonly Exception? _exception;
 
     private string String
     {
         get {
-            if (_string != null) {
-                return _string;
+            if (field == null) {
+                if (_bytes != null) {
+                    field = Process(Encoding.UTF8.GetString(_bytes));
+                } else if (_exception != null) {
+                    // Exceptions are never truncated so that the full message and stack
+                    // trace remain available wherever the logs are not redacted
+                    field = Process(_exception.ToString(), false);
+                } else if (_obj != null) {
+                    field = Process(_obj.ToString() ?? "(null)");
+                } else {
+                    throw new InvalidOperationException("No value provided in SecureLogString");
+                }
             }
 
-            string str;
-            if (_bytes != null) {
-                str = Encoding.UTF8.GetString(_bytes);
-            } else if (_obj != null) {
-                str = _obj.ToString()!;
-            } else {
-                str = "(null)";
-            }
-
-            _string = str.Length > 100 ? $"{new string(str.Take(CharLimit).ToArray())}..." : str;
-
-            return _string;
+            return field;
         }
     }
 
     public SecureLogString(string str, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
     {
-        _string = str;
+        String = Process(str);
     }
 
     public SecureLogString(byte[] utf8Bytes, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
     {
         _bytes = utf8Bytes;
+    }
+
+    public SecureLogString(Exception exception, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
+    {
+        _exception = exception;
     }
 
     public SecureLogString(object obj, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
@@ -86,19 +98,12 @@ internal sealed class SecureLogString : SecureLogItem
 internal sealed class SecureLogJsonString(object input, LogMessageSensitivity sensitivityLevel) : SecureLogItem(sensitivityLevel)
 {
     private readonly object? _object = input;
-    private string? _str;
-        
-    private string String 
+
+    private string String
     {
         get {
-            if (_str != null) {
-                return _str;
-            }
-
-            var str = CouchbaseJson.SerializeLenient(_object);
-            _str = str.Length > 100 ? $"{new string(str.Take(100).ToArray())}..." : str;
-
-            return _str;
+            field ??= Process(CouchbaseJson.SerializeLenient(_object));
+            return field;
         }
     }
 

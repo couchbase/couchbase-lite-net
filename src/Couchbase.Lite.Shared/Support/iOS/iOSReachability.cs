@@ -25,6 +25,7 @@ using CoreFoundation;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 
 using Network;
@@ -102,7 +103,8 @@ internal sealed class iOSReachability : IReachability
         var parameters = NWParameters.CreateTcp();
         using var endpoint = NWEndpoint.Create(Url.Host, Url.Port.ToString());
         if (endpoint == null) {
-            WriteLog.To.Sync.E(Tag, $"{Url} is not parseable for reachability check");
+            WriteLog.To.Sync.E(Tag, "The URL for {0} is not parsable for reachability check",
+                new SecureLogString(Url.Host, LogMessageSensitivity.SystemData));
             return;
         }
         
@@ -120,7 +122,8 @@ internal sealed class iOSReachability : IReachability
             }
             
             if (error != null) {
-                WriteLog.To.Sync.W(Tag, $"Connection error to {Url}: {error}");
+                WriteLog.To.Sync.W(Tag, "Connection error to {0}: {1}",
+                    new SecureLogString(Url?.Host ?? "(null)", LogMessageSensitivity.SystemData), error);
             }
             
             switch (state) {

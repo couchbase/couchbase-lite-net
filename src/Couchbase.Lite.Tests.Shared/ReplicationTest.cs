@@ -1454,7 +1454,8 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
         CreateReplicationConflict("doc1");
 
         var resolver = new TestConflictResolver(_ => {
-            var doc = new MutableDocument("wrong_id");
+            // Braces guard against the doc ID being treated as a format string when logged
+            var doc = new MutableDocument("wrong_{id}");
             doc.SetString("wrong_id_key", "wrong_id_value");
             return doc;
         });

@@ -667,16 +667,29 @@ public sealed unsafe partial class Database : IDisposable
         var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
         var err = new C4Error();
         if (C4db == null) {
-            WriteLog.To.Sync.W(Tag, $"Failed saving Cookie {cookie} (closed db).");
+            WriteLog.To.Sync.W(Tag, "Failed saving Cookie '{0}=***' for {1} (closed db).", CookieName(cookie),
+                new SecureLogString(uri.Host, LogMessageSensitivity.SystemData));
             return cookieSaved;
         }
             
         cookieSaved = NativeSafe.c4db_setCookie(C4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
         if(err.code > 0) {
-            WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
+            WriteLog.To.Sync.W(Tag, "{0}/{1} Failed saving Cookie '{2}=***' for {3}.", err.domain, err.code,
+                CookieName(cookie), new SecureLogString(uri.Host, LogMessageSensitivity.SystemData));
         }
 
         return cookieSaved;
+    }
+
+    // The cookie value is a credential (e.g. a session token) and must never be logged,
+    // but the name is useful context for diagnosing which cookie failed.  Only the first
+    // name=value pair is the cookie; the rest are attributes (Path=, Domain=, ...), so a
+    // malformed cookie without a name must not fall through to an attribute's '='.
+    internal static string CookieName(string cookie)
+    {
+        var pair = cookie.Split([';'], 2)[0];
+        var separator = pair.IndexOf('=');
+        return separator > 0 ? pair.Substring(0, separator).Trim() : "(unnamed)";
     }
 
     internal void ResolveConflict(string docID, IConflictResolver? conflictResolver, Collection collection)
@@ -698,7 +711,7 @@ public sealed unsafe partial class Database : IDisposable
                     remoteDoc = new Document(collection ?? GetDefaultCollection(), docID, C4DocContentLevel.DocGetAll);
                     if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                         WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                            new SecureLogString(docID, LogMessageSensitivity.UserData));
                         return;
                     }
 
@@ -715,7 +728,7 @@ public sealed unsafe partial class Database : IDisposable
                 } else {
                     // Resolve conflict:
                     WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevisionID,
+                        new SecureLogString(docID, LogMessageSensitivity.UserData), localDoc.RevisionID,
                         remoteDoc!.RevisionID);
 
                     conflictResolver = conflictResolver ?? ConflictResolver.Default;
@@ -726,8 +739,9 @@ public sealed unsafe partial class Database : IDisposable
 
                 if (resolvedDoc != null) {
                     if (resolvedDoc.Id != docID) {
-                        WriteLog.To.Sync.W(Tag, $"Resolved docID {resolvedDoc.Id} does not match docID {docID}",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                        WriteLog.To.Sync.W(Tag, "Resolved docID {0} does not match docID {1}",
+                            new SecureLogString(resolvedDoc.Id, LogMessageSensitivity.UserData),
+                            new SecureLogString(docID, LogMessageSensitivity.UserData));
                         Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                     }
 
@@ -802,7 +816,8 @@ public sealed unsafe partial class Database : IDisposable
             return;
         }
         
-        WriteLog.To.Database.I(Tag, $"Closing database at path {NativeSafe.c4db_getPath(C4db)}");
+        WriteLog.To.Database.I(Tag, "Closing database at path {0}",
+            new SecureLogString(NativeSafe.c4db_getPath(C4db) ?? String.Empty, LogMessageSensitivity.SystemData));
         if (!IsShell) {
             LiteCoreBridge.Check(err =>
             {
@@ -853,7 +868,8 @@ public sealed unsafe partial class Database : IDisposable
         }
             #endif
 
-        WriteLog.To.Database.I(Tag, $"Opening {encrypted} database at { DatabasePath(Name, Config.Directory)}");
+        WriteLog.To.Database.I(Tag, "Opening {0} database at {1}", encrypted,
+            new SecureLogString(DatabasePath(Name, Config.Directory), LogMessageSensitivity.SystemData));
         var localConfig1 = config;
         C4db = LiteCoreBridge.CheckTyped(err =>
         {
@@ -935,7 +951,7 @@ public sealed unsafe partial class Database : IDisposable
         }
 
         WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
-            new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
+            new SecureLogString(localDoc.Id, LogMessageSensitivity.UserData),
             docToEdit.RawDoc->revID);
 
         return true;
@@ -970,7 +986,7 @@ public sealed unsafe partial class Database : IDisposable
         obj is Database other && String.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
-    public override string ToString() => $"DB[{Path}]";
+    public override string ToString() => $"DB[{new SecureLogString(Path ?? String.Empty, LogMessageSensitivity.SystemData)}]";
     /// <summary>
     /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
     /// </summary>

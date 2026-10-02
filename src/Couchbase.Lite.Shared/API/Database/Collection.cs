@@ -713,7 +713,7 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
         if (!doc.Exists || doc.IsDeleted) {
             doc.Dispose();
             WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
-                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                new SecureLogString(docID, LogMessageSensitivity.UserData));
             return null;
         }
 
@@ -840,7 +840,7 @@ public sealed unsafe class Collection : IChangeObservable<CollectionChangedEvent
             try {
                 body = doc.Encode();
             } catch (ObjectDisposedException) {
-                WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
+                WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.UserData));
                 return;
             }
 

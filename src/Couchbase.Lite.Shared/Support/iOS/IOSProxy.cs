@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using CoreFoundation;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
 using Foundation;
 using CFNetworkLib = CoreFoundation.CFNetwork;
 
@@ -77,7 +78,8 @@ internal sealed class IOSProxy : IProxy
         NSError? err = null;
         if (isUrl) {
             pacURL = proxy.AutoConfigurationUrl;
-            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script at {0}", pacURL!.AbsoluteString);
+            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script at {0}",
+                new SecureLogString(pacURL!.Host ?? "(null)", LogMessageSensitivity.SystemData));
             var result = await CFNetworkLib.ExecuteProxyAutoConfigurationUrlAsync(pacURL!, destination,
                 CancellationToken.None);
             if (result.error != null) {
@@ -94,15 +96,18 @@ internal sealed class IOSProxy : IProxy
         }
 
         if (proxies == null || proxies.Length == 0) {
-            WriteLog.To.Sync.W(Tag, "Failed to resolve proxy auto configuration script at {0}: {1}",
-                pacURL, err?.LocalizedDescription);
+            // Only the host and error code: the PAC URL (and possibly the error description)
+            // may contain a username or query string tokens
+            WriteLog.To.Sync.W(Tag, "Failed to resolve proxy auto configuration script at {0}: {1}/{2}",
+                new SecureLogString(pacURL?.Host ?? "(inline script)", LogMessageSensitivity.SystemData),
+                err?.Domain, err?.Code);
             return null;
         }
 
         var finalProxy = proxies[0];
         if (finalProxy.HostName == null) {
             WriteLog.To.Sync.V(Tag, "PAC script at {0} indicated direct connection", 
-                pacURL?.AbsoluteString ?? "(inline script)");
+                new SecureLogString(pacURL?.Host ?? "(inline script)", LogMessageSensitivity.SystemData));
             return null;
         }
 
