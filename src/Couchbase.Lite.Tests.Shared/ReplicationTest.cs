@@ -1448,6 +1448,21 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
         DefaultCollection.Count.ShouldBe(0UL);
     }
 
+    [Theory]
+    [InlineData("ws://daniel:123@localhost/db")]
+    [InlineData("ws://daniel:1:2:3@localhost/db")] // Password containing ':'
+    [InlineData("ws://daniel:@localhost/db")]      // Empty password
+    public void TestURLEndpointRejectsEmbeddedPassword(string url)
+    {
+        Should.Throw<ArgumentException>(() => new URLEndpoint(new Uri(url)));
+    }
+
+    [Fact]
+    public void TestURLEndpointAllowsUsernameOnly()
+    {
+        Should.NotThrow(() => new URLEndpoint(new Uri("ws://daniel@localhost/db")));
+    }
+
     [Fact]
     public void TestConflictResolverWrongDocID()
     {
