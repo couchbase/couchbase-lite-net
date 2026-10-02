@@ -22,11 +22,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.P2P;
 using Couchbase.Lite.Sync;
 
@@ -294,6 +298,79 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         _listener.Stop();
         pwSecureString.Dispose();
         wrongPwSecureString.Dispose();
+    }
+
+    [Theory]
+    [InlineData("Basic")]                      // Scheme only, no credentials
+    [InlineData("ZGFuaWVsOjEyMw==")]           // Credentials with no scheme
+    [InlineData("Basic !!!not-base64!!!")]     // Invalid base64
+    [InlineData("Basic ZGFuaWVs")]             // "daniel" (no ':' separator)
+    [InlineData("Bearer ZGFuaWVsOjEyMw==")]    // Unsupported scheme
+    public async Task TestPasswordAuthenticatorMalformedHeader(string authHeader)
+    {
+        var callbackInvoked = false;
+        var auth = new ListenerPasswordAuthenticator((_, _, _) =>
+        {
+            callbackInvoked = true;
+            return true;
+        });
+
+        _listener = CreateListener(false, true, auth);
+
+        // Before the header parsing was hardened, these headers threw inside the native
+        // auth callback and took the whole process down, so reaching the assertions is
+        // itself part of the test
+        var status = await SendAuthHeader(_listener, authHeader);
+        status.ShouldBe(HttpStatusCode.Unauthorized);
+        callbackInvoked.ShouldBeFalse("because a malformed header should be rejected before reaching the app");
+    }
+
+    [Theory]
+    [InlineData("Basic", "daniel", "123")]
+    [InlineData("basic", "daniel", "123")]     // Scheme is case-insensitive (RFC 9110)
+    [InlineData("Basic ", "daniel", "123")]    // Multiple spaces are allowed between scheme and credentials
+    [InlineData("Basic", "daniel", "1:2:3")]   // Password may contain ':' (RFC 7617)
+    public async Task TestPasswordAuthenticatorHeaderParsing(string scheme, string user, string pw)
+    {
+        string? receivedUser = null;
+        string? receivedPw = null;
+        var auth = new ListenerPasswordAuthenticator((_, username, password) =>
+        {
+            receivedUser = username;
+            receivedPw = new NetworkCredential(String.Empty, password).Password;
+            return true;
+        });
+
+        _listener = CreateListener(false, true, auth);
+
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pw}"));
+        await SendAuthHeader(_listener, $"{scheme} {encoded}");
+        receivedUser.ShouldBe(user);
+        receivedPw.ShouldBe(pw);
+    }
+
+    [Theory]
+    [InlineData("ZGFuaWVsOjEyMw==", "Malformed auth header")]               // Credentials with no scheme
+    [InlineData("ZGFuaWVsOjEyMw== x", "Unsupported Authentication Type")]  // Credentials in the scheme position
+    public async Task TestPasswordAuthenticatorDoesNotLogCredentials(string authHeader, string expectedLog)
+    {
+        const string credential = "ZGFuaWVsOjEyMw=="; // "daniel:123"
+        var auth = new ListenerPasswordAuthenticator((_, _, _) => true);
+        _listener = CreateListener(false, true, auth);
+
+        // The test base may have its own custom sink installed, so swap it out temporarily
+        var previousSink = LogSinks.Custom;
+        var sink = new CapturingLogSink();
+        LogSinks.Custom = sink;
+        try {
+            var status = await SendAuthHeader(_listener, authHeader);
+            status.ShouldBe(HttpStatusCode.Unauthorized);
+        } finally {
+            LogSinks.Custom = previousSink;
+        }
+
+        sink.Lines.ShouldContain(l => l.Contains(expectedLog), "because the rejection should still be logged");
+        sink.Lines.ShouldNotContain(l => l.Contains(credential), "because credentials must never be logged");
     }
 
     // Client cert identity construction crashes on Android (JNI abort reading RSA CRT
@@ -1408,6 +1485,39 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         };
 
         return config;
+    }
+
+    private static async Task<HttpStatusCode> SendAuthHeader(URLEndpointListener listener, string authHeader)
+    {
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            $"http://localhost:{listener.Port}/{listener.Config.Collections[0].Database.Name}/");
+
+        // Bypass header validation so that malformed values are sent as-is
+        request.Headers.TryAddWithoutValidation("Authorization", authHeader);
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        return response.StatusCode;
+    }
+
+    private sealed class CapturingLogSink() : BaseLogSink(LogLevel.Verbose)
+    {
+        private readonly List<string> _lines = new();
+
+        public IReadOnlyList<string> Lines
+        {
+            get {
+                lock (_lines) {
+                    return new List<string>(_lines);
+                }
+            }
+        }
+
+        protected override void WriteLog(LogLevel level, LogDomain domain, string message)
+        {
+            lock (_lines) {
+                _lines.Add(message);
+            }
+        }
     }
 
     [MemberNotNull(nameof(_listener))]
