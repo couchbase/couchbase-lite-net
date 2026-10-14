@@ -58,8 +58,9 @@ namespace Couchbase.Lite.Sync
                 throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidSchemeURLEndpoint, urlToUse.Scheme));
             }
 
-            var userInfo = url.UserInfo?.Split(':');
-            if (userInfo?.Length == 2) {
+            // Any ':' means a password is present (RFC 3986 user:password), and passwords may
+            // themselves contain ':', so don't rely on the number of components
+            if (url.UserInfo?.Contains(":") == true) {
                 throw new ArgumentException(
                     CouchbaseLiteErrorMessage.InvalidEmbeddedCredentialsInURL);
             }
