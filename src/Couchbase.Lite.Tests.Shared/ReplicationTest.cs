@@ -1426,6 +1426,25 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
     }
 
     [Fact]
+    public void TestURLEndpointRejectsEmbeddedPassword()
+    {
+        var urls = new[]
+        {
+            "ws://daniel:123@localhost/db",
+            "ws://daniel:1:2:3@localhost/db", // Password containing ':'
+            "ws://daniel:@localhost/db"       // Empty password
+        };
+
+        foreach (var url in urls) {
+            Should.Throw<ArgumentException>(() => new URLEndpoint(new Uri(url)),
+                $"because {url} contains a password");
+        }
+
+        Should.NotThrow(() => new URLEndpoint(new Uri("ws://daniel@localhost/db")),
+            "because a username alone is allowed");
+    }
+
+    [Fact]
     public void TestConflictResolverWrongDocID()
     {
         CreateReplicationConflict("doc1");
