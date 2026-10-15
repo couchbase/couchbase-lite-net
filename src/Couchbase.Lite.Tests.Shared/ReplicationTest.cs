@@ -1469,6 +1469,16 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
     }
 
     [Fact]
+    public void TestProxyErrorStatusLineExcludesHeaders()
+    {
+        WebSocketWrapper.StatusLine("HTTP/1.1 403 Forbidden\r\nSet-Cookie: session=secret\r\n\r\n")
+            .ShouldBe("HTTP/1.1 403 Forbidden");
+        WebSocketWrapper.StatusLine("HTTP/1.1 403 Forbidden\nSet-Cookie: session=secret\n\n")
+            .ShouldBe("HTTP/1.1 403 Forbidden", "because a proxy using bare LF line endings must not leak headers");
+        WebSocketWrapper.StatusLine("HTTP/1.1 403 Forbidden").ShouldBe("HTTP/1.1 403 Forbidden");
+    }
+
+    [Fact]
     public void TestConflictResolverWrongDocID()
     {
         CreateReplicationConflict("doc1");

@@ -975,6 +975,15 @@ internal sealed class WebSocketWrapper
                 .Any(c => c.Certificate.Equals(_options.PinnedServerCertificate));
     }
 
+    // Only the status line: the rest of the response (headers, body) may contain
+    // cookies or an echo of the Proxy-Authorization header that was sent.  Stop at
+    // either CR or LF since some proxies terminate lines with a bare LF.
+    internal static string StatusLine(string response)
+    {
+        var end = response.IndexOfAny(new[] { '\r', '\n' });
+        return end < 0 ? response : response.Substring(0, end);
+    }
+
     private async Task WaitForResponse(Stream stream)
     {
         await Task.Factory.StartNew(() => {
@@ -987,10 +996,7 @@ internal sealed class WebSocketWrapper
                 WriteLog.To.Sync.W(Tag, "Proxy returned HTTP 407, credentials needed.  Set ProxyAuthenticator on Replicator.");
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Invalid proxy credentials");
             } else {
-                // Only the status line: the rest of the response (headers, body) may contain
-                // cookies or an echo of the Proxy-Authorization header that was sent
-                var statusLine = resp.Split(new[] { "\r\n" }, 2, StringSplitOptions.None)[0];
-                throw new CouchbaseLiteException(C4ErrorCode.RemoteError, $"Response from server did not indicate success: {statusLine}");
+                throw new CouchbaseLiteException(C4ErrorCode.RemoteError, $"Response from server did not indicate success: {StatusLine(resp)}");
             }
         });
     }

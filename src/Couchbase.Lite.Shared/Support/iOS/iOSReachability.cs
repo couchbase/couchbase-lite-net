@@ -102,7 +102,7 @@ internal sealed class iOSReachability : IReachability
         var parameters = NWParameters.CreateTcp();
         using var endpoint = NWEndpoint.Create(Url.Host, Url.Port.ToString());
         if (endpoint == null) {
-            WriteLog.To.Sync.E(Tag, $"{Url.Host} is not parseable for reachability check");
+            WriteLog.To.Sync.E(Tag, $"The URL for {Url.Host} is not parsable for reachability check");
             return;
         }
         
