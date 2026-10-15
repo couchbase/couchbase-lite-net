@@ -987,7 +987,10 @@ internal sealed class WebSocketWrapper
                 WriteLog.To.Sync.W(Tag, "Proxy returned HTTP 407, credentials needed.  Set ProxyAuthenticator on Replicator.");
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Invalid proxy credentials");
             } else {
-                throw new CouchbaseLiteException(C4ErrorCode.RemoteError, $"Response from server did not indicate success: {resp}");
+                // Only the status line: the rest of the response (headers, body) may contain
+                // cookies or an echo of the Proxy-Authorization header that was sent
+                var statusLine = resp.Split(new[] { "\r\n" }, 2, StringSplitOptions.None)[0];
+                throw new CouchbaseLiteException(C4ErrorCode.RemoteError, $"Response from server did not indicate success: {statusLine}");
             }
         });
     }
