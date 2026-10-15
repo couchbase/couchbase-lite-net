@@ -21,12 +21,16 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.P2P;
 using Couchbase.Lite.Sync;
 
@@ -215,6 +219,36 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         _listener.Stop();
         _listener.Status.ConnectionCount.ShouldBe(0UL, "Listener's connection count should be 0 because the connection is stopped.");
         _listener.Status.ActiveConnectionCount.ShouldBe(0UL, "Listener's active connection count should be 0 because the connection is stopped.");
+    }
+
+    [Fact]
+    public async Task TestPasswordAuthenticatorDoesNotLogBareCredentials()
+    {
+        var auth = new ListenerPasswordAuthenticator((_, _, _) => true);
+        _listener = CreateListener(false, true, auth);
+
+        // "daniel:123" sent without the "Basic " scheme, so the whole header is the credential
+        const string bareCredential = "ZGFuaWVsOjEyMw==";
+        // The test base installs its own custom sink, so swap it out temporarily
+        var previousSink = LogSinks.Custom;
+        var sink = new CapturingLogSink();
+        LogSinks.Custom = sink;
+        try {
+            using var client = new HttpClient();
+            using var request = new HttpRequestMessage(HttpMethod.Get,
+                $"http://localhost:{_listener.Port}/{_listener.Config.Collections[0].Database.Name}/");
+            // Bypass header validation so that the malformed value is sent as-is
+            request.Headers.TryAddWithoutValidation("Authorization", bareCredential);
+            using var response = await client.SendAsync(request);
+            response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        } finally {
+            LogSinks.Custom = previousSink;
+        }
+
+        sink.Lines.ShouldContain(l => l.Contains("Malformed auth header"),
+            "because the rejection should still be logged");
+        sink.Lines.ShouldNotContain(l => l.Contains(bareCredential),
+            "because credentials must never be logged");
     }
 
     [Fact]
@@ -1362,6 +1396,27 @@ public sealed class URLEndpointListenerTest(ITestOutputHelper output) : Replicat
         };
 
         return config;
+    }
+
+    private sealed class CapturingLogSink() : BaseLogSink(LogLevel.Verbose)
+    {
+        private readonly List<string> _lines = new();
+
+        public IReadOnlyList<string> Lines
+        {
+            get {
+                lock (_lines) {
+                    return _lines.ToList();
+                }
+            }
+        }
+
+        protected override void WriteLog(LogLevel level, LogDomain domain, string message)
+        {
+            lock (_lines) {
+                _lines.Add(message);
+            }
+        }
     }
 
     [MemberNotNull(nameof(_listener))]
