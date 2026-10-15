@@ -88,6 +88,16 @@ namespace Test
         }
 
         [Fact]
+        public void TestCookieNameNeverIncludesCookieValue()
+        {
+            Database.CookieName("SyncGatewaySession=abc123; Path=/").Should().Be("SyncGatewaySession");
+            Database.CookieName("session-secret; Path=/").Should().Be("(unnamed)",
+                "because a malformed cookie without a name must not log text from its attributes");
+            Database.CookieName("session-secret").Should().Be("(unnamed)");
+            Database.CookieName("=session-secret").Should().Be("(unnamed)");
+        }
+
+        [Fact]
         public void TestCreate()
         {
             var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");

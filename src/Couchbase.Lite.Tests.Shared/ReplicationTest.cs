@@ -1439,6 +1439,25 @@ namespace Test
         }
 
         [Fact]
+        public void TestURLEndpointRejectsEmbeddedPassword()
+        {
+            var urls = new[]
+            {
+                "ws://daniel:123@localhost/db",
+                "ws://daniel:1:2:3@localhost/db", // Password containing ':'
+                "ws://daniel:@localhost/db"       // Empty password
+            };
+
+            foreach (var url in urls) {
+                Action badAction = () => new URLEndpoint(new Uri(url));
+                badAction.Should().Throw<ArgumentException>("because {0} contains a password", url);
+            }
+
+            Action goodAction = () => new URLEndpoint(new Uri("ws://daniel@localhost/db"));
+            goodAction.Should().NotThrow("because a username alone is allowed");
+        }
+
+        [Fact]
         public void TestConflictResolverWrongDocID()
         {
             CreateReplicationConflict("doc1");
