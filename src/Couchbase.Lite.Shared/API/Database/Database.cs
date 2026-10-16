@@ -983,16 +983,27 @@ public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedE
         var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
         var err = new C4Error();
         if (C4db == null) {
-            WriteLog.To.Sync.W(Tag, $"Failed saving Cookie {cookie} (closed db).");
+            WriteLog.To.Sync.W(Tag, $"Failed saving Cookie '{CookieName(cookie)}=***' (closed db).");
             return cookieSaved;
         }
             
         cookieSaved = NativeSafe.c4db_setCookie(C4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
         if(err.code > 0) {
-            WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
+            WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie '{CookieName(cookie)}=***'.");
         }
 
         return cookieSaved;
+    }
+
+    // The cookie value is a credential (e.g. a session token) and must never be logged,
+    // but the name is useful context for diagnosing which cookie failed.  Only the first
+    // name=value pair is the cookie; the rest are attributes (Path=, Domain=, ...), so a
+    // malformed cookie without a name must not fall through to an attribute's '='.
+    internal static string CookieName(string cookie)
+    {
+        var pair = cookie.Split(new[] { ';' }, 2)[0];
+        var separator = pair.IndexOf('=');
+        return separator > 0 ? pair.Substring(0, separator).Trim() : "(unnamed)";
     }
 
     internal void ResolveConflict(string docID, IConflictResolver? conflictResolver, Collection collection)
