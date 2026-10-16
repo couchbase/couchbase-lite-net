@@ -77,7 +77,7 @@ internal sealed class IOSProxy : IProxy
         NSError? err = null;
         if (isUrl) {
             pacURL = proxy.AutoConfigurationUrl;
-            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script at {0}", pacURL!.AbsoluteString);
+            WriteLog.To.Sync.V(Tag, "Resolving proxy PAC script at {0}", pacURL!.Host);
             var result = await CFNetworkLib.ExecuteProxyAutoConfigurationUrlAsync(pacURL!, destination,
                 CancellationToken.None);
             if (result.error != null) {
@@ -94,15 +94,17 @@ internal sealed class IOSProxy : IProxy
         }
 
         if (proxies == null || proxies.Length == 0) {
-            WriteLog.To.Sync.W(Tag, "Failed to resolve proxy auto configuration script at {0}: {1}",
-                pacURL, err?.LocalizedDescription);
+            // Only the host and error code: the PAC URL (and possibly the error description)
+            // may contain a username or query string tokens
+            WriteLog.To.Sync.W(Tag, "Failed to resolve proxy auto configuration script at {0}: {1}/{2}",
+                pacURL?.Host ?? "(inline script)", err?.Domain, err?.Code);
             return null;
         }
 
         var finalProxy = proxies[0];
         if (finalProxy.HostName == null) {
             WriteLog.To.Sync.V(Tag, "PAC script at {0} indicated direct connection", 
-                pacURL?.AbsoluteString ?? "(inline script)");
+                pacURL?.Host ?? "(inline script)");
             return null;
         }
 

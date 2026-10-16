@@ -1073,7 +1073,9 @@ public sealed unsafe class Replicator
             sb.Append(">");
         }
 
-        return $"{nameof(Replicator)}[{sb} {Config.Target}]";
+        // Only the host: the full URL may contain a username or query string tokens
+        var target = Config.Target is URLEndpoint urlEndpoint ? urlEndpoint.Url.Host : Config.Target.ToString();
+        return $"{nameof(Replicator)}[{sb} {target}]";
     }
 
     /// <inheritdoc />
