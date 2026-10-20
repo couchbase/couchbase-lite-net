@@ -57,7 +57,7 @@ internal sealed class IOSProxy : IProxy
         var retVal = Task.FromResult(default(WebProxy));
         switch (proxy.ProxyType) {
             case CFProxyType.HTTP:
-                retVal = Task.FromResult<WebProxy?>(new(new Uri($"{proxy.HostName}:{proxy.Port}")));
+                retVal = Task.FromResult<WebProxy?>(new(new Uri($"http://{proxy.HostName}:{proxy.Port}")));
                 break;
             case CFProxyType.AutoConfigurationUrl or CFProxyType.AutoConfigurationJavaScript:
                 retVal = CreateAutoConfigProxyAsync(proxy, destination,
@@ -111,6 +111,6 @@ internal sealed class IOSProxy : IProxy
             return null;
         }
 
-        return new(new Uri($"{proxies[0].HostName}:{proxies[0].Port}"));
+        return new(new Uri($"http://{proxies[0].HostName}:{proxies[0].Port}"));
     }
 }
