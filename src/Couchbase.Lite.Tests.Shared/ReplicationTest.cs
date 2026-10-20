@@ -1448,13 +1448,29 @@ public sealed class ReplicatorTest(ITestOutputHelper output) : ReplicatorTestBas
         DefaultCollection.Count.ShouldBe(0UL);
     }
 
+    [Theory]
+    [InlineData("ws://daniel:123@localhost/db")]
+    [InlineData("ws://daniel:1:2:3@localhost/db")] // Password containing ':'
+    [InlineData("ws://daniel:@localhost/db")]      // Empty password
+    public void TestURLEndpointRejectsEmbeddedPassword(string url)
+    {
+        Should.Throw<ArgumentException>(() => new URLEndpoint(new Uri(url)));
+    }
+
+    [Fact]
+    public void TestURLEndpointAllowsUsernameOnly()
+    {
+        Should.NotThrow(() => new URLEndpoint(new Uri("ws://daniel@localhost/db")));
+    }
+
     [Fact]
     public void TestConflictResolverWrongDocID()
     {
         CreateReplicationConflict("doc1");
 
         var resolver = new TestConflictResolver(_ => {
-            var doc = new MutableDocument("wrong_id");
+            // Braces guard against the doc ID being treated as a format string when logged
+            var doc = new MutableDocument("wrong_{id}");
             doc.SetString("wrong_id_key", "wrong_id_value");
             return doc;
         });

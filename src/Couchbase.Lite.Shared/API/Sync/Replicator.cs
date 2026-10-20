@@ -643,7 +643,7 @@ public sealed unsafe class Replicator
         foreach (var replicatedDocument in replications) {
             var replication = replicatedDocument;
             // Conflict pulling a document -- the revision was added but app needs to resolve it:
-            var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.PotentiallyInsecure);
+            var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.UserData);
             WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
             var cancelToken = _conflictCancelSource.Token;
             var t = Task.Run(() =>
@@ -666,7 +666,8 @@ public sealed unsafe class Replicator
                 }
 
                 if (replication.Error != null) {
-                    WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", replication.Error);
+                    WriteLog.To.Sync.W(Tag, "Conflict resolution of '{0}' failed: {1}",
+                        new SecureLogString(replication.Id, LogMessageSensitivity.UserData), replication.Error);
                 }
 
                 _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs([replication], false));
@@ -695,7 +696,7 @@ public sealed unsafe class Replicator
             
             var docID = replication.Id;
             var transient = replication.IsTransient;
-            var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+            var logDocID = new SecureLogString(docID, LogMessageSensitivity.UserData);
             var transientStr = transient ? "transient " : String.Empty;
             var dirStr = pushing ? "pushing" : "pulling";
             WriteLog.To.Sync.I(Tag,
@@ -1012,7 +1013,7 @@ public sealed unsafe class Replicator
         C4Error err = new C4Error();
         var setResult = NativeSafe.c4repl_setProgressLevel(_repl, progressLevel, &err);
         if (!setResult || err.code > 0) {
-            WriteLog.To.Sync.W(Tag, $"Failed set progress level to {progressLevel}", err);
+            WriteLog.To.Sync.W(Tag, "Failed set progress level to {0} ({1}/{2})", progressLevel, err.domain, err.code);
         }
     }
 
@@ -1073,7 +1074,12 @@ public sealed unsafe class Replicator
             sb.Append(">");
         }
 
-        return $"{nameof(Replicator)}[{sb} {Config.Target}]";
+        // Only the host, tagged as system data: the full URL may contain a username or query
+        // string tokens.  Other endpoint types are responsible for their own ToString.
+        var target = Config.Target is URLEndpoint urlEndpoint
+            ? new SecureLogString(urlEndpoint.Url.Host, LogMessageSensitivity.SystemData)
+            : (object)Config.Target;
+        return $"{nameof(Replicator)}[{sb} {target}]";
     }
 
     /// <inheritdoc />

@@ -1,20 +1,20 @@
-﻿// 
+﻿//
 //  Database.cs
-// 
+//
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-// 
+//
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
-// 
+//
 //  http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //  Unless required by applicable law or agreed to in writing, software
 //  distributed under the License is distributed on an "AS IS" BASIS,
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
-// 
+//
 
 using System;
 using System.Collections.Generic;
@@ -63,7 +63,7 @@ public enum ConcurrencyControl
 }
 
 /// <summary>
-/// Maintenance Type used when performing database maintenance .
+/// Maintenance Type used when performing database maintenance
 /// </summary>
 public enum MaintenanceType
 {
@@ -271,7 +271,7 @@ public sealed unsafe partial class Database : IDisposable
         using var scope = ThreadSafety.BeginLockedScope();
         CheckOpen();
         if (_defaultCollection is { IsValid: true }) return _defaultCollection;
-            
+
         var c4Coll = LiteCoreBridge.CheckTyped(err => NativeSafe.c4db_getDefaultCollection(C4db, err))!;
         _defaultCollection = new Collection(this, DefaultCollectionName, GetDefaultScope(), c4Coll);
         return _defaultCollection;
@@ -279,7 +279,7 @@ public sealed unsafe partial class Database : IDisposable
 
     /// <summary>
     /// Get scope names that have at least one collection.
-    /// The default scope is an exception as it will always be listed even it doesn't contain any collection.    
+    /// The default scope is an exception as it will always be listed even it doesn't contain any collection.
     /// </summary>
     /// <returns>
     /// scope names of all existing scopes, in the order in which they were created.
@@ -308,8 +308,8 @@ public sealed unsafe partial class Database : IDisposable
     }
 
     /// <summary>
-    /// Get a scope object by name. As the scope cannot exist by itself without having a collection, the null 
-    /// value will be returned if there is no collection under the given scope’s name. 
+    /// Get a scope object by name. As the scope cannot exist by itself without having a collection, the null
+    /// value will be returned if there is no collection under the given scope’s name.
     /// The default scope is an exception, it will always be returned.
     /// </summary>
     /// <param name="name">The name of the scope</param>
@@ -339,10 +339,10 @@ public sealed unsafe partial class Database : IDisposable
     }
 
     /// <summary>
-    /// Get a collection in the specified scope by name. 
+    /// Get a collection in the specified scope by name.
     /// If the collection doesn't exist, null will be returned.
     /// Note that this will cache after the first retrieval
-    /// and return the same instance until said instance is disposed.  Be careful if using multiple 
+    /// and return the same instance until said instance is disposed.  Be careful if using multiple
     /// instances because disposing one will invalidate them all.
     /// </summary>
     /// <param name="name">The name of the collection</param>
@@ -365,7 +365,7 @@ public sealed unsafe partial class Database : IDisposable
     /// If the collection already exists, the existing collection will be returned.
     /// </summary>
     /// <remarks>
-    /// None default Collection and Scope Names are allowed to contain the following characters 
+    /// None default Collection and Scope Names are allowed to contain the following characters
     /// A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
     /// None default Collection and Scope Names start with _ and % are prohibited
     /// </remarks>
@@ -386,7 +386,7 @@ public sealed unsafe partial class Database : IDisposable
 
     /// <summary>
     /// Delete a collection by name  in the specified scope. If the collection doesn't exist, the operation
-    /// will be no-ops. 
+    /// will be no-ops.
     /// </summary>
     /// <param name="name">The name of the collection to be deleted</param>
     /// <param name="scope">The scope of the collection to be deleted</param>
@@ -439,7 +439,7 @@ public sealed unsafe partial class Database : IDisposable
                 }
             }
 #endif
-            
+
             using var parentDirectory = new C4String(config?.Directory);
             // NOTE: config.FullSync is ignored since it is not useful for this process.
             // A temporary db is used during the copy so any errors or power outages
@@ -498,7 +498,7 @@ public sealed unsafe partial class Database : IDisposable
     {
         using var threadSafetyScope = ThreadSafety.BeginLockedScope();
         CheckOpen();
-        LiteCoreBridge.Check(err => 
+        LiteCoreBridge.Check(err =>
             NativeSafe.c4db_maintenance(C4db, (C4MaintenanceType)type, err));
     }
 
@@ -576,7 +576,7 @@ public sealed unsafe partial class Database : IDisposable
     /// Gets the <see cref="Blob"/> of a given blob dictionary.
     /// </summary>
     /// <remarks>The blobs that are not associated with any documents are/will be removed from the database after compacting the database.</remarks>
-    /// <param name="blobDict"> 
+    /// <param name="blobDict">
     /// JSON Dictionary represents in the <see cref="Blob"/> and the value will be validated in <see cref="Blob.IsBlob(IDictionary{string, object})"/>
     /// </param>
     /// <exception cref="ArgumentException">Throw if the given blob dictionary is not valid.</exception>
@@ -608,7 +608,7 @@ public sealed unsafe partial class Database : IDisposable
             WriteLog.To.Database.E(Tag, "Failed to add active stoppable {0} (already exists)", stoppable);
             return;
         }
-        
+
         WriteLog.To.Database.I(Tag, "Added active stoppable {0} (new count {1})", stoppable, ActiveStoppables.Count);
         _closeCondition.Reset();
     }
@@ -667,16 +667,29 @@ public sealed unsafe partial class Database : IDisposable
         var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
         var err = new C4Error();
         if (C4db == null) {
-            WriteLog.To.Sync.W(Tag, $"Failed saving Cookie {cookie} (closed db).");
+            WriteLog.To.Sync.W(Tag, "Failed saving Cookie '{0}=***' for {1} (closed db).", CookieName(cookie),
+                new SecureLogString(uri.Host, LogMessageSensitivity.SystemData));
             return cookieSaved;
         }
-            
+
         cookieSaved = NativeSafe.c4db_setCookie(C4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
         if(err.code > 0) {
-            WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
+            WriteLog.To.Sync.W(Tag, "{0}/{1} Failed saving Cookie '{2}=***' for {3}.", err.domain, err.code,
+                CookieName(cookie), new SecureLogString(uri.Host, LogMessageSensitivity.SystemData));
         }
 
         return cookieSaved;
+    }
+
+    // The cookie value is a credential (e.g. a session token) and must never be logged,
+    // but the name is useful context for diagnosing which cookie failed.  Only the first
+    // name=value pair is the cookie; the rest are attributes (Path=, Domain=, ...), so a
+    // malformed cookie without a name must not fall through to an attribute's '='.
+    internal static string CookieName(string cookie)
+    {
+        var pair = cookie.Split([';'], 2)[0];
+        var separator = pair.IndexOf('=');
+        return separator > 0 ? pair.Substring(0, separator).Trim() : "(unnamed)";
     }
 
     internal void ResolveConflict(string docID, IConflictResolver? conflictResolver, Collection collection)
@@ -698,7 +711,7 @@ public sealed unsafe partial class Database : IDisposable
                     remoteDoc = new Document(collection ?? GetDefaultCollection(), docID, C4DocContentLevel.DocGetAll);
                     if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                         WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                            new SecureLogString(docID, LogMessageSensitivity.UserData));
                         return;
                     }
 
@@ -715,7 +728,7 @@ public sealed unsafe partial class Database : IDisposable
                 } else {
                     // Resolve conflict:
                     WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevisionID,
+                        new SecureLogString(docID, LogMessageSensitivity.UserData), localDoc.RevisionID,
                         remoteDoc!.RevisionID);
 
                     conflictResolver = conflictResolver ?? ConflictResolver.Default;
@@ -726,8 +739,9 @@ public sealed unsafe partial class Database : IDisposable
 
                 if (resolvedDoc != null) {
                     if (resolvedDoc.Id != docID) {
-                        WriteLog.To.Sync.W(Tag, $"Resolved docID {resolvedDoc.Id} does not match docID {docID}",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                        WriteLog.To.Sync.W(Tag, "Resolved docID {0} does not match docID {1}",
+                            new SecureLogString(resolvedDoc.Id, LogMessageSensitivity.UserData),
+                            new SecureLogString(docID, LogMessageSensitivity.UserData));
                         Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                     }
 
@@ -801,8 +815,9 @@ public sealed unsafe partial class Database : IDisposable
         if (IsClosed || !disposing) {
             return;
         }
-        
-        WriteLog.To.Database.I(Tag, $"Closing database at path {NativeSafe.c4db_getPath(C4db)}");
+
+        WriteLog.To.Database.I(Tag, "Closing database at path {0}",
+            new SecureLogString(NativeSafe.c4db_getPath(C4db) ?? String.Empty, LogMessageSensitivity.SystemData));
         if (!IsShell) {
             LiteCoreBridge.Check(err =>
             {
@@ -810,7 +825,7 @@ public sealed unsafe partial class Database : IDisposable
                 if (!closeResult) {
                     return false;
                 }
-                
+
                 C4db.Dispose();
                 C4db = null;
                 return true;
@@ -829,7 +844,7 @@ public sealed unsafe partial class Database : IDisposable
         try {
             Directory.CreateDirectory(Config.Directory);
         } catch (Exception e) {
-            throw new CouchbaseLiteException(C4ErrorCode.CantOpenFile, 
+            throw new CouchbaseLiteException(C4ErrorCode.CantOpenFile,
                 CouchbaseLiteErrorMessage.CreateDBDirectoryFailed, e);
         }
 
@@ -853,7 +868,8 @@ public sealed unsafe partial class Database : IDisposable
         }
             #endif
 
-        WriteLog.To.Database.I(Tag, $"Opening {encrypted} database at { DatabasePath(Name, Config.Directory)}");
+        WriteLog.To.Database.I(Tag, "Opening {0} database at {1}", encrypted,
+            new SecureLogString(DatabasePath(Name, Config.Directory), LogMessageSensitivity.SystemData));
         var localConfig1 = config;
         C4db = LiteCoreBridge.CheckTyped(err =>
         {
@@ -928,14 +944,14 @@ public sealed unsafe partial class Database : IDisposable
                 if (err.code == (int) C4ErrorCode.Conflict) {
                     return false;
                 }
-                
+
                 throw new CouchbaseLiteException((C4ErrorCode) err.code,
                     CouchbaseLiteErrorMessage.ResolvedDocFailedLiteCore);
             }
         }
 
         WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
-            new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
+            new SecureLogString(localDoc.Id, LogMessageSensitivity.UserData),
             docToEdit.RawDoc->revID);
 
         return true;
@@ -966,11 +982,11 @@ public sealed unsafe partial class Database : IDisposable
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => 
+    public override bool Equals(object? obj) =>
         obj is Database other && String.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
-    public override string ToString() => $"DB[{Path}]";
+    public override string ToString() => $"DB[{new SecureLogString(Path ?? String.Empty, LogMessageSensitivity.SystemData)}]";
     /// <summary>
     /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
     /// </summary>

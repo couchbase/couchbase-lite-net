@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Threading;
 
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
 
 using LiteCore.Interop;
 using System.Collections.Concurrent;
@@ -70,7 +71,7 @@ internal static unsafe class WebSocketTransport
     }
 
     private static void DoError(C4Socket* socket, Exception e) => 
-        WriteLog.To.Sync.E(Tag, "Websocket Error", e);
+        WriteLog.To.Sync.E(Tag, "Websocket Error: {0}", new SecureLogString(e, LogMessageSensitivity.SystemData));
 
     private static void DoOpen(C4Socket* socket, C4Address* address, FLSlice options, void* context)
     {

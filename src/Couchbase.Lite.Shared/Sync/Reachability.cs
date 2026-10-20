@@ -87,7 +87,8 @@ internal sealed class Reachability : IReachability
 
     private static bool IsInterfaceValid(NetworkInterface ni)
     {
-        WriteLog.To.Sync.V(Tag, "    Testing {0} ({1})...", ni.Name, ni.Description);
+        WriteLog.To.Sync.V(Tag, "    Testing {0} ({1})...", new SecureLogString(ni.Name, LogMessageSensitivity.SystemData),
+            new SecureLogString(ni.Description, LogMessageSensitivity.SystemData));
         if (ni.OperationalStatus != OperationalStatus.Up) {
             WriteLog.To.Sync.V(Tag, "    NIC invalid (not up)");
             return false;
@@ -104,7 +105,8 @@ internal sealed class Reachability : IReachability
             return false;
         }
 
-        WriteLog.To.Sync.I(Tag, "Found Acceptable NIC {0} ({1})", ni.Name, ni.Description);
+        WriteLog.To.Sync.I(Tag, "Found Acceptable NIC {0} ({1})", new SecureLogString(ni.Name, LogMessageSensitivity.SystemData),
+            new SecureLogString(ni.Description, LogMessageSensitivity.SystemData));
         return true;
     }
 
@@ -125,7 +127,7 @@ internal sealed class Reachability : IReachability
                 WriteLog.To.Sync.I(Tag, "No acceptable IP addresses found, signaling network unreachable");
                 status = NetworkReachabilityStatus.Unreachable;
             } else {
-                WriteLog.To.Sync.I(Tag, "At least one acceptable IP address found ({0}), signaling network reachable", new SecureLogString(firstValidIP, LogMessageSensitivity.PotentiallyInsecure));
+                WriteLog.To.Sync.I(Tag, "At least one acceptable IP address found ({0}), signaling network reachable", new SecureLogString(firstValidIP, LogMessageSensitivity.SystemData));
                 status = NetworkReachabilityStatus.Reachable;
             }
         }

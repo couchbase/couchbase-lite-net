@@ -152,7 +152,7 @@ public sealed class MutableDocument : Document, IMutableDictionary
     /// <inheritdoc />
     public override string ToString()
     {
-        var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
+        var id = new SecureLogString(Id, LogMessageSensitivity.UserData);
         return $"{GetType().Name}[{id}]";
     }
 

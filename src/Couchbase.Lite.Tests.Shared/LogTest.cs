@@ -37,6 +37,35 @@ namespace Test;
 public sealed class LogTest(ITestOutputHelper output)
 {
     [Fact]
+    public void TestSecureLogStringTagsBySensitivity()
+    {
+        new SecureLogString("doc1", LogMessageSensitivity.UserData).ToString().ShouldBe("<ud>doc1</ud>");
+        new SecureLogString("10.0.0.1", LogMessageSensitivity.SystemData).ToString().ShouldBe("<sd>10.0.0.1</sd>");
+    }
+
+    [Fact]
+    public void TestSecureLogStringTruncatesLongValues()
+    {
+        var longValue = new string('a', 150);
+        new SecureLogString(longValue, LogMessageSensitivity.UserData).ToString()
+            .ShouldBe($"<ud>{new string('a', 100)}...</ud>");
+    }
+
+    [Fact]
+    public void TestSecureLogStringDoesNotTruncateExceptions()
+    {
+        Exception exception;
+        try {
+            throw new InvalidOperationException(new string('a', 150));
+        } catch (Exception e) {
+            exception = e;
+        }
+
+        new SecureLogString(exception, LogMessageSensitivity.SystemData).ToString()
+            .ShouldBe($"<sd>{exception}</sd>", "because exceptions keep their full message and stack trace");
+    }
+
+    [Fact]
     public void TestDefaultLogFormat()
     {
         var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestDefaultLogFormat"));
