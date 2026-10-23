@@ -64,8 +64,24 @@ namespace Test
         public LogTest(ITestOutputHelper output)
         {
             _output = output;
+            ResetOldApiState();
         }
 #endif
+
+        // The old and new logging APIs cannot be mixed, so a previous test that leaked
+        // old API state would otherwise cause every new API test in this class to fail
+        private static void ResetOldApiState()
+        {
+            if (Database.Log.Custom != null) {
+                Database.Log.Custom = null;
+            }
+
+            if (Database.Log.File.Config != null) {
+                Database.Log.File.Config = null;
+            }
+
+            Database.Log.Console.Level = LogLevel.Warning;
+        }
 
 #if WINDOWS_UWP
         private TestContext _testContext;
