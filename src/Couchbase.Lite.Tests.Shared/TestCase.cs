@@ -112,9 +112,16 @@ namespace Test
         { 
         #endif
             var nextCounter = Interlocked.Increment(ref _counter);
-            Database.Delete($"{DatabaseName}{nextCounter}", Directory);
-            OpenDB(nextCounter);
-            CollA = Db.CreateCollection("CollA");
+            try {
+                Database.Delete($"{DatabaseName}{nextCounter}", Directory);
+                OpenDB(nextCounter);
+                CollA = Db.CreateCollection("CollA");
+            } catch {
+                // Dispose is not called when the constructor throws, so undo the
+                // logger setup here or it will leak into subsequent tests
+                Database.Log.Custom = null;
+                throw;
+            }
         }
 
         protected void WriteLine(string line)
