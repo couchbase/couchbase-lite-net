@@ -25,6 +25,7 @@ using Windows.Networking.Connectivity;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -65,7 +66,9 @@ namespace Couchbase.Lite.Support
             }
 
             var uri = config.ProxyUris.FirstOrDefault();
-            WriteLog.To.Sync.I(Tag, "Using {0} as proxy server for {1}", uri, destination);
+            WriteLog.To.Sync.I(Tag, "Using {0} as proxy server for {1}",
+                new SecureLogString(uri?.ToString() ?? "(null)", LogMessageSensitivity.SystemData),
+                new SecureLogString(destination, LogMessageSensitivity.SystemData));
             return new WebProxy(uri);
             #endif
         }

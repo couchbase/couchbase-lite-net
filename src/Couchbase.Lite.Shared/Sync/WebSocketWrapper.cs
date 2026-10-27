@@ -34,6 +34,7 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 using Dispatch;
 using LiteCore.Interop;
@@ -263,7 +264,8 @@ internal sealed class WebSocketWrapper
 
             //Throw if input network adapter does not exist
             if (ni == null) {
-                WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
+                WriteLog.To.Sync.I(Tag, "Unknown Network Interface {0}.",
+                    new SecureLogString(_options.NetworkInterface!, LogMessageSensitivity.SystemData));
                 throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownInterface);
             }
 
@@ -284,11 +286,13 @@ internal sealed class WebSocketWrapper
                 return GetTcpClient(AddressFamily.InterNetwork, addresses);
             }
 
-            WriteLog.To.Sync.I(Tag, $"Network Interface {_options.NetworkInterface} supports neither IPv6 nor IPv4.");
+            WriteLog.To.Sync.I(Tag, "Network Interface {0} supports neither IPv6 nor IPv4.",
+                new SecureLogString(_options.NetworkInterface!, LogMessageSensitivity.SystemData));
             throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownInterface);
 
         } catch (Exception) {
-            WriteLog.To.Sync.I(Tag, $"Failed Creating Tcp Client with Network Interface {_options.NetworkInterface}.");
+            WriteLog.To.Sync.I(Tag, "Failed Creating Tcp Client with Network Interface {0}.",
+                new SecureLogString(_options.NetworkInterface!, LogMessageSensitivity.SystemData));
             throw;
         }
     }
@@ -303,7 +307,9 @@ internal sealed class WebSocketWrapper
             //Create and return tcp client, if ip address is null, ArgumentNullException will be thrown
             return new TcpClient(new IPEndPoint(ip, 0));
         } catch (Exception) {
-            WriteLog.To.Sync.I(Tag, $"TcpClient failed to bind Network Interface {_options.NetworkInterface} with {ip} in family {af}.");
+            WriteLog.To.Sync.I(Tag, "TcpClient failed to bind Network Interface {0} with {1} in family {2}.",
+                new SecureLogString(_options.NetworkInterface!, LogMessageSensitivity.SystemData),
+                new SecureLogString(ip?.ToString() ?? "(null)", LogMessageSensitivity.SystemData), af);
             throw;
         }
     }
@@ -390,7 +396,8 @@ internal sealed class WebSocketWrapper
 
         ResetConnections();
 
-        WriteLog.To.Sync.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
+        WriteLog.To.Sync.I(Tag, "WebSocket CLOSED WITH STATUS {0} \"{1}\"", closeCode,
+            new SecureLogString(reason ?? String.Empty, LogMessageSensitivity.SystemData));
         var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int) closeCode, reason);
         _c4Queue.DispatchAsync(() =>
         {
@@ -409,7 +416,7 @@ internal sealed class WebSocketWrapper
 
         C4Error c4Err;
         if (e != null && !(e is ObjectDisposedException) && !(e.InnerException is ObjectDisposedException)) {
-            WriteLog.To.Sync.I(Tag, $"WebSocket CLOSED WITH ERROR: {e}");
+            WriteLog.To.Sync.I(Tag, "WebSocket CLOSED WITH ERROR: {0}", new SecureLogString(e, LogMessageSensitivity.SystemData));
             Status.ConvertNetworkError(e, &c4Err);
         } else {
             WriteLog.To.Sync.I(Tag, "WebSocket CLOSED");
@@ -449,7 +456,8 @@ internal sealed class WebSocketWrapper
 
             ReceivedHttpResponse(parser);
         } catch (Exception e) {
-            WriteLog.To.Sync.I(Tag, "Error reading HTTP response of websocket handshake", e);
+            WriteLog.To.Sync.I(Tag, "Error reading HTTP response of websocket handshake: {0}",
+                new SecureLogString(e, LogMessageSensitivity.SystemData));
             DidClose(e);
         }
     }
@@ -778,7 +786,8 @@ internal sealed class WebSocketWrapper
     private void StartInternal()
     {
         // STEP 3: Create the WebSocket Upgrade HTTP request
-        WriteLog.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
+        WriteLog.To.Sync.I(Tag, "WebSocket connecting to {0}",
+            new SecureLogString($"{_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}", LogMessageSensitivity.SystemData));
         var rng = RandomNumberGenerator.Create() ?? throw new RuntimeException("Failed to create RandomNumberGenerator");
         var nonceBytes = new byte[16];
         rng.GetBytes(nonceBytes);
@@ -910,8 +919,9 @@ internal sealed class WebSocketWrapper
                             continue;
                         }
                         
-                        WriteLog.To.Sync.V(Tag,
-                            $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                        WriteLog.To.Sync.V(Tag, "Error {0} ({1}) for certificate:{2}{3}", status.Status,
+                            status.StatusInformation, Environment.NewLine,
+                            new SecureLogString(element.Certificate, LogMessageSensitivity.SystemData));
                         if (status.Status != X509ChainStatusFlags.UntrustedRoot) {
                             continue;
                         }
@@ -981,13 +991,19 @@ internal sealed class WebSocketWrapper
             var buffer = new byte[16384];
             var responseLength = stream.Read(buffer, 0, buffer.Length);
             var resp = Encoding.UTF8.GetString(buffer, 0, responseLength);
-            if (resp.Contains("200")) {
+
+            // Only the status code from the status line ("HTTP/1.1 200 Connection established")
+            // is examined; the rest of the response may contain hosts or cookies and is never logged
+            var statusLine = resp.Split(["\r\n"], 2, StringSplitOptions.None)[0];
+            var statusParts = statusLine.Split(' ');
+            var status = statusParts.Length > 1 && Int32.TryParse(statusParts[1], out var parsed) ? parsed : -1;
+            if (status is >= 200 and < 300) {
                 OpenConnectionToRemote();
-            } else if(resp.Contains("407")) {
+            } else if (status == 407) {
                 WriteLog.To.Sync.W(Tag, "Proxy returned HTTP 407, credentials needed.  Set ProxyAuthenticator on Replicator.");
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Invalid proxy credentials");
             } else {
-                throw new CouchbaseLiteException(C4ErrorCode.RemoteError, $"Response from server did not indicate success: {resp}");
+                throw new CouchbaseLiteException(C4ErrorCode.RemoteError, $"Proxy response did not indicate success (HTTP status {status})");
             }
         });
     }

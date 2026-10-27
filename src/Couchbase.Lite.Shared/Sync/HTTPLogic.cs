@@ -214,6 +214,15 @@ internal sealed class HTTPLogic(Uri url)
             return false;
         }
 
+        // The retried request carries the Authorization and Cookie headers (and any custom
+        // headers), so only follow redirects to the same host and port, and never from TLS
+        // to plain HTTP
+        var redirectUsesTls = url.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
+        if (!url.Host.Equals(_urlRequest.Host, StringComparison.OrdinalIgnoreCase) || url.Port != Port ||
+            (UseTls && !redirectUsesTls)) {
+            return false;
+        }
+
         _urlRequest = new UriBuilder(url);
         return true;
     }

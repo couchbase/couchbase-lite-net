@@ -354,6 +354,33 @@ namespace Test
             dataString.IndexOf("\r\n\r\n", StringComparison.Ordinal).ShouldBe(dataString.Length - 4);
         }
 
+        [Theory]
+        [InlineData("ws://sg.example.com:4984/db", "http://sg.example.com:4984/other", true)]
+        [InlineData("wss://sg.example.com/db", "https://SG.example.com/other", true)]
+        [InlineData("ws://sg.example.com:4984/db", "http://evil.example.com:4984/db", false)]
+        [InlineData("ws://sg.example.com:4984/db", "http://sg.example.com:4985/db", false)]
+        [InlineData("wss://sg.example.com:4984/db", "http://sg.example.com:4984/db", false)] // TLS downgrade
+        public void TestHTTPLogicRedirectStaysOnSameHost(string original, string location, bool followed)
+        {
+            var logic = new HTTPLogic(new Uri(original))
+            {
+                Credential = new NetworkCredential("user", "password")
+            };
+            var parser = new HttpMessageParser("HTTP/1.1 302 Found");
+            parser.Append($"Location: {location}");
+            logic.ReceivedResponse(parser);
+
+            logic.ShouldRetry.ShouldBe(followed);
+            if (followed) {
+                logic.Error.ShouldBeNull();
+            } else {
+                logic.Error.ShouldBeOfType<CouchbaseNetworkException>()
+                    .Error.ShouldBe(CouchbaseLiteError.InvalidRedirect,
+                        "because credentials must not be sent to another host or over plain HTTP");
+                logic.UrlRequest.ShouldBe(new Uri(original));
+            }
+        }
+
         [Fact]
         public void TestGettingPortFromHTTPLogic()
         {

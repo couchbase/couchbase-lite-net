@@ -103,7 +103,7 @@ internal sealed class MacProxy : IProxy
         }
 
         CFRelease(proxies);
-        return Task.FromResult<WebProxy?>(new WebProxy(new Uri($"{hostUrlString}:{port}")));
+        return Task.FromResult<WebProxy?>(new WebProxy(new Uri($"http://{hostUrlString}:{port}")));
     }
 
     private static IntPtr LoadCFNetwork()

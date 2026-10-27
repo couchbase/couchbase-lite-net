@@ -1389,6 +1389,16 @@ public class DatabaseTest(ITestOutputHelper output) : TestCase(output)
     }
 
     [Fact]
+    public void TestCookieNameNeverIncludesCookieValue()
+    {
+        Database.CookieName("SyncGatewaySession=abc123; Path=/").ShouldBe("SyncGatewaySession");
+        Database.CookieName("session-secret; Path=/").ShouldBe("(unnamed)",
+            "because a malformed cookie without a name must not log text from its attributes");
+        Database.CookieName("session-secret").ShouldBe("(unnamed)");
+        Database.CookieName("=session-secret").ShouldBe("(unnamed)");
+    }
+
+    [Fact]
     public void TestDatabaseSaveAndGetCookies()
     {
         var uri = new Uri("http://example.com/");

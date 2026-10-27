@@ -153,7 +153,9 @@ internal sealed class DomainLogger
             var logType = fileSucceeded
                 ? LogSinks.Custom?.GetType()?.Name
                 : "log file";
-            var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
+            // The exception may contain the log directory path, so tag it
+            var errMsg = FormatMessage("FILELOG",
+                $"Error writing to {logType}: {new SecureLogString(e, LogMessageSensitivity.SystemData)}");
             LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
             if (!fileSucceeded) {
                 LogSinks.Console?.Log(LogLevel.Error, LogDomain.None, errMsg);
