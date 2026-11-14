@@ -346,15 +346,17 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
         }
 
         if (ContainsKey(ChannelsKey)) {
-            Channels = (this[ChannelsKey] as IImmutableList<string>)!;
+            Channels = ToImmutableStrings(this[ChannelsKey]);
         }
 
         if (ContainsKey(DocIDsKey)) {
-            DocIDs = (this[DocIDsKey] as IImmutableList<string>)!;
+            DocIDs = ToImmutableStrings(this[DocIDsKey]);
         }
 
         if (ContainsKey(HeadersKey)) {
-            Headers = (this[HeadersKey] as IImmutableDictionary<string, string>)!;
+            Headers = (this[HeadersKey] as IEnumerable<KeyValuePair<string, object?>>)?
+                .ToImmutableDictionary(kv => kv.Key, kv => kv.Value as string)
+                ?? ImmutableDictionary<string, string?>.Empty;
         }
 
         if (ContainsKey(PinnedCertKey)) {
@@ -369,6 +371,10 @@ internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposab
             AddCookies(this[CookiesKey] as string);
         }
     }
+
+    // Fleece decodes arrays as List<object?>, so a direct cast to IImmutableList<string> yields null
+    private static IImmutableList<string> ToImmutableStrings(object? value) =>
+        (value as IEnumerable<object?>)?.OfType<string>().ToImmutableList() ?? ImmutableList<string>.Empty;
 
     private void AddCookies(string? cookiesString)
     {
