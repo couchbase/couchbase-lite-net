@@ -426,6 +426,25 @@ namespace Test
         }
 
         [Fact]
+        public void TestReplicatorOptionsRoundTripFromNative()
+        {
+            // Fleece decodes dictionaries / arrays as Dictionary<string, object?> / List<object?>
+            var raw = new Dictionary<string, object?>
+            {
+                ["headers"] = new Dictionary<string, object?> { ["Authorization"] = "Basic abc", ["X-Foo"] = "bar" },
+                ["channels"] = new List<object?> { "ch1", "ch2" },
+                ["docIDs"] = new List<object?> { "doc1" }
+            };
+
+            using var options = new ReplicatorOptionsDictionary(raw);
+            options.Headers.Count.ShouldBe(2);
+            options.Headers["Authorization"].ShouldBe("Basic abc");
+            options.Headers["X-Foo"].ShouldBe("bar");
+            options.Channels.ShouldBe(new[] { "ch1", "ch2" });
+            options.DocIDs.ShouldBe(new[] { "doc1" });
+        }
+
+        [Fact]
         public void TestFLEncode()
         {
             TestRoundTrip(42);
